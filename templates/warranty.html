@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Warranty Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #0c0c1a; color: #e6e8f0; }
+    header { padding: 16px 24px; background: linear-gradient(135deg, #0f1d3f, #102a54); }
+    h1 { margin: 0; font-size: 20px; }
+    .container { padding: 24px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .card { background: #11182f; border: 1px solid #1f2a44; border-radius: 12px; padding: 16px; }
+    .title { font-weight: 700; margin-bottom: 8px; }
+    .badge { display: inline-block; padding: 4px 8px; border-radius: 8px; background: #1f3f7a; color: #a8c7ff; font-size: 12px; margin-right: 8px; }
+    .list { margin: 0; padding-left: 16px; }
+    .nudge { margin-bottom: 8px; padding: 8px; border-radius: 8px; background: #152447; }
+    .risk-low { color: #7ae4a5; }
+    .risk-medium { color: #f2cc60; }
+    .risk-high { color: #f06a6a; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Warranty Dashboard</h1>
+  </header>
+  <div class="container">
+    <div class="card">
+      <div class="title">Warranty</div>
+      <div>Brand: {{ warranty.brand }}</div>
+      <div>Model: {{ warranty.model_code }}</div>
+      <div>Expiry: {{ warranty.expiry_date }}</div>
+      <div>Coverage (months): {{ warranty.coverage_months }}</div>
+      {% if warranty.expiry_date %}
+      {% set days_left = ((warranty.expiry_date | todatetime) - (utcnow() | todatetime)).days %}
+      <div>Days left: {{ days_left }}</div>
+      <div style="background:#0b1226;border-radius:8px;padding:4px;">
+        <div style="width: {{ 100 if days_left>365 else (days_left/365*100) }}%; background:#1f7ae0; height:12px; border-radius:6px;"></div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <div class="title">Summary</div>
+      <div>{{ summary }}</div>
+    </div>
+
+    <div class="card">
+      <div class="title">Risk & Predictive</div>
+      <div class="badge">Risk: <span class="risk-{{ risk.band }}">{{ risk.band }}</span> ({{ risk.value if risk.value is defined else '' }})</div>
+      <div class="badge">Predictive: <span class="risk-{{ predictive.band }}">{{ predictive.band }}</span> ({{ predictive.score }})</div>
+      <div>Reasons:</div>
+      <ul class="list">
+        {% for r in predictive.reasons %}
+          <li>{{ r }}</li>
+        {% endfor %}
+      </ul>
+      <div>Suggested questions:</div>
+      <ul class="list">
+        {% for q in predictive.suggested_questions %}
+          <li>{{ q }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="title">Advisories ({{ variant }})</div>
+      {% for n in nudges %}
+        <div class="nudge">
+          <div><strong>{{ n.title }}</strong></div>
+          <div>{{ n.message }}</div>
+          {% if n.suggested_actions %}
+          <ul class="list">
+            {% for a in n.suggested_actions %}
+              <li>{{ a }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+body, html {
+  margin: 0;
+  padding: 0;
+  background: #0b0f1f;
+  color: #e9ecf6;
+  font-family: Arial, sans-serif;
+}
+header { padding: 16px 24px; background: linear-gradient(135deg, #0f214a, #102a54); }
+h1 { margin: 0; font-size: 20px; }
+main { padding: 16px 24px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.card { background: #121b33; border: 1px solid #1f2a44; border-radius: 12px; padding: 16px; }
+label { display: block; margin-bottom: 6px; }
+input { width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #1f2a44; background: #0e152b; color: #e9ecf6; }
+button { padding: 10px 14px; background: #1f7ae0; color: white; border: none; border-radius: 8px; cursor: pointer; }
+.nudge { padding: 8px; border-radius: 8px; background: #162548; margin-bottom: 8px; }
+.status { margin-top: 8px; color: #a8c7ff; }
+pre { white-space: pre-wrap; }

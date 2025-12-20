@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OEM Analytics</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --border: #e5e7eb;
+      --shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+    }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .container { max-width: 1180px; margin: 0 auto; padding: 16px 16px 28px; display:flex; flex-direction:column; gap:16px; }
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+    .title { font-size: 22px; margin: 8px 0 4px; }
+    .subtitle { color: var(--muted); margin: 0 0 16px 0; }
+    .row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    select, button, input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+      background: #fff;
+      color: var(--text);
+    }
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      min-height: 44px;
+      font-weight: 700;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #eef2ff;
+      color: #1d4ed8;
+      margin-right: 6px;
+      margin-bottom: 4px;
+    }
+    .top-bar { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .notif-wrap { position:relative; }
+    .icon-btn {
+      width:60px; height:60px; border-radius:16px; border:none;
+      background:linear-gradient(135deg,var(--accent),#3b82f6);
+      display:flex; align-items:center; justify-content:center; cursor:pointer;
+      box-shadow:0 14px 32px rgba(37,99,235,0.22);
+      transition:transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .icon-btn svg { stroke:#fff; width:28px; height:28px; }
+    .icon-btn:hover { transform:translateY(-1px); box-shadow:0 16px 36px rgba(37,99,235,0.28); }
+    .notif-badge {
+      position:absolute; top:-4px; right:-4px; background:#ef4444; color:#fff;
+      border-radius:999px; padding:2px 6px; font-size:11px; font-weight:800; min-width:18px; text-align:center;
+    }
+    .notif-panel {
+      position:absolute; top:44px; right:0; width:260px; background:#fff; border:1px solid var(--border);
+      border-radius:12px; box-shadow:0 18px 40px rgba(17,24,39,0.12); padding:10px; z-index:20;
+    }
+    .notif-panel.hidden { display:none; }
+    .notif-item { padding:10px; border-bottom:1px solid var(--border); }
+    .notif-item:last-child { border-bottom:none; }
+    .notif-title { font-weight:700; font-size:13px; margin-bottom:4px; }
+    .notif-message { font-size:12px; color:var(--muted); }
+    ul {
+      padding-left: 18px;
+      margin: 6px 0;
+    }
+    .grid-cards { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:12px; }
+    #productInterest .card { box-shadow:none; border:1px solid var(--border); margin-bottom:10px; }
+    @media (max-width: 640px) {
+      .container { padding: 14px; }
+      .top-bar { flex-direction: column; align-items: flex-start; }
+      .row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <script>
+    window.API_BASE = window.API_BASE || "";
+    function api(path) {
+      const base = (window.API_BASE || "").replace(/\/$/, "");
+      return `${base}${path}`;
+    }
+    async function fetchApiJson(path, options = {}, label = "request") {
+      const primary = api(path);
+      let res = await fetch(primary, options);
+      if (res.status === 404 && !path.startsWith("/api/")) {
+        res = await fetch(api("/api" + path), options);
+      }
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.toLowerCase().includes('application/json')) {
+        const txt = await res.text().catch(()=> '');
+        throw new Error(`Couldn't load ${label}: ${res.status} ${txt}`);
+      }
+      if (!res.ok) {
+        const txt = await res.text().catch(()=> '');
+        throw new Error(`Couldn't load ${label}: ${res.status} ${txt}`);
+      }
+      return res.json();
+    }
+  </script>
+  <div class="container">
+    <div class="top-bar">
+      <div>
+        <h1 class="title" style="margin:0;">OEM Analytics</h1>
+        <div class="subtitle">Overview of issues and device health.</div>
+      </div>
+      <div class="notif-wrap">
+        <button class="icon-btn" id="notifBtn" aria-label="OEM notifications" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
+        </button>
+        <div id="notifPanel" class="notif-panel hidden">
+          <div id="notifList" class="notif-list"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>Product type</label>
+          <select id="ptype">
+            <option value="">All</option>
+            <option value="washer">Washer</option>
+            <option value="fridge">Fridge</option>
+            <option value="ac">AC</option>
+          </select>
+        </div>
+        <div>
+          <label>Brand</label>
+          <input id="brand" type="text" placeholder="e.g., Samsung" />
+        </div>
+        <div>
+          <label>Region</label>
+          <input id="region" type="text" placeholder="e.g., APAC / NA" />
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <button id="run">Refresh</button>
+      </div>
+    </div>
+
+    <div class="card" id="risk-card">
+      <h3>Risk distribution</h3>
+      <div id="risk-content" class="row"></div>
+    </div>
+
+    <div class="card" id="customer-qs">
+      <h3>Customer Question Studio</h3>
+      <div class="row">
+        <div>
+          <label>Product type</label>
+          <select id="qs-ptype">
+            <option value="">All</option>
+            <option value="washer">Washer</option>
+            <option value="fridge">Fridge</option>
+            <option value="ac">AC</option>
+          </select>
+        </div>
+        <div>
+          <label>Brand</label>
+          <input id="qs-brand" type="text" placeholder="Brand" />
+        </div>
+        <div>
+          <label>Model</label>
+          <input id="qs-model" type="text" placeholder="Model code" />
+        </div>
+        <div>
+          <label>Region</label>
+          <input id="qs-region" type="text" placeholder="Region" />
+        </div>
+      </div>
+      <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+        <button id="qs-gen">Generate with AI (Ollama)</button>
+      </div>
+      <div id="qs-generated" class="helper" style="margin-top:8px;"></div>
+      <h4>Publish question</h4>
+      <textarea id="qs-text" rows="2" placeholder="Question text"></textarea>
+      <label>Answer type</label>
+      <select id="qs-answer-type">
+        <option value="choice">choice</option>
+        <option value="boolean">boolean</option>
+        <option value="text">text</option>
+      </select>
+      <div id="qs-options-wrap">
+        <label>Options (comma separated)</label>
+        <input id="qs-options" type="text" placeholder="Yes,No,Not sure" />
+      </div>
+      <button id="qs-publish">Publish to customers</button>
+      <div id="qs-status" class="helper"></div>
+      <h4>Active questions</h4>
+      <div id="qs-active" class="helper">Loading...</div>
+      <h4>LLM Status</h4>
+      <div id="llm-status" class="helper">Checking...</div>
+    </div>
+
+    <div class="card" id="rec-studio">
+      <h3>Recommendation Studio</h3>
+      <div class="helper">Preview lightweight OEM actions/suggestions for current filter.</div>
+      <div style="margin:8px 0;">
+        <button id="rec-gen">Generate recommendation</button>
+      </div>
+      <div id="rec-preview" class="helper">No preview yet.</div>
+    </div>
+
+    <div class="card">
+      <h3>Top issues and symptoms</h3>
+      <div id="issues"></div>
+    </div>
+
+    <div class="card">
+      <h3>User care snapshot</h3>
+      <div id="behaviour"></div>
+    </div>
+
+    <div class="card">
+      <h3>EV battery overview</h3>
+      <div id="evStats" class="placeholder">Loading...</div>
+    </div>
+
+    <div class="card">
+      <h3>Top product interest</h3>
+      <div id="productInterest" class="placeholder">Loading...</div>
+    </div>
+  </div>
+
+  <script>
+    let oemNotifications = [];
+    window.API_BASE = window.API_BASE || '';
+
+    async function fetchJsonSafe(url, options={}, label='request') {
+      const res = await fetch(url, options);
+      const ct = res.headers.get('content-type') || '';
+      const isJson = ct.toLowerCase().includes('application/json');
+      if (!res.ok || !isJson) {
+        const text = await res.text().catch(()=> '');
+        const reason = text || res.statusText || 'server error';
+        throw new Error(`Couldn't load ${label}: ${reason}`);
+      }
+      return res.json();
+    }
+
+    function updateBell(count) {
+      const badge = document.getElementById('notifBadge');
+      if (!badge) return;
+      if (!count) {
+        badge.style.display = 'none';
+        badge.textContent = '';
+      } else {
+        badge.style.display = 'inline-block';
+        badge.textContent = count;
+      }
+    }
+
+    function renderNotificationsPanel(list) {
+      const panel = document.getElementById('notifPanel');
+      const container = document.getElementById('notifList');
+      if (!panel || !container) return;
+      if (!list.length) {
+        container.innerHTML = '<div class="notif-item">No new alerts.</div>';
+        return;
+      }
+      container.innerHTML = list.map(n => `
+        <div class="notif-item">
+          <div class="notif-title">${n.title || 'Alert'}</div>
+          <div class="notif-message">${n.message || ''}</div>
+          <div style="display:flex; gap:6px; align-items:center; margin-top:6px;">
+            <span class="pill" style="background:${n.severity === 'critical' ? '#fee2e2' : n.severity === 'warning' ? '#fff4e6' : '#eef2ff'}; color:${n.severity === 'critical' ? '#b91c1c' : n.severity === 'warning' ? '#b45309' : '#1d4ed8'};">${n.severity || 'info'}</span>
+            <span style="font-size:11px; color:var(--muted);">${n.created_at || ''}</span>
+          </div>
+          <button class="btn" style="margin-top:8px; width:100%;" onclick="markOemNotificationRead('${n.id}')">Mark read</button>
+        </div>
+      `).join('');
+    }
+
+    async function fetchOemNotifications() {
+      try {
+        const data = await fetchApiJson('/oem/notifications?only_unread=true', {}, 'oem notifications');
+        oemNotifications = Array.isArray(data) ? data : [];
+        updateBell(oemNotifications.length);
+        renderNotificationsPanel(oemNotifications);
+      } catch (e) {
+        console.error('OEM notifications error', e);
+      }
+    }
+
+    function toggleNotifications() {
+      const panel = document.getElementById('notifPanel');
+      if (!panel) return;
+      panel.classList.toggle('hidden');
+      if (!panel.classList.contains('hidden')) {
+        renderNotificationsPanel(oemNotifications);
+      }
+    }
+
+    async function markOemNotificationRead(id) {
+      if (!id) return;
+      try {
+        await fetchJsonSafe(`/oem/notifications/${id}/read`, { method:'POST' }, 'oem notification read');
+        oemNotifications = oemNotifications.filter(n => n.id !== id);
+        updateBell(oemNotifications.length);
+        renderNotificationsPanel(oemNotifications);
+      } catch (e) {
+        console.error('mark read failed', e);
+      }
+    }
+
+    async function fetchStats() {
+      const brand = document.getElementById('brand').value || '';
+      const ptype = document.getElementById('ptype').value || '';
+      const region = document.getElementById('region').value || '';
+      const btn = document.getElementById('run');
+      btn.disabled = true;
+      btn.textContent = 'Loading...';
+      try {
+        const params = new URLSearchParams();
+        if (brand) params.append('brand', brand);
+        if (ptype) params.append('product_type', ptype);
+        if (region) params.append('region', region);
+        const res = await fetch(api(`/oem/risk-stats?${params.toString()}`));
+        if (!res.ok) throw new Error('No data yet for this filter.');
+        const data = await res.json();
+        renderRisk(data.risk_distribution || {});
+        renderIssues(data.peer_review, data.symptoms);
+        renderBehaviour(data.behaviour_snapshot || {});
+        renderEv(data.ev_battery);
+        renderProductInterest(data.product_interest || []);
+        fetchOemNotifications();
+      } catch (err) {
+        document.getElementById('risk-content').innerHTML = `<p style="color:red;">${err}</p>`;
+        document.getElementById('issues').innerHTML = '';
+        document.getElementById('behaviour').innerHTML = '';
+        document.getElementById('evStats').innerHTML = '';
+        const pi = document.getElementById('productInterest');
+        if (pi) pi.textContent = '';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Refresh';
+      }
+    }
+
+    function renderRisk(risk) {
+      const el = document.getElementById('risk-content');
+      const blocks = ['low','medium','high'].map(level => {
+        const val = risk[level] || 0;
+        return `<div class="card" style="padding:12px; box-shadow:none; border:1px solid var(--border);">
+            <div class="pill">${level.toUpperCase()}</div>
+            <div style="font-size:24px;font-weight:600;">${val}</div>
+          </div>`;
+      });
+      el.innerHTML = blocks.join('');
+    }
+
+    function renderIssues(peer, symptoms) {
+      const el = document.getElementById('issues');
+      const peerList = peer?.top_keywords || [];
+      const sympList = symptoms?.top_keywords || [];
+      el.innerHTML = `
+        <p class="pill">Peer review: ${peer?.count || 0} records</p>
+        <p class="pill">Symptom logs: ${symptoms?.count || 0} records</p>
+        <div>
+          <strong>Top peer keywords</strong>
+          <ul>${peerList.map(k => `<li>${k}</li>`).join('') || '<li>No data</li>'}</ul>
+        </div>
+        <div>
+          <strong>Top symptom keywords</strong>
+          <ul>${sympList.map(k => `<li>${k}</li>`).join('') || '<li>No data</li>'}</ul>
+        </div>
+      `;
+    }
+
+    function renderBehaviour(beh) {
+      const el = document.getElementById('behaviour');
+      if (!beh || !Object.keys(beh).length) {
+        el.innerHTML = '<p class="pill">No behaviour data yet</p>';
+        return;
+      }
+      el.innerHTML = `
+        <p class="pill">Care: ${(beh.care_score || 0).toFixed(2)}</p>
+        <p class="pill">Behaviour: ${(beh.behaviour_score || 0).toFixed(2)}</p>
+        <p class="pill">Responsiveness: ${(beh.responsiveness_score || 0).toFixed(2)}</p>
+      `;
+    }
+
+    function renderEv(evData) {
+      const el = document.getElementById('evStats');
+      if (!el) return;
+      if (!evData || !evData.risk_distribution) {
+        el.textContent = 'No EV data yet.';
+        return;
+      }
+      const rd = evData.risk_distribution;
+      el.innerHTML = `
+        <p class="pill">LOW: ${rd.LOW || 0}</p>
+        <p class="pill">MEDIUM: ${rd.MEDIUM || 0}</p>
+        <p class="pill">HIGH: ${rd.HIGH || 0}</p>
+      `;
+    }
+
+    function renderProductInterest(list) {
+      const el = document.getElementById('productInterest');
+      if (!el) return;
+      if (!list || !list.length) {
+        el.textContent = 'No product interest signals yet.';
+        return;
+      }
+      el.innerHTML = list
+        .map(item => `<div class="card" style="padding:10px; box-shadow:none; border:1px solid var(--border); margin-bottom:8px;">
+            <div style="font-weight:700;">${item.title || item.product_id}</div>
+            <div class="helper">Count: ${item.count || 0}</div>
+          </div>`)
+        .join('');
+    }
+
+    function qsSyncFilters() {
+      const ptype = document.getElementById('ptype')?.value || '';
+      const brand = document.getElementById('brand')?.value || '';
+      const region = document.getElementById('region')?.value || '';
+      const qsPtype = document.getElementById('qs-ptype');
+      const qsBrand = document.getElementById('qs-brand');
+      const qsRegion = document.getElementById('qs-region');
+      if (qsPtype) qsPtype.value = ptype;
+      if (qsBrand) qsBrand.value = brand;
+      if (qsRegion) qsRegion.value = region;
+    }
+
+    function qsToggleOptions() {
+      const select = document.getElementById('qs-answer-type');
+      const wrap = document.getElementById('qs-options-wrap');
+      if (!select || !wrap) return;
+      wrap.style.display = select.value === 'choice' ? 'block' : 'none';
+    }
+
+    function qsRenderGenerated(list) {
+      const container = document.getElementById('qs-generated');
+      if (!container) return;
+      if (!list || !list.length) { container.textContent = 'No questions generated.'; return; }
+      container.innerHTML = list.map((q, idx) => `
+        <div class="card" style="padding:10px; box-shadow:none; border:1px solid var(--border); margin-bottom:8px;">
+          <div style="font-weight:700;">${q.text || 'Question ' + (idx+1)}</div>
+          <div class="helper">Type: ${q.answer_type || 'text'} ${Array.isArray(q.options) && q.options.length ? ' | Options: ' + q.options.join(', ') : ''}</div>
+          <button style="margin-top:8px;" data-qidx="${idx}" class="qs-use">Use this</button>
+        </div>
+      `).join('');
+      container.querySelectorAll('.qs-use').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const i = Number(btn.getAttribute('data-qidx'));
+          const q = list[i] || {};
+          document.getElementById('qs-text').value = q.text || '';
+          document.getElementById('qs-answer-type').value = q.answer_type || 'text';
+          qsToggleOptions();
+          if (document.getElementById('qs-options')) {
+            document.getElementById('qs-options').value = Array.isArray(q.options) ? q.options.join(',') : '';
+          }
+        });
+      });
+    }
+
+    async function qsLoadActive() {
+      const qsStatus = document.getElementById('qs-status');
+      const qsActive = document.getElementById('qs-active');
+      if (qsActive) qsActive.textContent = 'Loading...';
+      try {
+        const params = new URLSearchParams();
+        const ptype = document.getElementById('qs-ptype')?.value || '';
+        const brand = document.getElementById('qs-brand')?.value || '';
+        const model = document.getElementById('qs-model')?.value || '';
+        const region = document.getElementById('qs-region')?.value || '';
+        if (ptype) params.append('product_type', ptype);
+        if (brand) params.append('brand', brand);
+        if (model) params.append('model_code', model);
+        if (region) params.append('region', region);
+        const data = await fetchApiJson(`/oem/questions/active?${params.toString()}`, {}, 'active questions');
+        const items = data.items || data.questions || [];
+        if (!items.length) {
+          if (qsActive) qsActive.textContent = 'No active questions.';
+          return;
+        }
+        if (qsActive) {
+          qsActive.innerHTML = items.map(it => `
+            <div class="card" style="padding:10px; box-shadow:none; border:1px solid var(--border); margin-bottom:8px;">
+              <div style="font-weight:700;">${it.text || ''}</div>
+              <div class="helper">Type: ${it.answer_type || 'text'} ${Array.isArray(it.options) && it.options.length ? '| Options: ' + it.options.join(', ') : ''}</div>
+              <div class="helper">Target: ${[it.brand||'', it.model_code||'', it.region||''].filter(Boolean).join(' / ') || 'All'} | ID: ${it.id || it.question_id || ''}</div>
+              <button class="qs-disable" data-id="${it.id || it.question_id}">Disable</button>
+            </div>
+          `).join('');
+          qsActive.querySelectorAll('.qs-disable').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const qid = btn.getAttribute('data-id');
+              try {
+                await fetchApiJson('/oem/questions/disable', {
+                  method:'POST',
+                  headers:{'Content-Type':'application/json'},
+                  body: JSON.stringify({ question_id: qid })
+                }, 'disable question');
+                qsLoadActive();
+              } catch (e) {
+                if (qsStatus) qsStatus.textContent = 'Disable failed: ' + e;
+              }
+            });
+          });
+        }
+      } catch (e) {
+        if (qsStatus) qsStatus.textContent = 'Error: ' + e;
+        if (qsActive) qsActive.textContent = 'Could not load active questions.';
+      }
+    }
+
+    async function qsGenerate() {
+      const qsStatus = document.getElementById('qs-status');
+      if (qsStatus) qsStatus.textContent = 'Generating...';
+      try {
+        const payload = {
+          product_type: document.getElementById('qs-ptype')?.value || '',
+          brand: document.getElementById('qs-brand')?.value || '',
+          model_code: document.getElementById('qs-model')?.value || '',
+          region: document.getElementById('qs-region')?.value || '',
+          max_questions: 5
+        };
+        const data = await fetchApiJson('/oem/questions/generate', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        }, 'generate questions');
+        qsRenderGenerated(data.questions || []);
+        if (qsStatus) qsStatus.textContent = 'Generated.';
+      } catch (e) {
+        if (qsStatus) qsStatus.textContent = 'Generate failed: ' + e;
+      }
+    }
+
+    async function qsPublish() {
+      const qsStatus = document.getElementById('qs-status');
+      if (qsStatus) qsStatus.textContent = 'Publishing...';
+      const text = document.getElementById('qs-text')?.value || '';
+      const answer_type = document.getElementById('qs-answer-type')?.value || 'text';
+      let options = document.getElementById('qs-options')?.value || '';
+      options = options ? options.split(',').map(s=>s.trim()).filter(Boolean) : [];
+      if (!text) { if (qsStatus) qsStatus.textContent = 'Add question text'; return; }
+      try {
+        const payload = {
+          product_type: document.getElementById('qs-ptype')?.value || '',
+          brand: document.getElementById('qs-brand')?.value || '',
+          model_code: document.getElementById('qs-model')?.value || '',
+          region: document.getElementById('qs-region')?.value || '',
+          question: { text, answer_type, options }
+        };
+        await fetchApiJson('/oem/questions/publish', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        }, 'publish question');
+        if (qsStatus) qsStatus.textContent = 'Published.';
+        qsLoadActive();
+      } catch (e) {
+        if (qsStatus) qsStatus.textContent = 'Publish failed: ' + e;
+      }
+    }
+
+    async function qsLoadLlmStatus() {
+      const el = document.getElementById('llm-status');
+      if (el) el.textContent = 'Checking...';
+      try {
+        const data = await fetchApiJson('/oem/questions/llm-status', {}, 'llm status');
+        if (el) el.textContent = `Enabled: ${data.enabled} | Model: ${data.model || ''} | Reachable: ${data.reachable ? 'yes' : 'no'} ${data.error ? 'Error: ' + data.error : ''}`;
+      } catch (e) {
+        if (el) el.textContent = 'LLM status not available: ' + e;
+      }
+    }
+
+    async function recPreview() {
+      const el = document.getElementById('rec-preview');
+      if (el) el.textContent = 'Loading...';
+      try {
+        const params = new URLSearchParams();
+        const ptype = document.getElementById('qs-ptype')?.value || '';
+        const brand = document.getElementById('qs-brand')?.value || '';
+        const model = document.getElementById('qs-model')?.value || '';
+        const region = document.getElementById('qs-region')?.value || '';
+        if (ptype) params.append('product_type', ptype);
+        if (brand) params.append('brand', brand);
+        if (model) params.append('model', model);
+        if (region) params.append('region', region);
+        const data = await fetchApiJson(`/oem/recommendations/preview?${params.toString()}`, {}, 'rec preview');
+        if (!data.ok) throw new Error(data.detail || 'preview failed');
+        const renderList = (title, arr) => `<div style="margin-top:6px;"><strong>${title}</strong><ul>${(arr||[]).map(i=>`<li>${i}</li>`).join('') || '<li>N/A</li>'}</ul></div>`;
+        el.innerHTML = `
+          <div><strong>Message:</strong> ${data.recommendation_message || 'N/A'}</div>
+          ${renderList('Top risks', data.top_risks)}
+          ${renderList('Likely user needs', data.likely_user_needs)}
+          ${renderList('Suggested OEM actions', data.suggested_oem_actions)}
+          ${renderList('Suggested products', data.suggested_products)}
+        `;
+      } catch (e) {
+        if (el) el.textContent = 'Recommendation preview failed: ' + e;
+      }
+    }
+
+    document.getElementById('run').addEventListener('click', fetchStats);
+    document.getElementById('notifBtn').addEventListener('click', toggleNotifications);
+    const qsGenBtn = document.getElementById('qs-gen');
+    if (qsGenBtn) qsGenBtn.addEventListener('click', qsGenerate);
+    const qsPublishBtn = document.getElementById('qs-publish');
+    if (qsPublishBtn) qsPublishBtn.addEventListener('click', qsPublish);
+    const qsAnswerType = document.getElementById('qs-answer-type');
+    if (qsAnswerType) qsAnswerType.addEventListener('change', qsToggleOptions);
+    const recBtn = document.getElementById('rec-gen');
+    if (recBtn) recBtn.addEventListener('click', recPreview);
+    qsToggleOptions();
+    qsSyncFilters();
+    qsLoadLlmStatus();
+    qsLoadActive();
+    fetchStats();
+  </script>
+</body>
+</html>

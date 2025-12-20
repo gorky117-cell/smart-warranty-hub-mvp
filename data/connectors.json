@@ -1,0 +1,19 @@
+[
+  {
+    "name": "ocr-default",
+    "kind": "ocr",
+    "endpoint": "local",
+    "metadata": {
+      "engine": "paddleocr"
+    }
+  },
+  {
+    "name": "llm-ollama",
+    "kind": "llm",
+    "endpoint": "http://127.0.0.1:11434",
+    "metadata": {
+      "engine": "ollama",
+      "model": "llama3.2:8b"
+    }
+  }
+]

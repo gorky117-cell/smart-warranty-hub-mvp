@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Warranty Hub · Sign in</title>
+  <style>
+    :root {
+      --bg: #f7f9fc;
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --text: #0f172a;
+      --muted: #6b7280;
+      --primary: #2563eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 12px 30px rgba(17, 24, 39, 0.08);
+    }
+    h1 { margin: 0 0 6px 0; font-size: 22px; }
+    .subtitle { color: var(--muted); margin: 0 0 18px 0; font-size: 14px; }
+    label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #f3f6fb;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 12px;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 15px;
+    }
+    button:hover { filter: brightness(0.95); }
+    .muted { color: var(--muted); font-size: 12px; margin-top: 8px; }
+    .error-hint { color: #ef4444; font-size: 12px; margin-top: 6px; min-height: 14px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Smart Warranty Hub</h1>
+    <div class="subtitle">Sign in to view and manage your warranties.</div>
+    <form method="post" action="/auth/login">
+      <label for="username">Email or username</label>
+      <input id="username" name="username" placeholder="you@example.com" required>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" placeholder="••••••••" required>
+      <button type="submit">Sign in</button>
+    </form>
+    <div class="error-hint" id="loginError"></div>
+    <div class="muted">Use your issued account. Admin can create more users.</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SWH Care Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --text: #0f172a;
+      --muted: #6b7280;
+      --primary: #2563eb;
+      --accent: #0ea5e9;
+      --success: #16a34a;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin:0; padding:0;
+      font-family:'Segoe UI', Arial, sans-serif;
+      font-size:15px;
+      line-height:1.5;
+      background:var(--bg);
+      color:var(--text);
+    }
+    header { padding:18px 12px; text-align:center; background:linear-gradient(180deg,#ffffff,#f6f8fb); border-bottom:1px solid var(--border); }
+    h1 { margin:0; font-size:22px; font-weight:800; letter-spacing:0.2px; flex:1; text-align:center; }
+    header .top-bar { display:flex; align-items:center; justify-content:center; gap:12px; width:100%; padding:0 12px; box-sizing:border-box; }
+    .notif-wrap { position:relative; }
+    .icon-btn {
+      width:40px; height:40px; border-radius:12px; border:none;
+      background:linear-gradient(135deg,var(--primary),#3b82f6);
+      display:flex; align-items:center; justify-content:center; cursor:pointer;
+      box-shadow:0 8px 20px rgba(37,99,235,0.18);
+      transition:transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .icon-btn svg { stroke: #fff; }
+    .icon-btn:hover { transform:translateY(-1px); box-shadow:0 10px 24px rgba(37,99,235,0.24); }
+    .notif-badge {
+      position:absolute; top:-4px; right:-4px; background:var(--danger); color:#fff;
+      border-radius:999px; padding:2px 6px; font-size:11px; font-weight:800; min-width:18px; text-align:center;
+    }
+    .notif-panel {
+      position:absolute; top:44px; right:0; width:260px; background:#fff; border:1px solid var(--border);
+      border-radius:12px; box-shadow:0 18px 40px rgba(17,24,39,0.12); padding:10px; z-index:20;
+    }
+    .notif-panel.hidden { display:none; }
+    .notif-item { padding:10px; border-bottom:1px solid var(--border); }
+    .notif-item:last-child { border-bottom:none; }
+    .notif-title { font-weight:700; font-size:13px; margin-bottom:4px; }
+    .notif-message { font-size:12px; color:var(--muted); }
+    .toast {
+      position:fixed; bottom:18px; right:18px; background:#0f172a; color:#fff;
+      padding:14px 16px; border-radius:12px; box-shadow:0 14px 38px rgba(0,0,0,0.2);
+      min-width:240px; max-width:320px; z-index:30; opacity:0; transform:translateY(10px);
+      transition:opacity 0.2s ease, transform 0.2s ease;
+    }
+    .toast.show { opacity:1; transform:translateY(0); }
+    .container { max-width:1140px; margin:0 auto; padding:18px 16px 40px; display:flex; flex-direction:column; gap:26px; }
+    .section-title { font-size:13px; font-weight:800; letter-spacing:0.4px; color:var(--muted); text-transform:uppercase; padding-left:4px; margin-top:6px; }
+    .card {
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:22px 20px 22px 20px;
+      box-shadow:var(--shadow);
+    }
+    .card-title { font-size:17px; font-weight:800; margin-bottom:8px; }
+    .card-locked { opacity:0.9; pointer-events:auto; position:relative; }
+    .card-hint { font-size:13px; color:var(--muted); margin-bottom:12px; }
+    .hero { padding:26px; }
+    label { display:block; font-size:12px; font-weight:700; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.3px; }
+    input, select, textarea { width:100%; padding:12px; min-height:44px; border-radius:12px; border:1px solid var(--border); background:#f3f6fb; color:var(--text); font-size:14px; margin-bottom:12px; }
+    button { padding:14px 16px; min-height:44px; border:none; border-radius:12px; background:var(--primary); color:white; font-weight:800; cursor:pointer; width:100%; }
+    .btn-ghost { background:#eef2f8; color:var(--text); }
+    .btn-accent { background:linear-gradient(135deg,var(--accent),#5ad6ff); color:white; }
+    .btn-outline { border:1px solid var(--border); background:transparent; color:var(--text); }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; }
+    a.button-link {
+      text-decoration:none; display:inline-block; padding:12px 16px;
+      border-radius:12px; border:1px solid var(--border);
+      background:linear-gradient(135deg,var(--primary),#3b82f6);
+      color:white; font-weight:800; box-shadow:0 8px 18px rgba(37,99,235,0.18);
+      transition:transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    a.button-link:hover { transform:translateY(-1px); box-shadow:0 10px 22px rgba(37,99,235,0.25); }
+    .helper { font-size:13px; color:var(--muted); margin-top:-2px; margin-bottom:10px; }
+    .hidden { display:none; }
+    .badge { padding:8px 12px; border-radius:999px; font-weight:700; font-size:12px; display:inline-block; }
+    .badge-success { background:#e6f7ee; color:var(--success); }
+    .badge-warn { background:#fff4e6; color:var(--warning); }
+    .badge-danger { background:#ffe6e9; color:var(--danger); }
+    .placeholder { color:var(--muted); }
+    details { border:1px solid var(--border); border-radius:12px; padding:10px 12px; margin-bottom:12px; background:#f9fafc; }
+    summary { cursor:pointer; font-weight:700; }
+    .status-line { margin-top:8px; color:var(--muted); font-size:13px; }
+    .sticky-bar {
+      position:sticky; bottom:0; left:0; right:0;
+      background:rgba(255,255,255,0.98);
+      border-top:1px solid var(--border);
+      box-shadow:0 -8px 16px rgba(15,23,42,0.05);
+      padding:8px;
+      display:flex; gap:10px; justify-content:space-between;
+      z-index:5;
+    }
+    .sticky-bar button {
+      flex:1; padding:12px; min-height:44px;
+      background:#eef2ff; color:var(--text);
+      border:1px solid var(--border); border-radius:12px;
+      font-weight:700;
+      box-shadow:none;
+    }
+    .sticky-bar button:hover { background:#e1e7ff; }
+    @media (min-width: 769px) { .sticky-bar { display:none; } }
+    .pill-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+    .pill { padding:8px 10px; border-radius:999px; font-size:12px; font-weight:700; display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); }
+    .pill-success { background:#e6f7ee; color:var(--success); }
+    .pill-warn { background:#fff4e6; color:var(--warning); }
+    .pill-danger { background:#ffe6e9; color:var(--danger); }
+    .pill-info { cursor:pointer; font-weight:800; color:inherit; }
+    .pill-tip { display:none; font-size:12px; color:var(--muted); background:#fff; border:1px solid var(--border); border-radius:10px; padding:8px; margin-top:6px; }
+    /* Modal */
+    .modal-backdrop { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.35); display:none; align-items:center; justify-content:center; padding:16px; z-index:10; }
+    .modal { background:var(--card); border-radius:16px; padding:20px; width:100%; max-width:420px; box-shadow:0 18px 48px rgba(0,0,0,0.18); border:1px solid var(--border); }
+    .modal .title { font-size:16px; margin-bottom:12px; }
+    .toggle { display:flex; align-items:center; gap:8px; }
+    #step-add-bill .panel { margin-top:10px; }
+    #step-add-bill .panel.hidden { display:none; }
+    .toggle-switch { position:relative; gap:10px; align-items:center; }
+    .toggle-switch .slider-wrap { display:inline-flex; align-items:center; cursor:pointer; position:relative; }
+    .toggle-switch .slider-wrap input[type="checkbox"] {
+      position:absolute; top:0; left:0; width:44px; height:24px; opacity:0; cursor:pointer; margin:0;
+    }
+    .toggle-switch .slider {
+      position:relative;
+      width:44px; height:24px;
+      background:#d9dce3;
+      border-radius:999px;
+      transition:all 0.2s ease;
+      flex-shrink:0;
+      border:1px solid var(--border);
+      cursor:pointer;
+    }
+    .toggle-switch .slider::after {
+      content:"";
+      position:absolute;
+      width:18px; height:18px;
+      background:#fff;
+      border-radius:50%;
+      top:2px; left:2px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.15);
+      transition:all 0.2s ease;
+    }
+    .toggle-switch .slider-wrap input[type="checkbox"]:checked + .slider {
+      background:var(--primary);
+      border-color:var(--primary);
+    }
+    .toggle-switch .slider-wrap input[type="checkbox"]:checked + .slider::after {
+      transform:translateX(20px);
+    }
+    /* Product suggestions styling */
+    #recList .card { box-shadow:none; border:1px solid var(--border); }
+    #recList .card strong { font-size:14px; }
+    #recList .helper { margin:6px 0 0 0; }
+    .raw-warranty { max-height:260px; overflow:auto; }
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .container { padding:16px 12px 32px; }
+      .card { padding:18px; }
+    }
+    @media (max-width: 640px) {
+      header { padding:14px 10px; }
+      h1 { font-size:20px; }
+      .card { padding:16px; }
+      .actions { flex-direction:column; }
+      button, .button-link { width:100%; }
+      input, select, textarea { font-size:15px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="top-bar">
+      <h1 style="display:flex; align-items:center; gap:8px; justify-content:center; margin:0;">
+        Smart Warranty Hub - Care Dashboard
+        <span id="healthBadges" style="display:none;">
+          <span class="badge badge-warn" id="hb-ocr" title="OCR status">OCR</span>
+          <span class="badge badge-warn" id="hb-llm" title="AI summary status">AI</span>
+          <span class="badge badge-warn" id="hb-pred" title="Predictive status">Pred</span>
+        </span>
+      </h1>
+      <div class="notif-wrap">
+        <button class="icon-btn" id="notifBtn" aria-label="Notifications" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span id="notifBadge" class="notif-badge hidden">0</span>
+        </button>
+        <div id="notifPanel" class="notif-panel hidden">
+          <div id="notifList" class="notif-list"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <div id="toast" class="toast hidden"></div>
+
+  <div class="container">
+    <div class="helper" style="text-align:center; margin-top:-6px;">Start by loading your warranty. The other steps will unlock automatically.</div>
+    <!-- Section: Your Warranty Data -->
+    <div class="section-title" id="step1">Step 1 - Your warranty</div>
+    <div class="card hero" id="step1Card">
+      <div class="card-title">Your warranty</div>
+      <label>Your ID (optional)</label><input id="userId" value="user-1" aria-label="Your ID">
+      <label>Warranty number</label><input id="warrantyId" placeholder="wty_xxx" aria-label="Warranty number">
+      <div class="toggle advanced-toggle" aria-hidden="true" style="display:none; margin:4px 0 8px 0;">
+        <input type="checkbox" id="advancedKeyToggle" onchange="toggleKey()">
+        <label for="advancedKeyToggle" style="margin:0; text-transform:none;">Advanced settings</label>
+      </div>
+      <div id="apiKeyWrap" class="hidden" aria-hidden="true" style="display:none;">
+        <label>Access Key</label><input id="apiKey" placeholder="optional" aria-label="Access Key">
+      </div>
+      <button id="show-warranty-btn" type="button" data-role="show-warranty-btn">Show my warranty</button>
+      <div class="helper">Enter your warranty number and tap "Show my warranty".</div>
+      <div id="status" class="status-line"></div>
+
+      <div id="overviewData" class="hidden" style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
+        <div class="placeholder" id="summaryShort"></div>
+        <div class="actions">
+          <a class="button-link" id="btnSeeFullSummary" href="#detailsCare">See full summary</a>
+          <a class="button-link" id="exportPdf" target="_blank">Download summary</a>
+        </div>
+        <div id="snapshotRow" class="pill-row hidden">
+          <div class="pill pill-warn" id="pillStatus"><span class="pill-label">Status: --</span><span class="pill-info" onclick="toggleTip('tipStatus')">i</span></div>
+          <div class="pill pill-warn" id="pillHealth"><span class="pill-label">Health: --</span><span class="pill-info" onclick="toggleTip('tipHealth')">i</span></div>
+          <div class="pill pill-warn" id="pillTime"><span class="pill-label">Time left: --</span><span class="pill-info" onclick="toggleTip('tipTime')">i</span></div>
+        </div>
+        <div class="pill-tip" id="tipStatus">Warranty status based on coverage dates.</div>
+        <div class="pill-tip" id="tipHealth">Predictive health from the risk score.</div>
+        <div class="pill-tip" id="tipTime">Days remaining before expiry.</div>
+        <div id="summary" class="hidden"></div>
+        <div id="predictive" class="hidden"></div>
+      </div>
+    </div>
+
+    <!-- Section: Details & Care -->
+    <details id="detailsCareSection" class="card-locked hidden" style="border:none; padding:0;">
+      <summary class="section-title" id="step2" style="cursor:pointer; list-style:none;">Step 2 - Details & care (tap to expand)</summary>
+    <div class="card card-locked" id="detailsCare" data-step-lock="true" style="margin-top:10px;">
+      <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">Details & care <button type="button" class="btn-ghost" id="collapseStep2" style="width:auto; padding:8px 12px; font-weight:700;">Collapse</button></div>
+      <div class="card-hint" id="detailsHelper">Load your warranty in Step 1 to unlock these details.</div>
+      <details id="moreWarrantyDetails">
+        <summary>More warranty details</summary>
+        <div id="riskDebug" class="helper" style="display:none; margin-bottom:10px;">
+          <details>
+            <summary><strong>Why this risk?</strong></summary>
+            <div id="riskWhyContent" class="helper" style="margin-top:6px;"></div>
+          </details>
+        </div>
+        <details open>
+            <summary>What is covered?</summary>
+            <div class="helper">Coverage in simple terms.</div>
+            <div id="coverageDetails" class="placeholder">Load data to see coverage details.</div>
+            <div class="helper"><a href="javascript:void(0)" data-role="open-fullview" data-target="coverageDetails" data-title="What is covered">Open in full view</a></div>
+          </details>
+          <details>
+            <summary>Full warranty text</summary>
+            <div class="helper">Read the complete warranty.</div>
+            <div id="warrantyFriendly" class="helper" style="margin-bottom:10px;">Load data to see warranty details.</div>
+            <div class="helper" id="rawWarrantyToggleWrap" style="display:none;">
+              <a href="javascript:void(0)" onclick="toggleRawWarranty()" id="rawWarrantyToggle">View technical details</a>
+            </div>
+            <pre id="warranty" class="placeholder raw-warranty hidden">Load data to see warranty details.</pre>
+            <div class="helper"><a href="javascript:void(0)" data-role="open-fullview" data-target="warranty" data-title="Full warranty text">Open in full view</a></div>
+          </details>
+      </details>
+        <details>
+          <summary>How to look after it</summary>
+          <div class="helper">Friendly tips to avoid failures.</div>
+          <div id="advisories" class="placeholder">Load data to see guidance.</div>
+          <div class="helper"><a href="javascript:void(0)" data-role="open-fullview" data-target="advisories" data-title="Care tips">Open in full view</a></div>
+        </details>
+      </div>
+    </details>
+
+      <!-- Section: Document Actions -->
+      <div class="section-title" id="step3">Step 3 - Add your bill</div>
+      <div class="card card-locked" data-step-lock="true" id="step-add-bill">
+        <div class="card-title">Add your bill</div>
+        <div class="card-hint" id="step3Hint">After your warranty appears in Step 1, you can add your bill or receipt here.</div>
+        <label>Add receipt via</label>
+        <select id="billMethod">
+          <option value="upload" selected>Upload file</option>
+          <option value="camera">Use camera</option>
+          <option value="manual">Enter manually</option>
+        </select>
+
+        <div id="billUploadPanel" class="panel">
+          <label>Upload receipt/bill</label>
+          <input id="billFile" type="file" accept="image/*,application/pdf">
+          <button id="btnUploadBill" type="button">Upload</button>
+          <div id="billUploadMsg" class="status-line placeholder">No document added yet.</div>
+        </div>
+
+        <div id="billCameraPanel" class="panel hidden">
+          <button id="btnOpenCamera" type="button" class="btn-ghost">Open camera</button>
+          <div id="cameraWrap" class="hidden" style="margin-top:10px;">
+            <video id="cameraVideo" autoplay playsinline style="width:100%; border-radius:12px; border:1px solid var(--border);"></video>
+            <div class="actions" style="margin-top:8px;">
+              <button id="btnCapture" type="button">Capture</button>
+              <button id="btnCloseCamera" type="button" class="btn-ghost">Close</button>
+            </div>
+            <canvas id="cameraCanvas" class="hidden"></canvas>
+            <div id="billCameraMsg" class="status-line placeholder">Camera is closed.</div>
+          </div>
+        </div>
+
+        <div id="billManualPanel" class="panel hidden">
+          <label>Seller / Store</label>
+          <input id="mSeller" placeholder="e.g., Reliance Digital">
+          <label>Invoice date</label>
+          <input id="mDate" type="date">
+          <label>Invoice amount</label>
+          <input id="mAmount" placeholder="e.g., 14999" inputmode="numeric">
+          <label>Invoice number (optional)</label>
+          <input id="mInvoiceNo" placeholder="e.g., INV-12345">
+          <button id="btnSaveManual" type="button">Save</button>
+          <div id="billManualMsg" class="status-line placeholder">Not saved yet.</div>
+        </div>
+      </div>
+
+      <!-- Section: Device Health Logs -->
+      <div class="section-title" id="step4">Step 4 - Usage & health</div>
+    <div class="card card-locked" data-step-lock="true">
+      <div class="card-title">Device usage & issues</div>
+      <div class="card-hint" id="step4Hint">Load your warranty in Step 1 to unlock these details.</div>
+      <div class="helper" style="margin-top:-2px;">Quick questions about your usage</div>
+      <div id="behaviourCard" class="card" style="padding:12px; border:1px dashed var(--border); background:#fdfefe; display:none;">
+        <div id="behaviourQuestionText" style="font-weight:700; font-size:14px;"></div>
+        <div id="behaviourChoices" class="actions" style="margin-top:8px;"></div>
+        <div class="helper" id="behaviourThanks" style="display:none;">Thanks, this helps us keep your product healthier over time.</div>
+      </div>
+      <details id="recCard" style="padding:0; margin-top:10px; display:none;">
+        <summary class="card-title" style="cursor:pointer;">Smart suggestions for you <span class="helper" style="display:inline; font-weight:400;">(tap to expand)</span></summary>
+        <div class="card" style="padding:14px; margin-top:10px;">
+          <div id="recList" class="placeholder">Loading suggestions...</div>
+        </div>
+      </details>
+      <div class="card" id="evCard" style="padding:14px; margin-top:10px; display:none;">
+        <div class="card-title">EV battery health</div>
+        <div class="helper">Enter a few details and we'll estimate battery health.</div>
+        <input id="evDailyKm" type="number" min="0" placeholder="Daily km (optional)">
+        <input id="evFastCharges" type="number" min="0" placeholder="Fast charge sessions / month (optional)">
+        <input id="evDeepDischarge" type="number" min="0" placeholder="Times below 10% (optional)">
+        <button type="button" onclick="fetchEvScore()">Check EV battery health</button>
+        <div id="evStatus" class="status-line placeholder">No EV battery info yet.</div>
+        <div id="evReasons" class="helper"></div>
+      </div>
+      <details id="saveInfoDetails">
+        <summary>Quick log (optional) <span style="font-weight:400; color:var(--muted); font-size:13px;">— Save a quick note for this warranty to improve future advice.</span></summary>
+        <div class="helper" style="margin-top:8px;">Saving for: <span id="saveContextBrand">—</span> <span id="saveContextModel">—</span> • Warranty: <span id="saveContextWarrantyId">—</span></div>
+        <div class="helper">Saved notes help improve advice and predictive care for this product.</div>
+        <label>What do you want to save?</label>
+        <select id="telType">
+          <option value="usage">Usage hours</option>
+          <option value="error">Error message</option>
+          <option value="failure">Breakdown / repair</option>
+          <option value="maintenance">Maintenance</option>
+        </select>
+        <input id="telPayloadSimple" placeholder="Add a quick note or value" />
+        <div class="toggle toggle-switch">
+          <label class="slider-wrap" for="advancedToggle">
+            <input type="checkbox" id="advancedToggle" onchange="toggleAdvanced()" />
+            <span class="slider" aria-hidden="true"></span>
+          </label>
+          <label for="advancedToggle" class="toggle-text" style="margin:0; text-transform:none;">Technical view (optional)</label>
+        </div>
+        <textarea id="telPayload" rows="3" class="hidden" placeholder='{"hours":10}'></textarea>
+        <button onclick="sendTelemetry()">Save this info</button>
+        <div id="telStatus" class="status-line placeholder">No usage info saved yet.</div>
+        <div id="devTelemetryTools" class="helper" style="display:none; margin-top:8px; border-top:1px dashed var(--border); padding-top:8px;">
+          <strong>DEV tools</strong>
+          <div class="actions" style="margin-top:6px; gap:6px;">
+            <button class="btn-ghost" type="button" onclick="resetDevTelemetry()">Reset test telemetry</button>
+            <button class="btn-ghost" type="button" onclick="applyTelemetrySample('good')">Good telemetry</button>
+            <button class="btn-ghost" type="button" onclick="applyTelemetrySample('bad')">Bad telemetry</button>
+          </div>
+          <div class="helper">Shown only when DEV_MODE=1 (?dev=1).</div>
+        </div>
+      </details>
+    </div>
+  <!-- Sticky bottom bar -->
+  <div class="sticky-bar">
+    <button onclick="scrollToStep('step1')">Warranty</button>
+    <button onclick="openModal('scanModal')" class="btn-ghost">Scan</button>
+    <button onclick="scrollToStep('step4')" class="btn-ghost">More</button>
+  </div>
+  </div>
+
+  <!-- Modals -->
+  <div id="scanModal" class="modal-backdrop">
+    <div class="modal">
+      <div class="title">Scan bill or receipt</div>
+      <label>How do you want to add it-</label>
+      <select id="docSource" onchange="toggleDocSource()">
+        <option value="upload">Upload from phone / computer</option>
+        <option value="camera">Use camera</option>
+      </select>
+      <label>Document type</label>
+      <select id="docType">
+        <option value="invoice">Invoice</option>
+        <option value="manual">Manual</option>
+        <option value="label">Label</option>
+        <option value="portal">Portal</option>
+      </select>
+      <div id="fileInputWrap">
+        <input id="fileInput" type="file" aria-label="Choose file">
+      </div>
+      <div class="helper">You can add one file at a time.</div>
+      <div class="actions">
+        <button onclick="handleDocCapture()">Read this document</button>
+        <button onclick="closeModal('scanModal')" class="btn-ghost">Done</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div id="oemModal" class="modal-backdrop">
+    <div class="modal">
+      <div class="title">Fetch Brand Info</div>
+      <input id="oemBrand" placeholder="Brand">
+      <input id="oemModel" placeholder="Model">
+      <input id="oemRegion" placeholder="Region">
+      <input id="oemUrl" placeholder="OEM URL">
+      <div class="actions">
+        <button onclick="queueOem()">Queue Brand Fetch</button>
+        <button onclick="closeModal('oemModal')" class="btn-ghost">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="fullViewModal" class="modal-backdrop">
+    <div class="modal" style="max-width:600px;">
+      <div class="title" id="fullViewTitle">Full view</div>
+      <div id="fullViewBody" style="white-space:pre-wrap; max-height:60vh; overflow:auto;"></div>
+      <div class="actions" style="margin-top:12px;">
+        <button onclick="closeFullView()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (() => {
+    if (window.__SWH_NEO_INIT__) return;
+    window.__SWH_NEO_INIT__ = true;
+    // DEV helper flag (query ?dev=1 or window.__DEV_MODE__=true)
+    const DEV_MODE = Boolean(window.__DEV_MODE__) || (new URLSearchParams(window.location.search).get('dev') === '1');
+    const DEBUG_MODE = new URLSearchParams(window.location.search).get('debug') === '1';
+    let coverageChart, riskChart, warrantyLoaded = false, isEV = false;
+    let notifications = [];
+    let toastTimer = null;
+    function h(extra={}) {
+      const headers = {...extra};
+      const keyField = document.getElementById('apiKey');
+      const key = keyField ? keyField.value.trim() : '';
+      if (key) headers['X-API-Key'] = key;
+      return headers;
+    }
+    function setStatus(msg) { document.getElementById('status').textContent = msg; }
+
+    async function fetchJsonSafe(url, options={}, label='request') {
+      console.info('neo-dashboard: calling', url);
+      const res = await fetch(url, options);
+      const ct = res.headers.get('content-type') || '';
+      const isJson = ct.toLowerCase().includes('application/json');
+      if (!res.ok || !isJson) {
+        const text = await res.text().catch(()=> '');
+        const reason = text || res.statusText || 'server error';
+        throw new Error(`Couldn't load ${label}: ${reason}`);
+      }
+      return res.json();
+    }
+
+    function showToast(title, message) {
+      const toast = document.getElementById('toast');
+      if (!toast) return;
+      toast.innerHTML = `<strong>${title}</strong><div style="font-size:12px; margin-top:4px;">${message || ''}</div>`;
+      toast.classList.add('show');
+      toast.classList.remove('hidden');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+        toastTimer = null;
+      }, 4000);
+    }
+
+    function updateBell(count) {
+      const badge = document.getElementById('notifBadge');
+      if (!badge) return;
+      if (!count) {
+        badge.classList.add('hidden');
+        badge.textContent = '';
+      } else {
+        badge.classList.remove('hidden');
+        badge.textContent = count;
+      }
+    }
+
+    function renderNotificationsPanel(list) {
+      const panel = document.getElementById('notifPanel');
+      const container = document.getElementById('notifList');
+      if (!panel || !container) return;
+      if (!list.length) {
+        container.innerHTML = '<div class=\"notif-item\">No new alerts.</div>';
+        return;
+      }
+      container.innerHTML = list
+        .map(n => `
+          <div class=\"notif-item\">
+            <div class=\"notif-title\">${n.title || 'Alert'}</div>
+            <div class=\"notif-message\">${n.message || ''}</div>
+            <button class=\"btn-ghost\" style=\"margin-top:8px; width:100%;\" onclick=\"markNotificationRead('${n.id}')\">Mark read</button>
+          </div>
+        `)
+        .join('');
+    }
+
+    async function fetchNotifications(onlyUnread=true) {
+      const userId = document.getElementById('userId')?.value?.trim();
+      if (!userId) return;
+      try {
+        const data = await fetchJsonSafe(`/notifications?user_id=${encodeURIComponent(userId)}&only_unread=${onlyUnread}`, {}, 'notifications');
+        notifications = Array.isArray(data) ? data : [];
+        updateBell(notifications.length);
+        renderNotificationsPanel(notifications);
+        if (onlyUnread && notifications.length) {
+          const newest = notifications[0];
+          showToast(newest.title || 'New alert', newest.message || '');
+        }
+      } catch (e) {
+        console.error('notifications fetch failed', e);
+      }
+    }
+
+    function toggleNotifications() {
+      const panel = document.getElementById('notifPanel');
+      const bell = document.getElementById('notifBtn') || document.getElementById('bell');
+      if (!panel) return;
+      panel.classList.toggle('hidden');
+      panel.classList.toggle('is-open');
+      if (bell && panel.classList.contains('is-open')) {
+        bell.classList.remove('has-unread');
+      }
+      if (!panel.classList.contains('hidden')) {
+        renderNotificationsPanel(notifications || []);
+      }
+    }
+    // ensure global reference stays available for any inline/on-click usage
+    window.toggleNotifications = toggleNotifications;
+
+    async function markNotificationRead(id) {
+      const userId = document.getElementById('userId')?.value?.trim();
+      if (!id || !userId) return;
+      try {
+        await fetchJsonSafe(`/notifications/${id}/read`, {
+          method:'POST',
+          headers: h({'Content-Type':'application/json'}),
+          body: JSON.stringify({user_id:userId})
+        }, 'notification read');
+        notifications = notifications.filter(n => n.id !== id);
+        updateBell(notifications.length);
+        renderNotificationsPanel(notifications);
+      } catch (e) {
+        console.error('mark read failed', e);
+      }
+    }
+
+    function toggleKey() {
+      const wrap = document.getElementById('apiKeyWrap');
+      if (wrap) wrap.classList.toggle('hidden', !document.getElementById('advancedKeyToggle').checked);
+    }
+
+    function lockSteps(lock=true) {
+      document.querySelectorAll('[data-step-lock]').forEach(el => {
+        el.classList.toggle('card-locked', lock);
+        if (lock) {
+          el.setAttribute('aria-disabled','true');
+        } else {
+          el.removeAttribute('aria-disabled');
+        }
+      });
+      const detailsHelper = document.getElementById('detailsHelper');
+      const step3Hint = document.getElementById('step3Hint');
+      const step4Hint = document.getElementById('step4Hint');
+      if (lock) {
+        if (detailsHelper) detailsHelper.textContent = 'Load your warranty in Step 1 to unlock these details.';
+        if (step3Hint) step3Hint.textContent = 'Load your warranty above to add your bill or receipt.';
+        if (step4Hint) step4Hint.textContent = 'Load your warranty above to share simple usage notes or issues.';
+      } else {
+        if (detailsHelper) detailsHelper.textContent = 'Loaded from your warranty. Scroll to read more.';
+        if (step3Hint) step3Hint.textContent = 'Upload your bill or use the camera to keep everything in one place.';
+        if (step4Hint) step4Hint.textContent = 'Save simple notes about usage, errors or repairs so the system can help you earlier.';
+      }
+    }
+
+    function resetPlaceholders() {
+      warrantyLoaded = false;
+      notifications = [];
+      updateBell(0);
+      const panel = document.getElementById('notifPanel');
+      if (panel) panel.classList.add('hidden');
+      lockSteps(true);
+      const setText = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+      };
+      setText('expiryLine', '');
+      setText('predictive', '');
+      setText('summary', '');
+      setText('summaryShort', '');
+      setText('advisories', 'Load data to see guidance.');
+      setText('warranty', 'Load data to see warranty details.');
+      setText('coverageDetails', 'Load data to see coverage details.');
+      setText('uploadResult', 'No document added yet.');
+      setText('oemStatus', 'No brand info fetched yet.');
+      setText('telStatus', 'No usage info saved yet.');
+      setText('detailsHelper', 'Load your warranty in Step 1 to unlock these details.');
+      setText('step3Hint', 'After your warranty appears in Step 1, you can add your bill or receipt here.');
+      setText('step4Hint', 'Once your warranty is loaded, you can save how you are using the device or any issues here.');
+      const riskDebugWrap = document.getElementById('riskDebug');
+      const riskWhyContent = document.getElementById('riskWhyContent');
+      if (riskWhyContent) riskWhyContent.innerHTML = '';
+      if (riskDebugWrap) riskDebugWrap.style.display = 'none';
+      const recCard = document.getElementById('recCard'); const recList = document.getElementById('recList');
+      if (recCard) recCard.style.display = 'none';
+      if (recList) recList.textContent = 'No suggestions right now.';
+      const evCard = document.getElementById('evCard');
+      if (evCard) evCard.style.display = 'none';
+      document.getElementById('evStatus')?.textContent && (document.getElementById('evStatus').textContent = 'No EV battery info yet.');
+      document.getElementById('evReasons')?.textContent && (document.getElementById('evReasons').textContent = '');
+      isEV = false;
+      const advToggle = document.getElementById('advancedToggle');
+      if (advToggle) advToggle.checked = false;
+      const advKeyToggle = document.getElementById('advancedKeyToggle');
+      if (advKeyToggle) advKeyToggle.checked = false;
+      toggleKey();
+      const telPayload = document.getElementById('telPayload');
+      const telPayloadSimple = document.getElementById('telPayloadSimple');
+      if (telPayload) telPayload.classList.add('hidden');
+      if (telPayloadSimple) telPayloadSimple.classList.remove('hidden');
+      ['coverageBadge','predictiveBadge','expiryLine'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.textContent = '';
+          el.className = 'badge badge-warn hidden';
+        }
+      });
+      ['pillStatus','pillHealth','pillTime'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          const label = el.querySelector('.pill-label');
+          const baseMap = {pillStatus:'Status', pillHealth:'Health', pillTime:'Time left'};
+          const base = baseMap[id] || 'Item';
+          if (label) label.textContent = `${base}: --`;
+          el.className = 'pill pill-warn';
+        }
+      });
+      ['snapshotRow','tipStatus','tipHealth','tipTime'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          if (id === 'snapshotRow') el.classList.add('hidden');
+          else el.style.display = 'none';
+        }
+      });
+      const overview = document.getElementById('overviewData');
+      if (overview) overview.classList.add('hidden');
+      const exportPdf = document.getElementById('exportPdf');
+      if (exportPdf) exportPdf.classList.add('disabled');
+      window.__daysLeft = null;
+    }
+
+    function coverageStatus(daysLeft) {
+      if (daysLeft === null || daysLeft === undefined) return { text: 'Unknown', cls: 'badge-warn' };
+      if (daysLeft <= 0) return { text: 'Expired', cls: 'badge-danger' };
+      if (daysLeft < 60) return { text: 'Expiring Soon', cls: 'badge-warn' };
+      return { text: 'Active', cls: 'badge-success' };
+    }
+
+    function predictiveStatus(label) {
+      const band = (label || '').toString().toLowerCase();
+      if (!band) return { text: 'Unknown', cls: 'badge-warn' };
+      if (band === 'high') return { text: 'High risk', cls: 'badge-danger' };
+      if (band === 'medium') return { text: 'Medium risk', cls: 'badge-warn' };
+      if (band === 'unknown') return { text: 'Unknown', cls: 'badge-warn' };
+      return { text: 'Low risk', cls: 'badge-success' };
+    }
+
+    function updateSaveContext(w) {
+      const idEl = document.getElementById('saveContextWarrantyId');
+      const brandEl = document.getElementById('saveContextBrand');
+      const modelEl = document.getElementById('saveContextModel');
+      const inputId = document.getElementById('warrantyId');
+      const warrantyId = (inputId && inputId.value.trim()) || (w && w.id) || '';
+      if (idEl) idEl.textContent = warrantyId || '—';
+      if (brandEl) brandEl.textContent = (w && (w.brand || w.make)) || '—';
+      if (modelEl) modelEl.textContent = (w && (w.model_code || w.model)) || '—';
+    }
+
+    function toggleAdvanced() {
+      const adv = document.getElementById('advancedToggle').checked;
+      document.getElementById('telPayload').classList.toggle('hidden', !adv);
+      document.getElementById('telPayloadSimple').classList.toggle('hidden', adv);
+    }
+
+    function toggleDocSource() {
+      const source = document.getElementById('docSource').value;
+      const fileWrap = document.getElementById('fileInputWrap');
+      if (fileWrap) {
+        fileWrap.classList.toggle('hidden', source !== 'upload');
+      }
+    }
+
+    function setDocSource(val) {
+      const sel = document.getElementById('docSource');
+      if (sel) {
+        sel.value = val;
+        toggleDocSource();
+      }
+    }
+
+    function setPill(id, cls, text) {
+      const el = document.getElementById(id);
+      if (el) {
+        const label = el.querySelector('.pill-label');
+        if (label) label.textContent = text;
+        el.className = `pill ${cls}`;
+      }
+    }
+
+    function updateSnapshot(cov, pred, daysLeft) {
+      const covClass = cov.cls === 'badge-success' ? 'pill-success' : cov.cls === 'badge-danger' ? 'pill-danger' : 'pill-warn';
+      const predClass = pred.cls === 'badge-success' ? 'pill-success' : pred.cls === 'badge-danger' ? 'pill-danger' : 'pill-warn';
+      const timeClass = covClass;
+      const timeText = daysLeft !== null && daysLeft !== undefined ? `${Math.max(0, Math.round(daysLeft/30))} months left` : 'N/A';
+      setPill('pillStatus', covClass, `Status: ${cov.text}`);
+      setPill('pillHealth', predClass, `Health: ${pred.text}`);
+      setPill('pillTime', timeClass, `Time left: ${timeText}`);
+      const row = document.getElementById('snapshotRow');
+      if (row) row.classList.remove('hidden');
+    }
+
+    function toggleTip(id) {
+      ['tipStatus','tipHealth','tipTime'].forEach(t => {
+        const el = document.getElementById(t);
+        if (el) {
+          if (t === id) {
+            el.style.display = el.style.display === 'block' ? 'none' : 'block';
+          } else {
+            el.style.display = 'none';
+          }
+        }
+      });
+    }
+
+    function openFullView(sourceId, title) {
+      const src = document.getElementById(sourceId);
+      const modal = document.getElementById('fullViewModal');
+      const titleEl = document.getElementById('fullViewTitle');
+      const bodyEl = document.getElementById('fullViewBody');
+      if (!src || !modal || !titleEl || !bodyEl) return;
+      titleEl.textContent = title || 'Full view';
+      bodyEl.textContent = src.innerText || src.textContent || '';
+      modal.style.display = 'flex';
+    }
+
+    function closeFullView() {
+      const modal = document.getElementById('fullViewModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    window.openFullView = openFullView;
+    window.closeFullView = closeFullView;
+
+    async function loadBehaviourQuestion() {
+      const userId = document.getElementById('userId').value.trim();
+      const warrantyId = document.getElementById('warrantyId').value.trim();
+      if (!warrantyId || !userId) return;
+      try {
+        const resp = await fetch(`/behaviour/next-question?user_id=${encodeURIComponent(userId)}&warranty_id=${encodeURIComponent(warrantyId)}`, { headers: h() });
+        const ct = resp.headers.get('content-type') || '';
+        if (!resp.ok || !ct.toLowerCase().includes('application/json')) {
+          const txt = await resp.text().catch(()=>'');
+          console.error('behaviour question load failed', resp.status, txt);
+          const cardHide = document.getElementById('behaviourCard');
+          if (cardHide) cardHide.style.display = 'none';
+          return;
+        }
+        const res = await resp.json();
+        const card = document.getElementById('behaviourCard');
+        const choices = document.getElementById('behaviourChoices');
+        const textEl = document.getElementById('behaviourQuestionText');
+        const thanks = document.getElementById('behaviourThanks');
+        if (!res || res.done || res.question === null) { if (card) card.style.display = 'none'; return; }
+        const question = res.question || {};
+        const qid = res.question_id || question.id;
+        const qtext = res.text || question.text;
+        const qtype = res.answer_type || question.answer_type;
+        const opts = res.options || question.options || [];
+        const qsource = question.source || res.source || '';
+        if (card && choices && textEl) {
+          card.style.display = 'block';
+          if (thanks) thanks.style.display = 'none';
+          choices.innerHTML = '';
+          card.dataset.qid = qid;
+          card.dataset.qsource = qsource || '';
+          card.dataset.qtype = qtype;
+          textEl.textContent = qtext || 'We have a quick question for you';
+          if (qsource === 'oem') {
+            const badge = document.createElement('span');
+            badge.textContent = 'Quick check';
+            badge.style.fontSize = '11px';
+            badge.style.fontWeight = '700';
+            badge.style.color = '#0f172a';
+            badge.style.background = '#e5edff';
+            badge.style.padding = '4px 8px';
+            badge.style.borderRadius = '10px';
+            badge.style.marginLeft = '8px';
+            textEl.appendChild(badge);
+          }
+          if (qtype === 'choice' && opts.length) {
+            opts.forEach(val=>{
+              const btn = document.createElement('button');
+              btn.textContent = val;
+              btn.onclick = () => submitBehaviourAnswer(String(val));
+              choices.appendChild(btn);
+            });
+          } else if (qtype === 'boolean') {
+            ['Yes','No'].forEach(val=>{
+              const btn = document.createElement('button');
+              btn.textContent = val;
+              btn.onclick = () => submitBehaviourAnswer(val.toLowerCase());
+              choices.appendChild(btn);
+            });
+          } else if (qtype === 'text') {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'Type your answer';
+            input.style.width = '100%';
+            input.style.marginBottom = '8px';
+            const btn = document.createElement('button');
+            btn.textContent = 'Submit';
+            btn.onclick = () => submitBehaviourAnswer(input.value || '');
+            choices.appendChild(input);
+            choices.appendChild(btn);
+          } else {
+            ['Yes','No'].forEach(val=>{
+              const btn = document.createElement('button');
+              btn.textContent = val;
+              btn.onclick = () => submitBehaviourAnswer(val.toLowerCase());
+              choices.appendChild(btn);
+            });
+          }
+        }
+      } catch (e) {
+        console.error('behaviour question load failed', e);
+        const cardHide = document.getElementById('behaviourCard');
+        if (cardHide) cardHide.style.display = 'none';
+      }
+    }
+
+    async function submitBehaviourAnswer(val) {
+      const card = document.getElementById('behaviourCard');
+      const qid = card?.dataset.qid;
+      const qsource = card?.dataset.qsource || '';
+      const warrantyId = document.getElementById('warrantyId').value.trim();
+      const userId = document.getElementById('userId').value.trim();
+      if (!qid || !warrantyId) return;
+      try {
+        await fetch('/behaviour/answer', {
+          method:'POST',
+          headers: h({'Content-Type':'application/json'}),
+          body: JSON.stringify({user_id:userId, warranty_id:warrantyId, question_id:qid, answer_value:val, source:qsource})
+        });
+        if (card) card.style.display = 'none';
+        const thanks = document.getElementById('behaviourThanks');
+        if (thanks) { thanks.style.display = 'block'; }
+        setTimeout(()=>{ if (card) card.style.display='none'; if (thanks) thanks.style.display='none'; }, 1800);
+      } catch (e) {
+        console.error('behaviour answer failed', e);
+      }
+    }
+
+        async function fetchRecommendations() {
+          const recCard = document.getElementById('recCard');
+          const recList = document.getElementById('recList');
+          const userId = document.getElementById('userId').value.trim();
+          const warrantyId = document.getElementById('warrantyId').value.trim();
+          if (!recCard || !recList || !warrantyId) return;
+          recCard.style.display = 'block';
+          recList.textContent = 'Loading suggestions...';
+          try {
+            const res = await fetch(`/recommendations?user_id=${encodeURIComponent(userId)}&warranty_id=${encodeURIComponent(warrantyId)}`, { headers: h() });
+            if (!res.ok) throw new Error('Could not load recommendations');
+            const data = await res.json();
+            const recs = Array.isArray(data) ? data : (Array.isArray(data?.recommendations) ? data.recommendations : []);
+            const productRecs = Array.isArray(data?.product_recommendations) ? data.product_recommendations : [];
+
+            const parts = [];
+            if (recs && recs.length) {
+              recs.slice(0, 3).forEach((r) => {
+                parts.push(
+                  `<div class="card" style="padding:10px; box-shadow:none; border:1px solid var(--border); margin-bottom:8px;">
+                    <strong>${r.title || r.name || 'Suggestion'}</strong>
+                    <div class="helper" style="margin-top:4px;">${r.reason || r.description || ''}</div>
+                  </div>`
+                );
+              });
+            }
+
+            if (productRecs.length) {
+              parts.push('<div style="margin-top:10px;"><strong>Product suggestions</strong></div>');
+              productRecs.slice(0, 3).forEach((p) => {
+                parts.push(
+                  `<div class="card" style="padding:10px; box-shadow:none; border:1px solid var(--border); margin-bottom:8px;">
+                    <div style="font-weight:600;">${p.title || p.name || 'Suggested product'} <span style="color:var(--accent); font-size:12px;">${p.action || ''}</span></div>
+                    <div class="helper" style="margin-top:4px;">${p.reason || p.description || ''}</div>
+                    <div class="helper" style="margin-top:4px; font-size:12px; color:#666;">${p.risk_band ? `Risk: ${p.risk_band}` : ''}</div>
+                  </div>`
+                );
+              });
+            }
+
+            if (!parts.length) {
+              recList.textContent = "No suggestions right now. You're in good shape.";
+            } else {
+              recList.innerHTML = parts.join('');
+            }
+          } catch (e) {
+            console.error('recommendations failed', e);
+            recList.textContent = "We couldn't load suggestions right now.";
+          }
+        }
+    
+
+    async function fetchEvScore() {
+      const evCard = document.getElementById('evCard');
+      if (!evCard || !isEV) return;
+      const userId = document.getElementById('userId').value.trim();
+      const warrantyId = document.getElementById('warrantyId').value.trim();
+      const daily_km = Number(document.getElementById('evDailyKm').value || 0);
+      const fast_charge_sessions = Number(document.getElementById('evFastCharges').value || 0);
+      const deep_discharge_events = Number(document.getElementById('evDeepDischarge').value || 0);
+      const statusEl = document.getElementById('evStatus');
+      const reasonsEl = document.getElementById('evReasons');
+      statusEl.textContent = 'Checking...';
+      try {
+        const res = await fetch('/ev/battery/score', {
+          method:'POST',
+          headers: h({'Content-Type':'application/json'}),
+          body: JSON.stringify({
+            warranty_id: warrantyId,
+            product_type: 3,
+            age_months: 12,
+            daily_km,
+            fast_charge_sessions,
+            deep_discharge_events,
+            max_temp_seen: 32,
+            behaviour_score: 0.5,
+            care_score: 0.5,
+            responsiveness_score: 0.5,
+            region_climate_band: 1
+          })
+        });
+        const data = await res.json();
+        const band = predictiveStatus(data.risk_label || 'unknown');
+        statusEl.textContent = `${band.text} (score ${data.risk_score ?? 0})`;
+        statusEl.className = `status-line ${band.cls}`;
+        const reasons = data.reasons || [];
+        const suggestions = data.suggestions || [];
+        reasonsEl.innerHTML = `<strong>Why:</strong><ul>${reasons.slice(0,3).map(r=>`<li>${r}</li>`).join('')}</ul><strong>Tips:</strong><ul>${suggestions.slice(0,2).map(s=>`<li>${s}</li>`).join('')}</ul>`;
+      } catch (e) {
+        console.error('ev score failed', e);
+        statusEl.textContent = 'Could not fetch EV battery score.';
+      }
+    }
+
+    async function refreshHealthBadges() {
+      try {
+        const data = await fetch('/health/full').then(r=>r.json());
+        const map = [
+          {id:'hb-ocr', ok:data.ocr?.ok, detail:data.ocr?.detail, label:'OCR ready'},
+          {id:'hb-llm', ok:data.llm?.ok, detail:data.llm?.detail, label:'AI summary'},
+          {id:'hb-pred', ok:data.predictive?.ok, detail:data.predictive?.detail, label:'Predictive'},
+        ];
+        map.forEach(item=>{
+          const el = document.getElementById(item.id);
+          if (!el) return;
+          const cls = item.ok ? 'badge-success' : 'badge-danger';
+          el.className = `badge ${cls}`;
+          el.title = item.detail || item.label;
+        });
+      } catch (e) {
+        ['hb-ocr','hb-llm','hb-pred'].forEach(id=>{
+          const el = document.getElementById(id);
+          if (el) { el.className = 'badge badge-danger'; el.title = 'Health check failed'; }
+        });
+      }
+    }
+
+    async function loadAll() {
+      console.info('neo-dashboard: Show my warranty clicked');
+      const userId = document.getElementById('userId').value.trim();
+      const warrantyId = document.getElementById('warrantyId').value.trim();
+      if (!warrantyId) { setStatus('Enter warranty number'); return; }
+      setStatus('Loading...');
+      resetPlaceholders();
+      try {
+        console.info('neo-dashboard: fetch warranty', { warrantyId });
+        const w = await fetchJsonSafe(`/warranties/${warrantyId}`, { headers: h() }, 'warranty');
+        document.getElementById('warranty').textContent = JSON.stringify(w, null, 2);
+        document.getElementById('exportPdf').href = `/warranties/${warrantyId}/export?format=pdf`;
+        document.getElementById('exportPdf').classList.remove('disabled');
+        renderCoverage(w);
+        updateSaveContext(w);
+        const name = (w.product_name || '').toLowerCase();
+        isEV = name.includes('ev') || name.includes('electric');
+        const evCard = document.getElementById('evCard');
+        if (evCard) evCard.style.display = isEV ? 'block' : 'none';
+        console.info('neo-dashboard: fetch warranty summary', { warrantyId });
+        const sum = await fetchJsonSafe('/warranties/summary', {
+          method:'POST', headers: h({'Content-Type':'application/json'}),
+          body: JSON.stringify({warranty_id: warrantyId})
+        }, 'warranty summary');
+        document.getElementById('summary').textContent = sum.summary || '';
+        const compactLine = [
+          w.brand ? `Brand: ${w.brand}` : null,
+          w.model_code ? `Model: ${w.model_code}` : null,
+          w.expiry_date ? `Expiry: ${w.expiry_date}` : null,
+          w.coverage_months ? `Coverage: ${w.coverage_months} months` : null
+        ].filter(Boolean).join(' • ');
+        document.getElementById('summaryShort').textContent = compactLine || ((sum.summary || '').slice(0, 160) + ((sum.summary||'').length > 160 ? '...' : ''));
+        console.info('neo-dashboard: fetch advisories', { warrantyId, userId });
+        const adv = await fetchJsonSafe(`/advisories/${warrantyId}?user_id=${encodeURIComponent(userId)}`, { headers: h() }, 'advisories');
+        renderAdvisories(adv);
+        console.info('neo-dashboard: fetch predictive score', { warrantyId, userId });
+        const pred = await fetchJsonSafe('/predictive/score', {
+          method:'POST', headers: h({'Content-Type':'application/json'}),
+          body: JSON.stringify({user_id:userId, warranty_id:warrantyId})
+        }, 'predictive score');
+        renderRisk(pred);
+        const predStatus = predictiveStatus(pred.risk_label || pred.band);
+        const predBadge = document.getElementById('predictiveBadge');
+        if (predBadge) {
+          predBadge.textContent = predStatus.text;
+          predBadge.className = `badge ${predStatus.cls}`;
+          predBadge.classList.remove('hidden');
+        }
+        // coverage badge
+        const daysLeft = window.__daysLeft;
+        const cov = coverageStatus(daysLeft);
+        const covBadge = document.getElementById('coverageBadge');
+        if (covBadge) {
+          covBadge.textContent = cov.text;
+          covBadge.className = `badge ${cov.cls}`;
+          covBadge.classList.remove('hidden');
+        }
+        const expiryLine = document.getElementById('expiryLine');
+        if (expiryLine) expiryLine.classList.remove('hidden');
+        updateSnapshot(cov, predStatus, daysLeft);
+        document.getElementById('overviewData').classList.remove('hidden');
+        document.getElementById('detailsHelper').textContent = 'Loaded from your warranty. Scroll to read more.';
+        warrantyLoaded = true;
+        lockSteps(false);
+        loadBehaviourQuestion();
+        console.info('neo-dashboard: fetch recommendations', { warrantyId, userId });
+        fetchRecommendations();
+        if (isEV) { fetchEvScore(); }
+        console.info('neo-dashboard: fetch notifications', { userId });
+        fetchNotifications(true);
+        setStatus(`Loaded (variant ${adv.variant || ''})`);
+      } catch (err) {
+        console.error('neo-dashboard: loadAll error', err);
+        setStatus('Error: ' + err);
+      }
+    }
+    // expose for any inline hooks
+    window.loadAll = loadAll;
+    window.toggleNotifications = toggleNotifications;
+    window.setDocSource = setDocSource;
+    window.toggleAdvanced = toggleAdvanced;
+    window.sendTelemetry = sendTelemetry;
+    window.toggleTip = toggleTip;
+    window.toggleKey = toggleKey;
+    window.openModal = openModal;
+    window.closeModal = closeModal;
+    window.openFullView = openFullView;
+    window.closeFullView = closeFullView;
+    window.scrollToStep = function(id) {
+      const el = document.getElementById(id);
+      if (el && el.scrollIntoView) {
+        el.scrollIntoView({behavior:'smooth', block:'start'});
+      } else {
+        window.scrollTo({top:0, behavior:'smooth'});
+      }
+    };
+    function toggleRawWarranty() {
+      const pre = document.getElementById('warranty');
+      if (!pre) return;
+      pre.classList.toggle('hidden');
+      const link = document.getElementById('rawWarrantyToggle');
+      if (link) link.textContent = pre.classList.contains('hidden') ? 'View technical details' : 'Hide technical details';
+    }
+    function renderWarrantyFriendly() {
+      const pre = document.getElementById('warranty');
+      const friendly = document.getElementById('warrantyFriendly');
+      if (!pre || !friendly) return;
+      let data;
+      try { data = JSON.parse(pre.textContent || '{}'); } catch { data = null; }
+      if (!data || typeof data !== 'object') { friendly.textContent = pre.textContent || ''; return; }
+      const parts = [];
+      if (data.purchase_date || data.expiry_date) {
+        parts.push(`<div><strong>Purchase:</strong> ${data.purchase_date || 'N/A'} &nbsp; <strong>Expiry:</strong> ${data.expiry_date || 'N/A'}</div>`);
+      }
+      if (Array.isArray(data.terms) && data.terms.length) {
+        parts.push('<div><strong>Coverage / Terms:</strong><ul>' + data.terms.map(t=>`<li>${t}</li>`).join('') + '</ul></div>');
+      }
+      if (Array.isArray(data.exclusions) && data.exclusions.length) {
+        parts.push('<div><strong>Exclusions:</strong><ul>' + data.exclusions.map(t=>`<li>${t}</li>`).join('') + '</ul></div>');
+      }
+      if (Array.isArray(data.claim_steps) && data.claim_steps.length) {
+        parts.push('<div><strong>Claim steps:</strong><ol>' + data.claim_steps.map(t=>`<li>${t}</li>`).join('') + '</ol></div>');
+      }
+      friendly.innerHTML = parts.join('') || 'No details available yet.';
+    }
+
+    function renderCoverage(w) {
+      const expiryInfo = document.getElementById('expiryLine');
+      const coverageMonths = w.coverage_months || 0;
+      let daysLeft = null;
+      if (w.expiry_date) {
+        const exp = new Date(w.expiry_date);
+        const today = new Date();
+        daysLeft = Math.max(0, Math.floor((exp - today)/(1000*60*60*24)));
+      }
+      window.__daysLeft = daysLeft;
+      const cov = coverageStatus(daysLeft);
+      if (expiryInfo) {
+        expiryInfo.textContent = daysLeft !== null ? `${daysLeft} days left` : 'Days left: N/A';
+        expiryInfo.className = `badge ${cov.cls}`;
+      }
+      const coverageBadge = document.getElementById('coverageBadge');
+      if (coverageBadge) {
+        coverageBadge.textContent = cov.text;
+        coverageBadge.className = `badge ${cov.cls}`;
+        coverageBadge.classList.remove('hidden');
+      }
+      if (expiryInfo) expiryInfo.classList.remove('hidden');
+      document.getElementById('coverageDetails').textContent = [
+        `Brand: ${w.brand || 'N/A'}`,
+        `Model: ${w.model_code || 'N/A'}`,
+        `Coverage months: ${coverageMonths || 'N/A'}`,
+        `Expiry: ${w.expiry_date || 'N/A'}`
+      ].join('\n');
+      const coverageCanvas = document.getElementById('coverageChart');
+      if (coverageCanvas && coverageCanvas.getContext) {
+        const ctx = coverageCanvas.getContext('2d');
+        const pct = coverageMonths ? Math.min(1, (daysLeft !== null ? daysLeft : 0) / (coverageMonths*30)) : 0;
+        if (coverageChart) coverageChart.destroy();
+        coverageChart = new Chart(ctx, {
+          type:'doughnut',
+          data:{ labels:['Remaining','Used'], datasets:[{ data:[pct, 1-pct], backgroundColor:['#3ad6c5','#6a5bff22'], borderWidth:0 }]},
+          options:{ cutout:'70%', plugins:{legend:{display:false}} }
+        });
+      }
+    }
+
+    function renderRisk(pred) {
+      const riskCanvas = document.getElementById('riskChart');
+      const riskDebugWrap = document.getElementById('riskDebug');
+      const riskWhyContent = document.getElementById('riskWhyContent');
+      if (riskDebugWrap && riskWhyContent) {
+        let html = '';
+        if (!pred || pred.risk_label === 'UNKNOWN') {
+          html = "We couldn't calculate risk right now. You can still see your coverage details.";
+        } else {
+          const reasons = pred.reasons || [];
+          html = reasons.length ? `<ul>${reasons.slice(0,4).map(r=>`<li>${r}</li>`).join('')}</ul>` : 'No details yet.';
+        }
+        const extras = [];
+        if (pred && pred.base_risk_score !== undefined) extras.push(`Base risk score: ${pred.base_risk_score}`);
+        if (pred && pred.behaviour_delta !== undefined) extras.push(`Behaviour delta: ${pred.behaviour_delta}`);
+        const breasons = (pred && pred.behaviour_reasons) || [];
+        if (breasons.length) extras.push(`Behaviour reasons: ${breasons.join('; ')}`);
+        if (extras.length) {
+          html += `<div class="helper" style="margin-top:6px;">${extras.join('<br>')}</div>`;
+        }
+        riskWhyContent.innerHTML = html;
+        riskDebugWrap.style.display = html ? 'block' : 'none';
+      }
+      if (riskCanvas && riskCanvas.getContext) {
+        const ctx = riskCanvas.getContext('2d');
+        const score = pred && pred.risk_score !== undefined ? pred.risk_score : 0;
+        if (riskChart) riskChart.destroy();
+        riskChart = new Chart(ctx, {
+          type:'doughnut',
+          data:{ labels:['Risk',''], datasets:[{ data:[score, 1-score], backgroundColor:['#ff5c8d','#ffffff22'], borderWidth:0 }]},
+          options:{ cutout:'70%', plugins:{legend:{display:false}} }
+        });
+      }
+    }
+
+    function renderAdvisories(adv) {
+      const container = document.getElementById('advisories');
+      if (!container) return;
+      container.innerHTML = '';
+      const items = adv?.items || adv?.nudges || [];
+      if (!items.length) {
+        container.textContent = 'No advisories yet.';
+        return;
+      }
+      items.forEach(n=>{
+        const el = document.createElement('div');
+        el.className = 'nudge';
+        el.innerHTML = `<strong>${n.title}</strong><div>${n.message || n.body || ''}</div>`;
+        container.appendChild(el);
+      });
+    }
+
+    async function handleDocCapture() {
+      const source = document.getElementById('docSource').value;
+      const dtype = document.getElementById('docType').value || 'invoice';
+      const resultEl = document.getElementById('uploadResult');
+      if (source === 'upload') {
+        const file = document.getElementById('fileInput').files[0];
+        if (!file) { resultEl.textContent = 'Choose a file'; return; }
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('type', dtype);
+        try {
+          const res = await fetch('/artifacts/upload', { method:'POST', headers: h(), body: fd }).then(r=>r.json());
+          resultEl.textContent = 'Document added and read.';
+        } catch (e) {
+          resultEl.textContent = 'Error: ' + e;
+        }
+      } else {
+        try {
+          const res = await fetch('/artifacts/capture', { method:'POST', headers: h() }).then(r=>r.json());
+          resultEl.textContent = 'Captured with camera.';
+        } catch (e) {
+          resultEl.textContent = 'Error: ' + e;
+        }
+      }
+      closeModal('scanModal');
+    }
+
+    async function queueOem() {
+      const brand = document.getElementById('oemBrand').value.trim();
+      const model = document.getElementById('oemModel').value.trim();
+      const region = document.getElementById('oemRegion').value.trim();
+      const url = document.getElementById('oemUrl').value.trim();
+      if (!brand || !model || !url) { document.getElementById('oemStatus').textContent = 'Fill brand, model, url'; return; }
+      try {
+        const res = await fetch('/oem/fetch', {
+          method:'POST', headers: h({'Content-Type':'application/json'}),
+          body: JSON.stringify({brand, model, region, url, immediate:false})
+        }).then(r=>r.json());
+        document.getElementById('oemStatus').textContent = 'Brand info queued.';
+      } catch (e) {
+        document.getElementById('oemStatus').textContent = 'Error: ' + e;
+      }
+      closeModal('oemModal');
+    }
+
+    async function sendTelemetry() {
+      const userId = document.getElementById('userId').value.trim();
+      const warrantyId = document.getElementById('warrantyId').value.trim();
+      const type = document.getElementById('telType').value;
+      let payload;
+      if (document.getElementById('advancedToggle').checked) {
+        try { payload = JSON.parse(document.getElementById('telPayload').value || '{}'); } catch { payload = {}; }
+      } else {
+        const simple = document.getElementById('telPayloadSimple').value;
+        payload = simple ? { note: simple } : {};
+      }
+      if (!warrantyId) { document.getElementById('telStatus').textContent = 'Add your warranty first'; return; }
+      try {
+        return await fetch('/telemetry', {
+          method:'POST', headers: h({'Content-Type':'application/json'}),
+          body: JSON.stringify({user_id:userId, warranty_id:warrantyId, event_type:type, payload})
+        }).then(r=> {
+          if (!r.ok) throw new Error(r.statusText);
+          return r;
+        }).then(r=>r);
+      document.getElementById('telStatus').textContent = 'Saved.';
+      } catch (e) {
+        document.getElementById('telStatus').textContent = 'Error: ' + e;
+        throw e;
+      }
+    }
+
+    let billStream = null;
+    function showBillPanel(mode) {
+      const upload = document.getElementById('billUploadPanel');
+      const camera = document.getElementById('billCameraPanel');
+      const manual = document.getElementById('billManualPanel');
+      if (upload) upload.classList.toggle('hidden', mode !== 'upload');
+      if (camera) camera.classList.toggle('hidden', mode !== 'camera');
+      if (manual) manual.classList.toggle('hidden', mode !== 'manual');
+    }
+
+    function initBillMethod() {
+      const select = document.getElementById('billMethod');
+      if (!select) return;
+      showBillPanel(select.value);
+      select.addEventListener('change', () => showBillPanel(select.value));
+
+      const uploadBtn = document.getElementById('btnUploadBill');
+      if (uploadBtn) uploadBtn.addEventListener('click', handleBillUpload);
+      const openBtn = document.getElementById('btnOpenCamera');
+      if (openBtn) openBtn.addEventListener('click', openCamera);
+      const capBtn = document.getElementById('btnCapture');
+      if (capBtn) capBtn.addEventListener('click', captureBillFrame);
+      const closeBtn = document.getElementById('btnCloseCamera');
+      if (closeBtn) closeBtn.addEventListener('click', closeCamera);
+      const saveManualBtn = document.getElementById('btnSaveManual');
+      if (saveManualBtn) saveManualBtn.addEventListener('click', saveManualBill);
+    }
+
+    async function handleBillUpload() {
+      const msg = document.getElementById('billUploadMsg');
+      const file = document.getElementById('billFile')?.files?.[0];
+      if (!file) { if (msg) msg.textContent = 'Choose a file to upload.'; return; }
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('type', 'invoice');
+        const res = await fetch('/artifacts/upload', { method:'POST', headers: h(), body: fd });
+        if (!res.ok) {
+          const txt = await res.text().catch(()=> '');
+          if (msg) msg.textContent = `Upload failed: ${txt || res.statusText}`;
+          return;
+        }
+        if (msg) msg.textContent = 'Uploaded successfully.';
+      } catch (e) {
+        if (msg) msg.textContent = `Upload error: ${e}`;
+      }
+    }
+
+    async function openCamera() {
+      const wrap = document.getElementById('cameraWrap');
+      const video = document.getElementById('cameraVideo');
+      const msg = document.getElementById('billCameraMsg');
+      try {
+        billStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (video) video.srcObject = billStream;
+        if (wrap) wrap.classList.remove('hidden');
+        if (msg) msg.textContent = 'Camera ready.';
+      } catch (e) {
+        if (msg) msg.textContent = 'Camera not available or permission denied.';
+      }
+    }
+
+    function closeCamera() {
+      const wrap = document.getElementById('cameraWrap');
+      const msg = document.getElementById('billCameraMsg');
+      if (billStream) {
+        billStream.getTracks().forEach(t => t.stop());
+        billStream = null;
+      }
+      if (wrap) wrap.classList.add('hidden');
+      if (msg) msg.textContent = 'Camera closed.';
+    }
+
+    async function captureBillFrame() {
+      const video = document.getElementById('cameraVideo');
+      const canvas = document.getElementById('cameraCanvas');
+      const msg = document.getElementById('billCameraMsg');
+      if (!video || !canvas) return;
+      const w = video.videoWidth || 640;
+      const hgt = video.videoHeight || 480;
+      canvas.width = w;
+      canvas.height = hgt;
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.drawImage(video, 0, 0, w, hgt);
+      canvas.toBlob(async (blob) => {
+        if (!blob) { if (msg) msg.textContent = 'Capture failed.'; return; }
+        try {
+          const fd = new FormData();
+          fd.append('file', new File([blob], 'capture.png', { type: 'image/png' }));
+          fd.append('type', 'invoice');
+          const res = await fetch('/artifacts/upload', { method:'POST', headers: h(), body: fd });
+          if (res.ok) {
+            if (msg) msg.textContent = 'Captured and uploaded.';
+          } else {
+            if (msg) msg.textContent = 'Captured locally (upload failed).';
+          }
+        } catch {
+          if (msg) msg.textContent = 'Captured locally.';
+        }
+      }, 'image/png');
+    }
+
+    function saveManualBill() {
+      const msg = document.getElementById('billManualMsg');
+      const data = {
+        seller: document.getElementById('mSeller')?.value || '',
+        date: document.getElementById('mDate')?.value || '',
+        amount: document.getElementById('mAmount')?.value || '',
+        invoiceNo: document.getElementById('mInvoiceNo')?.value || '',
+      };
+      const warrantyId = document.getElementById('warrantyId')?.value?.trim() || 'unknown';
+      localStorage.setItem(`manualBill:${warrantyId}`, JSON.stringify(data));
+      if (msg) msg.textContent = 'Saved locally on this device.';
+    }
+
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function setDocSource(val) {
+      const sel = document.getElementById('docSource');
+      if (sel) sel.value = val;
+    }
+    function resetDevTelemetry() {
+      if (!DEV_MODE) return;
+      const userId = document.getElementById('userId').value.trim();
+      const warrantyId = document.getElementById('warrantyId').value.trim();
+      if (userId && warrantyId) {
+        localStorage.removeItem(`devTelemetry:${userId}:${warrantyId}`);
+      }
+      const telStatus = document.getElementById('telStatus');
+      if (telStatus) telStatus.textContent = 'Dev telemetry cleared locally.';
+    }
+    async function applyTelemetrySample(kind) {
+      if (!DEV_MODE) return;
+      const userId = document.getElementById('userId').value.trim();
+      const warrantyId = document.getElementById('warrantyId').value.trim();
+      if (!warrantyId) { const telStatus = document.getElementById('telStatus'); if (telStatus) telStatus.textContent = 'Add your warranty first'; return; }
+      const good = { hours: 2, errors: 0, region: "APAC" };
+      const bad = { hours: 2500, errors: 8, region: "APAC" };
+      const sample = kind === 'bad' ? bad : good;
+      const advToggle = document.getElementById('advancedToggle');
+      if (advToggle) { advToggle.checked = true; toggleAdvanced(); }
+      const payloadEl = document.getElementById('telPayload');
+      if (payloadEl) payloadEl.value = JSON.stringify(sample, null, 2);
+      try {
+        await sendTelemetry();
+        await loadAll();
+      } catch (e) {
+        // already logged
+      }
+    }
+    window.addEventListener('click', (e) => {
+      ['scanModal','oemModal','fullViewModal'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && e.target === el) el.style.display = 'none';
+      });
+    });
+    document.addEventListener('DOMContentLoaded', () => {
+      console.info('neo-dashboard: DOMContentLoaded');
+      toggleDocSource();
+      toggleKey();
+      lockSteps(true);
+      initBillMethod();
+      const detailsSection = document.getElementById('detailsCareSection');
+      if (detailsSection) { detailsSection.open = false; detailsSection.classList.add('hidden'); }
+      // hide technical view unless debug flag
+      if (!DEBUG_MODE) {
+        const tech = document.querySelector('.toggle-switch');
+        if (tech) tech.style.display = 'none';
+        const rawWrap = document.getElementById('rawWarrantyToggleWrap');
+        if (rawWrap) rawWrap.style.display = 'none';
+      } else {
+        const rawWrap = document.getElementById('rawWarrantyToggleWrap');
+        if (rawWrap) rawWrap.style.display = 'block';
+      }
+      refreshHealthBadges();
+      // Preload notifications on arrival
+      fetchNotifications(true);
+      updateSaveContext();
+      const warrantyInput = document.getElementById('warrantyId');
+      if (warrantyInput) warrantyInput.addEventListener('input', () => updateSaveContext());
+      const viewDetailsBtn = document.getElementById('btnSeeFullSummary');
+      if (viewDetailsBtn && detailsSection) {
+        viewDetailsBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const isHidden = detailsSection.classList.contains('hidden');
+          if (isHidden) {
+            detailsSection.open = true;
+            detailsSection.classList.remove('hidden');
+            detailsSection.scrollIntoView({ behavior:'smooth', block:'start' });
+          } else {
+            detailsSection.open = false;
+            detailsSection.classList.add('hidden');
+          }
+        });
+      }
+      const collapseBtn = document.getElementById('collapseStep2');
+      const step1Card = document.getElementById('step1Card');
+      if (collapseBtn && detailsSection) {
+        collapseBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          detailsSection.open = false;
+          detailsSection.classList.add('hidden');
+          (step1Card || detailsSection).scrollIntoView({ behavior:'smooth', block:'start' });
+        });
+      }
+      const devTools = document.getElementById('devTelemetryTools');
+      if (devTools) devTools.style.display = DEV_MODE ? 'block' : 'none';
+      const loadButtons = Array.from(document.querySelectorAll('[data-role="show-warranty-btn"], #show-warranty-btn, #loadWarrantyBtn, #show-warranty-btn'));
+      async function loadAllWrapper(e) {
+        if (e) e.preventDefault();
+        console.info('neo-dashboard: Show my warranty clicked (listener)');
+        await loadAll();
+      }
+      if (loadButtons.length) {
+        loadButtons.forEach((btn) => btn.addEventListener('click', loadAllWrapper));
+      } else {
+        console.warn('neo-dashboard: show warranty button not found');
+      }
+      const bell = document.getElementById('notifBtn') || document.getElementById('bell');
+      if (bell) {
+        bell.addEventListener('click', (e) => {
+          e.preventDefault();
+          toggleNotifications();
+        });
+      }
+      const fullviewLinks = document.querySelectorAll('[data-role="open-fullview"]');
+      fullviewLinks.forEach((lnk) => {
+        lnk.addEventListener('click', (e) => {
+          e.preventDefault();
+          const target = lnk.getAttribute('data-target');
+          const title = lnk.getAttribute('data-title');
+          openFullView(target, title);
+        });
+      });
+    });
+    // observe warranty raw content to render friendly view
+    (function initWarrantyObserver(){
+      const pre = document.getElementById('warranty');
+      const friendly = document.getElementById('warrantyFriendly');
+      if (!pre || !friendly) return;
+      const observer = new MutationObserver(renderWarrantyFriendly);
+      observer.observe(pre, { characterData: true, subtree: true, childList: true });
+      renderWarrantyFriendly();
+    })();
+  })();
+  </script>
+</body>
+</html>
