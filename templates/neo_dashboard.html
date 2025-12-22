@@ -61,7 +61,7 @@
       transition:opacity 0.2s ease, transform 0.2s ease;
     }
     .toast.show { opacity:1; transform:translateY(0); }
-    .container { max-width:1140px; margin:0 auto; padding:18px 16px 40px; display:flex; flex-direction:column; gap:26px; }
+    .container { max-width:1040px; margin:0 auto; padding:18px 16px 40px; display:flex; flex-direction:column; gap:26px; }
     .section-title { font-size:13px; font-weight:800; letter-spacing:0.4px; color:var(--muted); text-transform:uppercase; padding-left:4px; margin-top:6px; }
     .card {
       background:var(--card);
@@ -208,13 +208,13 @@
   <div id="toast" class="toast hidden"></div>
 
   <div class="container">
-    <div class="helper" style="text-align:center; margin-top:-6px;">Start by loading your warranty. The other steps will unlock automatically.</div>
+    <div class="helper" style="text-align:center; margin-top:-6px;">Start by loading your product. The other steps will unlock automatically.</div>
     <!-- Section: Your Warranty Data -->
-    <div class="section-title" id="step1">Step 1 - Your warranty</div>
+    <div class="section-title" id="step1">Step 1 - Your product</div>
     <div class="card hero" id="step1Card">
-      <div class="card-title">Your warranty</div>
+      <div class="card-title">Your product</div>
       <label>Your ID (optional)</label><input id="userId" value="user-1" aria-label="Your ID">
-      <label>Warranty number</label><input id="warrantyId" placeholder="wty_xxx" aria-label="Warranty number">
+      <label>Product / Warranty ID</label><input id="warrantyId" placeholder="wty_xxx" aria-label="Warranty number">
       <div class="toggle advanced-toggle" aria-hidden="true" style="display:none; margin:4px 0 8px 0;">
         <input type="checkbox" id="advancedKeyToggle" onchange="toggleKey()">
         <label for="advancedKeyToggle" style="margin:0; text-transform:none;">Advanced settings</label>
@@ -222,8 +222,8 @@
       <div id="apiKeyWrap" class="hidden" aria-hidden="true" style="display:none;">
         <label>Access Key</label><input id="apiKey" placeholder="optional" aria-label="Access Key">
       </div>
-      <button id="show-warranty-btn" type="button" data-role="show-warranty-btn">Show my warranty</button>
-      <div class="helper">Enter your warranty number and tap "Show my warranty".</div>
+      <button id="show-warranty-btn" type="button" data-role="show-warranty-btn">Load product details</button>
+      <div class="helper">Enter an ID to fetch your product + coverage details.</div>
       <div id="status" class="status-line"></div>
 
       <div id="overviewData" class="hidden" style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
@@ -252,7 +252,7 @@
       <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">Details & care <button type="button" class="btn-ghost" id="collapseStep2" style="width:auto; padding:8px 12px; font-weight:700;">Collapse</button></div>
       <div class="card-hint" id="detailsHelper">Load your warranty in Step 1 to unlock these details.</div>
       <details id="moreWarrantyDetails">
-        <summary>More warranty details</summary>
+        <summary>More product details</summary>
         <div id="riskDebug" class="helper" style="display:none; margin-bottom:10px;">
           <details>
             <summary><strong>Why this risk?</strong></summary>
@@ -270,10 +270,10 @@
             <div class="helper">Read the complete warranty.</div>
             <div id="warrantyFriendly" class="helper" style="margin-bottom:10px;">Load data to see warranty details.</div>
             <div class="helper" id="rawWarrantyToggleWrap" style="display:none;">
-              <a href="javascript:void(0)" onclick="toggleRawWarranty()" id="rawWarrantyToggle">View technical details</a>
+              <a href="javascript:void(0)" onclick="toggleRawWarranty()" id="rawWarrantyToggle">View raw JSON</a>
             </div>
             <pre id="warranty" class="placeholder raw-warranty hidden">Load data to see warranty details.</pre>
-            <div class="helper"><a href="javascript:void(0)" data-role="open-fullview" data-target="warranty" data-title="Full warranty text">Open in full view</a></div>
+            <div class="helper"><a href="javascript:void(0)" data-role="open-fullview" data-target="warranty" data-title="Full warranty text" id="warrantyFullLink" style="display:none;">Open full-screen</a></div>
           </details>
       </details>
         <details>
@@ -289,8 +289,9 @@
       <div class="section-title" id="step3">Step 3 - Add your bill</div>
       <div class="card card-locked" data-step-lock="true" id="step-add-bill">
         <div class="card-title">Add your bill</div>
-        <div class="card-hint" id="step3Hint">After your warranty appears in Step 1, you can add your bill or receipt here.</div>
-        <label>Add receipt via</label>
+      <div class="card-hint" id="step3Hint">After your product appears in Step 1, you can add your bill or receipt here.</div>
+      <div class="helper" id="productContextStep3" style="display:none;"></div>
+      <label>Add receipt via</label>
         <select id="billMethod">
           <option value="upload" selected>Upload file</option>
           <option value="camera">Use camera</option>
@@ -335,7 +336,8 @@
       <div class="section-title" id="step4">Step 4 - Usage & health</div>
     <div class="card card-locked" data-step-lock="true">
       <div class="card-title">Device usage & issues</div>
-      <div class="card-hint" id="step4Hint">Load your warranty in Step 1 to unlock these details.</div>
+      <div class="card-hint" id="step4Hint">Load your product in Step 1 to unlock these details.</div>
+      <div class="helper" id="productContextStep4" style="display:none;"></div>
       <div class="helper" style="margin-top:-2px;">Quick questions about your usage</div>
       <div id="behaviourCard" class="card" style="padding:12px; border:1px dashed var(--border); background:#fdfefe; display:none;">
         <div id="behaviourQuestionText" style="font-weight:700; font-size:14px;"></div>
@@ -446,6 +448,8 @@
       <div class="title" id="fullViewTitle">Full view</div>
       <div id="fullViewBody" style="white-space:pre-wrap; max-height:60vh; overflow:auto;"></div>
       <div class="actions" style="margin-top:12px;">
+        <button id="fullViewCopy" type="button" class="btn-ghost" style="width:auto; display:none;">Copy</button>
+        <span id="fullViewCopyMsg" class="helper" style="display:none; align-self:center;">Copied</span>
         <button onclick="closeFullView()">Close</button>
       </div>
     </div>
@@ -460,7 +464,9 @@
     const DEBUG_MODE = new URLSearchParams(window.location.search).get('debug') === '1';
     let coverageChart, riskChart, warrantyLoaded = false, isEV = false;
     let notifications = [];
+    const warrantyLabelMap = {};
     let toastTimer = null;
+    let lastWarrantyPlainText = '';
     function h(extra={}) {
       const headers = {...extra};
       const keyField = document.getElementById('apiKey');
@@ -508,6 +514,111 @@
       }
     }
 
+    function productLabel(w) {
+      const name = (w && w.product_name) ? String(w.product_name).trim() : '';
+      const brand = (w && (w.brand || w.make)) ? String(w.brand || w.make).trim() : '';
+      const model = (w && (w.model_code || w.model)) ? String(w.model_code || w.model).trim() : '';
+      const type = (w && (w.product_type_label || (typeof w.product_type === 'string' ? w.product_type : ''))) ? String(w.product_type_label || w.product_type).trim() : '';
+      const base = name || [brand, model].filter(Boolean).join(' ').trim() || 'Product';
+      return type ? `${type} - ${base}` : base;
+    }
+
+    function productLabelWithId(w) {
+      const id = (w && (w.id || w.warranty_id)) ? String(w.id || w.warranty_id).trim() : '';
+      const base = productLabel(w);
+      return id ? `${base} (${id})` : base;
+    }
+
+    function buildProductLabel({ brand, model, type, warrantyId, product_name }) {
+      const base = (product_name || [brand, model].filter(Boolean).join(' ').trim() || 'Product').trim();
+      const typeLabel = (type && typeof type === 'string') ? type.trim() : '';
+      const context = typeLabel ? `${typeLabel} - ${base}` : base;
+      return warrantyId ? `${context} (${warrantyId})` : context;
+    }
+
+    function computeWarrantyLong(w) {
+      const terms = Array.isArray(w?.terms) ? w.terms : [];
+      const exclusions = Array.isArray(w?.exclusions) ? w.exclusions : [];
+      const claimSteps = Array.isArray(w?.claim_steps) ? w.claim_steps : [];
+      const totalItems = terms.length + exclusions.length + claimSteps.length;
+      const totalChars = [...terms, ...exclusions, ...claimSteps].join(' ').length;
+      return totalChars > 600 || totalItems >= 8;
+    }
+
+    function renderWarrantyPlainText(w) {
+      const label = productLabel(w);
+      const id = (w && (w.id || w.warranty_id)) ? String(w.id || w.warranty_id).trim() : '';
+      const labelWithId = id ? `${label} (${id})` : label;
+      const lines = [];
+      lines.push(`Product: ${labelWithId}`);
+      lines.push(`Purchase: ${w?.purchase_date || 'Not available yet'} | Expiry: ${w?.expiry_date || 'Not available yet'}`);
+      if (w?.coverage_months !== undefined && w?.coverage_months !== null) {
+        lines.push(`Coverage: ${w.coverage_months} months`);
+      }
+      const addSection = (title, items, ordered=false) => {
+        lines.push('');
+        lines.push(`${title}:`);
+        if (Array.isArray(items) && items.length) {
+          items.forEach((item, idx) => {
+            const prefix = ordered ? `${idx + 1})` : '-';
+            lines.push(`${prefix} ${item}`);
+          });
+        } else {
+          lines.push('- Not available yet');
+        }
+      };
+      addSection('Coverage / Terms', w?.terms, false);
+      addSection('Exclusions', w?.exclusions, false);
+      addSection('Claim steps', w?.claim_steps, true);
+      return lines.join('\n');
+    }
+
+    function setWarrantyFullLinkVisibility(w) {
+      const link = document.getElementById('warrantyFullLink');
+      if (!link) return;
+      link.style.display = w && computeWarrantyLong(w) ? 'inline' : 'none';
+    }
+
+    function updateWarrantyLabel(w) {
+      const inputId = document.getElementById('warrantyId');
+      const warrantyId = (w && w.id) || (inputId && inputId.value.trim()) || '';
+      if (!warrantyId) return;
+      const brand = w && (w.brand || w.make) || '';
+      const model = w && (w.model_code || w.model) || '';
+      const type = w && (w.product_type_label || (typeof w.product_type === 'string' ? w.product_type : '')) || '';
+      const product_name = w && (w.product_name || '') || '';
+      const label = buildProductLabel({ brand, model, type, warrantyId, product_name });
+      warrantyLabelMap[warrantyId] = { brand, model, type, product_name, warrantyId, label };
+    }
+
+    function getProductLabel(warrantyId) {
+      if (!warrantyId) return '';
+      const entry = warrantyLabelMap[warrantyId];
+      return entry && entry.label ? entry.label : warrantyId;
+    }
+
+    function replaceWarrantyId(text, warrantyId, label) {
+      if (!text || !warrantyId || !label) return text || '';
+      return String(text).split(warrantyId).join(label);
+    }
+
+    function formatNotification(n) {
+      const wid = n && n.warranty_id;
+      let title = (n && n.title) || 'Alert';
+      let message = (n && n.message) || '';
+      if (wid) {
+        const label = getProductLabel(wid);
+        if (label) {
+          title = replaceWarrantyId(title, wid, label);
+          message = replaceWarrantyId(message, wid, label);
+          if (!title.includes(label) && !message.includes(label)) {
+            title = `${title} — ${label}`;
+          }
+        }
+      }
+      return { title, message };
+    }
+
     function renderNotificationsPanel(list) {
       const panel = document.getElementById('notifPanel');
       const container = document.getElementById('notifList');
@@ -517,13 +628,16 @@
         return;
       }
       container.innerHTML = list
-        .map(n => `
+        .map(n => {
+          const f = formatNotification(n);
+          return `
           <div class=\"notif-item\">
-            <div class=\"notif-title\">${n.title || 'Alert'}</div>
-            <div class=\"notif-message\">${n.message || ''}</div>
+            <div class=\"notif-title\">${f.title}</div>
+            <div class=\"notif-message\">${f.message || ''}</div>
             <button class=\"btn-ghost\" style=\"margin-top:8px; width:100%;\" onclick=\"markNotificationRead('${n.id}')\">Mark read</button>
           </div>
-        `)
+        `;
+        })
         .join('');
     }
 
@@ -537,7 +651,8 @@
         renderNotificationsPanel(notifications);
         if (onlyUnread && notifications.length) {
           const newest = notifications[0];
-          showToast(newest.title || 'New alert', newest.message || '');
+          const f = formatNotification(newest);
+          showToast(f.title || 'New alert', f.message || '');
         }
       } catch (e) {
         console.error('notifications fetch failed', e);
@@ -595,11 +710,11 @@
       const step3Hint = document.getElementById('step3Hint');
       const step4Hint = document.getElementById('step4Hint');
       if (lock) {
-        if (detailsHelper) detailsHelper.textContent = 'Load your warranty in Step 1 to unlock these details.';
-        if (step3Hint) step3Hint.textContent = 'Load your warranty above to add your bill or receipt.';
-        if (step4Hint) step4Hint.textContent = 'Load your warranty above to share simple usage notes or issues.';
+        if (detailsHelper) detailsHelper.textContent = 'Load your product in Step 1 to unlock these details.';
+        if (step3Hint) step3Hint.textContent = 'Load your product above to add your bill or receipt.';
+        if (step4Hint) step4Hint.textContent = 'Load your product above to share simple usage notes or issues.';
       } else {
-        if (detailsHelper) detailsHelper.textContent = 'Loaded from your warranty. Scroll to read more.';
+        if (detailsHelper) detailsHelper.textContent = 'Loaded from your product. Scroll to read more.';
         if (step3Hint) step3Hint.textContent = 'Upload your bill or use the camera to keep everything in one place.';
         if (step4Hint) step4Hint.textContent = 'Save simple notes about usage, errors or repairs so the system can help you earlier.';
       }
@@ -626,9 +741,10 @@
       setText('uploadResult', 'No document added yet.');
       setText('oemStatus', 'No brand info fetched yet.');
       setText('telStatus', 'No usage info saved yet.');
-      setText('detailsHelper', 'Load your warranty in Step 1 to unlock these details.');
-      setText('step3Hint', 'After your warranty appears in Step 1, you can add your bill or receipt here.');
-      setText('step4Hint', 'Once your warranty is loaded, you can save how you are using the device or any issues here.');
+      setText('detailsHelper', 'Load your product in Step 1 to unlock these details.');
+      setText('step3Hint', 'After your product appears in Step 1, you can add your bill or receipt here.');
+      setText('step4Hint', 'Once your product is loaded, you can save how you are using the device or any issues here.');
+      updateProductContext();
       const riskDebugWrap = document.getElementById('riskDebug');
       const riskWhyContent = document.getElementById('riskWhyContent');
       if (riskWhyContent) riskWhyContent.innerHTML = '';
@@ -703,9 +819,32 @@
       const modelEl = document.getElementById('saveContextModel');
       const inputId = document.getElementById('warrantyId');
       const warrantyId = (inputId && inputId.value.trim()) || (w && w.id) || '';
-      if (idEl) idEl.textContent = warrantyId || '—';
-      if (brandEl) brandEl.textContent = (w && (w.brand || w.make)) || '—';
-      if (modelEl) modelEl.textContent = (w && (w.model_code || w.model)) || '—';
+      const label = w ? productLabel(w) : 'Product';
+      if (idEl) idEl.textContent = warrantyId || '--';
+      if (brandEl) brandEl.textContent = label || 'Product';
+      if (modelEl) modelEl.textContent = '';
+    }
+
+    function updateProductContext(w) {
+      const ctx3 = document.getElementById('productContextStep3');
+      const ctx4 = document.getElementById('productContextStep4');
+      if (!ctx3 && !ctx4) return;
+      const inputId = document.getElementById('warrantyId');
+      const warrantyId = (inputId && inputId.value.trim()) || (w && w.id) || '';
+      if (!warrantyId) {
+        const text = 'Saving for: (load a product first)';
+        if (ctx3) { ctx3.textContent = text; ctx3.style.display = 'block'; }
+        if (ctx4) { ctx4.textContent = text; ctx4.style.display = 'block'; }
+        return;
+      }
+      const brand = (w && (w.brand || w.make)) || '';
+      const model = (w && (w.model_code || w.model)) || '';
+      const type = (w && (w.product_type_label || (typeof w.product_type === 'string' ? w.product_type : ''))) || '';
+      const product_name = (w && w.product_name) || '';
+      const label = buildProductLabel({ brand, model, type, warrantyId, product_name });
+      const text = `Saving for: ${label}`;
+      if (ctx3) { ctx3.textContent = text; ctx3.style.display = 'block'; }
+      if (ctx4) { ctx4.textContent = text; ctx4.style.display = 'block'; }
     }
 
     function toggleAdvanced() {
@@ -764,14 +903,74 @@
       });
     }
 
+    async function copyTextToClipboard(text) {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch {}
+      try {
+        const el = document.createElement('textarea');
+        el.value = text;
+        el.style.position = 'fixed';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.focus();
+        el.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(el);
+        return ok;
+      } catch {
+        return false;
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     function openFullView(sourceId, title) {
       const src = document.getElementById(sourceId);
       const modal = document.getElementById('fullViewModal');
       const titleEl = document.getElementById('fullViewTitle');
       const bodyEl = document.getElementById('fullViewBody');
+      const copyBtn = document.getElementById('fullViewCopy');
+      const copyMsg = document.getElementById('fullViewCopyMsg');
       if (!src || !modal || !titleEl || !bodyEl) return;
-      titleEl.textContent = title || 'Full view';
-      bodyEl.textContent = src.innerText || src.textContent || '';
+      if (copyBtn) copyBtn.style.display = 'none';
+      if (copyMsg) copyMsg.style.display = 'none';
+      if (sourceId === 'warranty') {
+        let data = null;
+        try { data = JSON.parse(src.textContent || '{}'); } catch { data = null; }
+        titleEl.textContent = 'Full warranty details';
+        if (data && typeof data === 'object') {
+          const text = renderWarrantyPlainText(data);
+          lastWarrantyPlainText = text;
+          bodyEl.textContent = text;
+          if (copyBtn) {
+            copyBtn.style.display = 'inline-block';
+            copyBtn.onclick = async () => {
+              const ok = await copyTextToClipboard(lastWarrantyPlainText || '');
+              if (copyMsg) {
+                copyMsg.textContent = ok ? 'Copied' : 'Copy failed';
+                copyMsg.style.display = 'inline';
+                setTimeout(() => { if (copyMsg) copyMsg.style.display = 'none'; }, 1000);
+              }
+            };
+          }
+        } else {
+          bodyEl.textContent = src.innerText || src.textContent || '';
+        }
+      } else {
+        titleEl.textContent = title || 'Full view';
+        bodyEl.textContent = src.innerText || src.textContent || '';
+      }
       modal.style.display = 'flex';
     }
 
@@ -1013,7 +1212,7 @@
       console.info('neo-dashboard: Show my warranty clicked');
       const userId = document.getElementById('userId').value.trim();
       const warrantyId = document.getElementById('warrantyId').value.trim();
-      if (!warrantyId) { setStatus('Enter warranty number'); return; }
+      if (!warrantyId) { setStatus('Enter product ID'); return; }
       setStatus('Loading...');
       resetPlaceholders();
       try {
@@ -1023,7 +1222,12 @@
         document.getElementById('exportPdf').href = `/warranties/${warrantyId}/export?format=pdf`;
         document.getElementById('exportPdf').classList.remove('disabled');
         renderCoverage(w);
+        updateWarrantyLabel(w);
+        updateProductContext(w);
         updateSaveContext(w);
+        if (notifications && notifications.length) {
+          renderNotificationsPanel(notifications);
+        }
         const name = (w.product_name || '').toLowerCase();
         isEV = name.includes('ev') || name.includes('electric');
         const evCard = document.getElementById('evCard');
@@ -1034,13 +1238,12 @@
           body: JSON.stringify({warranty_id: warrantyId})
         }, 'warranty summary');
         document.getElementById('summary').textContent = sum.summary || '';
+        const displayName = productLabelWithId(w);
         const compactLine = [
-          w.brand ? `Brand: ${w.brand}` : null,
-          w.model_code ? `Model: ${w.model_code}` : null,
           w.expiry_date ? `Expiry: ${w.expiry_date}` : null,
           w.coverage_months ? `Coverage: ${w.coverage_months} months` : null
-        ].filter(Boolean).join(' • ');
-        document.getElementById('summaryShort').textContent = compactLine || ((sum.summary || '').slice(0, 160) + ((sum.summary||'').length > 160 ? '...' : ''));
+        ].filter(Boolean).join(' | ');
+        document.getElementById('summaryShort').textContent = displayName + (compactLine ? ` - ${compactLine}` : '');
         console.info('neo-dashboard: fetch advisories', { warrantyId, userId });
         const adv = await fetchJsonSafe(`/advisories/${warrantyId}?user_id=${encodeURIComponent(userId)}`, { headers: h() }, 'advisories');
         renderAdvisories(adv);
@@ -1110,7 +1313,7 @@
       if (!pre) return;
       pre.classList.toggle('hidden');
       const link = document.getElementById('rawWarrantyToggle');
-      if (link) link.textContent = pre.classList.contains('hidden') ? 'View technical details' : 'Hide technical details';
+      if (link) link.textContent = pre.classList.contains('hidden') ? 'View raw JSON' : 'Hide raw JSON';
     }
     function renderWarrantyFriendly() {
       const pre = document.getElementById('warranty');
@@ -1118,7 +1321,11 @@
       if (!pre || !friendly) return;
       let data;
       try { data = JSON.parse(pre.textContent || '{}'); } catch { data = null; }
-      if (!data || typeof data !== 'object') { friendly.textContent = pre.textContent || ''; return; }
+      if (!data || typeof data !== 'object') {
+        friendly.textContent = pre.textContent || '';
+        setWarrantyFullLinkVisibility(null);
+        return;
+      }
       const parts = [];
       if (data.purchase_date || data.expiry_date) {
         parts.push(`<div><strong>Purchase:</strong> ${data.purchase_date || 'N/A'} &nbsp; <strong>Expiry:</strong> ${data.expiry_date || 'N/A'}</div>`);
@@ -1133,6 +1340,8 @@
         parts.push('<div><strong>Claim steps:</strong><ol>' + data.claim_steps.map(t=>`<li>${t}</li>`).join('') + '</ol></div>');
       }
       friendly.innerHTML = parts.join('') || 'No details available yet.';
+      lastWarrantyPlainText = renderWarrantyPlainText(data);
+      setWarrantyFullLinkVisibility(data);
     }
 
     function renderCoverage(w) {
@@ -1478,8 +1687,9 @@
       // Preload notifications on arrival
       fetchNotifications(true);
       updateSaveContext();
+      updateProductContext();
       const warrantyInput = document.getElementById('warrantyId');
-      if (warrantyInput) warrantyInput.addEventListener('input', () => updateSaveContext());
+      if (warrantyInput) warrantyInput.addEventListener('input', () => { updateSaveContext(); updateProductContext(); });
       const viewDetailsBtn = document.getElementById('btnSeeFullSummary');
       if (viewDetailsBtn && detailsSection) {
         viewDetailsBtn.addEventListener('click', (e) => {

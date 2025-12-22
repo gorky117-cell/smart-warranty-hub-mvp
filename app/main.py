@@ -317,7 +317,18 @@ def health_predictive():
 
 @app.get("/health/full")
 def health_full():
-    return {"status": "ok"}
+    ocr_ok, ocr_detail = ocr_service.health()
+    llm_ok, llm_detail, llm_model = llm_service.health()
+    pred_ok, pred_detail = predictive_service.health()
+    status = "ok" if (ocr_ok and llm_ok and pred_ok) else "degraded"
+    return {
+        "status": status,
+        "checks": {
+            "ocr": {"ok": ocr_ok, "detail": ocr_detail},
+            "llm": {"ok": llm_ok, "detail": llm_detail, "model": llm_model},
+            "predictive": {"ok": pred_ok, "detail": pred_detail},
+        },
+    }
 
 
 @app.get("/behaviour/next-question", dependencies=[Depends(require_user)])
