@@ -94,6 +94,19 @@ curl -i -X POST http://127.0.0.1:8000/artifacts/upload \
   -F "type=invoice"
 ```
 
+Automated login + upload (PowerShell):
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/test_upload.ps1
+```
+Note: Server must be running on http://127.0.0.1:8000 and the file must exist at
+`C:\Users\lenovo\Desktop\sample_invoice.pdf`.
+If login needs credentials, set env vars before running:
+```powershell
+$env:SWH_USERNAME="admin"
+$env:SWH_PASSWORD="admin123"
+powershell -ExecutionPolicy Bypass -File scripts/test_upload.ps1
+```
+
 Job status + summary:
 ```bash
 # Replace JOB_ID from the upload response
