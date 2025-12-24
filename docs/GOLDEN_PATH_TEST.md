@@ -65,19 +65,31 @@ In Step 2:
 Run from terminal (copy/paste):
 
 ```bash
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+
+curl -i -X POST http://127.0.0.1:8000/auth/login \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=admin&password=admin123" \
+  -c cookies.txt
+
 curl -i http://127.0.0.1:8000/health/full
 curl -i http://127.0.0.1:8000/health/ocr
 curl -i http://127.0.0.1:8000/health/llm
 curl -i http://127.0.0.1:8000/health/predictive
-curl -i http://127.0.0.1:8000/warranties/wty_55f018de
+curl -i http://127.0.0.1:8000/warranties/wty_55f018de -b cookies.txt
+echo '{"warranty_id":"wty_55f018de"}' > payload.json
 curl -i -X POST http://127.0.0.1:8000/warranties/summary \
+  -b cookies.txt \
   -H "Content-Type: application/json" \
-  -d "{\"warranty_id\":\"wty_55f018de\"}"
+  --data-binary "@payload.json"
 ```
+
+Note: `/auth/login` returns `303` and sets `access_token` in cookies; use `-b cookies.txt` for authenticated calls.
 
 Artifact upload (replace PATH_TO_FILE):
 ```bash
 curl -i -X POST http://127.0.0.1:8000/artifacts/upload \
+  -b cookies.txt \
   -F "file=@PATH_TO_FILE" \
   -F "type=invoice"
 ```
@@ -86,6 +98,11 @@ Expected (PASS):
 - `/health/full` returns `status: ok` or `status: degraded` with structured checks
 - `/health/ocr` returns `ok: true` if PaddleOCR installed
 - Warranty endpoints return JSON and 200
+
+Optional (fresh DB only):
+```bash
+python scripts/sqlite_migrate.py
+```
 
 ## 5) PASS / FAIL Criteria
 

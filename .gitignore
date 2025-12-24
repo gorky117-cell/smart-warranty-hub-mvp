@@ -25,3 +25,4 @@ env/
 *.sqlite3
 app.db
 data/app.db
+data/uploads/

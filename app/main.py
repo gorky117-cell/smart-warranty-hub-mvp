@@ -57,6 +57,7 @@ from .services.exporter import export_warranty_txt, export_warranty_html, export
 from .services.scheduler import start_scheduler
 from .services import ocr as ocr_service
 from .services import llm as llm_service
+from .services import predictive as predictive_service
 from .db import SessionLocal
 from .db_models import (
     UserDB,

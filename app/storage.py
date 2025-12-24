@@ -59,8 +59,41 @@ class MemoryStore:
                 source_artifact_ids=warranty.source_artifact_ids,
                 created_at=warranty.created_at,
             )
-            db.merge(db_w)
-            db.commit()
+            try:
+                db.merge(db_w)
+                db.commit()
+            except OperationalError:
+                db.rollback()
+                columns = [r[1] for r in db.execute(text("PRAGMA table_info(warranties)")).all()]
+                payload = {
+                    "id": warranty.id,
+                    "product_name": warranty.product_name,
+                    "brand": warranty.brand,
+                    "model_code": warranty.model_code,
+                    "serial_no": warranty.serial_no,
+                    "purchase_date": warranty.purchase_date,
+                    "coverage_months": warranty.coverage_months,
+                    "expiry_date": warranty.expiry_date,
+                    "terms": warranty.terms,
+                    "exclusions": warranty.exclusions,
+                    "claim_steps": warranty.claim_steps,
+                    "confidence": warranty.confidence,
+                    "alternatives": warranty.alternatives,
+                    "source_artifact_ids": warranty.source_artifact_ids,
+                    "created_at": warranty.created_at,
+                }
+                payload = {k: v for k, v in payload.items() if k in columns}
+                for key, value in list(payload.items()):
+                    if isinstance(value, (list, dict)):
+                        payload[key] = json.dumps(value)
+                    elif isinstance(value, (datetime, date)):
+                        payload[key] = value.isoformat()
+                if payload:
+                    keys = ", ".join(payload.keys())
+                    placeholders = ", ".join([f":{k}" for k in payload.keys()])
+                    stmt = text(f"INSERT OR REPLACE INTO warranties ({keys}) VALUES ({placeholders})")
+                    db.execute(stmt, payload)
+                    db.commit()
         return warranty
 
     def add_behaviour_event(self, event: BehaviourEvent) -> BehaviourEvent:
