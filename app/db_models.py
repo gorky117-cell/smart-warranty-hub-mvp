@@ -256,3 +256,60 @@ class NotificationDB(Base):
     severity: Mapped[str] = mapped_column(String, default="info")
     is_read: Mapped[int] = mapped_column(Integer, default=0, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class PipelineJobDB(Base):
+    __tablename__ = "pipeline_jobs"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    warranty_id: Mapped[str] = mapped_column(String, index=True)
+    artifact_id: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    source_path: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    status: Mapped[str] = mapped_column(String, index=True)
+    detail = Column(Text, nullable=True)
+    error = Column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class ParsedFieldDB(Base):
+    __tablename__ = "parsed_fields"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    warranty_id: Mapped[str] = mapped_column(String, index=True)
+    brand: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    model_code: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    product_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    product_category: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    serial_no: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    invoice_no: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    purchase_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    confidence = Column(SqliteJSON)
+    raw_text = Column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class WarrantyTermsCacheDB(Base):
+    __tablename__ = "warranty_terms_cache"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    brand: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    category: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    region: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    source_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    duration_months: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    raw_text = Column(Text, nullable=True)
+    terms = Column(SqliteJSON)
+    exclusions = Column(SqliteJSON)
+    claim_steps = Column(SqliteJSON)
+
+
+class WarrantySummaryDB(Base):
+    __tablename__ = "warranty_summaries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    warranty_id: Mapped[str] = mapped_column(String, index=True)
+    summary_text = Column(Text)
+    source: Mapped[str] = mapped_column(String, default="template", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)

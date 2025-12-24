@@ -62,6 +62,11 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
         fields["brand"] = brand_match.group(1).strip().title()
         confidence["brand"] = 0.7
 
+    product_match = re.search(r"(product|item|device)[:\s]+([a-z0-9 \-]{2,60})", lowered, re.IGNORECASE)
+    if product_match:
+        fields["product_name"] = product_match.group(2).strip().title()
+        confidence["product_name"] = 0.6
+
     model_match = re.search(r"model[:\s]+([a-z0-9\-]{2,50})", lowered, re.IGNORECASE)
     if model_match:
         fields["model_code"] = model_match.group(1).strip().upper()
@@ -78,6 +83,16 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
     if purchase_date:
         fields["purchase_date"] = purchase_date
         confidence["purchase_date"] = 0.6
+
+    inv_match = re.search(r"(invoice|inv|bill)\s*(no|number|#)[:\s-]*([a-z0-9\-]{3,})", lowered, re.IGNORECASE)
+    if inv_match:
+        fields["invoice_no"] = inv_match.group(3).strip().upper()
+        confidence["invoice_no"] = 0.55
+
+    cat_match = re.search(r"(category|type|product type)[:\s]+([a-z0-9 \-]{2,40})", lowered, re.IGNORECASE)
+    if cat_match:
+        fields["product_category"] = cat_match.group(2).strip().lower()
+        confidence["product_category"] = 0.5
 
     if "warranty" in lowered:
         months_match = re.search(r"(\d{1,2})\s*(month|months|mo)\b", lowered)

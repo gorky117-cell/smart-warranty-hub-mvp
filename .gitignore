@@ -26,3 +26,5 @@ env/
 app.db
 data/app.db
 data/uploads/
+cookies.txt
+data/*.jsonl

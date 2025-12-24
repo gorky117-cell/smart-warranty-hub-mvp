@@ -291,14 +291,18 @@
         <div class="card-title">Add your bill</div>
       <div class="card-hint" id="step3Hint">After your product appears in Step 1, you can add your bill or receipt here.</div>
       <div class="helper" id="productContextStep3" style="display:none;"></div>
-      <label>Add receipt via</label>
+      <button id="btnReceiptStart" type="button">Add receipt</button>
+      <div id="billChoicePanel" class="panel hidden">
+        <label>Add receipt via</label>
         <select id="billMethod">
-          <option value="upload" selected>Upload file</option>
+          <option value="" selected>Select a method</option>
+          <option value="upload">Upload file</option>
           <option value="camera">Use camera</option>
           <option value="manual">Enter manually</option>
         </select>
+      </div>
 
-        <div id="billUploadPanel" class="panel">
+        <div id="billUploadPanel" class="panel hidden">
           <label>Upload receipt/bill</label>
           <input id="billFile" type="file" accept="image/*,application/pdf">
           <button id="btnUploadBill" type="button">Upload</button>
@@ -306,7 +310,6 @@
         </div>
 
         <div id="billCameraPanel" class="panel hidden">
-          <button id="btnOpenCamera" type="button" class="btn-ghost">Open camera</button>
           <div id="cameraWrap" class="hidden" style="margin-top:10px;">
             <video id="cameraVideo" autoplay playsinline style="width:100%; border-radius:12px; border:1px solid var(--border);"></video>
             <div class="actions" style="margin-top:8px;">
@@ -1515,16 +1518,52 @@
       const upload = document.getElementById('billUploadPanel');
       const camera = document.getElementById('billCameraPanel');
       const manual = document.getElementById('billManualPanel');
-      if (upload) upload.classList.toggle('hidden', mode !== 'upload');
-      if (camera) camera.classList.toggle('hidden', mode !== 'camera');
-      if (manual) manual.classList.toggle('hidden', mode !== 'manual');
+      const isUpload = mode === 'upload';
+      const isCamera = mode === 'camera';
+      const isManual = mode === 'manual';
+      if (upload) upload.classList.toggle('hidden', !isUpload);
+      if (camera) camera.classList.toggle('hidden', !isCamera);
+      if (manual) manual.classList.toggle('hidden', !isManual);
+      if (isCamera) {
+        openCamera();
+      } else {
+        closeCamera();
+      }
     }
 
     function initBillMethod() {
       const select = document.getElementById('billMethod');
       if (!select) return;
-      showBillPanel(select.value);
-      select.addEventListener('change', () => showBillPanel(select.value));
+      if (select.dataset.bound === '1') return;
+      select.dataset.bound = '1';
+      const fileInput = document.getElementById('billFile');
+      const uploadMsg = document.getElementById('billUploadMsg');
+      showBillPanel('');
+      select.addEventListener('change', () => {
+        showBillPanel(select.value);
+        if (select.value === 'upload' && fileInput) {
+          fileInput.click();
+        }
+      });
+      if (fileInput) {
+        fileInput.addEventListener('change', () => {
+          if (!uploadMsg) return;
+          uploadMsg.textContent = fileInput.files && fileInput.files[0]
+            ? `Selected: ${fileInput.files[0].name}`
+            : 'Choose a file to upload.';
+        });
+      }
+
+      const startBtn = document.getElementById('btnReceiptStart');
+      const choicePanel = document.getElementById('billChoicePanel');
+      if (startBtn && choicePanel) {
+        startBtn.addEventListener('click', () => {
+          choicePanel.classList.toggle('hidden');
+          if (!choicePanel.classList.contains('hidden')) {
+            select.focus();
+          }
+        });
+      }
 
       const uploadBtn = document.getElementById('btnUploadBill');
       if (uploadBtn) uploadBtn.addEventListener('click', handleBillUpload);
@@ -1546,7 +1585,7 @@
         const fd = new FormData();
         fd.append('file', file);
         fd.append('type', 'invoice');
-        const res = await fetch('/artifacts/upload', { method:'POST', headers: h(), body: fd });
+        const res = await fetch('/artifacts/upload', { method:'POST', headers: h(), body: fd, credentials: 'same-origin' });
         if (!res.ok) {
           const txt = await res.text().catch(()=> '');
           if (msg) msg.textContent = `Upload failed: ${txt || res.statusText}`;
@@ -1600,7 +1639,7 @@
           const fd = new FormData();
           fd.append('file', new File([blob], 'capture.png', { type: 'image/png' }));
           fd.append('type', 'invoice');
-          const res = await fetch('/artifacts/upload', { method:'POST', headers: h(), body: fd });
+          const res = await fetch('/artifacts/upload', { method:'POST', headers: h(), body: fd, credentials: 'same-origin' });
           if (res.ok) {
             if (msg) msg.textContent = 'Captured and uploaded.';
           } else {
@@ -1746,6 +1785,10 @@
         });
       });
     });
+    window.handleBillUpload = handleBillUpload;
+    window.openCamera = openCamera;
+    window.captureBillFrame = captureBillFrame;
+    window.closeCamera = closeCamera;
     // observe warranty raw content to render friendly view
     (function initWarrantyObserver(){
       const pre = document.getElementById('warranty');

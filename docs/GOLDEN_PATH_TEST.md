@@ -94,10 +94,27 @@ curl -i -X POST http://127.0.0.1:8000/artifacts/upload \
   -F "type=invoice"
 ```
 
+Job status + summary:
+```bash
+# Replace JOB_ID from the upload response
+curl -i http://127.0.0.1:8000/jobs/JOB_ID -b cookies.txt
+
+# Manually trigger processing for a warranty (optional)
+curl -i -X POST http://127.0.0.1:8000/warranties/wty_55f018de/process \
+  -b cookies.txt \
+  -H "Content-Type: application/json" \
+  -d '{"artifact_id":"art_example"}'
+
+# Fetch best available summary
+curl -i http://127.0.0.1:8000/warranties/wty_55f018de/summary -b cookies.txt
+```
+
 Expected (PASS):
 - `/health/full` returns `status: ok` or `status: degraded` with structured checks
 - `/health/ocr` returns `ok: true` if PaddleOCR installed
 - Warranty endpoints return JSON and 200
+ - `/jobs/{job_id}` shows status progression to `done`
+ - `/warranties/{id}/summary` returns a summary (template if LLM disabled)
 
 Optional (fresh DB only):
 ```bash

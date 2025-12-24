@@ -27,6 +27,67 @@ def main() -> None:
             return
         changed = False
         changed |= ensure_column(conn, "warranties", "climate_zone", "TEXT")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS pipeline_jobs (
+                id TEXT PRIMARY KEY,
+                warranty_id TEXT NOT NULL,
+                artifact_id TEXT,
+                source_path TEXT,
+                status TEXT,
+                detail TEXT,
+                error TEXT,
+                created_at TEXT,
+                updated_at TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS parsed_fields (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                warranty_id TEXT NOT NULL,
+                brand TEXT,
+                model_code TEXT,
+                product_name TEXT,
+                product_category TEXT,
+                serial_no TEXT,
+                invoice_no TEXT,
+                purchase_date TEXT,
+                confidence TEXT,
+                raw_text TEXT,
+                created_at TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS warranty_terms_cache (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                brand TEXT,
+                category TEXT,
+                region TEXT,
+                source_url TEXT,
+                fetched_at TEXT,
+                duration_months INTEGER,
+                raw_text TEXT,
+                terms TEXT,
+                exclusions TEXT,
+                claim_steps TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS warranty_summaries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                warranty_id TEXT NOT NULL,
+                summary_text TEXT,
+                source TEXT,
+                created_at TEXT
+            )
+            """
+        )
         if changed:
             conn.commit()
         else:

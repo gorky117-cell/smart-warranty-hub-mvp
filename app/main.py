@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Optional, Dict
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Depends, Form, Response, status, Body
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Depends, Form, Response, status, Body, BackgroundTasks
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
@@ -37,6 +37,8 @@ from .services import product_recommendations as prod_recs_service
 from .services import oem_question_service
 from .services import ollama_questions
 from .services import oem_recommendation_service
+from .services import invoice_pipeline
+from .services import summary_engine
 from .services.notifications import run_initial_analysis_and_notifications
 from .routes import oem_questions, oem_recommendations
 logger = logging.getLogger(__name__)
@@ -149,6 +151,11 @@ class OemFetchRequest(BaseModel):
 class SummaryRequest(BaseModel):
     warranty_id: str
     max_tokens: int | None = 256
+
+
+class ProcessWarrantyRequest(BaseModel):
+    artifact_id: str | None = None
+    source_path: str | None = None
 
 
 class SignupRequest(BaseModel):
@@ -306,7 +313,7 @@ def health_ocr():
 
 @app.get("/health/llm")
 def health_llm():
-    ok, detail, model = llm_service.health()
+    ok, detail, model = summary_engine.health()
     return {"ok": ok, "detail": detail, "model": model}
 
 
@@ -319,7 +326,7 @@ def health_predictive():
 @app.get("/health/full")
 def health_full():
     ocr_ok, ocr_detail = ocr_service.health()
-    llm_ok, llm_detail, llm_model = llm_service.health()
+    llm_ok, llm_detail, llm_model = summary_engine.health()
     pred_ok, pred_detail = predictive_service.health()
     status = "ok" if (ocr_ok and llm_ok and pred_ok) else "degraded"
     return {
@@ -739,7 +746,13 @@ def create_artifact(payload: ArtifactRequest):
 
 
 @app.post("/artifacts/upload", dependencies=[Depends(rbac_dependency)])
-async def upload_artifact(file: UploadFile = File(...), type: ArtifactType = ArtifactType.invoice, db=Depends(get_db), current=Depends(require_user)):
+async def upload_artifact(
+    file: UploadFile = File(...),
+    type: ArtifactType = ArtifactType.invoice,
+    db=Depends(get_db),
+    current=Depends(require_user),
+    background_tasks: BackgroundTasks = None,
+):
     # Save uploaded file to data/uploads
     uploads_dir = Path(__file__).resolve().parents[1] / "data" / "uploads"
     uploads_dir.mkdir(parents=True, exist_ok=True)
@@ -748,11 +761,19 @@ async def upload_artifact(file: UploadFile = File(...), type: ArtifactType = Art
         f.write(await file.read())
     artifact = ingest_artifact(type, file_path=str(dest), use_ocr=True)
     warranty = canonicalize_artifact(artifact, None)
+    job = invoice_pipeline.create_job(
+        db,
+        warranty_id=warranty.id,
+        artifact_id=artifact.id,
+        source_path=str(dest),
+    )
+    if background_tasks is not None:
+        background_tasks.add_task(invoice_pipeline.run_job, job.id)
     try:
         run_initial_analysis_and_notifications(db, current.username, warranty.id)
     except Exception:
         pass
-    return {"artifact": artifact, "warranty_id": warranty.id, "saved_path": str(dest)}
+    return {"artifact": artifact, "warranty_id": warranty.id, "saved_path": str(dest), "job_id": job.id}
 
 
 @app.post("/warranties/from-artifact", dependencies=[Depends(rbac_dependency)])
@@ -774,6 +795,50 @@ def get_warranty(warranty_id: str):
     if not warranty:
         raise HTTPException(status_code=404, detail="Warranty not found")
     return warranty
+
+
+@app.post("/warranties/{warranty_id}/process", dependencies=[Depends(rbac_dependency)])
+def process_warranty(
+    warranty_id: str,
+    payload: ProcessWarrantyRequest | None = Body(default=None),
+    db=Depends(get_db),
+    background_tasks: BackgroundTasks = None,
+):
+    artifact_id = payload.artifact_id if payload else None
+    source_path = payload.source_path if payload else None
+    if not artifact_id:
+        warranty = store.get_warranty_db(warranty_id)
+        if warranty and warranty.source_artifact_ids:
+            artifact_id = warranty.source_artifact_ids[-1]
+    job = invoice_pipeline.create_job(
+        db,
+        warranty_id=warranty_id,
+        artifact_id=artifact_id,
+        source_path=source_path,
+    )
+    if background_tasks is not None:
+        background_tasks.add_task(invoice_pipeline.run_job, job.id)
+    return {"job_id": job.id, "status": job.status}
+
+
+@app.get("/jobs/{job_id}", dependencies=[Depends(rbac_dependency)])
+def get_job(job_id: str, db=Depends(get_db)):
+    job = invoice_pipeline.get_job(db, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
+
+
+@app.get("/warranties/{warranty_id}/summary", dependencies=[Depends(rbac_dependency)])
+def get_warranty_summary(warranty_id: str, db=Depends(get_db)):
+    warranty = store.get_warranty_db(warranty_id)
+    if not warranty:
+        raise HTTPException(status_code=404, detail="Warranty not found")
+    summary_row = invoice_pipeline.get_latest_summary(db, warranty_id)
+    if summary_row:
+        return {"warranty_id": warranty_id, "summary": summary_row.summary_text, "source": summary_row.source}
+    summary_text, source = summary_engine.summarize_warranty(warranty)
+    return {"warranty_id": warranty_id, "summary": summary_text, "source": source}
 
 
 @app.post("/behaviour-events", dependencies=[Depends(rbac_dependency)])
@@ -896,7 +961,12 @@ def reload_connectors():
 
 
 @app.post("/artifacts/capture", dependencies=[Depends(rbac_dependency)])
-def capture_artifact(type: ArtifactType = ArtifactType.invoice, db=Depends(get_db), current=Depends(require_user)):
+def capture_artifact(
+    type: ArtifactType = ArtifactType.invoice,
+    db=Depends(get_db),
+    current=Depends(require_user),
+    background_tasks: BackgroundTasks = None,
+):
     try:
         import cv2  # type: ignore
     except Exception as exc:
@@ -918,11 +988,19 @@ def capture_artifact(type: ArtifactType = ArtifactType.invoice, db=Depends(get_d
 
     artifact = ingest_artifact(type, file_path=str(dest), use_ocr=True, source="camera")
     warranty = canonicalize_artifact(artifact, None)
+    job = invoice_pipeline.create_job(
+        db,
+        warranty_id=warranty.id,
+        artifact_id=artifact.id,
+        source_path=str(dest),
+    )
+    if background_tasks is not None:
+        background_tasks.add_task(invoice_pipeline.run_job, job.id)
     try:
         run_initial_analysis_and_notifications(db, current.username, warranty.id)
     except Exception:
         pass
-    return {"artifact": artifact, "warranty_id": warranty.id, "saved_path": str(dest)}
+    return {"artifact": artifact, "warranty_id": warranty.id, "saved_path": str(dest), "job_id": job.id}
 
 
 @app.get("/ui/warranty/{warranty_id}", dependencies=[Depends(require_user)])
