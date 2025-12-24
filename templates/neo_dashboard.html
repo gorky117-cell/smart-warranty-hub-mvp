@@ -691,6 +691,7 @@
         console.error('mark read failed', e);
       }
     }
+    window.markNotificationRead = markNotificationRead;
 
     function toggleKey() {
       const wrap = document.getElementById('apiKeyWrap');
