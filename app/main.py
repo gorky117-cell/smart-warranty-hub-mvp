@@ -74,6 +74,8 @@ from .db_models import (
     RecommendationRule,
     RecommendationEvent,
     EVTelemetryDB,
+    ParsedFieldDB,
+    PipelineJobDB,
 )
 
 
@@ -773,7 +775,13 @@ async def upload_artifact(
         run_initial_analysis_and_notifications(db, current.username, warranty.id)
     except Exception:
         pass
-    return {"artifact": artifact, "warranty_id": warranty.id, "saved_path": str(dest), "job_id": job.id}
+    return {
+        "artifact": artifact,
+        "warranty_id": warranty.id,
+        "saved_path": str(dest),
+        "job_id": job.id,
+        "status": job.status,
+    }
 
 
 @app.post("/warranties/from-artifact", dependencies=[Depends(rbac_dependency)])
@@ -834,11 +842,59 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db)):
     warranty = store.get_warranty_db(warranty_id)
     if not warranty:
         raise HTTPException(status_code=404, detail="Warranty not found")
+    parsed = (
+        db.query(ParsedFieldDB)
+        .filter_by(warranty_id=warranty_id)
+        .order_by(ParsedFieldDB.created_at.desc())
+        .first()
+    )
+    latest_job = (
+        db.query(PipelineJobDB)
+        .filter_by(warranty_id=warranty_id)
+        .order_by(PipelineJobDB.updated_at.desc())
+        .first()
+    )
+    parsed_fields = None
+    if parsed:
+        parsed_fields = {
+            "brand": parsed.brand,
+            "model_code": parsed.model_code,
+            "product_name": parsed.product_name,
+            "product_category": parsed.product_category,
+            "serial_no": parsed.serial_no,
+            "invoice_no": parsed.invoice_no,
+            "purchase_date": parsed.purchase_date.isoformat() if parsed.purchase_date else None,
+        }
+    evidence = {
+        "source_artifact_ids": getattr(warranty, "source_artifact_ids", None) or [],
+    }
     summary_row = invoice_pipeline.get_latest_summary(db, warranty_id)
     if summary_row:
-        return {"warranty_id": warranty_id, "summary": summary_row.summary_text, "source": summary_row.source}
+        return {
+            "warranty_id": warranty_id,
+            "summary": summary_row.summary_text,
+            "source": summary_row.source,
+            "parsed_fields": parsed_fields,
+            "confidence": parsed.confidence if parsed else {},
+            "terms": warranty.terms or [],
+            "exclusions": warranty.exclusions or [],
+            "claim_steps": warranty.claim_steps or [],
+            "evidence": evidence,
+            "processing_status": latest_job.status if latest_job else None,
+        }
     summary_text, source = summary_engine.summarize_warranty(warranty)
-    return {"warranty_id": warranty_id, "summary": summary_text, "source": source}
+    return {
+        "warranty_id": warranty_id,
+        "summary": summary_text,
+        "source": source,
+        "parsed_fields": parsed_fields,
+        "confidence": parsed.confidence if parsed else {},
+        "terms": warranty.terms or [],
+        "exclusions": warranty.exclusions or [],
+        "claim_steps": warranty.claim_steps or [],
+        "evidence": evidence,
+        "processing_status": latest_job.status if latest_job else None,
+    }
 
 
 @app.post("/behaviour-events", dependencies=[Depends(rbac_dependency)])

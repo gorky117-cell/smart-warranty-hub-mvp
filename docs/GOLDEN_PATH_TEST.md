@@ -99,7 +99,11 @@ Automated login + upload (PowerShell):
 powershell -ExecutionPolicy Bypass -File scripts/test_upload.ps1
 ```
 Note: Server must be running on http://127.0.0.1:8000 and the file must exist at
-`C:\Users\lenovo\Desktop\sample_invoice.pdf`.
+`sample_invoice.pdf` in the repo root, or pass a full path.
+To upload a different file:
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/test_upload.ps1 -FilePath "C:\path\to\invoice.pdf"
+```
 If login needs credentials, set env vars before running:
 ```powershell
 $env:SWH_USERNAME="admin"

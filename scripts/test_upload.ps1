@@ -1,10 +1,17 @@
+param(
+  [string]$FilePath
+)
+
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path $PSScriptRoot -Parent
 Set-Location $repoRoot
 
 $cookiePath = Join-Path $repoRoot "cookies.txt"
-$uploadFile = "C:\Users\lenovo\Desktop\sample_invoice.pdf"
+$uploadFile = Join-Path $repoRoot "sample_invoice.pdf"
+if ($FilePath) {
+  $uploadFile = $FilePath
+}
 
 if (Test-Path $cookiePath) {
   Remove-Item $cookiePath -Force

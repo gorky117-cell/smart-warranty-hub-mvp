@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from datetime import datetime, timedelta
 from typing import Optional, List
 
@@ -28,6 +29,7 @@ DEFAULT_RULES = {
     "ev": 36,
 }
 
+_SCRAPE_ENABLED = os.getenv("TERMS_SCRAPE_ENABLED", "1").strip().lower() in ("1", "true", "yes")
 
 def _normalize_category(category: Optional[str]) -> str:
     if not category:
@@ -91,7 +93,7 @@ def lookup_terms(
             cached.raw_text,
         )
 
-    scraper = get_scraper(brand)
+    scraper = get_scraper(brand) if _SCRAPE_ENABLED else None
     if scraper:
         try:
             result = scraper(

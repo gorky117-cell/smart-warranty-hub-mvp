@@ -6,7 +6,7 @@ from fpdf import FPDF
 
 from app.main import app
 from app.db import SessionLocal
-from app.db_models import PipelineJobDB, WarrantySummaryDB
+from app.db_models import PipelineJobDB, WarrantySummaryDB, ParsedFieldDB
 from app.services import invoice_pipeline, summary_engine
 from app.services.ingestion import ingest_artifact
 from app.services.canonical import canonicalize_artifact
@@ -69,6 +69,29 @@ def test_pipeline_completes_with_pdf(tmp_path):
         assert job_row.status == "done"
         summary = db.query(WarrantySummaryDB).filter_by(warranty_id=warranty.id).first()
         assert summary is not None
+
+
+def test_pipeline_with_mock_text():
+    text = "Invoice No: INV-123 Brand: Acmeco Model: ZX-100 Purchase date: 2025-01-01"
+    artifact = ingest_artifact(ArtifactType.invoice, content=text, use_ocr=False)
+    warranty = canonicalize_artifact(artifact, None)
+    with SessionLocal() as db:
+        job = invoice_pipeline.create_job(
+            db,
+            warranty_id=warranty.id,
+            artifact_id=artifact.id,
+            source_path=None,
+        )
+    invoice_pipeline.run_job(job.id)
+    with SessionLocal() as db:
+        parsed = (
+            db.query(ParsedFieldDB)
+            .filter_by(warranty_id=warranty.id)
+            .order_by(ParsedFieldDB.created_at.desc())
+            .first()
+        )
+        assert parsed is not None
+        assert parsed.brand == "Acmeco"
 
 
 def test_summary_template_when_llm_disabled():
