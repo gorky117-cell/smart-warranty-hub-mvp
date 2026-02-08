@@ -311,21 +311,11 @@ app.include_router(oem_recommendations.router, prefix="/api/oem/recommendations"
 def favicon():
     return Response(status_code=204)
 
-# Router includes for OEM questions/recommendations
-app.include_router(oem_questions.router, prefix="/oem/questions", tags=["OEM Questions"])
-app.include_router(oem_questions.router, prefix="/api/oem/questions", tags=["OEM Questions"])
-app.include_router(oem_recommendations.router, prefix="/oem/recommendations", tags=["OEM Recommendations"])
-app.include_router(oem_recommendations.router, prefix="/api/oem/recommendations", tags=["OEM Recommendations"])
 
-# Router includes
-app.include_router(oem_questions.router, prefix="/oem/questions", tags=["OEM Questions"])
-app.include_router(oem_questions.router, prefix="/api/oem/questions", tags=["OEM Questions"])
-app.include_router(oem_recommendations.router, prefix="/oem/recommendations", tags=["OEM Recommendations"])
-# Router includes
-app.include_router(oem_questions.router, prefix="/oem/questions", tags=["OEM Questions"])
-app.include_router(oem_questions.router, prefix="/api/oem/questions", tags=["OEM Questions"])
-app.include_router(oem_recommendations.router, prefix="/oem/recommendations", tags=["OEM Recommendations"])
-app.include_router(oem_recommendations.router, prefix="/api/oem/recommendations", tags=["OEM Recommendations"])
+# Reviews Router
+from .routes import reviews
+app.include_router(reviews.router, prefix="/reviews", tags=["Reviews"])
+
 
 from .routes import reviews
 app.include_router(reviews.router, prefix="/reviews", tags=["Reviews"])
