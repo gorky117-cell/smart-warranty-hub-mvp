@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Warranty Hub - Upload & Manage</title>
+    <style>
+        :root {
+            --bg: #f6f8fb;
+            --card: #ffffff;
+            --border: #e5e7eb;
+            --text: #0f172a;
+            --muted: #6b7280;
+            --primary: #2563eb;
+            --success: #16a34a;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            margin-bottom: 20px;
+        }
+
+        .alert {
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .alert-warning {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        input[type="file"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #f9fafb;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        button {
+            padding: 14px 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .status.success {
+            color: var(--success);
+        }
+
+        .status.error {
+            color: var(--danger);
+        }
+
+        .warranty-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .warranty-item {
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            background: #fafbfc;
+        }
+
+        .warranty-item.expiring-soon {
+            border-color: var(--warning);
+            background: #fffbeb;
+        }
+
+        .warranty-item .brand {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .warranty-item .details {
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .warranty-item .expiry {
+            margin-top: 8px;
+            font-size: 13px;
+        }
+
+        .warranty-item .expiry.danger {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        .warranty-item .expiry.warning {
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .warranty-item .expiry.ok {
+            color: var(--success);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--muted);
+        }
+    </style>
+</head>
+
+<body>
+    <h1>📋 Smart Warranty Hub</h1>
+    <p class="subtitle">Upload invoices, track warranties, get expiry alerts</p>
+
+    <div id="expiryAlert" class="alert alert-warning" style="display: none;"></div>
+
+    <div class="card">
+        <div class="card-title">📤 Upload Invoice</div>
+        <label>Select PDF or Image</label>
+        <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg">
+        <button id="uploadBtn" onclick="uploadInvoice()">Upload & Extract Data</button>
+        <div id="uploadStatus" class="status"></div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📦 Your Warranties <span id="warrantyCount"
+                style="font-weight:400; color:var(--muted); font-size:14px;"></span></div>
+        <label>Filter by Status</label>
+        <select id="filterSelect" onchange="filterWarranties()">
+            <option value="all">All Warranties</option>
+            <option value="expiring">Expiring Soon (30 days)</option>
+            <option value="active">Active</option>
+            <option value="expired">Expired</option>
+        </select>
+        <div id="warrantyList" class="warranty-list">
+            <div class="empty-state">Loading warranties...</div>
+        </div>
+    </div>
+
+    <script>
+        let allWarranties = [];
+
+        async function loadWarranties() {
+            try {
+                const res = await fetch('/warranties/list');
+                const data = await res.json();
+                allWarranties = data.warranties || [];
+                document.getElementById('warrantyCount').textContent = `(${allWarranties.length} total)`;
+                filterWarranties();
+                checkExpiryAlerts();
+            } catch (e) {
+                console.error('Failed to load warranties', e);
+                document.getElementById('warrantyList').innerHTML = '<div class="empty-state">Failed to load warranties</div>';
+            }
+        }
+
+        function filterWarranties() {
+            const filter = document.getElementById('filterSelect').value;
+            const now = new Date();
+            const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+            let filtered = allWarranties;
+            if (filter === 'expiring') {
+                filtered = allWarranties.filter(w => {
+                    if (!w.expiry_date) return false;
+                    const exp = new Date(w.expiry_date);
+                    return exp > now && exp <= in30Days;
+                });
+            } else if (filter === 'active') {
+                filtered = allWarranties.filter(w => {
+                    if (!w.expiry_date) return true;
+                    return new Date(w.expiry_date) > now;
+                });
+            } else if (filter === 'expired') {
+                filtered = allWarranties.filter(w => {
+                    if (!w.expiry_date) return false;
+                    return new Date(w.expiry_date) <= now;
+                });
+            }
+
+            renderWarranties(filtered);
+        }
+
+        function renderWarranties(warranties) {
+            const container = document.getElementById('warrantyList');
+            if (!warranties.length) {
+                container.innerHTML = '<div class="empty-state">No warranties found</div>';
+                return;
+            }
+
+            const now = new Date();
+            const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+            container.innerHTML = warranties.map(w => {
+                const label = w.brand || w.product_name || 'Unknown Product';
+                const details = [w.model_code, w.serial_no].filter(Boolean).join(' • ') || 'No details';
+
+                let expiryClass = 'ok';
+                let expiryText = 'No expiry set';
+                if (w.expiry_date) {
+                    const exp = new Date(w.expiry_date);
+                    const daysUntil = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+                    if (daysUntil <= 0) {
+                        expiryClass = 'danger';
+                        expiryText = `⚠️ EXPIRED ${Math.abs(daysUntil)} days ago`;
+                    } else if (daysUntil <= 30) {
+                        expiryClass = 'warning';
+                        expiryText = `⏰ Expires in ${daysUntil} days (${exp.toLocaleDateString()})`;
+                    } else {
+                        expiryText = `✓ Expires ${exp.toLocaleDateString()} (${daysUntil} days)`;
+                    }
+                }
+
+                const itemClass = (w.expiry_date && new Date(w.expiry_date) > now && new Date(w.expiry_date) <= in30Days) ? 'warranty-item expiring-soon' : 'warranty-item';
+
+                return `
+          <div class="${itemClass}">
+            <div class="brand">${label}</div>
+            <div class="details">${details}</div>
+            <div class="expiry ${expiryClass}">${expiryText}</div>
+          </div>
+        `;
+            }).join('');
+        }
+
+        function checkExpiryAlerts() {
+            const now = new Date();
+            const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+            const expiringSoon = allWarranties.filter(w => {
+                if (!w.expiry_date) return false;
+                const exp = new Date(w.expiry_date);
+                return exp > now && exp <= in30Days;
+            });
+
+            const alertDiv = document.getElementById('expiryAlert');
+            if (expiringSoon.length > 0) {
+                const first = expiringSoon[0];
+                const daysUntil = Math.ceil((new Date(first.expiry_date) - now) / (1000 * 60 * 60 * 24));
+                alertDiv.innerHTML = `⚠️ <strong>${first.brand || 'Warranty'}</strong> expires in ${daysUntil} days! ${expiringSoon.length > 1 ? `(+${expiringSoon.length - 1} more)` : ''}`;
+                alertDiv.style.display = 'block';
+            } else {
+                alertDiv.style.display = 'none';
+            }
+        }
+
+        async function uploadInvoice() {
+            const fileInput = document.getElementById('fileInput');
+            const status = document.getElementById('uploadStatus');
+            const btn = document.getElementById('uploadBtn');
+
+            if (!fileInput.files || !fileInput.files[0]) {
+                status.textContent = 'Please select a file first';
+                status.className = 'status error';
+                return;
+            }
+
+            btn.disabled = true;
+            status.textContent = 'Uploading and extracting data...';
+            status.className = 'status';
+
+            try {
+                const fd = new FormData();
+                fd.append('file', fileInput.files[0]);
+                fd.append('type', 'invoice');
+
+                const res = await fetch('/artifacts/upload', { method: 'POST', body: fd });
+                const data = await res.json();
+
+                if (res.ok) {
+                    status.textContent = `✓ Uploaded! Warranty ID: ${data.warranty_id}`;
+                    status.className = 'status success';
+                    fileInput.value = '';
+
+                    // Reload warranties after a short delay (for background job to complete)
+                    setTimeout(() => loadWarranties(), 2000);
+                } else {
+                    status.textContent = `Error: ${data.detail || 'Upload failed'}`;
+                    status.className = 'status error';
+                }
+            } catch (e) {
+                status.textContent = `Error: ${e.message}`;
+                status.className = 'status error';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Load on page load
+        loadWarranties();
+    </script>
+</body>
+
+</html>

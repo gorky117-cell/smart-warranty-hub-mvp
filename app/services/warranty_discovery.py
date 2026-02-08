@@ -1,0 +1,212 @@
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Optional, Dict
+import os
+from urllib.parse import urlparse
+
+from .web_search import search_web
+
+@dataclass
+class DiscoverySource:
+    url: str
+    source_type: str  # oem_warranty | oem_product | oem_manual_pdf | retail
+    score: int
+    official: bool = False
+    brand: Optional[str] = None
+    model_code: Optional[str] = None
+    product_name: Optional[str] = None
+    region: Optional[str] = None
+
+
+_DEFAULT_DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "warranty_sources.json"
+_OEM_DOMAIN_PATH = Path(__file__).resolve().parents[2] / "data" / "oem_domains.json"
+
+_TYPE_SCORES = {
+    "oem_warranty": 90,
+    "oem_product": 70,
+    "oem_manual_pdf": 60,
+    "retail": 40,
+}
+_SEARCH_MAX_QUERIES = int(os.getenv("TERMS_SEARCH_MAX_QUERIES", "2"))
+_SEARCH_MAX_RESULTS = int(os.getenv("TERMS_SEARCH_MAX_RESULTS", "5"))
+_SEARCH_TIMEOUT = int(os.getenv("TERMS_SEARCH_TIMEOUT_SEC", "6"))
+_OFFICIAL_ONLY = os.getenv("TERMS_OFFICIAL_ONLY", "false").strip().lower() in ("1", "true", "yes")
+
+
+def _host(url: str) -> str:
+    try:
+        return (urlparse(url).hostname or "").lower()
+    except Exception:
+        return ""
+
+def _region_score(region: Optional[str], url: str) -> int:
+    if not region:
+        return 0
+    reg = region.strip().lower()
+    host = _host(url)
+    score = 0
+    if reg and reg in url.lower():
+        score += 8
+    # Check country code in region like "US-CA" or "IN"
+    country = reg.split("-")[0] if reg else reg
+    if country and host.endswith(f".{country}"):
+        score += 6
+    return score
+
+
+def _classify_url(url: str) -> str:
+    lower = url.lower()
+    if "warranty" in lower or "terms" in lower:
+        return "oem_warranty"
+    if lower.endswith(".pdf") or "manual" in lower:
+        return "oem_manual_pdf"
+    if "product" in lower or "support" in lower:
+        return "oem_product"
+    return "retail"
+
+
+def _load_sources(path: Path) -> List[Dict]:
+    if not path.exists():
+        return []
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else []
+    except Exception:
+        return []
+
+
+def _load_oem_domains() -> Dict[str, List[str]]:
+    if not _OEM_DOMAIN_PATH.exists():
+        return {}
+    try:
+        return json.loads(_OEM_DOMAIN_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _normalize(val: Optional[str]) -> str:
+    return (val or "").strip().lower()
+
+
+def _match_score(entry: Dict, brand: str, model_code: Optional[str], product_name: Optional[str]) -> int:
+    score = 0
+    if _normalize(entry.get("brand")) == _normalize(brand):
+        score += 20
+    if model_code and _normalize(entry.get("model_code")) == _normalize(model_code):
+        score += 15
+    if product_name and _normalize(entry.get("product_name")) == _normalize(product_name):
+        score += 10
+    return score
+
+
+def discover_sources(
+    brand: Optional[str],
+    model_code: Optional[str],
+    product_name: Optional[str],
+    region: Optional[str] = None,
+    *,
+    mode: str = "auto+manual",
+    allow_retail: bool = True,
+    data_path: Optional[Path] = None,
+) -> List[DiscoverySource]:
+    """
+    Offline discovery stub.
+    Reads from data/warranty_sources.json and returns ranked candidates.
+    """
+    if not brand:
+        return []
+    if "auto" not in mode:
+        return []
+
+    path = data_path or _DEFAULT_DATA_PATH
+    raw = _load_sources(path)
+    oem_domains = _load_oem_domains()
+    results: List[DiscoverySource] = []
+    for entry in raw:
+        entry_brand = _normalize(entry.get("brand"))
+        if entry_brand and entry_brand != _normalize(brand):
+            continue
+        if not allow_retail and entry.get("source_type") == "retail":
+            continue
+        url = str(entry.get("url") or "")
+        host = _host(url)
+        official_domains = oem_domains.get(entry.get("brand") or "", [])
+        official = any(host.endswith(d) for d in official_domains) if official_domains else bool(entry.get("official", False))
+        if _OFFICIAL_ONLY and not official:
+            continue
+        if region and entry.get("region") and _normalize(entry.get("region")) != _normalize(region):
+            continue
+        base = _TYPE_SCORES.get(entry.get("source_type") or "", 30)
+        score = base + _match_score(entry, brand, model_code, product_name) + _region_score(region, url)
+        score += 12 if official else 0
+        results.append(
+            DiscoverySource(
+                url=url,
+                source_type=str(entry.get("source_type") or "oem_warranty"),
+                score=score,
+                official=official,
+                brand=entry.get("brand"),
+                model_code=entry.get("model_code"),
+                product_name=entry.get("product_name"),
+                region=entry.get("region"),
+            )
+        )
+
+    # Online search (if API key present)
+    queries: List[str] = []
+    if brand:
+        if model_code:
+            queries.append(f"{brand} {model_code} warranty")
+            queries.append(f"{brand} {model_code} manual pdf")
+        elif product_name:
+            queries.append(f"{brand} {product_name} warranty")
+            queries.append(f"{brand} {product_name} manual pdf")
+        else:
+            queries.append(f"{brand} warranty")
+    queries = queries[: max(_SEARCH_MAX_QUERIES, 0)]
+
+    if queries:
+        for q in queries:
+            items = search_web(q, count=_SEARCH_MAX_RESULTS, timeout=_SEARCH_TIMEOUT)
+            for item in items:
+                url = item.get("url") or ""
+                if not url:
+                    continue
+                source_type = _classify_url(url)
+                if not allow_retail and source_type == "retail":
+                    continue
+                host = _host(url)
+                official_domains = oem_domains.get(brand or "", [])
+                official = any(host.endswith(d) for d in official_domains) if official_domains else (_normalize(brand) in host if brand else False)
+                if _OFFICIAL_ONLY and not official:
+                    continue
+                base = _TYPE_SCORES.get(source_type, 30)
+                score = base + (10 if official else 0) + _region_score(region, url)
+                results.append(
+                    DiscoverySource(
+                        url=url,
+                        source_type=source_type,
+                        score=score,
+                        official=official,
+                        brand=brand,
+                        model_code=model_code,
+                        product_name=product_name,
+                        region=region,
+                    )
+                )
+
+    results = [r for r in results if r.url]
+    results.sort(key=lambda x: x.score, reverse=True)
+    # Deduplicate by URL, keep highest score
+    seen = set()
+    deduped: List[DiscoverySource] = []
+    for r in results:
+        if r.url in seen:
+            continue
+        seen.add(r.url)
+        deduped.append(r)
+    return deduped

@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Warranty Hub - Warranty Manager</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --muted: #64748b;
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 20px 24px;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Alert Banner */
+        .alert {
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-warning {
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            color: #92400e;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            border: 1px solid #34d399;
+            color: #065f46;
+        }
+
+        .alert.hidden {
+            display: none;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Upload Section */
+        .upload-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .upload-row input[type="file"] {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px;
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            background: #f8fafc;
+        }
+
+        .upload-row input[type="file"]:hover {
+            border-color: var(--primary);
+        }
+
+        /* Buttons */
+        button {
+            padding: 12px 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Select Dropdown */
+        .warranty-select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: white;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .warranty-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: var(--muted);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: -2px;
+        }
+
+        .tab:hover {
+            color: var(--text);
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Data Grid */
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .data-item {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .data-item label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .data-item .value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .data-item .value.empty {
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        /* Risk/Score Badges */
+        .score-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .score-low {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .score-medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .score-high {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Nudge Cards */
+        .nudge-card {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 1px solid #7dd3fc;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+
+        .nudge-card .title {
+            font-weight: 700;
+            color: #0369a1;
+            margin-bottom: 6px;
+        }
+
+        .nudge-card .message {
+            color: #0c4a6e;
+            font-size: 14px;
+        }
+
+        /* OEM Info */
+        .oem-section {
+            background: #fafafa;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .oem-section h4 {
+            font-size: 14px;
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+
+        .oem-section ul {
+            padding-left: 20px;
+            color: var(--text);
+        }
+
+        .oem-section li {
+            margin-bottom: 8px;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--muted);
+        }
+
+        .status {
+            margin-top: 12px;
+            font-size: 14px;
+        }
+
+        .status.success {
+            color: var(--success);
+        }
+
+        .status.error {
+            color: var(--danger);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>📋 Smart Warranty Hub</h1>
+        <p>Upload invoices • Track warranties • Get smart insights</p>
+    </div>
+
+    <div class="container">
+        <!-- Alert Banner -->
+        <div id="expiryAlert" class="alert alert-warning hidden"></div>
+
+        <!-- Upload Section -->
+        <div class="card">
+            <div class="card-title">📤 Upload Invoice</div>
+            <div class="upload-row">
+                <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg">
+                <button id="uploadBtn" onclick="uploadInvoice()">Upload & Extract</button>
+            </div>
+            <div id="uploadStatus" class="status"></div>
+        </div>
+
+        <!-- Warranty Selector -->
+        <div class="card">
+            <div class="card-title">📦 Select Warranty</div>
+            <select id="warrantySelect" class="warranty-select" onchange="loadWarrantyDetails()">
+                <option value="">-- Select a warranty --</option>
+            </select>
+        </div>
+
+        <!-- Warranty Details with Tabs -->
+        <div id="warrantyDetails" class="card" style="display: none;">
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('details')">📄 Details</button>
+                <button class="tab" onclick="showTab('predictive')">📊 Predictive</button>
+                <button class="tab" onclick="showTab('oem')">🏭 OEM & Coverage</button>
+                <button class="tab" onclick="showTab('nudges')">💡 Nudges</button>
+            </div>
+
+            <!-- Details Tab -->
+            <div id="tab-details" class="tab-content active">
+                <div class="data-grid" id="detailsGrid"></div>
+            </div>
+
+            <!-- Predictive Tab -->
+            <div id="tab-predictive" class="tab-content">
+                <div id="predictiveContent" class="loading">Loading predictive data...</div>
+            </div>
+
+            <!-- OEM Tab -->
+            <div id="tab-oem" class="tab-content">
+                <div id="oemContent" class="loading">Loading OEM data...</div>
+            </div>
+
+            <!-- Nudges Tab -->
+            <div id="tab-nudges" class="tab-content">
+                <div id="nudgesContent" class="loading">Loading nudges...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allWarranties = [];
+        let currentWarranty = null;
+
+        // Load warranties on page load
+        async function loadWarranties() {
+            try {
+                const res = await fetch('/warranties/list');
+                const data = await res.json();
+                allWarranties = data.warranties || [];
+
+                const select = document.getElementById('warrantySelect');
+                select.innerHTML = '<option value="">-- Select a warranty (' + allWarranties.length + ' total) --</option>';
+
+                allWarranties.forEach(w => {
+                    const label = w.brand || w.product_name || 'Unknown';
+                    const expiry = w.expiry_date ? new Date(w.expiry_date).toLocaleDateString() : 'No expiry';
+                    select.innerHTML += `<option value="${w.id}">${label} - ${w.model_code || w.id} (Expires: ${expiry})</option>`;
+                });
+
+                checkExpiryAlerts();
+            } catch (e) {
+                console.error('Failed to load warranties', e);
+            }
+        }
+
+        function checkExpiryAlerts() {
+            const now = new Date();
+            const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+            const expiringSoon = allWarranties.filter(w => {
+                if (!w.expiry_date) return false;
+                const exp = new Date(w.expiry_date);
+                return exp > now && exp <= in30Days;
+            });
+
+            const alertDiv = document.getElementById('expiryAlert');
+            if (expiringSoon.length > 0) {
+                const first = expiringSoon[0];
+                const days = Math.ceil((new Date(first.expiry_date) - now) / (1000 * 60 * 60 * 24));
+                alertDiv.innerHTML = `⚠️ <strong>${first.brand || 'Warranty'}</strong> expires in ${days} days! ${expiringSoon.length > 1 ? '(+' + (expiringSoon.length - 1) + ' more)' : ''}`;
+                alertDiv.classList.remove('hidden');
+            } else {
+                alertDiv.classList.add('hidden');
+            }
+        }
+
+        async function uploadInvoice() {
+            const fileInput = document.getElementById('fileInput');
+            const status = document.getElementById('uploadStatus');
+            const btn = document.getElementById('uploadBtn');
+
+            if (!fileInput.files || !fileInput.files[0]) {
+                status.textContent = 'Please select a file';
+                status.className = 'status error';
+                return;
+            }
+
+            btn.disabled = true;
+            status.textContent = 'Uploading and extracting...';
+            status.className = 'status';
+
+            try {
+                const fd = new FormData();
+                fd.append('file', fileInput.files[0]);
+                fd.append('type', 'invoice');
+
+                const res = await fetch('/artifacts/upload', { method: 'POST', body: fd });
+                const data = await res.json();
+
+                if (res.ok) {
+                    status.textContent = '✓ Uploaded! Warranty: ' + data.warranty_id;
+                    status.className = 'status success';
+                    fileInput.value = '';
+
+                    // Reload warranties and select the new one
+                    setTimeout(async () => {
+                        await loadWarranties();
+                        document.getElementById('warrantySelect').value = data.warranty_id;
+                        loadWarrantyDetails();
+                    }, 2000);
+                } else {
+                    status.textContent = 'Error: ' + (data.detail || 'Upload failed');
+                    status.className = 'status error';
+                }
+            } catch (e) {
+                status.textContent = 'Error: ' + e.message;
+                status.className = 'status error';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function loadWarrantyDetails() {
+            const warrantyId = document.getElementById('warrantySelect').value;
+            const detailsDiv = document.getElementById('warrantyDetails');
+
+            if (!warrantyId) {
+                detailsDiv.style.display = 'none';
+                return;
+            }
+
+            detailsDiv.style.display = 'block';
+            currentWarranty = allWarranties.find(w => w.id === warrantyId);
+
+            // Load Details Tab
+            renderDetailsTab();
+
+            // Load other tabs
+            loadPredictive(warrantyId);
+            loadOEM(warrantyId);
+            loadNudges(warrantyId);
+        }
+
+        function renderDetailsTab() {
+            const w = currentWarranty;
+            const grid = document.getElementById('detailsGrid');
+
+            const fields = [
+                { label: 'Brand', value: w.brand },
+                { label: 'Product', value: w.product_name },
+                { label: 'Model', value: w.model_code },
+                { label: 'Serial No', value: w.serial_no },
+                { label: 'Purchase Date', value: w.purchase_date ? new Date(w.purchase_date).toLocaleDateString() : null },
+                { label: 'Expiry Date', value: w.expiry_date ? new Date(w.expiry_date).toLocaleDateString() : null },
+                { label: 'Coverage', value: w.coverage_months ? w.coverage_months + ' months' : null },
+                { label: 'Warranty ID', value: w.id },
+            ];
+
+            grid.innerHTML = fields.map(f => `
+        <div class="data-item">
+          <label>${f.label}</label>
+          <div class="value ${f.value ? '' : 'empty'}">${f.value || 'Not available'}</div>
+        </div>
+      `).join('');
+        }
+
+        async function loadPredictive(warrantyId) {
+            const container = document.getElementById('predictiveContent');
+            container.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                const res = await fetch(`/advisories?warranty_id=${warrantyId}&user_id=user-1`);
+                const data = await res.json();
+
+                const risk = data.risk || {};
+                const score = risk.score || 0;
+                const label = risk.label || 'Unknown';
+
+                let cls = 'score-low';
+                if (score >= 0.6) cls = 'score-high';
+                else if (score >= 0.3) cls = 'score-medium';
+
+                container.innerHTML = `
+          <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 16px; margin-bottom: 12px;">Risk Assessment</h3>
+            <div class="score-badge ${cls}">
+              ${label} (${(score * 100).toFixed(0)}%)
+            </div>
+          </div>
+          <div class="oem-section">
+            <h4>Risk Factors</h4>
+            <ul>
+              ${(risk.reasons || ['No specific risk factors identified']).map(r => `<li>${r}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+            } catch (e) {
+                container.innerHTML = '<div class="loading">Could not load predictive data</div>';
+            }
+        }
+
+        async function loadOEM(warrantyId) {
+            const container = document.getElementById('oemContent');
+            container.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                const res = await fetch(`/warranties/${warrantyId}/summary`);
+                const data = await res.json();
+
+                container.innerHTML = `
+          <div class="oem-section" style="margin-bottom: 16px;">
+            <h4>Coverage Summary</h4>
+            <p style="color: var(--text);">${data.summary || 'No summary available'}</p>
+          </div>
+        `;
+            } catch (e) {
+                container.innerHTML = '<div class="oem-section"><h4>Coverage</h4><p>Could not load OEM data</p></div>';
+            }
+        }
+
+        async function loadNudges(warrantyId) {
+            const container = document.getElementById('nudgesContent');
+            container.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                const res = await fetch(`/advisories?warranty_id=${warrantyId}&user_id=user-1`);
+                const data = await res.json();
+
+                const nudges = data.nudges || [];
+
+                if (nudges.length === 0) {
+                    container.innerHTML = '<div class="nudge-card"><div class="title">All Good! ✓</div><div class="message">No action items for this warranty right now.</div></div>';
+                } else {
+                    container.innerHTML = nudges.map(n => `
+            <div class="nudge-card">
+              <div class="title">${n.type || 'Tip'}</div>
+              <div class="message">${n.message || n}</div>
+            </div>
+          `).join('');
+                }
+            } catch (e) {
+                container.innerHTML = '<div class="loading">Could not load nudges</div>';
+            }
+        }
+
+        function showTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.add('active');
+        }
+
+        // Initialize
+        loadWarranties();
+    </script>
+</body>
+
+</html>

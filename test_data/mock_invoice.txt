@@ -1,0 +1,7 @@
+INVOICE
+Brand: Zenith
+Model: ZX-1000
+Product: Turbowash Pro
+Serial: SN123456789
+Purchase Date: 2025-11-15
+Invoice No: INV-9001

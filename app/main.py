@@ -3,12 +3,18 @@ import logging
 from pathlib import Path
 from datetime import datetime
 from typing import List, Optional, Dict
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Depends, Form, Response, status, Body, BackgroundTasks
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel
+from pydantic import BaseModel as PydanticBaseModel
+
+
+class BaseModel(PydanticBaseModel):
+    # Allow fields like model_code without protected namespace warnings
+    model_config = {"protected_namespaces": ()}
 
 from .models import ArtifactType, BehaviourEvent
 from .services.canonical import canonicalize_artifact
@@ -32,13 +38,17 @@ from .services import peer_review as peer_review_service
 from .services import search_log as search_log_service
 from .services import recommendation as recommendation_service
 from .services import ev_battery as ev_battery_service
+from .services.review_crawler import crawl_reviews
 from .services import notifications as notification_service
 from .services import product_recommendations as prod_recs_service
+from .services import regional_policy as regional_policy_service
+from .services import oem_issue_signals as oem_issue_service
 from .services import oem_question_service
 from .services import ollama_questions
 from .services import oem_recommendation_service
 from .services import invoice_pipeline
 from .services import summary_engine
+from .services import terms_lookup
 from .services.notifications import run_initial_analysis_and_notifications
 from .routes import oem_questions, oem_recommendations
 logger = logging.getLogger(__name__)
@@ -76,6 +86,11 @@ from .db_models import (
     EVTelemetryDB,
     ParsedFieldDB,
     PipelineJobDB,
+    WarrantySummaryDB,
+    RegionalPolicyDB,
+    OemIssueSignalDB,
+    ProductReviewDB,
+    ReviewPageDB,
 )
 
 
@@ -97,6 +112,11 @@ class BehaviourEventRequest(BaseModel):
     warranty_id: str
     event_type: str
     details: dict | None = None
+
+
+class ConsentRequest(BaseModel):
+    user_id: str
+    consent_analytics: bool
 
 
 class RiskRequest(BaseModel):
@@ -158,6 +178,32 @@ class SummaryRequest(BaseModel):
 class ProcessWarrantyRequest(BaseModel):
     artifact_id: str | None = None
     source_path: str | None = None
+
+
+class TermsRefreshRequest(BaseModel):
+    warranty_id: str
+    force: bool = False
+    url_override: str | None = None
+
+
+class RegionRuleRequest(BaseModel):
+    region: str
+    rule_json: dict
+    brand: str | None = None
+    model_code: str | None = None
+    product_type: str | None = None
+    active: bool = True
+
+
+class OemIssueSignalRequest(BaseModel):
+    brand: str | None = None
+    model_code: str | None = None
+    product_type: str | None = None
+    region: str | None = None
+    issue_type: str | None = None
+    severity: float | None = None
+    count: int | None = None
+    source_url: str | None = None
 
 
 class SignupRequest(BaseModel):
@@ -238,10 +284,19 @@ class EVBatteryRequest(BaseModel):
     region_climate_band: int = 0
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    interval = int(os.getenv("OEM_REFRESH_MINUTES", "120"))
+    start_scheduler(interval)
+    yield
+
+
 app = FastAPI(
     title="Smart Warranty Hub MVP",
     description="Warranty ingestion, canonicalisation, risk, nudges, predictive care, OEM fetch, and service orchestration.",
     version="0.2.0",
+    lifespan=lifespan,
 )
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
 
@@ -279,14 +334,6 @@ def dashboard_dev():
     if not dev_url:
         raise HTTPException(status_code=404, detail="Set VITE_DEV_URL to use the dev dashboard.")
     return RedirectResponse(dev_url)
-
-
-@app.on_event("startup")
-async def startup_event():
-    import os
-    init_db()
-    interval = int(os.getenv("OEM_REFRESH_MINUTES", "120"))
-    start_scheduler(interval)
 
 
 @app.middleware("http")
@@ -339,6 +386,15 @@ def health_full():
             "predictive": {"ok": pred_ok, "detail": pred_detail},
         },
     }
+
+
+def _require_consent(user_id: str) -> None:
+    if os.getenv("REQUIRE_USER_CONSENT", "false").lower() != "true":
+        return
+    with SessionLocal() as db:
+        user = db.query(UserDB).filter_by(username=user_id).first()
+        if not user or not getattr(user, "consent_analytics", 0):
+            raise HTTPException(status_code=403, detail="User consent required")
 
 
 @app.get("/behaviour/next-question", dependencies=[Depends(require_user)])
@@ -415,6 +471,7 @@ def behaviour_answer(payload: BehaviourAnswerRequest):
     try:
         if not payload.user_id or not payload.warranty_id or payload.question_id is None or payload.answer_value is None:
             return {"ok": False, "detail": "missing_params"}
+        _require_consent(payload.user_id)
         # OEM answer if it looks like OEM question id prefix
         if str(payload.question_id).startswith("oemq_"):
             try:
@@ -751,6 +808,7 @@ def create_artifact(payload: ArtifactRequest):
 async def upload_artifact(
     file: UploadFile = File(...),
     type: ArtifactType = ArtifactType.invoice,
+    warranty_id: Optional[str] = Form(default=None),  # NEW: Optional existing warranty ID
     db=Depends(get_db),
     current=Depends(require_user),
     background_tasks: BackgroundTasks = None,
@@ -762,15 +820,34 @@ async def upload_artifact(
     with dest.open("wb") as f:
         f.write(await file.read())
     artifact = ingest_artifact(type, file_path=str(dest), use_ocr=True)
-    warranty = canonicalize_artifact(artifact, None)
+    
+    # Use existing warranty if provided, otherwise create new one
+    if warranty_id:
+        warranty = store.get_warranty_db(warranty_id)
+        if not warranty:
+            # Create new if specified ID doesn't exist
+            warranty = canonicalize_artifact(artifact, None)
+    else:
+        warranty = canonicalize_artifact(artifact, None)
+    
     job = invoice_pipeline.create_job(
         db,
         warranty_id=warranty.id,
         artifact_id=artifact.id,
         source_path=str(dest),
     )
+    
+    # CRITICAL FIX: Always run the job, either async or sync
+    job_error = None
     if background_tasks is not None:
         background_tasks.add_task(invoice_pipeline.run_job, job.id)
+    else:
+        # Fallback: Run synchronously if no background task runner
+        try:
+            invoice_pipeline.run_job(job.id)
+        except Exception as e:
+            job_error = str(e)
+    
     try:
         run_initial_analysis_and_notifications(db, current.username, warranty.id)
     except Exception:
@@ -781,7 +858,34 @@ async def upload_artifact(
         "saved_path": str(dest),
         "job_id": job.id,
         "status": job.status,
+        "job_error": job_error,
     }
+
+
+@app.get("/warranties/list")
+def list_warranties_sorted(user_id: str = None, db=Depends(get_db)):
+    """List all warranties sorted by expiry date (soonest first)."""
+    from .db_models import WarrantyDB
+    query = db.query(WarrantyDB)
+    # Sort by expiry_date ascending (soonest first), nulls last
+    warranties = query.order_by(
+        WarrantyDB.expiry_date.asc().nullslast()
+    ).limit(100).all()
+    
+    result = []
+    for w in warranties:
+        result.append({
+            "id": w.id,
+            "brand": w.brand,
+            "product_name": w.product_name,
+            "model_code": w.model_code,
+            "serial_no": w.serial_no,
+            "purchase_date": w.purchase_date.isoformat() if w.purchase_date else None,
+            "expiry_date": w.expiry_date.isoformat() if w.expiry_date else None,
+            "coverage_months": w.coverage_months,
+            "created_at": w.created_at.isoformat() if w.created_at else None,
+        })
+    return {"warranties": result, "count": len(result)}
 
 
 @app.post("/warranties/from-artifact", dependencies=[Depends(rbac_dependency)])
@@ -790,12 +894,50 @@ def create_warranty(payload: CanonicalRequest, db=Depends(get_db), current=Depen
     if not artifact:
         raise HTTPException(status_code=404, detail="Artifact not found")
     warranty = canonicalize_artifact(artifact, payload.overrides)
+    # Auto terms lookup if duration is missing
+    if not warranty.coverage_months:
+        try:
+            parsed = (
+                db.query(ParsedFieldDB)
+                .filter_by(warranty_id=warranty.id)
+                .order_by(ParsedFieldDB.created_at.desc())
+                .first()
+            )
+            result = terms_lookup.lookup_terms(
+                db,
+                brand=warranty.brand,
+                category=getattr(parsed, "product_category", None) if parsed else None,
+                region=getattr(warranty, "region_code", None),
+                model_code=warranty.model_code,
+                product_name=warranty.product_name,
+            )
+            wdb = db.query(WarrantyDB).filter_by(id=warranty.id).first()
+            if wdb and result:
+                if result.duration_months and not wdb.coverage_months:
+                    wdb.coverage_months = result.duration_months
+                if result.terms:
+                    wdb.terms = result.terms
+                if result.exclusions:
+                    wdb.exclusions = result.exclusions
+                if result.claim_steps:
+                    wdb.claim_steps = result.claim_steps
+                if wdb.purchase_date and wdb.coverage_months and not wdb.expiry_date:
+                    exp = wdb.purchase_date.date()
+                    year = exp.year + (exp.month - 1 + wdb.coverage_months) // 12
+                    month = (exp.month - 1 + wdb.coverage_months) % 12 + 1
+                    day = min(exp.day, [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1])
+                    wdb.expiry_date = datetime(year, month, day)
+                db.add(wdb)
+                db.commit()
+                store.warranties.pop(warranty.id, None)
+                warranty = store.get_warranty_db(warranty.id) or warranty
+        except Exception:
+            pass
     try:
         run_initial_analysis_and_notifications(db, current.username, warranty.id)
     except Exception:
         pass
     return warranty
-
 
 @app.get("/warranties/{warranty_id}", dependencies=[Depends(rbac_dependency)])
 def get_warranty(warranty_id: str):
@@ -837,6 +979,72 @@ def get_job(job_id: str, db=Depends(get_db)):
     return job
 
 
+@app.post("/warranty/terms/refresh", dependencies=[Depends(rbac_dependency)])
+def refresh_warranty_terms(payload: TermsRefreshRequest, db=Depends(get_db)):
+    warranty = db.query(WarrantyDB).filter_by(id=payload.warranty_id).first()
+    if not warranty:
+        raise HTTPException(status_code=404, detail="Warranty not found")
+    parsed = (
+        db.query(ParsedFieldDB)
+        .filter_by(warranty_id=payload.warranty_id)
+        .order_by(ParsedFieldDB.created_at.desc())
+        .first()
+    )
+    result = terms_lookup.lookup_terms(
+        db,
+        brand=warranty.brand,
+        category=getattr(parsed, "product_category", None) if parsed else None,
+        region=getattr(warranty, "region_code", None),
+        model_code=warranty.model_code,
+        product_name=warranty.product_name,
+        url_override=payload.url_override,
+        force_refresh=payload.force,
+    )
+    if result.duration_months and not warranty.coverage_months:
+        warranty.coverage_months = result.duration_months
+    if result.terms:
+        warranty.terms = result.terms
+    if result.exclusions:
+        warranty.exclusions = result.exclusions
+    if result.claim_steps:
+        warranty.claim_steps = result.claim_steps
+    if warranty.purchase_date and warranty.coverage_months and not warranty.expiry_date:
+        exp = warranty.purchase_date.date()
+        year = exp.year + (exp.month - 1 + warranty.coverage_months) // 12
+        month = (exp.month - 1 + warranty.coverage_months) % 12 + 1
+        day = min(exp.day, [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1])
+        warranty.expiry_date = datetime(year, month, day)
+    db.add(warranty)
+    db.commit()
+    store.warranties.pop(warranty.id, None)
+    summary_text, source = summary_engine.summarize_warranty(store.get_warranty_db(warranty.id) or warranty)
+    structured = summary_engine.build_structured_summary(store.get_warranty_db(warranty.id) or warranty)
+    db.add(
+        WarrantySummaryDB(
+            warranty_id=warranty.id,
+            summary_text=summary_text,
+            source=source,
+            summary_points=structured.get("points"),
+            summary_tags=structured.get("tags"),
+            created_at=datetime.utcnow(),
+        )
+    )
+    db.commit()
+    try:
+        from .services.rag import upsert_document, rag_enabled
+        if rag_enabled():
+            upsert_document(
+                db,
+                doc_type="warranty_summary",
+                doc_id=warranty.id,
+                content=summary_text,
+                metadata={"brand": warranty.brand, "model_code": warranty.model_code, "region": warranty.region_code},
+            )
+    except Exception:
+        pass
+    return {"status": "ok", "warranty_id": warranty.id, "source_url": result.source_url}
+
+
 @app.get("/warranties/{warranty_id}/summary", dependencies=[Depends(rbac_dependency)])
 def get_warranty_summary(warranty_id: str, db=Depends(get_db)):
     warranty = store.get_warranty_db(warranty_id)
@@ -874,6 +1082,8 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db)):
             "warranty_id": warranty_id,
             "summary": summary_row.summary_text,
             "source": summary_row.source,
+            "summary_points": summary_row.summary_points or [],
+            "summary_tags": summary_row.summary_tags or [],
             "parsed_fields": parsed_fields,
             "confidence": parsed.confidence if parsed else {},
             "terms": warranty.terms or [],
@@ -883,10 +1093,13 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db)):
             "processing_status": latest_job.status if latest_job else None,
         }
     summary_text, source = summary_engine.summarize_warranty(warranty)
+    structured = summary_engine.build_structured_summary(warranty)
     return {
         "warranty_id": warranty_id,
         "summary": summary_text,
         "source": source,
+        "summary_points": structured.get("points"),
+        "summary_tags": structured.get("tags"),
         "parsed_fields": parsed_fields,
         "confidence": parsed.confidence if parsed else {},
         "terms": warranty.terms or [],
@@ -901,6 +1114,7 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db)):
 def push_behaviour_event(payload: BehaviourEventRequest):
     if payload.warranty_id not in store.warranties:
         raise HTTPException(status_code=404, detail="Warranty not found")
+    _require_consent(payload.user_id)
     event = BehaviourEvent(
         user_id=payload.user_id,
         warranty_id=payload.warranty_id,
@@ -1133,6 +1347,23 @@ def neo_dashboard():
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
 
 
+
+@app.get("/ui/simple-upload")
+def simple_upload_ui():
+    """Simple warranty upload page with expiry sorting and alerts."""
+    from fastapi.responses import HTMLResponse
+    html_path = Path(__file__).resolve().parents[1] / "templates" / "simple_upload.html"
+    return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
+
+
+@app.get("/ui/warranty-tabs")
+def warranty_tabs_ui():
+    """Multi-invoice tabbed dashboard with Details/Predictive/OEM/Nudges tabs."""
+    from fastapi.responses import HTMLResponse
+    html_path = Path(__file__).resolve().parents[1] / "templates" / "warranty_tabs.html"
+    return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
+
+
 @app.get("/ui/oem-dashboard", dependencies=[Depends(require_oem_or_admin)])
 def oem_dashboard():
     from fastapi.responses import HTMLResponse
@@ -1145,6 +1376,7 @@ def oem_dashboard():
 def push_telemetry(payload: TelemetryRequest):
     if payload.warranty_id not in store.warranties:
         raise HTTPException(status_code=404, detail="Warranty not found")
+    _require_consent(payload.user_id)
     event = TelemetryEvent(
         id=generate_id("tel"),
         warranty_id=payload.warranty_id,
@@ -1156,6 +1388,20 @@ def push_telemetry(payload: TelemetryRequest):
         payload=payload.payload or {},
     )
     return store.add_telemetry(event)
+
+
+@app.post("/consent", dependencies=[Depends(require_user)])
+def update_consent(payload: ConsentRequest, current=Depends(require_user)):
+    if current.username != payload.user_id and current.role != "admin":
+        raise HTTPException(status_code=403, detail="forbidden")
+    with SessionLocal() as db:
+        user = db.query(UserDB).filter_by(username=payload.user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="user_not_found")
+        user.consent_analytics = 1 if payload.consent_analytics else 0
+        db.add(user)
+        db.commit()
+    return {"ok": True, "user_id": payload.user_id, "consent_analytics": payload.consent_analytics}
 
 
 @app.post("/predictive/score", dependencies=[Depends(rbac_dependency)])
@@ -1258,8 +1504,7 @@ class NotificationOut(BaseModel):
     is_read: bool
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 @app.get("/oem/notifications", dependencies=[Depends(require_oem_or_admin)])
@@ -1300,6 +1545,75 @@ def mark_oem_notification_as_read(
     if not n:
         raise HTTPException(status_code=404, detail="OEM notification not found")
     return {"status": "ok"}
+
+
+@app.post("/region-rules", dependencies=[Depends(require_admin)])
+def upsert_region_rule(payload: RegionRuleRequest, db=Depends(get_db)):
+    rec = regional_policy_service.upsert_region_policy(
+        db,
+        region=payload.region,
+        rule_json=payload.rule_json,
+        brand=payload.brand,
+        model_code=payload.model_code,
+        product_type=payload.product_type,
+        active=payload.active,
+    )
+    return {"id": rec.id, "region": rec.region, "active": bool(rec.active)}
+
+
+@app.get("/region-rules", dependencies=[Depends(require_admin)])
+def list_region_rules(region: str | None = None, db=Depends(get_db)):
+    q = db.query(RegionalPolicyDB)
+    if region:
+        q = q.filter_by(region=region)
+    items = q.order_by(RegionalPolicyDB.created_at.desc()).limit(100).all()
+    return [
+        {
+            "id": r.id,
+            "region": r.region,
+            "brand": r.brand,
+            "model_code": r.model_code,
+            "product_type": r.product_type,
+            "rule_json": r.rule_json,
+            "active": bool(r.active),
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r in items
+    ]
+
+
+@app.post("/oem/issues", dependencies=[Depends(require_oem_or_admin)])
+def record_oem_issue(payload: OemIssueSignalRequest, db=Depends(get_db)):
+    rec = oem_issue_service.record_issue_signal(
+        db,
+        brand=payload.brand,
+        model_code=payload.model_code,
+        product_type=payload.product_type,
+        region=payload.region,
+        issue_type=payload.issue_type,
+        severity=payload.severity,
+        count=payload.count,
+        source_url=payload.source_url,
+    )
+    return {"id": rec.id}
+
+
+@app.get("/oem/issues/summary", dependencies=[Depends(require_oem_or_admin)])
+def oem_issue_summary(
+    brand: str | None = None,
+    model_code: str | None = None,
+    product_type: str | None = None,
+    region: str | None = None,
+    db=Depends(get_db),
+):
+    res = oem_issue_service.summarize_issue_signals(
+        db,
+        brand=brand,
+        model_code=model_code,
+        product_type=product_type,
+        region=region,
+    )
+    return {"risk_delta": res.risk_delta, "reasons": res.reasons}
 
 
 @app.post("/ev/battery/score", dependencies=[Depends(require_user)])
@@ -1591,6 +1905,37 @@ def warranty_export(warranty_id: str, format: str = "txt"):
 @app.get("/reviews", dependencies=[Depends(require_admin)])
 def list_reviews(status: str | None = None):
     return store.list_reviews(status)
+
+
+@app.post("/reviews/crawl", dependencies=[Depends(require_admin)])
+def reviews_crawl(region: str | None = None):
+    with SessionLocal() as db:
+        stats = crawl_reviews(db, region=region or os.getenv("REVIEW_REGION", "IN"))
+        return {"ok": True, "stats": stats}
+
+
+@app.get("/reviews/stats", dependencies=[Depends(require_admin)])
+def reviews_stats(brand: str | None = None, model: str | None = None, region: str | None = None):
+    with SessionLocal() as db:
+        q = db.query(ProductReviewDB)
+        if brand:
+            q = q.filter_by(brand=brand)
+        if model:
+            q = q.filter_by(model_code=model)
+        if region:
+            q = q.filter_by(region=region)
+        rows = q.all()
+        pages = db.query(ReviewPageDB).count()
+        count = len(rows)
+        avg_rating = float(sum(r.rating or 0.0 for r in rows) / count) if count else None
+        avg_sent = float(sum(r.sentiment or 0.0 for r in rows) / count) if count else None
+        return {
+            "ok": True,
+            "pages": pages,
+            "reviews": count,
+            "avg_rating": avg_rating,
+            "avg_sentiment": avg_sent,
+        }
 
 
 @app.post("/reviews/{review_id}/approve", dependencies=[Depends(require_admin)])

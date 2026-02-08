@@ -5,6 +5,11 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 
+class AppBaseModel(BaseModel):
+    # Allow fields like model_code without protected namespace warnings
+    model_config = {"protected_namespaces": ()}
+
+
 class ArtifactType(str, Enum):
     invoice = "invoice"
     manual = "manual"
@@ -13,7 +18,7 @@ class ArtifactType(str, Enum):
     other = "other"
 
 
-class Artifact(BaseModel):
+class Artifact(AppBaseModel):
     id: str
     type: ArtifactType
     content: str
@@ -21,7 +26,7 @@ class Artifact(BaseModel):
     received_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-class CanonicalWarranty(BaseModel):
+class CanonicalWarranty(AppBaseModel):
     id: str
     product_name: Optional[str] = None
     brand: Optional[str] = None
@@ -39,7 +44,7 @@ class CanonicalWarranty(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-class BehaviourEvent(BaseModel):
+class BehaviourEvent(AppBaseModel):
     user_id: str
     warranty_id: str
     event_type: str
@@ -47,7 +52,7 @@ class BehaviourEvent(BaseModel):
     details: Dict[str, Any] = Field(default_factory=dict)
 
 
-class RiskScore(BaseModel):
+class RiskScore(AppBaseModel):
     warranty_id: str
     user_id: str
     value: float
@@ -56,7 +61,7 @@ class RiskScore(BaseModel):
     last_updated: datetime = Field(default_factory=datetime.utcnow)
 
 
-class Nudge(BaseModel):
+class Nudge(AppBaseModel):
     id: str
     warranty_id: str
     user_id: str
@@ -67,7 +72,7 @@ class Nudge(BaseModel):
     channels: List[str] = Field(default_factory=lambda: ["in-app"])
 
 
-class ServiceTicket(BaseModel):
+class ServiceTicket(AppBaseModel):
     id: str
     warranty_id: str
     user_id: str
@@ -78,7 +83,7 @@ class ServiceTicket(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-class TelemetryEvent(BaseModel):
+class TelemetryEvent(AppBaseModel):
     id: str
     warranty_id: str
     user_id: str
@@ -90,7 +95,7 @@ class TelemetryEvent(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
-class PredictiveScore(BaseModel):
+class PredictiveScore(AppBaseModel):
     warranty_id: str
     user_id: str
     model_code: Optional[str]
@@ -101,7 +106,7 @@ class PredictiveScore(BaseModel):
     suggested_questions: List[str] = Field(default_factory=list)
 
 
-class ReviewItem(BaseModel):
+class ReviewItem(AppBaseModel):
     id: str
     action: str  # e.g., oem_fetch, device_actuation, claim_submit
     payload: Dict[str, Any] = Field(default_factory=dict)

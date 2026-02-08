@@ -14,6 +14,10 @@ _LLM_TTL_SEC = int(os.getenv("LLM_ENGINE_TTL_SEC", "900"))
 _LLAMA_MODEL_PATH = os.getenv("LLM_MODEL_PATH")
 _OLLAMA_URL = os.getenv("OLLAMA_URL")
 _OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+_MISTRAL_API = os.getenv("MISTRAL_API_URL", "https://api.mistral.ai/v1")
+_MISTRAL_MODEL = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
+_MISTRAL_KEY = os.getenv("MISTRAL_API_KEY")
+_RAG_ENABLED = os.getenv("RAG_ENABLED", "0").strip().lower() in ("1", "true", "yes")
 
 _llama_instance = None
 _llama_last_used = 0.0
@@ -89,6 +93,35 @@ def _summarize_with_llamacpp(prompt: str) -> Tuple[Optional[str], Optional[str]]
         return None, f"llama_cpp generation failed: {exc}"
 
 
+def _summarize_with_mistral(prompt: str) -> Tuple[Optional[str], Optional[str]]:
+    if not _MISTRAL_KEY:
+        return None, "MISTRAL_API_KEY not set"
+    try:
+        resp = requests.post(
+            f"{_MISTRAL_API.rstrip('/')}/chat/completions",
+            headers={"Authorization": f"Bearer {_MISTRAL_KEY}"},
+            json={
+                "model": _MISTRAL_MODEL,
+                "messages": [
+                    {"role": "system", "content": "You are a warranty summary assistant."},
+                    {"role": "user", "content": prompt},
+                ],
+                "temperature": 0.2,
+            },
+            timeout=20,
+        )
+    except requests.exceptions.RequestException as exc:
+        return None, f"Mistral call failed: {exc}"
+    if resp.status_code != 200:
+        return None, f"Mistral error {resp.status_code}: {resp.text}"
+    try:
+        data = resp.json()
+    except Exception as exc:
+        return None, f"Mistral parse failed: {exc}"
+    text = (data.get("choices") or [{}])[0].get("message", {}).get("content", "")
+    return (text.strip() if text else None), None
+
+
 def summarize_warranty(warranty: CanonicalWarranty) -> Tuple[str, str]:
     """
     Returns (summary_text, source).
@@ -103,6 +136,21 @@ def summarize_warranty(warranty: CanonicalWarranty) -> Tuple[str, str]:
         f"Coverage months: {warranty.coverage_months}\nTerms: {warranty.terms}\nExclusions: {warranty.exclusions}\n"
         f"Claim steps: {warranty.claim_steps}\n"
     )
+    if _RAG_ENABLED:
+        try:
+            from ..db import SessionLocal
+            from .rag import build_context, rag_enabled
+            if rag_enabled():
+                query = f"{warranty.brand} {warranty.model_code} warranty terms exclusions claim steps"
+                with SessionLocal() as db:
+                    ctx = build_context(db, query_text=query, limit=4)
+                if ctx:
+                    prompt = prompt + "\nRelevant context:\n" + ctx
+        except Exception:
+            pass
+    if _LLM_PROVIDER == "mistral":
+        text, err = _summarize_with_mistral(prompt)
+        return (text or _template_summary(warranty)), "mistral" if text else "template"
     if _LLM_PROVIDER == "ollama_remote":
         text, err = _summarize_with_ollama(prompt)
         return (text or _template_summary(warranty)), "ollama" if text else "template"
@@ -110,6 +158,31 @@ def summarize_warranty(warranty: CanonicalWarranty) -> Tuple[str, str]:
         text, err = _summarize_with_llamacpp(prompt)
         return (text or _template_summary(warranty)), "llamacpp" if text else "template"
     return _template_summary(warranty), "template"
+
+
+def build_structured_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
+    points = []
+    tags = []
+    if warranty.coverage_months:
+        points.append(f"Coverage: {warranty.coverage_months} months")
+        tags.append("coverage")
+    if warranty.expiry_date:
+        points.append(f"Expiry date: {warranty.expiry_date}")
+        tags.append("expiry")
+    if warranty.terms:
+        points.extend([f"Term: {t}" for t in warranty.terms[:5]])
+        tags.append("terms")
+    if warranty.exclusions:
+        points.extend([f"Exclusion: {e}" for e in warranty.exclusions[:5]])
+        tags.append("exclusions")
+    if warranty.claim_steps:
+        points.extend([f"Claim: {c}" for c in warranty.claim_steps[:5]])
+        tags.append("claims")
+    if warranty.brand:
+        tags.append(warranty.brand.lower())
+    if warranty.model_code:
+        tags.append(warranty.model_code.lower())
+    return {"points": points, "tags": list(dict.fromkeys(tags))}
 
 
 def health() -> Tuple[bool, str, Optional[str]]:
@@ -125,6 +198,10 @@ def health() -> Tuple[bool, str, Optional[str]]:
             return True, "Ollama reachable", _OLLAMA_MODEL
         except requests.exceptions.RequestException as exc:
             return False, f"Ollama unreachable: {exc}", _OLLAMA_MODEL
+    if _LLM_PROVIDER == "mistral":
+        if not _MISTRAL_KEY:
+            return False, "MISTRAL_API_KEY not set", _MISTRAL_MODEL
+        return True, "Mistral configured", _MISTRAL_MODEL
     if _LLM_PROVIDER == "llamacpp":
         if not _LLAMA_MODEL_PATH:
             return False, "LLM_MODEL_PATH not set", "llamacpp"

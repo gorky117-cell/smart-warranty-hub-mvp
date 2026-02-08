@@ -1,0 +1,68 @@
+[
+  {
+    "name": "amazon_in",
+    "domains": ["amazon.in"],
+    "region": "IN",
+    "kind": "retail"
+  },
+  {
+    "name": "tatacliq",
+    "domains": ["tatacliq.com"],
+    "region": "IN",
+    "kind": "retail"
+  },
+  {
+    "name": "vijay_sales",
+    "domains": ["vijaysales.com"],
+    "region": "IN",
+    "kind": "retail"
+  },
+  {
+    "name": "snapdeal",
+    "domains": ["snapdeal.com"],
+    "region": "IN",
+    "kind": "retail"
+  },
+  {
+    "name": "flipkart",
+    "domains": ["flipkart.com"],
+    "region": "IN",
+    "kind": "retail"
+  },
+  {
+    "name": "croma",
+    "domains": ["croma.com"],
+    "region": "IN",
+    "kind": "retail"
+  },
+  {
+    "name": "reliance_digital",
+    "domains": ["reliancedigital.in"],
+    "region": "IN",
+    "kind": "retail"
+  },
+  {
+    "name": "reddit",
+    "domains": ["reddit.com"],
+    "region": "IN",
+    "kind": "forum"
+  },
+  {
+    "name": "mouthshut",
+    "domains": ["mouthshut.com"],
+    "region": "IN",
+    "kind": "reviews"
+  },
+  {
+    "name": "consumercomplaints",
+    "domains": ["consumercomplaints.in"],
+    "region": "IN",
+    "kind": "reviews"
+  },
+  {
+    "name": "91mobiles",
+    "domains": ["91mobiles.com"],
+    "region": "IN",
+    "kind": "reviews"
+  }
+]

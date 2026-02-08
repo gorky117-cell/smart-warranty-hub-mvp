@@ -1,23 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Scheduler Status</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #0d1020; color: #e8ecf5; margin: 0; padding: 0; }
-    header { padding: 16px 24px; background: linear-gradient(135deg, #11214a, #0d1733); }
-    h1 { margin: 0; font-size: 20px; }
-    main { padding: 16px 24px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-    th, td { padding: 8px; border-bottom: 1px solid #1f2a44; }
-    .status-pending { color: #f2cc60; }
-    .status-fetched { color: #7ae4a5; }
-    .status-failed { color: #f06a6a; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #0d1020;
+      color: #e8ecf5;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      padding: 16px 24px;
+      background: linear-gradient(135deg, #11214a, #0d1733);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    main {
+      padding: 16px 24px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    th,
+    td {
+      padding: 8px;
+      border-bottom: 1px solid #1f2a44;
+    }
+
+    .status-pending {
+      color: #f2cc60;
+    }
+
+    .status-fetched {
+      color: #7ae4a5;
+    }
+
+    .status-failed {
+      color: #f06a6a;
+    }
   </style>
 </head>
+
 <body>
-  <header><h1>OEM Scheduler Status</h1></header>
+  <header>
+    <h1>OEM Scheduler Status</h1>
+  </header>
   <main>
     <div>Review required: {{ review_required }}</div>
     <form method="post" action="/oem/fetch/form" style="margin-top:12px;">
@@ -29,7 +69,15 @@
     </form>
     <table>
       <thead>
-        <tr><th>Brand</th><th>Model</th><th>Region</th><th>URL</th><th>Status</th><th>Updated</th><th>Error</th></tr>
+        <tr>
+          <th>Brand</th>
+          <th>Model</th>
+          <th>Region</th>
+          <th>URL</th>
+          <th>Status</th>
+          <th>Updated</th>
+          <th>Error</th>
+        </tr>
       </thead>
       <tbody>
         {% for item in queue %}
@@ -46,5 +94,7 @@
       </tbody>
     </table>
   </main>
+  <script src="/static/warranty-dropdown.js"></script>
 </body>
+
 </html>

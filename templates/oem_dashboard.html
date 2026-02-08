@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OEM Analytics</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
     :root {
       --bg: #f6f8fb;
@@ -185,6 +186,16 @@
       <div id="risk-content" class="row"></div>
     </div>
 
+    <div class="card">
+      <h3>Risk vs Reviews (Dual Axis)</h3>
+      <canvas id="riskChart" height="120"></canvas>
+    </div>
+
+    <div class="card">
+      <h3>User Behaviour Snapshot (Bar)</h3>
+      <canvas id="behChart" height="120"></canvas>
+    </div>
+
     <div class="card" id="customer-qs">
       <h3>Customer Question Studio</h3>
       <div class="row">
@@ -267,6 +278,8 @@
   <script>
     let oemNotifications = [];
     window.API_BASE = window.API_BASE || '';
+    let riskChart = null;
+    let behChart = null;
 
     async function fetchJsonSafe(url, options={}, label='request') {
       const res = await fetch(url, options);
@@ -361,8 +374,10 @@
         if (!res.ok) throw new Error('No data yet for this filter.');
         const data = await res.json();
         renderRisk(data.risk_distribution || {});
+        renderRiskChart(data.risk_distribution || {}, data.peer_review || {});
         renderIssues(data.peer_review, data.symptoms);
         renderBehaviour(data.behaviour_snapshot || {});
+        renderBehaviourChart(data.behaviour_snapshot || {});
         renderEv(data.ev_battery);
         renderProductInterest(data.product_interest || []);
         fetchOemNotifications();
@@ -389,6 +404,58 @@
           </div>`;
       });
       el.innerHTML = blocks.join('');
+    }
+
+    function renderRiskChart(risk, peer) {
+      const ctx = document.getElementById('riskChart');
+      if (!ctx) return;
+      const labels = ['Low', 'Medium', 'High'];
+      const counts = [risk.low || 0, risk.medium || 0, risk.high || 0];
+      const avgRating = peer?.avg_rating || 0;
+      const avgSent = peer?.avg_sentiment || 0;
+      const ratingSeries = [avgRating, avgRating, avgRating];
+      const sentSeries = [avgSent, avgSent, avgSent];
+      if (riskChart) riskChart.destroy();
+      riskChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              type: 'bar',
+              label: 'Risk Count',
+              data: counts,
+              backgroundColor: '#2563eb'
+            },
+            {
+              type: 'line',
+              label: 'Avg Rating',
+              data: ratingSeries,
+              yAxisID: 'y1',
+              borderColor: '#16a34a',
+              backgroundColor: 'rgba(22,163,74,0.2)',
+              tension: 0.3
+            },
+            {
+              type: 'line',
+              label: 'Avg Sentiment',
+              data: sentSeries,
+              yAxisID: 'y2',
+              borderColor: '#f59e0b',
+              backgroundColor: 'rgba(245,158,11,0.2)',
+              tension: 0.3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'Risk Count' } },
+            y1: { beginAtZero: true, position: 'right', min: 0, max: 5, grid: { drawOnChartArea: false }, title: { display: true, text: 'Avg Rating (0-5)' } },
+            y2: { beginAtZero: true, position: 'right', min: 0, max: 1, grid: { drawOnChartArea: false }, title: { display: true, text: 'Avg Sentiment (0-1)' } }
+          }
+        }
+      });
     }
 
     function renderIssues(peer, symptoms) {
@@ -420,6 +487,34 @@
         <p class="pill">Behaviour: ${(beh.behaviour_score || 0).toFixed(2)}</p>
         <p class="pill">Responsiveness: ${(beh.responsiveness_score || 0).toFixed(2)}</p>
       `;
+    }
+
+    function renderBehaviourChart(beh) {
+      const ctx = document.getElementById('behChart');
+      if (!ctx) return;
+      const labels = ['Care', 'Behaviour', 'Responsiveness'];
+      const data = [
+        beh.care_score || 0,
+        beh.behaviour_score || 0,
+        beh.responsiveness_score || 0
+      ];
+      if (behChart) behChart.destroy();
+      behChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Score',
+              data,
+              backgroundColor: ['#38bdf8', '#818cf8', '#34d399']
+            }
+          ]
+        },
+        options: {
+          scales: { y: { min: 0, max: 1 } }
+        }
+      });
     }
 
     function renderEv(evData) {
@@ -653,5 +748,5 @@
     qsLoadActive();
     fetchStats();
   </script>
-</body>
+<script src=" /static/warranty-dropdown.js\></script></body>
 </html>

@@ -8,9 +8,22 @@ from .review import create_review
 from ..db import SessionLocal
 from ..db_models import OEMFetchDB
 from .audit import log_action
+from .oem_issue_feeds import ingest_oem_issue_feeds
+from .risk_refresh import refresh_risk_snapshots
+from .data_governance import cleanup_retention
+from .review_crawler import crawl_reviews
 
 
 async def oem_refresh_loop(interval_minutes: int = 60):
+    last_issue_feed = datetime.datetime.min
+    last_risk_refresh = datetime.datetime.min
+    last_review_crawl = datetime.datetime.min
+    last_cleanup = datetime.datetime.min
+    issue_interval = int(os.getenv("OEM_ISSUE_FEED_REFRESH_MINUTES", "180"))
+    risk_interval = int(os.getenv("RISK_REFRESH_MINUTES", "120"))
+    review_interval = int(os.getenv("REVIEW_CRAWL_MINUTES", "1440"))
+    review_enabled = os.getenv("REVIEW_CRAWL_ENABLED", "true").lower() == "true"
+    cleanup_interval = int(os.getenv("DATA_GOVERNANCE_CLEANUP_MINUTES", "1440"))
     while True:
         try:
             with SessionLocal() as db:
@@ -44,6 +57,35 @@ async def oem_refresh_loop(interval_minutes: int = 60):
                         row.updated_at = datetime.datetime.utcnow()
                         db.commit()
                         log_action("oem_refresh_fail", f"{row.url} err={exc}")
+                # Ingest OEM issue feeds on schedule
+                now = datetime.datetime.utcnow()
+                if issue_interval > 0 and (now - last_issue_feed).total_seconds() >= issue_interval * 60:
+                    try:
+                        count = ingest_oem_issue_feeds(db)
+                        log_action("oem_issue_ingest", f"count={count}")
+                    except Exception as exc:
+                        log_action("oem_issue_ingest_fail", str(exc))
+                    last_issue_feed = now
+                # Refresh risk snapshots on schedule
+                if risk_interval > 0 and (now - last_risk_refresh).total_seconds() >= risk_interval * 60:
+                    try:
+                        count = refresh_risk_snapshots(db)
+                        log_action("risk_refresh", f"count={count}")
+                    except Exception as exc:
+                        log_action("risk_refresh_fail", str(exc))
+                    last_risk_refresh = now
+                # Review crawl on schedule
+                if review_enabled and review_interval > 0 and (now - last_review_crawl).total_seconds() >= review_interval * 60:
+                    try:
+                        stats = crawl_reviews(db, region=os.getenv("REVIEW_REGION", "IN"))
+                        log_action("review_crawl", f"pages={stats.get('pages')} reviews={stats.get('reviews')}")
+                    except Exception as exc:
+                        log_action("review_crawl_fail", str(exc))
+                    last_review_crawl = now
+                if cleanup_interval > 0 and (now - last_cleanup).total_seconds() >= cleanup_interval * 60:
+                    stats = cleanup_retention(db)
+                    log_action("governance_cleanup", f"{stats}")
+                    last_cleanup = now
         except Exception as exc:
             log_action("scheduler_error", str(exc))
         await asyncio.sleep(interval_minutes * 60)

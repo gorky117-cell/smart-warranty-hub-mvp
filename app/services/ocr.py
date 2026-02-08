@@ -114,10 +114,56 @@ def _extract_pdf_text(path_obj: Path) -> Tuple[Optional[str], Optional[str]]:
 
 
 def _maybe_ocr_pdf(path_obj: Path) -> Tuple[Optional[str], Optional[str]]:
+    # Try pymupdf (fitz) first, then fall back to pdf2image
+    try:
+        import fitz  # pymupdf
+        import tempfile
+        import os as _os
+        
+        doc = fitz.open(str(path_obj))
+        all_text = []
+        for page_num in range(min(3, len(doc))):  # Limit to first 3 pages
+            page = doc[page_num]
+            pix = page.get_pixmap(dpi=150)
+            
+            # Create temp file path without keeping it open (Windows compat)
+            tmp_fd, tmp_path = tempfile.mkstemp(suffix=".png")
+            _os.close(tmp_fd)  # Close immediately so pix.save can write
+            
+            try:
+                pix.save(tmp_path)
+                
+                engine = _resolve_engine()
+                if engine == "paddle":
+                    text, err = run_paddle_ocr(Path(tmp_path))
+                else:
+                    text, err = run_tesseract_ocr(Path(tmp_path))
+                
+                if text:
+                    all_text.append(text)
+            finally:
+                try:
+                    _os.unlink(tmp_path)
+                except Exception:
+                    pass
+        
+        doc.close()
+        combined = "\n".join(all_text).strip()
+        return (combined if combined else None), None
+    except ImportError:
+        pass  # Fall through to pdf2image
+    except Exception as exc:
+        return None, f"PDF OCR via pymupdf failed: {exc}"
+    except ImportError:
+        pass  # Fall through to pdf2image
+    except Exception as exc:
+        return None, f"PDF OCR via pymupdf failed: {exc}"
+    
+    # Fallback to pdf2image (requires poppler)
     try:
         from pdf2image import convert_from_path  # type: ignore
     except Exception:
-        return None, "PDF OCR unavailable (install pdf2image to OCR PDFs)."
+        return None, "PDF OCR unavailable (install pdf2image/poppler or pymupdf)."
     try:
         images = convert_from_path(str(path_obj), first_page=1, last_page=1)
         if not images:

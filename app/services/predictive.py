@@ -10,6 +10,8 @@ from ..models import PredictiveScore, TelemetryEvent
 from ..storage import store
 from ..db import SessionLocal
 from ..db_models import BehaviourProfile, NudgeEvents, PeerReviewSignals, SymptomSearch, WarrantyDB
+from . import regional_policy as regional_policy_service
+from . import oem_issue_signals as oem_issue_service
 from . import behaviour as behaviour_service
 
 FEATURE_NAMES = [
@@ -458,6 +460,62 @@ def score_warranty(user_id: str, warranty_id: str, product_type: Optional[str] =
         adjusted_score = max(0.0, min(1.0, base_risk_score + behaviour_delta))
         risk_score = adjusted_score
         reasons = behaviour_reasons + reasons
+    # Region policy + OEM issue signals
+    try:
+        with SessionLocal() as db:
+            wdb = db.query(WarrantyDB).filter_by(id=warranty_id).first()
+            region = getattr(wdb, "region_code", None) if wdb else None
+            brand = getattr(wdb, "brand", None) if wdb else None
+            model_code = getattr(wdb, "model_code", None) if wdb else None
+            pt = getattr(wdb, "product_name", None) if wdb else None
+            policy_res = regional_policy_service.evaluate_region_policy(
+                db,
+                region=region,
+                brand=brand,
+                model_code=model_code,
+                product_type=pt,
+            )
+            issue_res = oem_issue_service.summarize_issue_signals(
+                db,
+                brand=brand,
+                model_code=model_code,
+                product_type=pt,
+                region=region,
+            )
+            # Apply deltas
+            risk_score = max(0.0, min(1.0, float(risk_score) + policy_res.risk_delta + issue_res.risk_delta))
+            reasons = (policy_res.reasons or []) + (issue_res.reasons or []) + reasons
+            # Enforce minimum coverage months if policy says so
+            if policy_res.min_coverage_months and wdb and not wdb.coverage_months:
+                wdb.coverage_months = policy_res.min_coverage_months
+                db.add(wdb)
+                db.commit()
+
+            # RAG context for product + user
+            try:
+                from .rag import build_context, rag_enabled
+                if rag_enabled():
+                    query = f"user {user_id} brand {brand} model {model_code} region {region} issue failure error maintenance"
+                    ctx = build_context(db, query_text=query, limit=6)
+                    if ctx:
+                        ctx_low = ctx.lower()
+                        rag_delta = 0.0
+                        rag_reasons = []
+                        if any(k in ctx_low for k in ["failure", "error", "issue", "recall"]):
+                            rag_delta += 0.05
+                            rag_reasons.append("RAG signals show recent issues for this product/user.")
+                        if any(k in ctx_low for k in ["maintenance", "care", "clean"]):
+                            rag_delta -= 0.03
+                            rag_reasons.append("RAG signals show recent maintenance/care activity.")
+                        if rag_delta:
+                            risk_score = max(0.0, min(1.0, float(risk_score) + rag_delta))
+                        if rag_reasons:
+                            reasons = rag_reasons + reasons
+            except Exception:
+                pass
+    except Exception:
+        pass
+
     # Final label based on adjusted score
     risk_label = "HIGH" if risk_score > 0.66 else "MEDIUM" if risk_score >= 0.33 else "LOW"
 

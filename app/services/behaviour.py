@@ -125,6 +125,22 @@ def record_answer(
         profile.last_updated_at = datetime.utcnow()
         db.commit()
         db.refresh(profile)
+        try:
+            from .rag import add_event_documents, rag_enabled
+            if rag_enabled():
+                add_event_documents(
+                    db,
+                    doc_type="behaviour",
+                    doc_id=f"{user_id}:{warranty_id}:{question_id}:{int(datetime.utcnow().timestamp())}",
+                    content=f"user={user_id} warranty={warranty_id} question={question_id} answer={answer_value}",
+                    metadata={
+                        "user_id": user_id,
+                        "warranty_id": warranty_id,
+                        "product_type": pt,
+                    },
+                )
+        except Exception:
+            pass
         return profile
 
 

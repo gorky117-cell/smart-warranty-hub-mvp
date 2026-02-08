@@ -129,6 +129,22 @@ class MemoryStore:
             )
             db.merge(db_ev)
             db.commit()
+            try:
+                from .services.rag import add_event_documents, rag_enabled
+                if rag_enabled():
+                    add_event_documents(
+                        db,
+                        doc_type="telemetry",
+                        doc_id=event.id,
+                        content=f"user={event.user_id} warranty={event.warranty_id} type={event.event_type} payload={event.payload}",
+                        metadata={
+                            "user_id": event.user_id,
+                            "warranty_id": event.warranty_id,
+                            "event_type": event.event_type,
+                        },
+                    )
+            except Exception:
+                pass
         return event
 
     def get_telemetry(self, user_id: str, warranty_id: str) -> List[TelemetryEvent]:

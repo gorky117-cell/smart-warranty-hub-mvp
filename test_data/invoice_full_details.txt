@@ -1,0 +1,39 @@
+=====================================
+         ELECTRA MART INVOICE
+=====================================
+
+Invoice No: INV-2026-00145
+Date: 22-Jan-2026
+
+BILL TO:
+Mr. Raj Kumar
+123 MG Road, Bangalore 560001
+
+PRODUCT DETAILS:
+-----------------------------------------
+Samsung Galaxy S24 Ultra
+Model Code: SM-S928BZKGINS
+Serial Number: R5CX40VP8LA
+Color: Titanium Black
+IMEI: 357854326791234
+
+Purchase Price: Rs. 134,999
+GST (18%): Rs. 24,299
+-----------------------------------------
+TOTAL: Rs. 159,298
+
+PAYMENT: Credit Card ****4521
+
+WARRANTY INFORMATION:
+- Standard Warranty: 12 Months
+- Extended Warranty Available: 24 Months
+- Warranty Expiry: 22-Jan-2027
+- For claims visit: samsung.com/in/support
+
+Terms:
+- Manufacturing defects covered
+- Accidental damage NOT covered
+- Keep this invoice for warranty claims
+
+Thank you for shopping with us!
+=====================================

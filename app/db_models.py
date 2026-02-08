@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Column, DateTime, Float, Integer, String, Text, UniqueConstraint, ForeignKey
+from sqlalchemy import Column, DateTime, Float, Integer, String, Text, UniqueConstraint, ForeignKey, JSON
 from sqlalchemy.dialects.sqlite import JSON as SqliteJSON
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -17,6 +17,7 @@ class UserDB(Base):
     role: Mapped[str] = mapped_column(String, default="user", index=True)
     hashed_password: Mapped[str] = mapped_column(String)
     email: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    consent_analytics: Mapped[int] = mapped_column(Integer, default=1)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
@@ -312,4 +313,100 @@ class WarrantySummaryDB(Base):
     warranty_id: Mapped[str] = mapped_column(String, index=True)
     summary_text = Column(Text)
     source: Mapped[str] = mapped_column(String, default="template", index=True)
+    summary_points = Column(SqliteJSON)
+    summary_tags = Column(SqliteJSON)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class RegionalPolicyDB(Base):
+    __tablename__ = "regional_policies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    region: Mapped[str] = mapped_column(String, index=True)
+    brand: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    model_code: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    product_type: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    rule_json = Column(SqliteJSON)
+    active: Mapped[bool] = mapped_column(Integer, default=1, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class OemIssueSignalDB(Base):
+    __tablename__ = "oem_issue_signals"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    brand: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    model_code: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    product_type: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    region: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    issue_type: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    severity: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    source_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class RiskSnapshotDB(Base):
+    __tablename__ = "risk_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String, index=True)
+    warranty_id: Mapped[str] = mapped_column(String, index=True)
+    risk_label: Mapped[str] = mapped_column(String, index=True)
+    risk_score: Mapped[float] = mapped_column(Float, default=0.0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+try:
+    from pgvector.sqlalchemy import Vector  # type: ignore
+except Exception:
+    Vector = None  # type: ignore
+
+
+class DocumentEmbeddingDB(Base):
+    __tablename__ = "document_embeddings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    doc_type: Mapped[str] = mapped_column(String, index=True)
+    doc_id: Mapped[str] = mapped_column(String, index=True)
+    content = Column(Text)
+    meta_json = Column(JSON)
+    # Store embedding as pgvector if available; fallback to JSON/Text if not.
+    if Vector:
+        embedding = Column(Vector(1536))
+    else:
+        embedding = Column(Text)
+    embedding_json = Column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class ProductReviewDB(Base):
+    __tablename__ = "product_reviews"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    brand: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    model_code: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    product_type: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    region: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    source: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    sentiment: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    text = Column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class ReviewPageDB(Base):
+    __tablename__ = "review_pages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    source: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    url: Mapped[str] = mapped_column(String, unique=True, index=True)
+    product_key: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    snapshot_uri: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    content_type: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    http_status: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    text_excerpt = Column(Text)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    last_error: Mapped[Optional[str]] = mapped_column(String, nullable=True)

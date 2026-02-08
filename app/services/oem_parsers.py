@@ -44,11 +44,10 @@ def parse_oem_text(text: str, brand_hint: str | None = None) -> Dict[str, str]:
     target_patterns = brand_patterns.get((brand_hint or "").lower(), [])
     all_patterns = target_patterns if target_patterns else [p for lst in brand_patterns.values() for p in lst]
     for pat in all_patterns:
-        for pat in pats:
-            m = re.search(pat, text, re.IGNORECASE)
-            if m:
-                part, years = m.group(1), m.group(2)
-                out.setdefault("extended_parts", {})[part] = f"{years} years"
+        m = re.search(pat, text, re.IGNORECASE)
+        if m:
+            part, years = m.group(1), m.group(2)
+            out.setdefault("extended_parts", {})[part] = f"{years} years"
     return out
 
 

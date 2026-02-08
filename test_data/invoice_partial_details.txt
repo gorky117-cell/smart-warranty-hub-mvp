@@ -1,0 +1,29 @@
+=====================================
+       APPLIANCE WORLD RECEIPT
+=====================================
+
+Receipt #: REC-7845
+Date of Purchase: 15-Dec-2025
+
+Customer: Priya Sharma
+Mobile: 9876543210
+
+ITEM PURCHASED:
+-----------------------------------------
+LG Front Load Washing Machine
+Model: FHV1408ZWW
+Serial: 210PACD12345
+Capacity: 8 KG
+Price: Rs. 45,999
+Tax: Rs. 8,279
+-----------------------------------------
+TOTAL PAID: Rs. 54,278
+
+Payment Mode: UPI
+
+NOTE: Please keep this receipt safe.
+For service enquiries: 1800-315-9999
+
+-----------------------------------------
+Thank you for your purchase!
+=====================================

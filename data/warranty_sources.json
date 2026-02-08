@@ -1,0 +1,10 @@
+[
+  {
+    "brand": "Zenith",
+    "model_code": "ZX-1000",
+    "product_name": "Turbowash Pro",
+    "source_type": "oem_warranty",
+    "url": "test_data/mock_oem_warranty.html",
+    "official": true
+  }
+]

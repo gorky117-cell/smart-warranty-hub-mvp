@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, date
+import os
 from typing import Optional, Dict, Any
 
 from sqlalchemy.orm import Session
@@ -18,7 +19,8 @@ from ..models import CanonicalWarranty
 from .ocr import extract_text_with_meta
 from .ingestion import extract_product_fields
 from .terms_lookup import lookup_terms
-from .summary_engine import summarize_warranty
+from .review_crawler import crawl_reviews_for_product
+from .summary_engine import summarize_warranty, build_structured_summary
 
 
 def _set_job_status(db: Session, job: PipelineJobDB, status: str, detail: str | None = None, error: str | None = None) -> None:
@@ -163,14 +165,18 @@ def run_job(job_id: str) -> None:
                 return
 
             _set_job_status(db, job, "terms_lookup")
-            terms_result = lookup_terms(
-                db,
-                brand=warranty.brand,
-                category=fields.get("product_category"),
-                region=warranty.region_code,
-                model_code=warranty.model_code,
-            )
-            if terms_result.duration_months and not warranty.coverage_months:
+            terms_result = None
+            # Only search if coverage wasn't present in parsed fields
+            if not fields.get("coverage_months"):
+                terms_result = lookup_terms(
+                    db,
+                    brand=warranty.brand,
+                    category=fields.get("product_category"),
+                    region=warranty.region_code,
+                    model_code=warranty.model_code,
+                    product_name=warranty.product_name,
+                )
+            if terms_result and terms_result.duration_months and not warranty.coverage_months:
                 warranty.coverage_months = terms_result.duration_months
             if warranty.purchase_date and warranty.coverage_months:
                 try:
@@ -181,14 +187,31 @@ def run_job(job_id: str) -> None:
                     warranty.expiry_date = datetime(year, month, day)
                 except Exception:
                     pass
-            warranty.terms = terms_result.terms
-            warranty.exclusions = terms_result.exclusions
-            warranty.claim_steps = terms_result.claim_steps
+            if terms_result:
+                warranty.terms = terms_result.terms
+                warranty.exclusions = terms_result.exclusions
+                warranty.claim_steps = terms_result.claim_steps
+            # Optional: per-upload review crawl for real-time enrichment
+            if os.getenv("REVIEW_CRAWL_ON_UPLOAD", "false").lower() == "true":
+                try:
+                    if warranty.brand and (warranty.model_code or warranty.product_name):
+                        crawl_reviews_for_product(
+                            db,
+                            brand=warranty.brand,
+                            model_code=warranty.model_code,
+                            product_name=warranty.product_name,
+                            region=warranty.region_code or "IN",
+                            max_pages=int(os.getenv("REVIEW_ON_UPLOAD_MAX_PAGES", "5")),
+                        )
+                except Exception:
+                    pass
             db.add(warranty)
             db.commit()
             db.refresh(warranty)
 
             _set_job_status(db, job, "summarized")
+            # Refresh cache to ensure summary reflects DB updates
+            store.warranties.pop(job.warranty_id, None)
             canonical = store.get_warranty_db(job.warranty_id)
             if not canonical:
                 canonical = CanonicalWarranty(
@@ -208,16 +231,35 @@ def run_job(job_id: str) -> None:
                     source_artifact_ids=warranty.source_artifact_ids or [],
                 )
             summary_text, source = summarize_warranty(canonical)
+            structured = build_structured_summary(canonical)
             db.add(
                 WarrantySummaryDB(
                     warranty_id=job.warranty_id,
                     summary_text=summary_text,
                     source=source,
+                    summary_points=structured.get("points"),
+                    summary_tags=structured.get("tags"),
                     created_at=datetime.utcnow(),
                 )
             )
             db.commit()
-            store.warranties.pop(job.warranty_id, None)
+            # RAG index
+            try:
+                from .rag import upsert_document, rag_enabled
+                if rag_enabled():
+                    upsert_document(
+                        db,
+                        doc_type="warranty_summary",
+                        doc_id=job.warranty_id,
+                        content=summary_text,
+                        metadata={
+                            "brand": warranty.brand,
+                            "model_code": warranty.model_code,
+                            "region": warranty.region_code,
+                        },
+                    )
+            except Exception:
+                pass
             _set_job_status(db, job, "done")
         except Exception as exc:
             _set_job_status(db, job, "failed", error=str(exc))
