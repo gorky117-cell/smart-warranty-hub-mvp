@@ -321,7 +321,15 @@ app.include_router(oem_recommendations.router, prefix="/api/oem/recommendations"
 app.include_router(oem_questions.router, prefix="/oem/questions", tags=["OEM Questions"])
 app.include_router(oem_questions.router, prefix="/api/oem/questions", tags=["OEM Questions"])
 app.include_router(oem_recommendations.router, prefix="/oem/recommendations", tags=["OEM Recommendations"])
+# Router includes
+app.include_router(oem_questions.router, prefix="/oem/questions", tags=["OEM Questions"])
+app.include_router(oem_questions.router, prefix="/api/oem/questions", tags=["OEM Questions"])
+app.include_router(oem_recommendations.router, prefix="/oem/recommendations", tags=["OEM Recommendations"])
 app.include_router(oem_recommendations.router, prefix="/api/oem/recommendations", tags=["OEM Recommendations"])
+
+from .routes import reviews
+app.include_router(reviews.router, prefix="/reviews", tags=["Reviews"])
+
 
 dist_path = Path(__file__).resolve().parents[1] / "frontend" / "dist"
 if dist_path.exists():

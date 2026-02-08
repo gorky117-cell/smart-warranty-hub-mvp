@@ -108,6 +108,13 @@ def rbac_dependency(user: UserDB = Depends(require_user)):
 def init_db():
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as db:
+        try:
+            from sqlalchemy import text
+            db.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            db.commit()
+        except Exception as e:
+            print(f"Vector extension init failed (ignoring for sqlite): {e}")
+
         admin_user = os.getenv("ADMIN_USER", "admin")
         admin_pass = os.getenv("ADMIN_PASS", "admin123")
         existing = db.query(UserDB).filter_by(username=admin_user).first()
