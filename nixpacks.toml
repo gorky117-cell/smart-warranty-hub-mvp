@@ -1,8 +1,2 @@
 [phases.setup]
-nixPkgs = ["python311", "tesseract", "glib", "libGL", "libICE", "libSM", "libXext", "libXrender", "poppler_utils", "zlib"]
-
-[phases.install]
-cmds = ["python -m pip install -r requirements.txt"]
-
-[start]
-cmd = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+aptPkgs = ["libgl1", "libglib2.0-0", "tesseract-ocr", "libgomp1", "libsm6", "libxext6", "libxrender-dev", "poppler-utils"]
