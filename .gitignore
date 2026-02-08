@@ -25,6 +25,12 @@ env/
 *.sqlite3
 app.db
 data/app.db
+data/*.db-journal
+data/demo_output.json
+data/search_quota.json
 data/uploads/
 cookies.txt
 data/*.jsonl
+.env
+.env.*
+.continue/
