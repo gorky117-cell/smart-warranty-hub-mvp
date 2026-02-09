@@ -1,5 +1,5 @@
-import asyncio
-import datetime
+import threading
+import time
 import os
 from typing import List
 
@@ -14,7 +14,7 @@ from .data_governance import cleanup_retention
 from .review_crawler import crawl_reviews
 
 
-async def oem_refresh_loop(interval_minutes: int = 60):
+def oem_refresh_loop(interval_minutes: int = 60):
     last_issue_feed = datetime.datetime.min
     last_risk_refresh = datetime.datetime.min
     last_review_crawl = datetime.datetime.min
@@ -88,9 +88,9 @@ async def oem_refresh_loop(interval_minutes: int = 60):
                     last_cleanup = now
         except Exception as exc:
             log_action("scheduler_error", str(exc))
-        await asyncio.sleep(interval_minutes * 60)
+        time.sleep(interval_minutes * 60)
 
 
-def start_scheduler(interval_minutes: int = 60):
-    loop = asyncio.get_event_loop()
-    loop.create_task(oem_refresh_loop(interval_minutes))
+def start_scheduler(interval_minutes: int = 240):
+    t = threading.Thread(target=oem_refresh_loop, args=(interval_minutes,), daemon=True)
+    t.start()
