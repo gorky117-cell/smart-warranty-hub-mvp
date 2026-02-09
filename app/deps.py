@@ -105,30 +105,34 @@ def rbac_dependency(user: UserDB = Depends(require_user)):
     return user
 
 
+def init_db():
     print(f"Initializing database... Dialect: {engine.dialect.name}")
-    Base.metadata.create_all(bind=engine)
-    with SessionLocal() as db:
-        try:
-            from sqlalchemy import text
+    try:
+        Base.metadata.create_all(bind=engine)
+        with SessionLocal() as db:
             if engine.dialect.name == "postgresql":
-                db.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-                db.commit()
-                print("✅ Postgres Vector extension enabled successfully!")
+                try:
+                    from sqlalchemy import text
+                    db.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+                    db.commit()
+                    print("✅ Postgres Vector extension enabled successfully!")
+                except Exception as e:
+                    print(f"Vector extension init failed (ignoring for sqlite): {e}")
             else:
                 print("⚠️  Using SQLite (Vector extension skipped).")
-        except Exception as e:
-            print(f"Vector extension init failed (ignoring for sqlite): {e}")
 
-        admin_user = os.getenv("ADMIN_USER", "admin")
-        admin_pass = os.getenv("ADMIN_PASS", "admin123")
-        existing = db.query(UserDB).filter_by(username=admin_user).first()
-        if not existing:
-            db.add(
-                UserDB(
-                    username=admin_user,
-                    role="admin",
-                    hashed_password=hash_password(admin_pass),
-                    email=None,
+            admin_user = os.getenv("ADMIN_USER", "admin")
+            admin_pass = os.getenv("ADMIN_PASS", "admin123")
+            existing = db.query(UserDB).filter_by(username=admin_user).first()
+            if not existing:
+                db.add(
+                    UserDB(
+                        username=admin_user,
+                        role="admin",
+                        hashed_password=hash_password(admin_pass),
+                        email=None,
+                    )
                 )
-            )
-            db.commit()
+                db.commit()
+    except Exception as exc:
+        print(f"❌ DB Init Failed: {exc}")
