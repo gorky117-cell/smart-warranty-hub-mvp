@@ -105,13 +105,17 @@ def rbac_dependency(user: UserDB = Depends(require_user)):
     return user
 
 
-def init_db():
+    print(f"Initializing database... Dialect: {engine.dialect.name}")
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as db:
         try:
             from sqlalchemy import text
-            db.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-            db.commit()
+            if engine.dialect.name == "postgresql":
+                db.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+                db.commit()
+                print("✅ Postgres Vector extension enabled successfully!")
+            else:
+                print("⚠️  Using SQLite (Vector extension skipped).")
         except Exception as e:
             print(f"Vector extension init failed (ignoring for sqlite): {e}")
 
