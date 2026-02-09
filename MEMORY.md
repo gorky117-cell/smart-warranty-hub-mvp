@@ -20,6 +20,7 @@ Last updated: 2026-02-06
 - Expanded India OEM domain list for appliances/electronics/audio/EV.
 - Added verified OEM domain store and endpoints for manual verification.
 - Added OEM domain auto-verify + auto-suggest (bounded attempts, no endless loops).
+- Auto-verify OEM domains on invoice ingestion (bounded); notifies OEM if unresolved.
 
 ## Environment / Config
 - `TERMS_SCRAPE_ENABLED=1` (default)

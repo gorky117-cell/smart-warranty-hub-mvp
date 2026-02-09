@@ -19,6 +19,8 @@ from ..models import CanonicalWarranty
 from .ocr import extract_text_with_meta
 from .ingestion import extract_product_fields
 from .terms_lookup import lookup_terms
+from .oem_domain_verify import verify_or_suggest
+from .notifications import create_oem_notification
 from .review_crawler import crawl_reviews_for_product
 from .summary_engine import summarize_warranty, build_structured_summary
 
@@ -176,6 +178,30 @@ def run_job(job_id: str) -> None:
                     model_code=warranty.model_code,
                     product_name=warranty.product_name,
                 )
+            # Auto-verify OEM domain on new brand (bounded attempts)
+            if os.getenv("OEM_AUTO_VERIFY", "true").lower() == "true" and warranty.brand:
+                try:
+                    res = verify_or_suggest(
+                        brand=warranty.brand,
+                        domain="",
+                        region=warranty.region_code,
+                    )
+                    if not res.get("verified"):
+                        try:
+                            create_oem_notification(
+                                db,
+                                user_id="oem-1",
+                                ntype="oem_domain_unverified",
+                                title=f"OEM domain unverified: {warranty.brand}",
+                                message=f"Auto-verify failed. Suggestions: {res.get('suggestions')}",
+                                severity="warning",
+                                brand=warranty.brand,
+                                region=warranty.region_code,
+                            )
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
             if terms_result and terms_result.duration_months and not warranty.coverage_months:
                 warranty.coverage_months = terms_result.duration_months
             if warranty.purchase_date and warranty.coverage_months:
