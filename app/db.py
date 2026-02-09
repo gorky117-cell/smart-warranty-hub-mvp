@@ -8,6 +8,9 @@ DB_URL = os.getenv(
     "DATABASE_URL",
     f"sqlite:///{Path(__file__).resolve().parents[1] / 'data' / 'app.db'}",
 )
+if DB_URL and DB_URL.startswith("postgres://"):
+    DB_URL = DB_URL.replace("postgres://", "postgresql://", 1)
+
 connect_args = {"check_same_thread": False} if DB_URL.startswith("sqlite") else {}
 
 
