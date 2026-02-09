@@ -39,6 +39,7 @@ from .services import search_log as search_log_service
 from .services import recommendation as recommendation_service
 from .services import ev_battery as ev_battery_service
 from .services.oem_domains import load_verified_domains, save_verified_domains
+from .services.oem_domain_verify import verify_or_suggest
 from .services.review_crawler import crawl_reviews
 from .services import notifications as notification_service
 from .services import product_recommendations as prod_recs_service
@@ -123,6 +124,7 @@ class ConsentRequest(BaseModel):
 class OemVerifyRequest(BaseModel):
     brand: str
     domain: str
+    region: str | None = None
 
 
 class RiskRequest(BaseModel):
@@ -1426,6 +1428,11 @@ def add_verified_domain(payload: OemVerifyRequest):
     data[brand] = arr
     save_verified_domains(data)
     return {"ok": True, "verified": data.get(brand, [])}
+
+
+@app.post("/oem/domains/verify", dependencies=[Depends(require_oem_or_admin)])
+def verify_domain(payload: OemVerifyRequest):
+    return verify_or_suggest(brand=payload.brand, domain=payload.domain, region=payload.region)
 
 
 @app.post("/predictive/score", dependencies=[Depends(rbac_dependency)])

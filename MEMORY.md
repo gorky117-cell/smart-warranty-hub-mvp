@@ -19,6 +19,7 @@ Last updated: 2026-02-06
 - OEM-specific parsing rules applied during warranty parsing (brand-specific selectors + extended parts).
 - Expanded India OEM domain list for appliances/electronics/audio/EV.
 - Added verified OEM domain store and endpoints for manual verification.
+- Added OEM domain auto-verify + auto-suggest (bounded attempts, no endless loops).
 
 ## Environment / Config
 - `TERMS_SCRAPE_ENABLED=1` (default)
