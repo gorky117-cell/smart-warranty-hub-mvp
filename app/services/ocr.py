@@ -1,11 +1,23 @@
 import os
 import time
-from pathlib import Path
-from typing import Optional, Tuple, Dict, Any
+import io
+import shutil
+import tempfile
+from typing import Optional, Tuple, Dict, Any, List
+
+import requests
+from fastapi import UploadFile
+from PIL import Image
 
 from .connection_registry import registry
 from .audit import log_action
 
+# MORE Lazy imports for heavy libs
+# import numpy as np
+# import cv2
+# from pdf2image import convert_from_path
+
+_paddle_instance = None
 _OCR_ENGINE = os.getenv("OCR_ENGINE", "tesseract").lower()
 _OCR_MIN_TEXT_CHARS = int(os.getenv("OCR_MIN_TEXT_CHARS", "200"))
 _OCR_ENGINE_TTL_SEC = int(os.getenv("OCR_ENGINE_TTL_SEC", "900"))
@@ -64,6 +76,19 @@ def _tesseract_ready() -> Tuple[bool, Optional[str]]:
         return False, f"Tesseract unavailable: {exc}"
 
 
+def convert_pdf_to_images(pdf_path: Path) -> List[Image.Image]:
+    images = []
+    try:
+        from pdf2image import convert_from_path
+        # Poppler must be installed in system for this to work
+        # In docker: apt-get install -y poppler-utils
+        pages = convert_from_path(str(pdf_path), dpi=200)
+        for page in pages:
+            images.append(page)
+    except Exception as e:
+        return [] # Changed from f"[Tesseract Error: {e}]" to [] to match return type
+
+
 def _ocr_tesseract(img: Image.Image) -> str:
     try:
         import pytesseract
@@ -77,6 +102,8 @@ def run_paddle_ocr(image_path: Path) -> Tuple[Optional[str], Optional[str]]:
     engine, err = get_paddle()
     if err:
         return None, err
+    import cv2
+    import numpy as np
     try:
         result = engine.ocr(str(image_path), cls=True)
         lines = []
