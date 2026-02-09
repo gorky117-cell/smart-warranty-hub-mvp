@@ -43,10 +43,9 @@ def get_paddle() -> Tuple[Optional[object], Optional[str]]:
         return _paddle_engine, None
     try:
         from paddleocr import PaddleOCR  # type: ignore
-    except Exception as exc:  # pragma: no cover - optional dependency
-        return None, f"PaddleOCR unavailable: {exc}"
-    try:
-        _paddle_engine = PaddleOCR(use_angle_cls=True, lang="en")
+        # use_angle_cls=True loads lighter model?
+        # lang='en'
+        _paddle_engine = PaddleOCR(use_angle_cls=True, lang="en", show_log=False)
         _paddle_last_used = _now()
         return _paddle_engine, None
     except Exception as exc:  # pragma: no cover - runtime safeguard
@@ -63,6 +62,15 @@ def _tesseract_ready() -> Tuple[bool, Optional[str]]:
         return True, None
     except Exception as exc:
         return False, f"Tesseract unavailable: {exc}"
+
+
+def _ocr_tesseract(img: Image.Image) -> str:
+    try:
+        import pytesseract
+        text = pytesseract.image_to_string(img)
+        return text.strip()
+    except Exception as e:
+        return f"[Tesseract Error: {e}]"
 
 
 def run_paddle_ocr(image_path: Path) -> Tuple[Optional[str], Optional[str]]:
