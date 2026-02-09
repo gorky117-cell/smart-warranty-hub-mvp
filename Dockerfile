@@ -27,4 +27,5 @@ COPY . .
 
 # Start the application
 # Start the application
-CMD ["/bin/sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Use shell form to ensure $PORT expansion works
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
