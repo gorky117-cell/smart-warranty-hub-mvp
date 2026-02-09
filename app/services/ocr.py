@@ -266,9 +266,11 @@ def extract_text(image_path: str) -> Tuple[Optional[str], Optional[str]]:
 def health() -> Tuple[bool, str]:
     engine = _resolve_engine()
     if engine == "paddle":
-        engine_obj, err = get_paddle()
-        if err:
-            return False, err
-        return engine_obj is not None, "PaddleOCR ready" if engine_obj else "PaddleOCR unavailable"
+        # Shallow check: Can we import it? (Not loading model yet)
+        try:
+            import paddleocr
+            return True, "PaddleOCR available (lazy)"
+        except ImportError:
+            return False, "PaddleOCR package missing"
     ok, err = _tesseract_ready()
     return ok, "Tesseract ready" if ok else (err or "Tesseract unavailable")
