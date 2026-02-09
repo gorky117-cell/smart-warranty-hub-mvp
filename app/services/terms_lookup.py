@@ -5,6 +5,8 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional, List
 
+from .models import TermsResult
+
 from sqlalchemy.orm import Session
 
 from ..db_models import WarrantyTermsCacheDB, WarrantyDB
@@ -13,14 +15,7 @@ from .warranty_parser import parse_terms_from_url, ParsedTerms
 from . import regional_policy as regional_policy_service
 
 
-@dataclass
-class TermsResult:
-    duration_months: Optional[int]
-    terms: List[str]
-    exclusions: List[str]
-    claim_steps: List[str]
-    source_url: Optional[str]
-    raw_text: Optional[str]
+
 
 
 DEFAULT_RULES = {

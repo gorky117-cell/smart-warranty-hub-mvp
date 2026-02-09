@@ -106,6 +106,7 @@ class PredictiveScore(AppBaseModel):
     suggested_questions: List[str] = Field(default_factory=list)
 
 
+
 class ReviewItem(AppBaseModel):
     id: str
     action: str  # e.g., oem_fetch, device_actuation, claim_submit
@@ -114,3 +115,12 @@ class ReviewItem(AppBaseModel):
     reason: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     resolved_at: Optional[datetime] = None
+
+
+class TermsResult(AppBaseModel):
+    duration_months: Optional[int] = None
+    terms: List[str] = Field(default_factory=list)
+    exclusions: List[str] = Field(default_factory=list)
+    claim_steps: List[str] = Field(default_factory=list)
+    source_url: Optional[str] = None
+    raw_text: Optional[str] = None

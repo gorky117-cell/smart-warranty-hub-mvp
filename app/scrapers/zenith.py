@@ -6,6 +6,8 @@ from typing import Optional
 import requests
 from bs4 import BeautifulSoup
 
+from ..models import TermsResult
+
 def fetch_terms(*, brand: Optional[str], model_code: Optional[str], category: Optional[str], region: Optional[str]) -> Optional[dict]:
     url = "https://example.org"
     try:
