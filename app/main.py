@@ -38,6 +38,7 @@ from .services import peer_review as peer_review_service
 from .services import search_log as search_log_service
 from .services import recommendation as recommendation_service
 from .services import ev_battery as ev_battery_service
+from .services.oem_domains import load_verified_domains, save_verified_domains
 from .services.review_crawler import crawl_reviews
 from .services import notifications as notification_service
 from .services import product_recommendations as prod_recs_service
@@ -117,6 +118,11 @@ class BehaviourEventRequest(BaseModel):
 class ConsentRequest(BaseModel):
     user_id: str
     consent_analytics: bool
+
+
+class OemVerifyRequest(BaseModel):
+    brand: str
+    domain: str
 
 
 class RiskRequest(BaseModel):
@@ -1400,6 +1406,26 @@ def update_consent(payload: ConsentRequest, current=Depends(require_user)):
         db.add(user)
         db.commit()
     return {"ok": True, "user_id": payload.user_id, "consent_analytics": payload.consent_analytics}
+
+
+@app.get("/oem/domains/verified", dependencies=[Depends(require_oem_or_admin)])
+def list_verified_domains():
+    return {"ok": True, "verified": load_verified_domains()}
+
+
+@app.post("/oem/domains/verified", dependencies=[Depends(require_oem_or_admin)])
+def add_verified_domain(payload: OemVerifyRequest):
+    data = load_verified_domains()
+    brand = payload.brand.strip()
+    domain = payload.domain.strip().lower()
+    if not brand or not domain:
+        raise HTTPException(status_code=400, detail="missing_brand_or_domain")
+    arr = data.get(brand, [])
+    if domain not in arr:
+        arr.append(domain)
+    data[brand] = arr
+    save_verified_domains(data)
+    return {"ok": True, "verified": data.get(brand, [])}
 
 
 @app.post("/predictive/score", dependencies=[Depends(rbac_dependency)])

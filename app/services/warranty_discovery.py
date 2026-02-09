@@ -22,7 +22,7 @@ class DiscoverySource:
 
 
 _DEFAULT_DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "warranty_sources.json"
-_OEM_DOMAIN_PATH = Path(__file__).resolve().parents[2] / "data" / "oem_domains.json"
+from .oem_domains import load_oem_domains, load_verified_domains
 
 _TYPE_SCORES = {
     "oem_warranty": 90,
@@ -79,13 +79,11 @@ def _load_sources(path: Path) -> List[Dict]:
         return []
 
 
-def _load_oem_domains() -> Dict[str, List[str]]:
-    if not _OEM_DOMAIN_PATH.exists():
-        return {}
-    try:
-        return json.loads(_OEM_DOMAIN_PATH.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
+def _verified_match(brand: Optional[str], host: str, verified: Dict[str, List[str]]) -> bool:
+    if not brand or not host:
+        return False
+    doms = verified.get(brand, [])
+    return any(host.endswith(d.lower()) for d in doms)
 
 
 def _normalize(val: Optional[str]) -> str:
@@ -124,7 +122,8 @@ def discover_sources(
 
     path = data_path or _DEFAULT_DATA_PATH
     raw = _load_sources(path)
-    oem_domains = _load_oem_domains()
+    oem_domains = load_oem_domains()
+    verified_domains = load_verified_domains()
     results: List[DiscoverySource] = []
     for entry in raw:
         entry_brand = _normalize(entry.get("brand"))
@@ -136,6 +135,7 @@ def discover_sources(
         host = _host(url)
         official_domains = oem_domains.get(entry.get("brand") or "", [])
         official = any(host.endswith(d) for d in official_domains) if official_domains else bool(entry.get("official", False))
+        verified = _verified_match(entry.get("brand") or "", host, verified_domains)
         if _OFFICIAL_ONLY and not official:
             continue
         if region and entry.get("region") and _normalize(entry.get("region")) != _normalize(region):
@@ -143,6 +143,7 @@ def discover_sources(
         base = _TYPE_SCORES.get(entry.get("source_type") or "", 30)
         score = base + _match_score(entry, brand, model_code, product_name) + _region_score(region, url)
         score += 12 if official else 0
+        score += 15 if verified else 0
         results.append(
             DiscoverySource(
                 url=url,
@@ -182,10 +183,11 @@ def discover_sources(
                 host = _host(url)
                 official_domains = oem_domains.get(brand or "", [])
                 official = any(host.endswith(d) for d in official_domains) if official_domains else (_normalize(brand) in host if brand else False)
+                verified = _verified_match(brand, host, verified_domains)
                 if _OFFICIAL_ONLY and not official:
                     continue
                 base = _TYPE_SCORES.get(source_type, 30)
-                score = base + (10 if official else 0) + _region_score(region, url)
+                score = base + (10 if official else 0) + (15 if verified else 0) + _region_score(region, url)
                 results.append(
                     DiscoverySource(
                         url=url,

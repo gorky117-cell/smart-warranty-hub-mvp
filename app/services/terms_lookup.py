@@ -68,7 +68,14 @@ def _default_terms(duration_months: int) -> TermsResult:
         "Share model/serial details with support.",
         "Provide photos or logs to speed up verification.",
     ]
-    return TermsResult(duration_months, terms, exclusions, claim_steps, None, None)
+    return TermsResult(
+        duration_months=duration_months,
+        terms=terms,
+        exclusions=exclusions,
+        claim_steps=claim_steps,
+        source_url=None,
+        raw_text=None,
+    )
 
 
 def _cache_is_fresh(item: WarrantyTermsCacheDB, max_age_days: int = 30) -> bool:
@@ -77,12 +84,12 @@ def _cache_is_fresh(item: WarrantyTermsCacheDB, max_age_days: int = 30) -> bool:
 
 def _to_terms_result(parsed: ParsedTerms, source_url: Optional[str]) -> TermsResult:
     return TermsResult(
-        parsed.duration_months,
-        parsed.terms or [],
-        parsed.exclusions or [],
-        parsed.claim_steps or [],
-        source_url,
-        parsed.raw_text,
+        duration_months=parsed.duration_months,
+        terms=parsed.terms or [],
+        exclusions=parsed.exclusions or [],
+        claim_steps=parsed.claim_steps or [],
+        source_url=source_url,
+        raw_text=parsed.raw_text,
     )
 
 
@@ -137,12 +144,12 @@ def lookup_terms(
             rec = q.order_by(WarrantyDB.created_at.desc()).first()
             if rec and (rec.terms or rec.exclusions or rec.claim_steps or rec.coverage_months):
                 result = TermsResult(
-                    rec.coverage_months,
-                    rec.terms or [],
-                    rec.exclusions or [],
-                    rec.claim_steps or [],
-                    None,
-                    None,
+                    duration_months=rec.coverage_months,
+                    terms=rec.terms or [],
+                    exclusions=rec.exclusions or [],
+                    claim_steps=rec.claim_steps or [],
+                    source_url=None,
+                    raw_text=None,
                 )
                 return _apply_region_policy(
                     db,
@@ -164,12 +171,12 @@ def lookup_terms(
         cached = cache_q.order_by(WarrantyTermsCacheDB.fetched_at.desc()).first()
         if cached and _cache_is_fresh(cached):
             result = TermsResult(
-                cached.duration_months,
-                cached.terms or [],
-                cached.exclusions or [],
-                cached.claim_steps or [],
-                cached.source_url,
-                cached.raw_text,
+                duration_months=cached.duration_months,
+                terms=cached.terms or [],
+                exclusions=cached.exclusions or [],
+                claim_steps=cached.claim_steps or [],
+                source_url=cached.source_url,
+                raw_text=cached.raw_text,
             )
             return _apply_region_policy(
                 db,

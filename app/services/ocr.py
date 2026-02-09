@@ -4,6 +4,7 @@ import io
 import shutil
 import tempfile
 from typing import Optional, Tuple, Dict, Any, List
+from pathlib import Path
 
 import requests
 from fastapi import UploadFile
@@ -87,6 +88,7 @@ def convert_pdf_to_images(pdf_path: Path) -> List[Image.Image]:
             images.append(page)
     except Exception as e:
         return [] # Changed from f"[Tesseract Error: {e}]" to [] to match return type
+    return images
 
 
 def _ocr_tesseract(img: Image.Image) -> str:
