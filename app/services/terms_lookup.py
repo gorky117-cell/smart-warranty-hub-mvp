@@ -5,7 +5,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional, List
 
-from .models import TermsResult
+from ..models import TermsResult
 
 from sqlalchemy.orm import Session
 
