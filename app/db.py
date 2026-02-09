@@ -4,14 +4,19 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-DB_URL = os.getenv(
     "DATABASE_URL",
     f"sqlite:///{Path(__file__).resolve().parents[1] / 'data' / 'app.db'}",
 )
 if DB_URL and DB_URL.startswith("postgres://"):
     DB_URL = DB_URL.replace("postgres://", "postgresql://", 1)
 
-connect_args = {"check_same_thread": False} if DB_URL.startswith("sqlite") else {}
+if DB_URL.startswith("sqlite"):
+    # Ensure data directory exists
+    db_path = DB_URL.replace("sqlite:///", "")
+    Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+    connect_args = {"check_same_thread": False}
+else:
+    connect_args = {}
 
 
 class Base(DeclarativeBase):
