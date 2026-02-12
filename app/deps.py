@@ -100,7 +100,6 @@ def require_oem_or_admin(user: UserDB = Depends(get_current_user)):
     return user
 
 
-# Backward-compatible alias
 def rbac_dependency(user: UserDB = Depends(require_user)):
     return user
 
@@ -113,13 +112,14 @@ def init_db():
             if engine.dialect.name == "postgresql":
                 try:
                     from sqlalchemy import text
+
                     db.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
                     db.commit()
-                    print("✅ Postgres Vector extension enabled successfully!")
-                except Exception as e:
-                    print(f"Vector extension init failed (ignoring for sqlite): {e}")
+                    print("Postgres vector extension enabled.")
+                except Exception as exc:
+                    print(f"Vector extension init failed: {exc}")
             else:
-                print("⚠️  Using SQLite (Vector extension skipped).")
+                print("Using SQLite (vector extension skipped).")
 
             admin_user = os.getenv("ADMIN_USER", "admin")
             admin_pass = os.getenv("ADMIN_PASS", "admin123")
@@ -135,4 +135,4 @@ def init_db():
                 )
                 db.commit()
     except Exception as exc:
-        print(f"❌ DB Init Failed: {exc}")
+        print(f"DB init failed: {exc}")
