@@ -21,6 +21,10 @@ Last updated: 2026-02-06
 - Added verified OEM domain store and endpoints for manual verification.
 - Added OEM domain auto-verify + auto-suggest (bounded attempts, no endless loops).
 - Auto-verify OEM domains on invoice ingestion (bounded); notifies OEM if unresolved.
+- Added exhaustive India domain catalog with verification artifacts:
+  - `data/domain_catalog_exhaustive_verified.json`
+  - `data/domain_catalog_exhaustive_verify_report.json`
+  - `data/google_cse_seed_domains_top50_verified.txt`
 
 ## Environment / Config
 - `TERMS_SCRAPE_ENABLED=1` (default)

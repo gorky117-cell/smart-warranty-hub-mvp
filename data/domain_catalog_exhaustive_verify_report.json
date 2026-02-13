@@ -1,0 +1,978 @@
+[
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "samsung.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "apple.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "mi.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "xiaomi.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "oneplus.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "realme.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "vivo.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "oppo.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "motorola.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "nokia.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "google.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "store.google.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "asus.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "nothing.tech",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "iqoo.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "infinixmobility.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "tecnomobile.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "honor.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_phones_tablets",
+    "domain": "huawei.com",
+    "dns_ok": true,
+    "https_ok": false,
+    "status_code": null,
+    "error": "https:SSLError"
+  },
+  {
+    "category": "mobile_accessories_audio",
+    "domain": "boat-lifestyle.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_accessories_audio",
+    "domain": "noise.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_accessories_audio",
+    "domain": "ambraneindia.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_accessories_audio",
+    "domain": "belkin.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_accessories_audio",
+    "domain": "anker.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_accessories_audio",
+    "domain": "jbl.com",
+    "dns_ok": true,
+    "https_ok": false,
+    "status_code": null,
+    "error": "https:SSLError"
+  },
+  {
+    "category": "mobile_accessories_audio",
+    "domain": "bose.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_accessories_audio",
+    "domain": "sennheiser.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_accessories_audio",
+    "domain": "marshall.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_accessories_audio",
+    "domain": "harmankardon.com",
+    "dns_ok": true,
+    "https_ok": false,
+    "status_code": null,
+    "error": "https:SSLError"
+  },
+  {
+    "category": "mobile_accessories_audio",
+    "domain": "skullcandy.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_accessories_audio",
+    "domain": "zebronics.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_accessories_audio",
+    "domain": "portronics.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_accessories_audio",
+    "domain": "ptron.in",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "mobile_accessories_audio",
+    "domain": "boultaudio.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "tv_home_theater_displays",
+    "domain": "sony.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "tv_home_theater_displays",
+    "domain": "lg.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "tv_home_theater_displays",
+    "domain": "samsung.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "tv_home_theater_displays",
+    "domain": "tcl.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "tv_home_theater_displays",
+    "domain": "hisense.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "tv_home_theater_displays",
+    "domain": "panasonic.com",
+    "dns_ok": true,
+    "https_ok": false,
+    "status_code": null,
+    "error": "https:ReadTimeout"
+  },
+  {
+    "category": "tv_home_theater_displays",
+    "domain": "philips.com",
+    "dns_ok": true,
+    "https_ok": false,
+    "status_code": null,
+    "error": "https:ConnectTimeout"
+  },
+  {
+    "category": "tv_home_theater_displays",
+    "domain": "haier.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "tv_home_theater_displays",
+    "domain": "onida.com",
+    "dns_ok": true,
+    "https_ok": false,
+    "status_code": null,
+    "error": "https:SSLError"
+  },
+  {
+    "category": "laptops_pc_peripherals",
+    "domain": "hp.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "laptops_pc_peripherals",
+    "domain": "dell.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 403,
+    "error": null
+  },
+  {
+    "category": "laptops_pc_peripherals",
+    "domain": "lenovo.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "laptops_pc_peripherals",
+    "domain": "acer.com",
+    "dns_ok": true,
+    "https_ok": false,
+    "status_code": null,
+    "error": "https:ReadTimeout"
+  },
+  {
+    "category": "laptops_pc_peripherals",
+    "domain": "asus.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "laptops_pc_peripherals",
+    "domain": "msi.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 403,
+    "error": null
+  },
+  {
+    "category": "laptops_pc_peripherals",
+    "domain": "microsoft.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "home_appliances_kitchen",
+    "domain": "whirlpool.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 403,
+    "error": null
+  },
+  {
+    "category": "home_appliances_kitchen",
+    "domain": "godrej.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "home_appliances_kitchen",
+    "domain": "bosch.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "home_appliances_kitchen",
+    "domain": "ifbappliances.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "home_appliances_kitchen",
+    "domain": "philips.com",
+    "dns_ok": true,
+    "https_ok": false,
+    "status_code": null,
+    "error": "https:ConnectTimeout"
+  },
+  {
+    "category": "home_appliances_kitchen",
+    "domain": "prestige.in",
+    "dns_ok": true,
+    "https_ok": false,
+    "status_code": null,
+    "error": "https:SSLError"
+  },
+  {
+    "category": "home_appliances_kitchen",
+    "domain": "preethi.in",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "home_appliances_kitchen",
+    "domain": "wonderchef.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "home_appliances_kitchen",
+    "domain": "inalsaappliances.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "home_appliances_kitchen",
+    "domain": "butterflyindia.com",
+    "dns_ok": true,
+    "https_ok": false,
+    "status_code": null,
+    "error": "https:SSLError"
+  },
+  {
+    "category": "home_appliances_kitchen",
+    "domain": "pigeon.in",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "home_appliances_kitchen",
+    "domain": "borosil.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "home_appliances_kitchen",
+    "domain": "glengroup.co.in",
+    "dns_ok": false,
+    "https_ok": false,
+    "status_code": null,
+    "error": "dns:gaierror"
+  },
+  {
+    "category": "home_appliances_kitchen",
+    "domain": "morphyrichards.co.in",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "home_appliances_kitchen",
+    "domain": "kent.co.in",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "daikinindia.com",
+    "dns_ok": true,
+    "https_ok": false,
+    "status_code": null,
+    "error": "https:SSLError"
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "mylloyd.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "lloydindia.in",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "voltas.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "bluestarindia.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "carrierindia.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "hitachiaircon.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "symphonylimited.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "eurekaforbes.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "aosmithindia.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "racold.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "havells.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "crompton.co.in",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "vguard.in",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "ushainternational.com",
+    "dns_ok": true,
+    "https_ok": false,
+    "status_code": null,
+    "error": "https:ReadTimeout"
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "orientelectric.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "hindware.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "jaquar.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "climate_water_cleaning",
+    "domain": "cera-india.com",
+    "dns_ok": true,
+    "https_ok": false,
+    "status_code": null,
+    "error": "https:SSLError"
+  },
+  {
+    "category": "wearables_watches_glasses",
+    "domain": "garmin.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "wearables_watches_glasses",
+    "domain": "fitbit.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "wearables_watches_glasses",
+    "domain": "amazfit.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "wearables_watches_glasses",
+    "domain": "fastrack.in",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 403,
+    "error": null
+  },
+  {
+    "category": "wearables_watches_glasses",
+    "domain": "titan.co.in",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 403,
+    "error": null
+  },
+  {
+    "category": "wearables_watches_glasses",
+    "domain": "fossil.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 403,
+    "error": null
+  },
+  {
+    "category": "wearables_watches_glasses",
+    "domain": "casio.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "wearables_watches_glasses",
+    "domain": "ray-ban.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 403,
+    "error": null
+  },
+  {
+    "category": "ev_auto_batteries",
+    "domain": "olaelectric.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "ev_auto_batteries",
+    "domain": "atherenergy.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 403,
+    "error": null
+  },
+  {
+    "category": "ev_auto_batteries",
+    "domain": "tvsmotor.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "ev_auto_batteries",
+    "domain": "bajajauto.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "ev_auto_batteries",
+    "domain": "heromotocorp.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "ev_auto_batteries",
+    "domain": "tatamotors.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "ev_auto_batteries",
+    "domain": "mahindra.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "ev_auto_batteries",
+    "domain": "mgmotor.co.in",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "ev_auto_batteries",
+    "domain": "hyundai.co.in",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "ev_auto_batteries",
+    "domain": "kia.co.in",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "ev_auto_batteries",
+    "domain": "marutisuzuki.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "ev_auto_batteries",
+    "domain": "byd.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "ev_auto_batteries",
+    "domain": "toyotabharat.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "ev_auto_batteries",
+    "domain": "hondacarindia.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "ev_auto_batteries",
+    "domain": "exideindustries.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "ev_auto_batteries",
+    "domain": "amaron.in",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "retail_review_forums_india",
+    "domain": "amazon.in",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 202,
+    "error": null
+  },
+  {
+    "category": "retail_review_forums_india",
+    "domain": "flipkart.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "retail_review_forums_india",
+    "domain": "croma.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 403,
+    "error": null
+  },
+  {
+    "category": "retail_review_forums_india",
+    "domain": "reliancedigital.in",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "retail_review_forums_india",
+    "domain": "vijaysales.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "retail_review_forums_india",
+    "domain": "tatacliq.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "retail_review_forums_india",
+    "domain": "jiomart.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 403,
+    "error": null
+  },
+  {
+    "category": "retail_review_forums_india",
+    "domain": "snapdeal.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "retail_review_forums_india",
+    "domain": "91mobiles.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "retail_review_forums_india",
+    "domain": "gadgets360.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 403,
+    "error": null
+  },
+  {
+    "category": "retail_review_forums_india",
+    "domain": "gsmarena.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "retail_review_forums_india",
+    "domain": "reddit.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "retail_review_forums_india",
+    "domain": "mouthshut.com",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  },
+  {
+    "category": "retail_review_forums_india",
+    "domain": "consumercomplaints.in",
+    "dns_ok": true,
+    "https_ok": true,
+    "status_code": 200,
+    "error": null
+  }
+]
