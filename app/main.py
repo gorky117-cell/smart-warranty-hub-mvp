@@ -356,7 +356,20 @@ async def cache_dashboard(request: Request, call_next):
 
 
 @app.get("/")
-def health():
+def root(request: Request):
+    """
+    Browser users should land on the UI.
+    API/CLI callers can still use the JSON health at /api/health (or /health/full).
+    """
+    accept = (request.headers.get("accept") or "").lower()
+    if "text/html" in accept or "*/*" in accept:
+        # Public, no-auth UI page suitable for demos.
+        return RedirectResponse(url="/ui/simple-upload", status_code=302)
+    return {"status": "ok"}
+
+
+@app.get("/api/health")
+def api_health():
     return {"status": "ok", "warranties": len(store.warranties), "connectors": len(registry.list())}
 
 
