@@ -358,13 +358,15 @@ async def cache_dashboard(request: Request, call_next):
 @app.get("/")
 def root(request: Request):
     """
-    Browser users should land on the UI.
+    Browser users should land on the primary refined UI.
     API/CLI callers can still use the JSON health at /api/health (or /health/full).
     """
     accept = (request.headers.get("accept") or "").lower()
     if "text/html" in accept or "*/*" in accept:
-        # Public, no-auth UI page suitable for demos.
-        return RedirectResponse(url="/ui/simple-upload", status_code=302)
+        # Prefer built frontend if available, otherwise use refined template dashboard.
+        if dist_path.exists():
+            return RedirectResponse(url="/dashboard", status_code=302)
+        return RedirectResponse(url="/ui/neo-dashboard", status_code=302)
     return {"status": "ok"}
 
 
