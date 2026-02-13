@@ -5,7 +5,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, Dict
 import os
+import socket
 from urllib.parse import urlparse
+
+import requests
 
 from .web_search import search_web
 
@@ -34,6 +37,10 @@ _SEARCH_MAX_QUERIES = int(os.getenv("TERMS_SEARCH_MAX_QUERIES", "2"))
 _SEARCH_MAX_RESULTS = int(os.getenv("TERMS_SEARCH_MAX_RESULTS", "5"))
 _SEARCH_TIMEOUT = int(os.getenv("TERMS_SEARCH_TIMEOUT_SEC", "6"))
 _OFFICIAL_ONLY = os.getenv("TERMS_OFFICIAL_ONLY", "false").strip().lower() in ("1", "true", "yes")
+_PREFLIGHT_STRICT = os.getenv("TERMS_PREFLIGHT_STRICT", "true").strip().lower() in ("1", "true", "yes")
+_ALLOW_BROAD_FALLBACK = os.getenv("TERMS_ALLOW_BROAD_FALLBACK", "false").strip().lower() in ("1", "true", "yes")
+_PREFLIGHT_MAX_DOMAINS = int(os.getenv("TERMS_PREFLIGHT_MAX_DOMAINS", "4"))
+_PREFLIGHT_TIMEOUT = int(os.getenv("TERMS_PREFLIGHT_TIMEOUT_SEC", "4"))
 
 
 def _host(url: str) -> str:
@@ -55,6 +62,60 @@ def _region_score(region: Optional[str], url: str) -> int:
     if country and host.endswith(f".{country}"):
         score += 6
     return score
+
+
+def _domains_for_brand(domain_map: Dict[str, List[str]], brand: Optional[str]) -> List[str]:
+    if not brand:
+        return []
+    b = _normalize(brand)
+    for k, values in domain_map.items():
+        if _normalize(k) == b:
+            out: List[str] = []
+            for d in values or []:
+                val = _normalize(d)
+                if val and val not in out:
+                    out.append(val)
+            return out
+    return []
+
+
+def _host_matches_any(host: str, domains: List[str]) -> bool:
+    if not host:
+        return False
+    h = _normalize(host)
+    for d in domains:
+        dom = _normalize(d)
+        if not dom:
+            continue
+        if h == dom or h.endswith(f".{dom}"):
+            return True
+    return False
+
+
+def _domain_alive(domain: str, timeout: int) -> bool:
+    host = _normalize(domain)
+    if not host:
+        return False
+    try:
+        socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
+    except OSError:
+        return False
+
+    headers = {"User-Agent": "SmartWarrantyHub/1.0"}
+    try:
+        resp = requests.get(f"https://{host}", timeout=timeout, headers=headers, allow_redirects=True)
+        if resp.status_code < 500:
+            return True
+    except requests.exceptions.RequestException:
+        pass
+
+    try:
+        resp = requests.get(f"http://{host}", timeout=timeout, headers=headers, allow_redirects=True)
+        if resp.status_code < 500:
+            return True
+    except requests.exceptions.RequestException:
+        pass
+    return False
 
 
 def _classify_url(url: str) -> str:
@@ -82,12 +143,28 @@ def _load_sources(path: Path) -> List[Dict]:
 def _verified_match(brand: Optional[str], host: str, verified: Dict[str, List[str]]) -> bool:
     if not brand or not host:
         return False
-    doms = verified.get(brand, [])
-    return any(host.endswith(d.lower()) for d in doms)
+    doms = _domains_for_brand(verified, brand)
+    return _host_matches_any(host, doms)
 
 
 def _normalize(val: Optional[str]) -> str:
     return (val or "").strip().lower()
+
+
+def _preflight_domains(brand: Optional[str], oem_domains: Dict[str, List[str]], verified_domains: Dict[str, List[str]]) -> List[str]:
+    verified = _domains_for_brand(verified_domains, brand)
+    official = _domains_for_brand(oem_domains, brand)
+    candidates: List[str] = []
+    for d in verified + official:
+        if d and d not in candidates:
+            candidates.append(d)
+    if not candidates:
+        return []
+    alive: List[str] = []
+    for d in candidates[: max(0, _PREFLIGHT_MAX_DOMAINS)]:
+        if _domain_alive(d, timeout=_PREFLIGHT_TIMEOUT):
+            alive.append(d)
+    return alive
 
 
 def _match_score(entry: Dict, brand: str, model_code: Optional[str], product_name: Optional[str]) -> int:
@@ -124,6 +201,8 @@ def discover_sources(
     raw = _load_sources(path)
     oem_domains = load_oem_domains()
     verified_domains = load_verified_domains()
+    official_for_brand = _domains_for_brand(oem_domains, brand)
+    preflight_alive_domains = _preflight_domains(brand, oem_domains, verified_domains)
     results: List[DiscoverySource] = []
     for entry in raw:
         entry_brand = _normalize(entry.get("brand"))
@@ -133,8 +212,8 @@ def discover_sources(
             continue
         url = str(entry.get("url") or "")
         host = _host(url)
-        official_domains = oem_domains.get(entry.get("brand") or "", [])
-        official = any(host.endswith(d) for d in official_domains) if official_domains else bool(entry.get("official", False))
+        entry_official_domains = _domains_for_brand(oem_domains, entry.get("brand") or "")
+        official = _host_matches_any(host, entry_official_domains) if entry_official_domains else bool(entry.get("official", False))
         verified = _verified_match(entry.get("brand") or "", host, verified_domains)
         if _OFFICIAL_ONLY and not official:
             continue
@@ -171,8 +250,9 @@ def discover_sources(
     queries = queries[: max(_SEARCH_MAX_QUERIES, 0)]
 
     if queries:
-        for q in queries:
-            items = search_web(q, count=_SEARCH_MAX_RESULTS, timeout=_SEARCH_TIMEOUT)
+        def _append_search_items(search_query: str) -> int:
+            added = 0
+            items = search_web(search_query, count=_SEARCH_MAX_RESULTS, timeout=_SEARCH_TIMEOUT)
             for item in items:
                 url = item.get("url") or ""
                 if not url:
@@ -181,8 +261,7 @@ def discover_sources(
                 if not allow_retail and source_type == "retail":
                     continue
                 host = _host(url)
-                official_domains = oem_domains.get(brand or "", [])
-                official = any(host.endswith(d) for d in official_domains) if official_domains else (_normalize(brand) in host if brand else False)
+                official = _host_matches_any(host, official_for_brand) if official_for_brand else (_normalize(brand) in host if brand else False)
                 verified = _verified_match(brand, host, verified_domains)
                 if _OFFICIAL_ONLY and not official:
                     continue
@@ -200,6 +279,20 @@ def discover_sources(
                         region=region,
                     )
                 )
+                added += 1
+            return added
+
+        site_query_hits = 0
+        if preflight_alive_domains:
+            for q in queries:
+                for domain in preflight_alive_domains:
+                    site_query_hits += _append_search_items(f"site:{domain} {q}")
+
+        # If strict mode is on and no preflight domain is alive, skip paid search calls entirely.
+        should_run_broad = not _PREFLIGHT_STRICT and (not preflight_alive_domains or (_ALLOW_BROAD_FALLBACK and site_query_hits == 0))
+        if should_run_broad:
+            for q in queries:
+                _append_search_items(q)
 
     results = [r for r in results if r.url]
     results.sort(key=lambda x: x.score, reverse=True)

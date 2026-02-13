@@ -61,6 +61,10 @@ Last updated: 2026-02-06
 - `REVIEW_CRAWL_ON_UPLOAD=true` (real-time per invoice)
 - `REVIEW_ON_UPLOAD_MAX_PAGES=5`
 - `TERMS_OFFICIAL_ONLY=true` (only allow OEM domain matches)
+- `TERMS_PREFLIGHT_STRICT=true` (skip search providers if no alive verified/OEM domain)
+- `TERMS_PREFLIGHT_MAX_DOMAINS=4`
+- `TERMS_PREFLIGHT_TIMEOUT_SEC=4`
+- `TERMS_ALLOW_BROAD_FALLBACK=false` (allow non-site queries only when needed)
 - `DATA_GOVERNANCE_CLEANUP_MINUTES=1440`
 - `REVIEW_RETENTION_DAYS`, `REVIEW_PAGE_RETENTION_DAYS`, `TELEMETRY_RETENTION_DAYS`, `SEARCH_LOG_RETENTION_DAYS`
 - `REVIEW_FETCH_RETRIES` (default 2)
@@ -125,6 +129,11 @@ Last updated: 2026-02-06
   - `PyMuPDF==1.23.8`
 - Helper:
   - `scripts/set_brave_env.ps1`
+- Added strict search preflight:
+  - verified/OEM domain DNS+HTTPS preflight before paid provider calls
+  - verified-domain-first `site:` search queries
+  - broad fallback only if enabled
+  - tests in `tests/test_warranty_discovery.py`
 
 ## Operational Notes
 - For live web discovery, set `BRAVE_SEARCH_KEY`.
