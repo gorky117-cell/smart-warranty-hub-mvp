@@ -48,6 +48,7 @@ from .services import oem_issue_signals as oem_issue_service
 from .services import oem_question_service
 from .services import ollama_questions
 from .services import oem_recommendation_service
+from .services import oem_communication as oem_communication_service
 from .services import invoice_pipeline
 from .services import summary_engine
 from .services import terms_lookup
@@ -212,6 +213,21 @@ class OemIssueSignalRequest(BaseModel):
     severity: float | None = None
     count: int | None = None
     source_url: str | None = None
+
+
+class OemCommunicationSendRequest(BaseModel):
+    recipient_user_id: str
+    kind: str = "important_update"  # important_update | product_recommendation
+    title: str
+    message: str
+    warranty_id: str | None = None
+    brand: str | None = None
+    model_code: str | None = None
+    product_type: str | None = None
+    region: str | None = None
+    channel: str = "in_app"
+    send_if_ineligible: bool = False
+    metadata: dict | None = None
 
 
 class SignupRequest(BaseModel):
@@ -1614,6 +1630,49 @@ def mark_oem_notification_as_read(
     if not n:
         raise HTTPException(status_code=404, detail="OEM notification not found")
     return {"status": "ok"}
+
+
+@app.post("/oem/communications/send", dependencies=[Depends(require_oem_or_admin)])
+def oem_send_communication(
+    payload: OemCommunicationSendRequest,
+    db=Depends(get_db),
+    current=Depends(require_oem_or_admin),
+):
+    result = oem_communication_service.send_oem_message(
+        db,
+        sender_user_id=current.username,
+        sender_role=current.role,
+        recipient_user_id=payload.recipient_user_id,
+        kind=payload.kind,
+        title=payload.title,
+        message=payload.message,
+        channel=payload.channel,
+        warranty_id=payload.warranty_id,
+        brand=payload.brand,
+        model_code=payload.model_code,
+        product_type=payload.product_type,
+        region=payload.region,
+        send_if_ineligible=payload.send_if_ineligible,
+        metadata=payload.metadata,
+    )
+    return result
+
+
+@app.get("/oem/communications/traces", dependencies=[Depends(require_oem_or_admin)])
+def oem_list_communication_traces(
+    recipient_user_id: str | None = None,
+    warranty_id: str | None = None,
+    decision: str | None = None,
+    limit: int = 100,
+    db=Depends(get_db),
+):
+    return oem_communication_service.list_traces(
+        db,
+        recipient_user_id=recipient_user_id,
+        warranty_id=warranty_id,
+        decision=decision,
+        limit=limit,
+    )
 
 
 @app.post("/region-rules", dependencies=[Depends(require_admin)])

@@ -259,6 +259,30 @@ class NotificationDB(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
 
+class OemCommunicationTraceDB(Base):
+    __tablename__ = "oem_communication_traces"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    sender_user_id: Mapped[str] = mapped_column(String, index=True)
+    sender_role: Mapped[str] = mapped_column(String, index=True)
+    recipient_user_id: Mapped[str] = mapped_column(String, index=True)
+    warranty_id: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    kind: Mapped[str] = mapped_column(String, index=True)  # important_update | product_recommendation
+    channel: Mapped[str] = mapped_column(String, default="in_app", index=True)
+    title: Mapped[str] = mapped_column(String)
+    message: Mapped[str] = mapped_column(Text)
+    brand: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    model_code: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    product_type: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    region: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    reason_code: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    reason_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    decision: Mapped[str] = mapped_column(String, index=True)  # sent | blocked
+    blocked_reason: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    trace_json = Column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
 class PipelineJobDB(Base):
     __tablename__ = "pipeline_jobs"
 

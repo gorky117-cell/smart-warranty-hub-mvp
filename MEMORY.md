@@ -65,6 +65,14 @@ Last updated: 2026-02-06
 - `TERMS_PREFLIGHT_MAX_DOMAINS=4`
 - `TERMS_PREFLIGHT_TIMEOUT_SEC=4`
 - `TERMS_ALLOW_BROAD_FALLBACK=false` (allow non-site queries only when needed)
+- OEM subtle contact guardrails:
+  - `OEM_CONTACT_MIN_DAYS=180`
+  - `OEM_CONTACT_MAX_PER_WINDOW=1`
+  - `OEM_CONTACT_REQUIRE_IMPORTANCE=true`
+  - `OEM_CONTACT_ALLOW_MARKETING=false`
+  - `OEM_IMPORTANCE_ISSUE_LOOKBACK_DAYS=90`
+  - `OEM_IMPORTANCE_SYMPTOM_LOOKBACK_DAYS=30`
+  - `OEM_IMPORTANCE_EXPIRY_DAYS=45`
 - `DATA_GOVERNANCE_CLEANUP_MINUTES=1440`
 - `REVIEW_RETENTION_DAYS`, `REVIEW_PAGE_RETENTION_DAYS`, `TELEMETRY_RETENTION_DAYS`, `SEARCH_LOG_RETENTION_DAYS`
 - `REVIEW_FETCH_RETRIES` (default 2)
@@ -134,6 +142,11 @@ Last updated: 2026-02-06
   - verified-domain-first `site:` search queries
   - broad fallback only if enabled
   - tests in `tests/test_warranty_discovery.py`
+- Added OEM communication trace + subtle outreach controls:
+  - new table `OemCommunicationTraceDB`
+  - API: `POST /oem/communications/send`
+  - API: `GET /oem/communications/traces`
+  - enforced 6-month throttle + importance/match checks before user outreach
 
 ## Operational Notes
 - For live web discovery, set `BRAVE_SEARCH_KEY`.
