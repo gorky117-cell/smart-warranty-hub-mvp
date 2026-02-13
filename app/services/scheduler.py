@@ -114,5 +114,8 @@ def oem_refresh_loop(interval_minutes: int = 60):
 
 
 def start_scheduler(interval_minutes: int = 240):
+    if os.getenv("SCHEDULER_ENABLED", "true").strip().lower() not in ("1", "true", "yes"):
+        log_action("scheduler_disabled", "SCHEDULER_ENABLED=false")
+        return
     t = threading.Thread(target=oem_refresh_loop, args=(interval_minutes,), daemon=True)
     t.start()
