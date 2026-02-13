@@ -1,5 +1,4 @@
 samsung.com
-apple.com
 mi.com
 xiaomi.com
 oneplus.com
@@ -48,3 +47,4 @@ heromotocorp.com
 amazon.in
 flipkart.com
 croma.com
+motorola.com
