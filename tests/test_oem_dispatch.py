@@ -47,6 +47,7 @@ def test_weekly_dispatch_sends_important_update_when_issue_exists(tmp_path, monk
             "enabled": True,
             "allowed_kinds": ["important_update"],
             "send_product_recommendations": False,
+            "min_eligible_for_send": 1,
             "max_targets_per_run": 50,
             "min_issue_count": 1,
             "min_issue_severity": 0.4,
@@ -104,6 +105,7 @@ def test_weekly_dispatch_dry_run_does_not_send(tmp_path, monkeypatch):
             "enabled": True,
             "allowed_kinds": ["important_update"],
             "send_product_recommendations": False,
+            "min_eligible_for_send": 1,
         }
     )
 
@@ -140,3 +142,40 @@ def test_weekly_dispatch_dry_run_does_not_send(tmp_path, monkeypatch):
         stats = oem_dispatch.run_weekly_dispatch(db, dry_run=True)
         assert stats["ok"] is True
         assert stats["sent"] == 0
+
+
+def test_monthly_dispatch_skips_when_not_enough_signal_and_notifies_oem(tmp_path, monkeypatch):
+    monkeypatch.setenv("OEM_DISPATCH_POLICY_FILE", str(tmp_path / "oem_dispatch_policy.json"))
+    oem_dispatch.set_dispatch_policy(
+        {
+            "enabled": True,
+            "allowed_kinds": ["important_update"],
+            "send_product_recommendations": False,
+            "min_eligible_for_send": 2,
+            "min_issue_count": 999,
+            "notify_oem_when_no_signal": True,
+            "sender_user_id": "oem_sender_4",
+        }
+    )
+
+    with SessionLocal() as db:
+        _ensure_user(db, "oem_sender_4", "oem")
+        _ensure_user(db, "weekly_user_4", "user")
+        _ensure_warranty(db, "w_week_4", "BrandX", "ModelX", "IN")
+        db.add(
+            BehaviourProfile(
+                user_id="weekly_user_4",
+                warranty_id="w_week_4",
+                product_type="tv",
+                behaviour_score=0.8,
+                care_score=0.8,
+                responsiveness_score=0.8,
+                last_updated_at=datetime.utcnow(),
+            )
+        )
+        db.commit()
+
+        stats = oem_dispatch.run_weekly_dispatch(db, dry_run=False)
+        assert stats["ok"] is True
+        assert stats["decision"] == "insufficient_signal"
+        assert int(stats.get("oem_notified", 0)) >= 1

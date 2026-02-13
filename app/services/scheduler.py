@@ -21,14 +21,17 @@ def oem_refresh_loop(interval_minutes: int = 60):
     last_risk_refresh = datetime.datetime.min
     last_review_crawl = datetime.datetime.min
     last_cleanup = datetime.datetime.min
+    last_oem_analysis = datetime.datetime.min
     last_oem_dispatch = datetime.datetime.min
     issue_interval = int(os.getenv("OEM_ISSUE_FEED_REFRESH_MINUTES", "180"))
     risk_interval = int(os.getenv("RISK_REFRESH_MINUTES", "120"))
     review_interval = int(os.getenv("REVIEW_CRAWL_MINUTES", "1440"))
     review_enabled = os.getenv("REVIEW_CRAWL_ENABLED", "true").lower() == "true"
     cleanup_interval = int(os.getenv("DATA_GOVERNANCE_CLEANUP_MINUTES", "1440"))
+    oem_analysis_enabled = os.getenv("OEM_ANALYSIS_ENABLED", "true").lower() == "true"
+    oem_analysis_interval = int(os.getenv("OEM_ANALYSIS_MINUTES", "10080"))  # weekly analysis
     oem_dispatch_enabled = os.getenv("OEM_AUTO_DISPATCH_ENABLED", "true").lower() == "true"
-    oem_dispatch_interval = int(os.getenv("OEM_AUTO_DISPATCH_MINUTES", "10080"))  # weekly default
+    oem_dispatch_interval = int(os.getenv("OEM_AUTO_DISPATCH_MINUTES", "43200"))  # monthly default
     while True:
         try:
             with SessionLocal() as db:
@@ -91,12 +94,19 @@ def oem_refresh_loop(interval_minutes: int = 60):
                     stats = cleanup_retention(db)
                     log_action("governance_cleanup", f"{stats}")
                     last_cleanup = now
+                if oem_analysis_enabled and oem_analysis_interval > 0 and (now - last_oem_analysis).total_seconds() >= oem_analysis_interval * 60:
+                    try:
+                        stats = run_weekly_dispatch(db, dry_run=True)
+                        log_action("oem_weekly_analysis", f"{stats}")
+                    except Exception as exc:
+                        log_action("oem_weekly_analysis_fail", str(exc))
+                    last_oem_analysis = now
                 if oem_dispatch_enabled and oem_dispatch_interval > 0 and (now - last_oem_dispatch).total_seconds() >= oem_dispatch_interval * 60:
                     try:
                         stats = run_weekly_dispatch(db, dry_run=False)
-                        log_action("oem_auto_dispatch", f"{stats}")
+                        log_action("oem_monthly_dispatch", f"{stats}")
                     except Exception as exc:
-                        log_action("oem_auto_dispatch_fail", str(exc))
+                        log_action("oem_monthly_dispatch_fail", str(exc))
                     last_oem_dispatch = now
         except Exception as exc:
             log_action("scheduler_error", str(exc))

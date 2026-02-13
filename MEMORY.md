@@ -75,7 +75,9 @@ Last updated: 2026-02-06
   - `OEM_IMPORTANCE_EXPIRY_DAYS=45`
 - Weekly OEM auto-dispatch:
   - `OEM_AUTO_DISPATCH_ENABLED=true`
-  - `OEM_AUTO_DISPATCH_MINUTES=10080` (weekly)
+  - `OEM_AUTO_DISPATCH_MINUTES=43200` (monthly default)
+  - `OEM_ANALYSIS_ENABLED=true`
+  - `OEM_ANALYSIS_MINUTES=10080` (weekly analysis)
   - Policy file: `OEM_DISPATCH_POLICY_FILE` (default `data/oem_dispatch_policy.json`)
 - `DATA_GOVERNANCE_CLEANUP_MINUTES=1440`
 - `REVIEW_RETENTION_DAYS`, `REVIEW_PAGE_RETENTION_DAYS`, `TELEMETRY_RETENTION_DAYS`, `SEARCH_LOG_RETENTION_DAYS`
@@ -152,6 +154,10 @@ Last updated: 2026-02-06
   - API: `GET /oem/communications/traces`
   - enforced 6-month throttle + importance/match checks before user outreach
 - Added weekly OEM auto-dispatch with admin controls:
+- Updated to weekly analysis + monthly dispatch:
+  - weekly dry-run analysis logs (`oem_weekly_analysis`)
+  - monthly dispatch run (`oem_monthly_dispatch`)
+  - if insufficient signal, skip user sends and notify OEM "analysis not yet conclusive"
   - service: `app/services/oem_dispatch.py`
   - scheduler integration in `app/services/scheduler.py`
   - APIs:

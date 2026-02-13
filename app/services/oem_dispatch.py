@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from ..db_models import (
@@ -14,8 +13,10 @@ from ..db_models import (
     OemIssueSignalDB,
     SymptomSearch,
     TelemetryEventDB,
+    UserDB,
     WarrantyDB,
 )
+from .notifications import create_oem_notification
 from .oem_communication import send_oem_message
 
 
@@ -30,11 +31,14 @@ def _default_policy() -> Dict:
         "allowed_kinds": ["important_update", "product_recommendation"],
         "send_product_recommendations": True,
         "max_targets_per_run": 250,
+        "min_eligible_for_send": 2,
         "min_issue_count": 1,
         "min_issue_severity": 0.5,
         "issue_lookback_days": 90,
         "include_regions": [],
         "exclude_regions": [],
+        "notify_oem_when_no_signal": True,
+        "notify_oem_summary": True,
         "sender_user_id": "oem-system",
         "sender_role": "oem",
     }
@@ -126,6 +130,38 @@ def _issue_strength(
     return total_count, avg_severity
 
 
+def _oem_recipients(db: Session, sender_user_id: str) -> List[str]:
+    rows = db.query(UserDB.username).filter(UserDB.role == "oem").all()
+    recipients = [str(r[0]) for r in rows if r and r[0]]
+    if not recipients and sender_user_id:
+        recipients.append(sender_user_id)
+    # unique, preserve order
+    out: List[str] = []
+    for x in recipients:
+        if x not in out:
+            out.append(x)
+    return out
+
+
+def _notify_oems(db: Session, sender_user_id: str, title: str, message: str, severity: str = "info") -> int:
+    count = 0
+    for user_id in _oem_recipients(db, sender_user_id):
+        try:
+            created = create_oem_notification(
+                db=db,
+                user_id=user_id,
+                ntype="oem_dispatch_summary",
+                title=title,
+                message=message,
+                severity=severity,
+            )
+            if created:
+                count += 1
+        except Exception:
+            pass
+    return count
+
+
 def run_weekly_dispatch(db: Session, *, dry_run: bool = False) -> Dict:
     policy = get_dispatch_policy()
     if not bool(policy.get("enabled", True)):
@@ -133,6 +169,7 @@ def run_weekly_dispatch(db: Session, *, dry_run: bool = False) -> Dict:
 
     allowed_kinds = {str(x).strip() for x in (policy.get("allowed_kinds") or []) if str(x).strip()}
     max_targets = int(policy.get("max_targets_per_run", 250) or 250)
+    min_eligible_for_send = int(policy.get("min_eligible_for_send", 2) or 2)
     min_issue_count = int(policy.get("min_issue_count", 1) or 1)
     min_issue_sev = float(policy.get("min_issue_severity", 0.5) or 0.5)
     issue_lookback_days = int(policy.get("issue_lookback_days", 90) or 90)
@@ -142,10 +179,8 @@ def run_weekly_dispatch(db: Session, *, dry_run: bool = False) -> Dict:
     sender_role = str(policy.get("sender_role") or "oem")
 
     pairs = _recipient_pairs(db)[: max(1, max_targets)]
-    sent = 0
-    blocked = 0
-    eligible = 0
     inspected = 0
+    candidate_actions: List[Dict[str, str]] = []
 
     for user_id, warranty_id in pairs:
         inspected += 1
@@ -168,67 +203,116 @@ def run_weekly_dispatch(db: Session, *, dry_run: bool = False) -> Dict:
 
         # 1) Important update dispatch based on OEM issue strength.
         if "important_update" in allowed_kinds and issue_count >= min_issue_count and issue_sev >= min_issue_sev:
-            eligible += 1
-            title = "Important product update"
-            msg = (
-                "We detected an important reliability update for your registered product. "
-                "Please review care and service guidance in your dashboard."
+            candidate_actions.append(
+                {
+                    "recipient_user_id": user_id,
+                    "warranty_id": warranty_id,
+                    "brand": brand or "",
+                    "model_code": model_code or "",
+                    "region": region or "",
+                    "kind": "important_update",
+                    "title": "Important product update",
+                    "message": (
+                        "We detected an important reliability update for your registered product. "
+                        "Please review care and service guidance in your dashboard."
+                    ),
+                    "issue_count": str(issue_count),
+                    "issue_avg_severity": str(issue_sev),
+                }
             )
-            if dry_run:
-                continue
-            res = send_oem_message(
-                db,
-                sender_user_id=sender_user_id,
-                sender_role=sender_role,
-                recipient_user_id=user_id,
-                kind="important_update",
-                title=title,
-                message=msg,
-                warranty_id=warranty_id,
-                brand=brand,
-                model_code=model_code,
-                region=region,
-                metadata={
-                    "dispatch_mode": "weekly_auto",
-                    "issue_count": issue_count,
-                    "issue_avg_severity": issue_sev,
-                },
-            )
-            if res.get("decision") == "sent":
-                sent += 1
-                continue
-            blocked += 1
+            continue
 
         # 2) Product recommendation dispatch (only if enabled by policy).
         if "product_recommendation" in allowed_kinds and bool(policy.get("send_product_recommendations", True)):
-            eligible += 1
-            title = "Helpful recommendation for your product"
-            msg = (
-                "Based on your usage pattern and recent reliability signals, we found a relevant recommendation "
-                "that may reduce failure risk."
+            candidate_actions.append(
+                {
+                    "recipient_user_id": user_id,
+                    "warranty_id": warranty_id,
+                    "brand": brand or "",
+                    "model_code": model_code or "",
+                    "region": region or "",
+                    "kind": "product_recommendation",
+                    "title": "Helpful recommendation for your product",
+                    "message": (
+                        "Based on your usage pattern and recent reliability signals, we found a relevant recommendation "
+                        "that may reduce failure risk."
+                    ),
+                }
             )
-            if dry_run:
-                continue
-            res = send_oem_message(
+
+    eligible = len(candidate_actions)
+    if dry_run:
+        return {
+            "ok": True,
+            "enabled": True,
+            "targets": inspected,
+            "eligible": eligible,
+            "sent": 0,
+            "blocked": 0,
+            "decision": "dry_run",
+            "policy": policy,
+        }
+
+    if eligible < max(1, min_eligible_for_send):
+        notified = 0
+        if bool(policy.get("notify_oem_when_no_signal", True)):
+            notified = _notify_oems(
                 db,
                 sender_user_id=sender_user_id,
-                sender_role=sender_role,
-                recipient_user_id=user_id,
-                kind="product_recommendation",
-                title=title,
-                message=msg,
-                warranty_id=warranty_id,
-                brand=brand,
-                model_code=model_code,
-                region=region,
-                metadata={
-                    "dispatch_mode": "weekly_auto",
-                },
+                title="Monthly analysis not yet conclusive",
+                message=(
+                    "No strong product/user signal pattern was found this cycle. "
+                    "System will continue weekly analysis and re-evaluate next month."
+                ),
+                severity="info",
             )
-            if res.get("decision") == "sent":
-                sent += 1
-            else:
-                blocked += 1
+        return {
+            "ok": True,
+            "enabled": True,
+            "targets": inspected,
+            "eligible": eligible,
+            "sent": 0,
+            "blocked": 0,
+            "decision": "insufficient_signal",
+            "oem_notified": notified,
+            "policy": policy,
+        }
+
+    sent = 0
+    blocked = 0
+    for action in candidate_actions:
+        res = send_oem_message(
+            db,
+            sender_user_id=sender_user_id,
+            sender_role=sender_role,
+            recipient_user_id=action["recipient_user_id"],
+            kind=action["kind"],
+            title=action["title"],
+            message=action["message"],
+            warranty_id=action["warranty_id"],
+            brand=action["brand"] or None,
+            model_code=action["model_code"] or None,
+            region=action["region"] or None,
+            metadata={
+                "dispatch_mode": "monthly_auto",
+                "issue_count": action.get("issue_count"),
+                "issue_avg_severity": action.get("issue_avg_severity"),
+            },
+        )
+        if res.get("decision") == "sent":
+            sent += 1
+        else:
+            blocked += 1
+
+    oem_notified = 0
+    if bool(policy.get("notify_oem_summary", True)):
+        oem_notified = _notify_oems(
+            db,
+            sender_user_id=sender_user_id,
+            title="Monthly dispatch summary",
+            message=f"Dispatch complete. Eligible={eligible}, Sent={sent}, Blocked={blocked}.",
+            severity="info",
+        )
 
     return {
         "ok": True,
@@ -237,5 +321,7 @@ def run_weekly_dispatch(db: Session, *, dry_run: bool = False) -> Dict:
         "eligible": eligible,
         "sent": sent,
         "blocked": blocked,
+        "decision": "completed",
+        "oem_notified": oem_notified,
         "policy": policy,
     }
