@@ -20,7 +20,16 @@ coverage.xml
 *.log
 .pytest_cache/
 app.db
+# Keep most runtime data out of image, but include required seed/model files.
 data/
+!data/predictive_model.pkl
+!data/connectors.json
+!data/oem_domains.json
+!data/oem_verified.json
+!data/oem_issue_feeds.json
+!data/review_sources.json
+!data/review_seed_products.json
+!data/warranty_sources.json
 test_data/
 logs/
 tmp/
