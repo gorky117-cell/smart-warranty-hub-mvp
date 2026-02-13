@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel as PydanticBaseModel
+from sqlalchemy.exc import ProgrammingError, OperationalError
 
 
 class BaseModel(PydanticBaseModel):
@@ -777,14 +778,48 @@ def oem_recommendations_preview(product_type: str | None = None, brand: str | No
             "recommendation_message": "",
             "error": "server_error",
         }
+def _ensure_users_table_and_admin(db) -> None:
+    """Safety fallback for partially initialized production DBs."""
+    try:
+        UserDB.__table__.create(bind=db.get_bind(), checkfirst=True)
+    except Exception:
+        return
+    try:
+        admin_user = os.getenv("ADMIN_USER", "admin")
+        admin_pass = os.getenv("ADMIN_PASS", "admin123")
+        existing = db.query(UserDB).filter_by(username=admin_user).first()
+        if not existing:
+            db.add(
+                UserDB(
+                    username=admin_user,
+                    role="admin",
+                    hashed_password=hash_password(admin_pass),
+                    email=None,
+                )
+            )
+            db.commit()
+    except Exception:
+        db.rollback()
+
+
 @app.post("/auth/signup")
 def signup(payload: SignupRequest, db=Depends(get_db), current=Depends(get_current_user_optional)):
     if payload.role not in ("user", "oem", "admin"):
         raise HTTPException(status_code=400, detail="Role must be user, oem, or admin")
-    existing = db.query(UserDB).filter_by(username=payload.username).first()
+    try:
+        existing = db.query(UserDB).filter_by(username=payload.username).first()
+    except (ProgrammingError, OperationalError):
+        db.rollback()
+        _ensure_users_table_and_admin(db)
+        existing = db.query(UserDB).filter_by(username=payload.username).first()
     if existing:
         raise HTTPException(status_code=400, detail="User already exists")
-    user_count = db.query(UserDB).count()
+    try:
+        user_count = db.query(UserDB).count()
+    except (ProgrammingError, OperationalError):
+        db.rollback()
+        _ensure_users_table_and_admin(db)
+        user_count = db.query(UserDB).count()
     if user_count > 0 and (not current or current.role != "admin"):
         raise HTTPException(status_code=403, detail="Only admin can create users")
     if payload.role == "admin" and (not current or current.role != "admin") and user_count > 0:
@@ -809,7 +844,12 @@ def login(
     db=Depends(get_db),
     next_url: str | None = Form(None),
 ):
-    user = db.query(UserDB).filter_by(username=username).first()
+    try:
+        user = db.query(UserDB).filter_by(username=username).first()
+    except (ProgrammingError, OperationalError):
+        db.rollback()
+        _ensure_users_table_and_admin(db)
+        user = db.query(UserDB).filter_by(username=username).first()
     if not user or not verify_password(password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_access_token(user.username, user.role)
