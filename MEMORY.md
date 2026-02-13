@@ -2,7 +2,7 @@
 
 Purpose: keep a running, human‑readable record of changes, decisions, and integrations so future updates don’t overwrite or duplicate work. Review this file before making new changes.
 
-Last updated: 2026-02-06
+Last updated: 2026-02-13
 
 ## Key Integrations (Current State)
 - OCR + ingestion + warranty parsing is integrated.
@@ -25,6 +25,11 @@ Last updated: 2026-02-06
   - `data/domain_catalog_exhaustive_verified.json`
   - `data/domain_catalog_exhaustive_verify_report.json`
   - `data/google_cse_seed_domains_top50_verified.txt`
+- Railway production is live with green health checks:
+  - `/health/full` => `status=ok`
+  - `/health/ocr` => `ok=true`
+  - `/health/llm` => `ok=true`
+  - predictive model load confirmed in production.
 
 ## Environment / Config
 - `TERMS_SCRAPE_ENABLED=1` (default)
@@ -93,6 +98,8 @@ Last updated: 2026-02-06
 - `MISTRAL_MODEL` (default `mistral-small-latest`)
 - `MISTRAL_EMBED_MODEL` (default `mistral-embed`)
 - `RAG_ENABLED=1`
+- `SCHEDULER_ENABLED=true|false` (new kill switch for low-memory deploys)
+- `PGVECTOR_DDL_ENABLED=true|false` (controls pgvector column DDL usage)
 
 ## Changes & Additions
 - Added warranty discovery + parsing:
@@ -164,6 +171,17 @@ Last updated: 2026-02-06
     - `GET /admin/oem-dispatch/policy`
     - `POST /admin/oem-dispatch/policy`
     - `POST /admin/oem-dispatch/run`
+- Deployment hardening fixes:
+  - Added scheduler kill switch in `app/services/scheduler.py`.
+  - Docker packaging fixed to include required runtime files from `data/`:
+    - `predictive_model.pkl`
+    - OEM/search seed JSON files used at runtime.
+  - Predictive model regenerated for runtime compatibility.
+  - Audit logging hardened so missing `audit_logs` table does not break scheduler/background jobs.
+  - Postgres init order fixed: create `vector` extension before `create_all`.
+  - Pgvector DDL made opt-in via `PGVECTOR_DDL_ENABLED`.
+  - Auth fallback added for missing `users` table (auto-create + seed admin on auth access).
+  - `GET /auth/login` now redirects to `/login` to avoid user confusion.
 
 ## Operational Notes
 - For live web discovery, set `BRAVE_SEARCH_KEY`.
