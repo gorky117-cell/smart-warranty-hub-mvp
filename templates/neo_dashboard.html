@@ -36,7 +36,7 @@
     }
 
     header {
-      padding: 18px 12px;
+      padding: 12px 10px;
       text-align: center;
       background: linear-gradient(180deg, #ffffff, #f6f8fb);
       border-bottom: 1px solid var(--border);
@@ -44,20 +44,20 @@
 
     h1 {
       margin: 0;
-      font-size: 22px;
+      font-size: 18px;
       font-weight: 800;
       letter-spacing: 0.2px;
       flex: 1;
-      text-align: center;
+      text-align: left;
     }
 
     header .top-bar {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 12px;
+      justify-content: space-between;
+      gap: 10px;
       width: 100%;
-      padding: 0 12px;
+      padding: 0 2px;
       box-sizing: border-box;
     }
 
@@ -106,7 +106,7 @@
       position: absolute;
       top: 44px;
       right: 0;
-      width: 260px;
+      width: min(92vw, 320px);
       background: #fff;
       border: 1px solid var(--border);
       border-radius: 12px;
@@ -141,15 +141,14 @@
 
     .toast {
       position: fixed;
-      bottom: 18px;
-      right: 18px;
+      bottom: 12px;
+      right: 12px;
       background: #0f172a;
       color: #fff;
       padding: 14px 16px;
       border-radius: 12px;
       box-shadow: 0 14px 38px rgba(0, 0, 0, 0.2);
-      min-width: 240px;
-      max-width: 320px;
+      width: min(92vw, 340px);
       z-index: 30;
       opacity: 0;
       transform: translateY(10px);
@@ -164,10 +163,10 @@
     .container {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 20px 16px 44px;
+      padding: 12px 10px 36px;
       display: flex;
       flex-direction: column;
-      gap: 26px;
+      gap: 16px;
       width: 100%;
     }
 
@@ -184,13 +183,13 @@
     .card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 22px 20px 22px 20px;
+      border-radius: 14px;
+      padding: 14px;
       box-shadow: var(--shadow);
     }
 
     .card-title {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 800;
       margin-bottom: 8px;
     }
@@ -208,7 +207,7 @@
     }
 
     .hero {
-      padding: 26px;
+      padding: 14px;
     }
 
     label {
@@ -376,6 +375,35 @@
     }
 
     @media (min-width: 769px) {
+      header {
+        padding: 18px 12px;
+      }
+
+      h1 {
+        font-size: 22px;
+        text-align: center;
+      }
+
+      header .top-bar {
+        justify-content: center;
+        gap: 12px;
+        padding: 0 12px;
+      }
+
+      .container {
+        padding: 20px 16px 44px;
+        gap: 26px;
+      }
+
+      .card {
+        border-radius: 16px;
+        padding: 22px 20px 22px 20px;
+      }
+
+      .hero {
+        padding: 26px;
+      }
+
       .sticky-bar {
         display: none;
       }
