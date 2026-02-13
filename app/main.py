@@ -49,6 +49,7 @@ from .services import oem_question_service
 from .services import ollama_questions
 from .services import oem_recommendation_service
 from .services import oem_communication as oem_communication_service
+from .services import oem_dispatch as oem_dispatch_service
 from .services import invoice_pipeline
 from .services import summary_engine
 from .services import terms_lookup
@@ -228,6 +229,10 @@ class OemCommunicationSendRequest(BaseModel):
     channel: str = "in_app"
     send_if_ineligible: bool = False
     metadata: dict | None = None
+
+
+class OemDispatchRunRequest(BaseModel):
+    dry_run: bool = True
 
 
 class SignupRequest(BaseModel):
@@ -1673,6 +1678,21 @@ def oem_list_communication_traces(
         decision=decision,
         limit=limit,
     )
+
+
+@app.get("/admin/oem-dispatch/policy", dependencies=[Depends(require_admin)])
+def admin_get_oem_dispatch_policy():
+    return oem_dispatch_service.get_dispatch_policy()
+
+
+@app.post("/admin/oem-dispatch/policy", dependencies=[Depends(require_admin)])
+def admin_set_oem_dispatch_policy(payload: Dict = Body(...)):
+    return oem_dispatch_service.set_dispatch_policy(payload or {})
+
+
+@app.post("/admin/oem-dispatch/run", dependencies=[Depends(require_admin)])
+def admin_run_oem_dispatch(payload: OemDispatchRunRequest, db=Depends(get_db)):
+    return oem_dispatch_service.run_weekly_dispatch(db, dry_run=bool(payload.dry_run))
 
 
 @app.post("/region-rules", dependencies=[Depends(require_admin)])
