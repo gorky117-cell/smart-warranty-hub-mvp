@@ -418,6 +418,26 @@ def _require_consent(user_id: str) -> None:
             raise HTTPException(status_code=403, detail="User consent required")
 
 
+def _demo_public_ui_enabled() -> bool:
+    return os.getenv("DEMO_PUBLIC_UI", "0").strip().lower() in ("1", "true", "yes")
+
+
+def _ensure_ui_user(current: Optional[UserDB]) -> None:
+    if _demo_public_ui_enabled():
+        return
+    if not current:
+        raise HTTPException(status_code=401, detail="Missing token")
+
+
+def _ensure_ui_oem_or_admin(current: Optional[UserDB]) -> None:
+    if _demo_public_ui_enabled():
+        return
+    if not current:
+        raise HTTPException(status_code=401, detail="Missing token")
+    if current.role not in ("admin", "oem"):
+        raise HTTPException(status_code=403, detail="OEM/admin only")
+
+
 @app.get("/behaviour/next-question", dependencies=[Depends(require_user)])
 def behaviour_next_question(
     user_id: str,
@@ -1294,8 +1314,14 @@ def capture_artifact(
     return {"artifact": artifact, "warranty_id": warranty.id, "saved_path": str(dest), "job_id": job.id}
 
 
-@app.get("/ui/warranty/{warranty_id}", dependencies=[Depends(require_user)])
-def warranty_ui(request: Request, warranty_id: str, user_id: str):
+@app.get("/ui/warranty/{warranty_id}")
+def warranty_ui(
+    request: Request,
+    warranty_id: str,
+    user_id: str,
+    current: Optional[UserDB] = Depends(get_current_user_optional),
+):
+    _ensure_ui_user(current)
     warranty = store.warranties.get(warranty_id)
     if not warranty:
         raise HTTPException(status_code=404, detail="Warranty not found")
@@ -1333,8 +1359,9 @@ def scheduler_status():
         }
 
 
-@app.get("/ui/scheduler", dependencies=[Depends(require_user)])
-def scheduler_ui(request: Request):
+@app.get("/ui/scheduler")
+def scheduler_ui(request: Request, current: Optional[UserDB] = Depends(get_current_user_optional)):
+    _ensure_ui_user(current)
     with SessionLocal() as db:
         queue = db.query(OEMFetchDB).all()
     return templates.TemplateResponse(
@@ -1347,22 +1374,25 @@ def scheduler_ui(request: Request):
     )
 
 
-@app.get("/ui/react-dashboard", dependencies=[Depends(require_user)])
-def react_dashboard():
+@app.get("/ui/react-dashboard")
+def react_dashboard(current: Optional[UserDB] = Depends(get_current_user_optional)):
+    _ensure_ui_user(current)
     from fastapi.responses import HTMLResponse
     html_path = Path(__file__).resolve().parents[1] / "templates" / "react_dashboard.html"
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
 
 
-@app.get("/ui/console", dependencies=[Depends(require_user)])
-def console_ui():
+@app.get("/ui/console")
+def console_ui(current: Optional[UserDB] = Depends(get_current_user_optional)):
+    _ensure_ui_user(current)
     from fastapi.responses import HTMLResponse
     html_path = Path(__file__).resolve().parents[1] / "templates" / "console.html"
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
 
 
-@app.get("/ui/neo-dashboard", dependencies=[Depends(require_user)])
-def neo_dashboard():
+@app.get("/ui/neo-dashboard")
+def neo_dashboard(current: Optional[UserDB] = Depends(get_current_user_optional)):
+    _ensure_ui_user(current)
     from fastapi.responses import HTMLResponse
     html_path = Path(__file__).resolve().parents[1] / "templates" / "neo_dashboard.html"
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
@@ -1385,8 +1415,9 @@ def warranty_tabs_ui():
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
 
 
-@app.get("/ui/oem-dashboard", dependencies=[Depends(require_oem_or_admin)])
-def oem_dashboard():
+@app.get("/ui/oem-dashboard")
+def oem_dashboard(current: Optional[UserDB] = Depends(get_current_user_optional)):
+    _ensure_ui_oem_or_admin(current)
     from fastapi.responses import HTMLResponse
 
     html_path = Path(__file__).resolve().parents[1] / "templates" / "oem_dashboard.html"
