@@ -28,6 +28,7 @@ data/app.db
 data/*.db-journal
 data/demo_output.json
 data/search_quota.json
+data/google_cse_seed_domains_verify_report.txt
 data/uploads/
 cookies.txt
 data/*.jsonl
