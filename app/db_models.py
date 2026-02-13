@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+import os
 
 from sqlalchemy import Column, DateTime, Float, Integer, String, Text, UniqueConstraint, ForeignKey, JSON
 from sqlalchemy.dialects.sqlite import JSON as SqliteJSON
@@ -387,6 +388,8 @@ try:
 except Exception:
     Vector = None  # type: ignore
 
+_PGVECTOR_DDL_ENABLED = os.getenv("PGVECTOR_DDL_ENABLED", "0").strip().lower() in ("1", "true", "yes")
+
 
 class DocumentEmbeddingDB(Base):
     __tablename__ = "document_embeddings"
@@ -396,8 +399,8 @@ class DocumentEmbeddingDB(Base):
     doc_id: Mapped[str] = mapped_column(String, index=True)
     content = Column(Text)
     meta_json = Column(JSON)
-    # Store embedding as pgvector if available; fallback to JSON/Text if not.
-    if Vector:
+    # Use pgvector column only when explicitly enabled; fallback to text otherwise.
+    if Vector and _PGVECTOR_DDL_ENABLED:
         embedding = Column(Vector(1536))
     else:
         embedding = Column(Text)

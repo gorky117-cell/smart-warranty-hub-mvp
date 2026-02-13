@@ -106,21 +106,28 @@ def rbac_dependency(user: UserDB = Depends(require_user)):
 
 def init_db():
     print(f"Initializing database... Dialect: {engine.dialect.name}")
+    # Install Postgres extension first so later table creation does not fail on vector type.
+    if engine.dialect.name == "postgresql":
+        try:
+            from sqlalchemy import text
+
+            with SessionLocal() as db:
+                db.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+                db.commit()
+            print("Postgres vector extension enabled.")
+        except Exception as exc:
+            print(f"Vector extension init failed: {exc}")
+    else:
+        print("Using SQLite (vector extension skipped).")
+
     try:
         Base.metadata.create_all(bind=engine)
+    except Exception as exc:
+        print(f"DB create_all failed: {exc}")
+        return
+
+    try:
         with SessionLocal() as db:
-            if engine.dialect.name == "postgresql":
-                try:
-                    from sqlalchemy import text
-
-                    db.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-                    db.commit()
-                    print("Postgres vector extension enabled.")
-                except Exception as exc:
-                    print(f"Vector extension init failed: {exc}")
-            else:
-                print("Using SQLite (vector extension skipped).")
-
             admin_user = os.getenv("ADMIN_USER", "admin")
             admin_pass = os.getenv("ADMIN_PASS", "admin123")
             existing = db.query(UserDB).filter_by(username=admin_user).first()
@@ -135,4 +142,4 @@ def init_db():
                 )
                 db.commit()
     except Exception as exc:
-        print(f"DB init failed: {exc}")
+        print(f"DB seed failed: {exc}")
