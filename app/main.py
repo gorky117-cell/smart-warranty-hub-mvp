@@ -1399,14 +1399,6 @@ def neo_dashboard(current: Optional[UserDB] = Depends(get_current_user_optional)
 
 
 
-@app.get("/ui/simple-upload")
-def simple_upload_ui():
-    """Simple warranty upload page with expiry sorting and alerts."""
-    from fastapi.responses import HTMLResponse
-    html_path = Path(__file__).resolve().parents[1] / "templates" / "simple_upload.html"
-    return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
-
-
 @app.get("/ui/warranty-tabs")
 def warranty_tabs_ui():
     """Multi-invoice tabbed dashboard with Details/Predictive/OEM/Nudges tabs."""
