@@ -881,6 +881,11 @@ def login(
     return resp
 
 
+@app.get("/auth/login")
+def login_redirect():
+    return RedirectResponse(url="/login", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
+
 @app.post("/auth/logout")
 def logout(response: Response):
     response.delete_cookie("access_token", path="/")
