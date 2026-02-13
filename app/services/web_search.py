@@ -21,6 +21,18 @@ def _get_with_retry(url: str, *, headers=None, params=None, timeout: int = 6, re
     return None
 
 
+def _post_with_retry(url: str, *, headers=None, json_body=None, timeout: int = 6, retries: int = 2):
+    last = None
+    for _ in range(max(retries, 1)):
+        try:
+            return requests.post(url, headers=headers, json=json_body, timeout=timeout)
+        except requests.exceptions.RequestException as exc:
+            last = exc
+    if last:
+        raise last
+    return None
+
+
 def _bing_endpoint() -> str:
     return os.getenv("BING_SEARCH_ENDPOINT", "https://api.bing.microsoft.com/v7.0/search")
 
@@ -29,6 +41,9 @@ def _brave_endpoint() -> str:
 
 def _google_endpoint() -> str:
     return os.getenv("GOOGLE_CSE_ENDPOINT", "https://www.googleapis.com/customsearch/v1")
+
+def _serper_endpoint() -> str:
+    return os.getenv("SERPER_ENDPOINT", "https://google.serper.dev/search")
 
 def _serpapi_endpoint() -> str:
     return os.getenv("SERPAPI_ENDPOINT", "https://serpapi.com/search.json")
@@ -54,9 +69,37 @@ def _save_quota(data: dict) -> None:
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
+def _env_int(name: str, default: int) -> int:
+    val = os.getenv(name)
+    if val is None or str(val).strip() == "":
+        return default
+    try:
+        return int(str(val).strip())
+    except Exception:
+        return default
+
+
+def _provider_configured(provider: str) -> bool:
+    provider = (provider or "").strip().lower()
+    if provider == "brave":
+        return bool(os.getenv("BRAVE_SEARCH_KEY"))
+    if provider == "serper":
+        return bool(os.getenv("SERPER_API_KEY") or os.getenv("SERPER_KEY"))
+    if provider == "serpapi":
+        return bool(os.getenv("SERPAPI_KEY"))
+    if provider == "google":
+        return bool(os.getenv("GOOGLE_CSE_API_KEY") and os.getenv("GOOGLE_CSE_CX"))
+    if provider == "bing":
+        return bool(os.getenv("BING_SEARCH_KEY"))
+    return False
+
+
 def _quota_allow(provider: str) -> bool:
-    daily_limit = int(os.getenv("SEARCH_DAILY_LIMIT", "0"))
-    monthly_limit = int(os.getenv("SEARCH_MONTHLY_LIMIT", "0"))
+    provider = (provider or "").strip().lower()
+    daily_limit_global = _env_int("SEARCH_DAILY_LIMIT", 0)
+    monthly_limit_global = _env_int("SEARCH_MONTHLY_LIMIT", 0)
+    daily_limit = _env_int(f"SEARCH_DAILY_LIMIT_{provider.upper()}", daily_limit_global)
+    monthly_limit = _env_int(f"SEARCH_MONTHLY_LIMIT_{provider.upper()}", monthly_limit_global)
     if daily_limit <= 0 and monthly_limit <= 0:
         return True
     now = datetime.utcnow()
@@ -140,6 +183,38 @@ def brave_search(query: str, count: int = 5, timeout: int = 6) -> List[Dict]:
     return normalized
 
 
+def serper_search(query: str, count: int = 5, timeout: int = 6) -> List[Dict]:
+    """
+    Run Serper search query.
+    Requires SERPER_API_KEY (or SERPER_KEY) env var.
+    """
+    key = os.getenv("SERPER_API_KEY") or os.getenv("SERPER_KEY")
+    if not key:
+        return []
+    try:
+        resp = _post_with_retry(
+            _serper_endpoint(),
+            headers={"X-API-KEY": key, "Content-Type": "application/json"},
+            json_body={"q": query, "num": min(count, 10)},
+            timeout=timeout,
+        )
+    except requests.exceptions.RequestException:
+        return []
+    if resp.status_code != 200:
+        return []
+    try:
+        data = resp.json()
+    except Exception:
+        return []
+    items = data.get("organic") or []
+    normalized = []
+    for r in items:
+        url = r.get("link")
+        if url:
+            normalized.append({"url": url, "title": r.get("title"), "description": r.get("snippet")})
+    return normalized
+
+
 def google_search(query: str, count: int = 5, timeout: int = 6) -> List[Dict]:
     """
     Run a Google Programmable Search (Custom Search JSON API) query.
@@ -206,6 +281,8 @@ def serpapi_search(query: str, count: int = 5, timeout: int = 6) -> List[Dict]:
 def _try_provider(provider: str, query: str, count: int, timeout: int) -> List[Dict]:
     if provider == "brave":
         return brave_search(query, count=count, timeout=timeout)
+    if provider == "serper":
+        return serper_search(query, count=count, timeout=timeout)
     if provider == "serpapi":
         return serpapi_search(query, count=count, timeout=timeout)
     if provider == "google":
@@ -217,27 +294,39 @@ def _try_provider(provider: str, query: str, count: int, timeout: int) -> List[D
 
 def search_web(query: str, count: int = 5, timeout: int = 6, provider: Optional[str] = None) -> List[Dict]:
     """
-    Provider can be 'brave', 'serpapi', 'bing', 'google', or 'auto'.
-    Auto prefers Brave, then SerpAPI, then Google, then Bing.
+    Provider can be 'serper', 'serpapi', 'brave', 'google', 'bing', or 'auto'.
+    Auto prefers Serper, then SerpAPI, then Brave, then Google, then Bing.
+    You can override order via TERMS_SEARCH_AUTO_ORDER, example:
+      TERMS_SEARCH_AUTO_ORDER=serper,brave,google,serpapi,bing
     """
     provider = (provider or os.getenv("TERMS_SEARCH_PROVIDER", "auto")).strip().lower()
     # explicit provider
-    if provider in ("brave", "serpapi", "google", "bing"):
+    if provider in ("serper", "serpapi", "brave", "google", "bing"):
+        if not _provider_configured(provider):
+            return []
         if not _quota_allow(provider):
             return []
         return _try_provider(provider, query, count, timeout)
 
-    # auto fallback order: brave -> serpapi -> google -> bing
-    providers = []
-    if os.getenv("BRAVE_SEARCH_KEY"):
-        providers.append("brave")
-    if os.getenv("SERPAPI_KEY"):
-        providers.append("serpapi")
-    if os.getenv("GOOGLE_CSE_API_KEY") and os.getenv("GOOGLE_CSE_CX"):
-        providers.append("google")
-    providers.append("bing")
+    # auto fallback order: serper -> serpapi -> brave -> google -> bing
+    default_order = ["serper", "serpapi", "brave", "google", "bing"]
+    raw_order = (os.getenv("TERMS_SEARCH_AUTO_ORDER", "") or "").strip().lower()
+    providers: List[str] = []
+    if raw_order:
+        seen = set()
+        for p in [x.strip() for x in raw_order.split(",") if x.strip()]:
+            if p in default_order and p not in seen:
+                seen.add(p)
+                providers.append(p)
+        for p in default_order:
+            if p not in seen:
+                providers.append(p)
+    else:
+        providers = default_order
 
     for p in providers:
+        if not _provider_configured(p):
+            continue
         if not _quota_allow(p):
             continue
         results = _try_provider(p, query, count, timeout)

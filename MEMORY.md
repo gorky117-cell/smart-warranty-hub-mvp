@@ -47,9 +47,17 @@ Last updated: 2026-02-06
 - Search quota guard:
   - `SEARCH_DAILY_LIMIT` (0 = unlimited)
   - `SEARCH_MONTHLY_LIMIT` (0 = unlimited)
+  - Per-provider limits (override global):
+    - `SEARCH_DAILY_LIMIT_SERPER`, `SEARCH_MONTHLY_LIMIT_SERPER`
+    - `SEARCH_DAILY_LIMIT_BRAVE`, `SEARCH_MONTHLY_LIMIT_BRAVE`
+    - `SEARCH_DAILY_LIMIT_GOOGLE`, `SEARCH_MONTHLY_LIMIT_GOOGLE`
+    - `SEARCH_DAILY_LIMIT_SERPAPI`, `SEARCH_MONTHLY_LIMIT_SERPAPI`
   - `SEARCH_QUOTA_FILE` (default `data/search_quota.json`)
+  - `SERPER_API_KEY` / `SERPER_KEY`
+  - `SERPER_ENDPOINT` (default `https://google.serper.dev/search`)
   - `SERPAPI_KEY` (SerpAPI fallback)
   - `SERPAPI_ENDPOINT` (default `https://serpapi.com/search.json`)
+  - `TERMS_SEARCH_AUTO_ORDER` (example: `serper,serpapi,brave,google,bing`)
 - `REVIEW_CRAWL_ON_UPLOAD=true` (real-time per invoice)
 - `REVIEW_ON_UPLOAD_MAX_PAGES=5`
 - `TERMS_OFFICIAL_ONLY=true` (only allow OEM domain matches)
