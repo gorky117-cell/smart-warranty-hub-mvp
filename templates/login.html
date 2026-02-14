@@ -3,78 +3,365 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Warranty Hub · Sign in</title>
+  <title>Smart Warranty Hub | Welcome</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f7f9fc;
-      --card: #ffffff;
-      --border: #e5e7eb;
-      --text: #0f172a;
-      --muted: #6b7280;
-      --primary: #2563eb;
+      --bg-start: #eef4fb;
+      --bg-end: #d9e8ff;
+      --surface: #ffffff;
+      --ink: #0f172a;
+      --muted: #4b5563;
+      --line: #dbe6f4;
+      --primary: #1d4ed8;
+      --primary-2: #0ea5e9;
+      --success: #047857;
+      --danger: #b91c1c;
+      --radius: 18px;
+      --shadow: 0 22px 48px rgba(15, 23, 42, 0.14);
     }
-    * { box-sizing: border-box; }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
+      min-height: 100vh;
+      font-family: "Sora", "Trebuchet MS", sans-serif;
+      background: radial-gradient(circle at top right, #ffffff 0%, transparent 42%),
+        linear-gradient(145deg, var(--bg-start), var(--bg-end));
+      color: var(--ink);
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
       padding: 16px;
     }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 28px;
+
+    .shell {
       width: 100%;
-      max-width: 400px;
-      box-shadow: 0 12px 30px rgba(17, 24, 39, 0.08);
+      max-width: 980px;
+      display: grid;
+      gap: 14px;
+      grid-template-columns: 1fr;
+      animation: rise 0.34s ease-out;
     }
-    h1 { margin: 0 0 6px 0; font-size: 22px; }
-    .subtitle { color: var(--muted); margin: 0 0 18px 0; font-size: 14px; }
-    label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero {
+      background: linear-gradient(160deg, #0f172a, #1e3a8a);
+      color: #e2ecff;
+      padding: 24px 20px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      padding: 6px 10px;
+      border: 1px solid rgba(226, 236, 255, 0.3);
+      border-radius: 999px;
+      margin-bottom: 18px;
+    }
+
+    .brand-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 99px;
+      background: linear-gradient(160deg, #22d3ee, #38bdf8);
+    }
+
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: 28px;
+      line-height: 1.16;
+      font-weight: 800;
+      max-width: 12ch;
+    }
+
+    .hero p {
+      margin: 0;
+      color: #c7d7f8;
+      font-size: 14px;
+      line-height: 1.6;
+      max-width: 46ch;
+    }
+
+    .auth {
+      padding: 20px;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 4px;
+      border-radius: 14px;
+      background: #edf3fb;
+      border: 1px solid #d8e4f6;
+      margin-bottom: 16px;
+    }
+
+    .tab-btn {
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      color: #52617d;
+      min-height: 42px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+
+    .tab-btn.active {
+      background: #ffffff;
+      color: var(--ink);
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+    }
+
+    .tab-pane {
+      display: none;
+    }
+
+    .tab-pane.active {
+      display: block;
+      animation: fade 0.2s ease-out;
+    }
+
+    h2 {
+      margin: 0 0 6px;
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .sub {
+      margin: 0 0 14px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    label {
+      display: block;
+      margin: 0 0 6px;
+      font-size: 12px;
+      color: #445170;
+      font-weight: 700;
+      letter-spacing: 0.18px;
+      text-transform: uppercase;
+    }
+
     input {
       width: 100%;
-      padding: 12px;
+      min-height: 46px;
       border-radius: 12px;
-      border: 1px solid var(--border);
-      background: #f3f6fb;
-      margin-bottom: 12px;
+      border: 1px solid #d4dfef;
+      background: #f7faff;
+      padding: 0 13px;
       font-size: 14px;
+      color: var(--ink);
+      margin-bottom: 12px;
+      transition: border-color 0.15s ease, background 0.15s ease;
     }
-    button {
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary-2);
+      background: #ffffff;
+    }
+
+    button[type="submit"] {
       width: 100%;
-      padding: 12px;
+      min-height: 46px;
       border: none;
       border-radius: 12px;
-      background: var(--primary);
-      color: #fff;
+      font-size: 14px;
       font-weight: 800;
       cursor: pointer;
-      font-size: 15px;
+      color: #ffffff;
+      background: linear-gradient(140deg, var(--primary), #2563eb 60%, var(--primary-2));
+      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.26);
     }
-    button:hover { filter: brightness(0.95); }
-    .muted { color: var(--muted); font-size: 12px; margin-top: 8px; }
-    .error-hint { color: #ef4444; font-size: 12px; margin-top: 6px; min-height: 14px; }
+
+    .note {
+      margin: 10px 0 0;
+      font-size: 12px;
+      color: #667085;
+    }
+
+    .msg {
+      min-height: 18px;
+      margin: 0 0 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .msg.ok {
+      color: var(--success);
+    }
+
+    .msg.err {
+      color: var(--danger);
+    }
+
+    @media (min-width: 860px) {
+      .shell {
+        grid-template-columns: minmax(320px, 1fr) minmax(350px, 1fr);
+      }
+
+      .hero {
+        padding: 34px 28px;
+      }
+
+      .auth {
+        padding: 28px;
+      }
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fade {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Smart Warranty Hub</h1>
-    <div class="subtitle">Sign in to view and manage your warranties.</div>
-    <form method="post" action="/auth/login">
-      <label for="username">Email or username</label>
-      <input id="username" name="username" placeholder="you@example.com" required>
-      <label for="password">Password</label>
-      <input id="password" name="password" type="password" placeholder="••••••••" required>
-      <button type="submit">Sign in</button>
-    </form>
-    <div class="error-hint" id="loginError"></div>
-    <div class="muted">Use your issued account. Admin can create more users.</div>
-  </div>
+  <main class="shell">
+    <section class="panel hero">
+      <div class="brand"><span class="brand-dot"></span>Smart Warranty Hub</div>
+      <h1>Welcome back. Keep every warranty in one calm place.</h1>
+      <p>Upload invoices, auto-extract terms, and see risk alerts in one mobile-first dashboard.</p>
+    </section>
+
+    <section class="panel auth">
+      <div class="tabs" role="tablist" aria-label="Authentication tabs">
+        <button type="button" class="tab-btn active" id="tabSignin" data-tab="signin">Sign in</button>
+        <button type="button" class="tab-btn" id="tabSignup" data-tab="signup">Create account</button>
+      </div>
+
+      <div class="tab-pane active" id="paneSignin">
+        <h2>Sign in</h2>
+        <p class="sub">Use your Smart Warranty Hub account to open your dashboard.</p>
+        <p id="loginMessage" class="msg"></p>
+        <form method="post" action="/auth/login" autocomplete="on">
+          <input type="hidden" id="signinNext" name="next_url" value="/ui/neo-dashboard">
+          <label for="signinUsername">Username</label>
+          <input id="signinUsername" name="username" placeholder="gaurav" required>
+          <label for="signinPassword">Password</label>
+          <input id="signinPassword" name="password" type="password" placeholder="Enter password" required>
+          <button type="submit">Continue</button>
+        </form>
+        <p class="note">If you manage OEM accounts, you will be routed to the OEM dashboard after login.</p>
+      </div>
+
+      <div class="tab-pane" id="paneSignup">
+        <h2>Create account</h2>
+        <p class="sub">Create a user account for warranty tracking.</p>
+        <p id="signupMessage" class="msg"></p>
+        <form method="post" action="/auth/signup/form" autocomplete="on">
+          <input type="hidden" id="signupNext" name="next_url" value="/ui/neo-dashboard">
+          <label for="signupUsername">Username</label>
+          <input id="signupUsername" name="username" placeholder="new-user" minlength="3" required>
+          <label for="signupEmail">Email (optional)</label>
+          <input id="signupEmail" name="email" type="email" placeholder="you@example.com">
+          <label for="signupPassword">Password</label>
+          <input id="signupPassword" name="password" type="password" minlength="6" placeholder="Minimum 6 characters" required>
+          <button type="submit">Create user account</button>
+        </form>
+        <p class="note">This creates a user role account only.</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const tabSignin = document.getElementById("tabSignin");
+      const tabSignup = document.getElementById("tabSignup");
+      const paneSignin = document.getElementById("paneSignin");
+      const paneSignup = document.getElementById("paneSignup");
+      const loginMessage = document.getElementById("loginMessage");
+      const signupMessage = document.getElementById("signupMessage");
+      const signinNext = document.getElementById("signinNext");
+      const signupNext = document.getElementById("signupNext");
+      const signinUsername = document.getElementById("signinUsername");
+      const signupUsername = document.getElementById("signupUsername");
+      const params = new URLSearchParams(window.location.search);
+
+      function setTab(tab) {
+        const signin = tab === "signin";
+        tabSignin.classList.toggle("active", signin);
+        tabSignup.classList.toggle("active", !signin);
+        paneSignin.classList.toggle("active", signin);
+        paneSignup.classList.toggle("active", !signin);
+      }
+
+      tabSignin.addEventListener("click", function () { setTab("signin"); });
+      tabSignup.addEventListener("click", function () { setTab("signup"); });
+
+      const nextValue = params.get("next") || "/ui/neo-dashboard";
+      signinNext.value = nextValue;
+      signupNext.value = nextValue;
+
+      const loginError = params.get("error");
+      if (loginError === "invalid") {
+        loginMessage.textContent = "Invalid username or password.";
+        loginMessage.className = "msg err";
+      }
+
+      const signupState = params.get("signup");
+      const signupUser = params.get("username");
+      if (signupState === "ok") {
+        loginMessage.textContent = "Account created. Sign in to continue.";
+        loginMessage.className = "msg ok";
+        if (signupUser) {
+          signinUsername.value = signupUser;
+        }
+        setTab("signin");
+      } else if (signupState === "exists") {
+        signupMessage.textContent = "That username already exists.";
+        signupMessage.className = "msg err";
+        setTab("signup");
+      } else if (signupState === "disabled") {
+        signupMessage.textContent = "Sign up is currently disabled.";
+        signupMessage.className = "msg err";
+        setTab("signup");
+      } else if (signupState === "invalid") {
+        signupMessage.textContent = "Use at least 3 chars for username and 6 for password.";
+        signupMessage.className = "msg err";
+        setTab("signup");
+      }
+
+      if (!signupUsername.value && signinUsername.value) {
+        signupUsername.value = signinUsername.value;
+      }
+    })();
+  </script>
 </body>
 </html>

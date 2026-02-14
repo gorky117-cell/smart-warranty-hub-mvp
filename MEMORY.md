@@ -182,6 +182,12 @@ Last updated: 2026-02-13
   - Pgvector DDL made opt-in via `PGVECTOR_DDL_ENABLED`.
   - Auth fallback added for missing `users` table (auto-create + seed admin on auth access).
   - `GET /auth/login` now redirects to `/login` to avoid user confusion.
+- UI refinement baseline:
+  - Unauthenticated `/ui/*` routes now redirect to `/login?next=...` instead of returning raw `{"detail":"Missing token"}`.
+  - Added mobile-first welcome auth page with both sign-in and sign-up flow in `templates/login.html`.
+  - Added browser form endpoint `POST /auth/signup/form` for user-role self-signup (toggle: `PUBLIC_SIGNUP_ENABLED`, default on).
+  - Added persistent UI rules doc: `docs/ui_refinement_rules.md`.
+  - Refined `templates/neo_dashboard.html` for mobile-first spacing, typography, sticky navigation, and section-focused quick nav without backend logic changes.
 
 ## Operational Notes
 - For live web discovery, set `BRAVE_SEARCH_KEY`.

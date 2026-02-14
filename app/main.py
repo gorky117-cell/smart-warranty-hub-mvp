@@ -4,6 +4,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Optional, Dict
 from contextlib import asynccontextmanager
+from urllib.parse import quote, urlencode
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Depends, Form, Response, status, Body, BackgroundTasks
 from fastapi.templating import Jinja2Templates
@@ -444,20 +445,36 @@ def _demo_public_ui_enabled() -> bool:
     return os.getenv("DEMO_PUBLIC_UI", "0").strip().lower() in ("1", "true", "yes")
 
 
-def _ensure_ui_user(current: Optional[UserDB]) -> None:
-    if _demo_public_ui_enabled():
-        return
-    if not current:
-        raise HTTPException(status_code=401, detail="Missing token")
+def _public_signup_enabled() -> bool:
+    return os.getenv("PUBLIC_SIGNUP_ENABLED", "1").strip().lower() in ("1", "true", "yes")
 
 
-def _ensure_ui_oem_or_admin(current: Optional[UserDB]) -> None:
+def _build_ui_login_redirect(request: Request) -> RedirectResponse:
+    next_path = request.url.path
+    if request.url.query:
+        next_path = f"{next_path}?{request.url.query}"
+    return RedirectResponse(
+        url=f"/login?next={quote(next_path, safe='')}",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
+def _ensure_ui_user(request: Request, current: Optional[UserDB]) -> Optional[RedirectResponse]:
     if _demo_public_ui_enabled():
-        return
+        return None
     if not current:
-        raise HTTPException(status_code=401, detail="Missing token")
+        return _build_ui_login_redirect(request)
+    return None
+
+
+def _ensure_ui_oem_or_admin(request: Request, current: Optional[UserDB]) -> Optional[RedirectResponse]:
+    if _demo_public_ui_enabled():
+        return None
+    if not current:
+        return _build_ui_login_redirect(request)
     if current.role not in ("admin", "oem"):
         raise HTTPException(status_code=403, detail="OEM/admin only")
+    return None
 
 
 @app.get("/behaviour/next-question", dependencies=[Depends(require_user)])
@@ -835,6 +852,58 @@ def signup(payload: SignupRequest, db=Depends(get_db), current=Depends(get_curre
     return {"username": user.username, "role": user.role}
 
 
+@app.post("/auth/signup/form")
+def signup_form(
+    username: str = Form(...),
+    password: str = Form(...),
+    email: str | None = Form(None),
+    next_url: str | None = Form(None),
+    db=Depends(get_db),
+):
+    login_params = {"next": next_url or "/ui/neo-dashboard"}
+    if not _public_signup_enabled():
+        login_params["signup"] = "disabled"
+        return RedirectResponse(
+            url=f"/login?{urlencode(login_params)}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    username = username.strip()
+    email = (email or "").strip() or None
+    if len(username) < 3 or len(password) < 6:
+        login_params["signup"] = "invalid"
+        return RedirectResponse(
+            url=f"/login?{urlencode(login_params)}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    try:
+        existing = db.query(UserDB).filter_by(username=username).first()
+    except (ProgrammingError, OperationalError):
+        db.rollback()
+        _ensure_users_table_and_admin(db)
+        existing = db.query(UserDB).filter_by(username=username).first()
+    if existing:
+        login_params["signup"] = "exists"
+        return RedirectResponse(
+            url=f"/login?{urlencode(login_params)}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    db.add(
+        UserDB(
+            username=username,
+            role="user",
+            hashed_password=hash_password(password),
+            email=email,
+        )
+    )
+    db.commit()
+    login_params["signup"] = "ok"
+    login_params["username"] = username
+    return RedirectResponse(
+        url=f"/login?{urlencode(login_params)}",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
 @app.post("/auth/login")
 def login(
     request: Request,
@@ -844,6 +913,7 @@ def login(
     db=Depends(get_db),
     next_url: str | None = Form(None),
 ):
+    accepts_json = "application/json" in (request.headers.get("accept") or "")
     try:
         user = db.query(UserDB).filter_by(username=username).first()
     except (ProgrammingError, OperationalError):
@@ -851,7 +921,12 @@ def login(
         _ensure_users_table_and_admin(db)
         user = db.query(UserDB).filter_by(username=username).first()
     if not user or not verify_password(password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        if accepts_json:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        params = {"error": "invalid"}
+        if next_url:
+            params["next"] = next_url
+        return RedirectResponse(url=f"/login?{urlencode(params)}", status_code=status.HTTP_303_SEE_OTHER)
     token = create_access_token(user.username, user.role)
     response.set_cookie(
         key="access_token",
@@ -862,12 +937,10 @@ def login(
         max_age=ACCESS_TOKEN_EXPIRE_HOURS * 3600,
         path="/",
     )
-    target = next_url or "/ui/neo-dashboard"
-    accepts_json = "application/json" in (request.headers.get("accept") or "")
+    target = next_url or ("/ui/oem-dashboard" if user.role in ("admin", "oem") else "/ui/neo-dashboard")
     if accepts_json:
         response.status_code = status.HTTP_200_OK
         return {"access_token": token, "token_type": "bearer", "role": user.role, "redirect": target}
-    from fastapi.responses import RedirectResponse
     resp = RedirectResponse(url=target, status_code=status.HTTP_303_SEE_OTHER)
     resp.set_cookie(
         key="access_token",
@@ -1387,7 +1460,9 @@ def warranty_ui(
     user_id: str,
     current: Optional[UserDB] = Depends(get_current_user_optional),
 ):
-    _ensure_ui_user(current)
+    ui_redirect = _ensure_ui_user(request, current)
+    if ui_redirect:
+        return ui_redirect
     warranty = store.warranties.get(warranty_id)
     if not warranty:
         raise HTTPException(status_code=404, detail="Warranty not found")
@@ -1427,7 +1502,9 @@ def scheduler_status():
 
 @app.get("/ui/scheduler")
 def scheduler_ui(request: Request, current: Optional[UserDB] = Depends(get_current_user_optional)):
-    _ensure_ui_user(current)
+    ui_redirect = _ensure_ui_user(request, current)
+    if ui_redirect:
+        return ui_redirect
     with SessionLocal() as db:
         queue = db.query(OEMFetchDB).all()
     return templates.TemplateResponse(
@@ -1441,24 +1518,30 @@ def scheduler_ui(request: Request, current: Optional[UserDB] = Depends(get_curre
 
 
 @app.get("/ui/react-dashboard")
-def react_dashboard(current: Optional[UserDB] = Depends(get_current_user_optional)):
-    _ensure_ui_user(current)
+def react_dashboard(request: Request, current: Optional[UserDB] = Depends(get_current_user_optional)):
+    ui_redirect = _ensure_ui_user(request, current)
+    if ui_redirect:
+        return ui_redirect
     from fastapi.responses import HTMLResponse
     html_path = Path(__file__).resolve().parents[1] / "templates" / "react_dashboard.html"
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
 
 
 @app.get("/ui/console")
-def console_ui(current: Optional[UserDB] = Depends(get_current_user_optional)):
-    _ensure_ui_user(current)
+def console_ui(request: Request, current: Optional[UserDB] = Depends(get_current_user_optional)):
+    ui_redirect = _ensure_ui_user(request, current)
+    if ui_redirect:
+        return ui_redirect
     from fastapi.responses import HTMLResponse
     html_path = Path(__file__).resolve().parents[1] / "templates" / "console.html"
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
 
 
 @app.get("/ui/neo-dashboard")
-def neo_dashboard(current: Optional[UserDB] = Depends(get_current_user_optional)):
-    _ensure_ui_user(current)
+def neo_dashboard(request: Request, current: Optional[UserDB] = Depends(get_current_user_optional)):
+    ui_redirect = _ensure_ui_user(request, current)
+    if ui_redirect:
+        return ui_redirect
     from fastapi.responses import HTMLResponse
     html_path = Path(__file__).resolve().parents[1] / "templates" / "neo_dashboard.html"
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
@@ -1474,8 +1557,10 @@ def warranty_tabs_ui():
 
 
 @app.get("/ui/oem-dashboard")
-def oem_dashboard(current: Optional[UserDB] = Depends(get_current_user_optional)):
-    _ensure_ui_oem_or_admin(current)
+def oem_dashboard(request: Request, current: Optional[UserDB] = Depends(get_current_user_optional)):
+    ui_redirect = _ensure_ui_oem_or_admin(request, current)
+    if ui_redirect:
+        return ui_redirect
     from fastapi.responses import HTMLResponse
 
     html_path = Path(__file__).resolve().parents[1] / "templates" / "oem_dashboard.html"
