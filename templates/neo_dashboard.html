@@ -446,84 +446,6 @@
       color: var(--danger);
     }
 
-    .warranty-radio-list {
-      display: grid;
-      gap: 8px;
-      margin: 10px 0 4px 0;
-    }
-
-    .warranty-radio-item {
-      display: block;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: #f8fbff;
-      padding: 10px 12px;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-      cursor: pointer;
-    }
-
-    .warranty-radio-item:hover {
-      border-color: #b7c9eb;
-      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
-    }
-
-    .warranty-radio-item.is-selected {
-      border-color: #3b82f6;
-      background: #eef5ff;
-      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.16);
-    }
-
-    .warranty-radio-main {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-    }
-
-    .warranty-radio-main input[type="radio"] {
-      width: 18px;
-      height: 18px;
-      margin-top: 2px;
-      accent-color: #2563eb;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-
-    .warranty-radio-content {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      min-width: 0;
-      width: 100%;
-    }
-
-    .warranty-radio-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: #0f172a;
-      line-height: 1.35;
-      word-break: break-word;
-    }
-
-    .warranty-radio-pills {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .warranty-radio-pills .badge {
-      font-size: 11px;
-      padding: 6px 9px;
-    }
-
-    .warranty-radio-empty {
-      border: 1px dashed var(--border);
-      border-radius: 12px;
-      padding: 10px;
-      background: #fafcff;
-      font-size: 12px;
-      color: var(--muted);
-    }
-
     .placeholder {
       color: var(--muted);
     }
@@ -911,10 +833,9 @@
           <select id="warrantyDropdown" onchange="selectWarrantyFromDropdown()" style="margin-bottom:8px;">
             <option value="">-- Loading warranties... --</option>
           </select>
-          <div class="helper field-inline-note">Choose from list or pick a product below.</div>
+          <div class="helper field-inline-note">Or enter ID manually below</div>
         </div>
       </div>
-      <div id="warrantyRadioList" class="warranty-radio-list"></div>
 
       <div class="field">
         <label>Product / Warranty ID</label>
@@ -1219,9 +1140,7 @@
       const DEBUG_MODE = new URLSearchParams(window.location.search).get('debug') === '1';
       let coverageChart, riskChart, warrantyLoaded = false, isEV = false;
       let notifications = [];
-      let allWarranties = [];
       const warrantyLabelMap = {};
-      const warrantyMetaMap = {};
       let toastTimer = null;
       let lastWarrantyPlainText = '';
       function h(extra = {}) {
@@ -1408,7 +1327,6 @@
           notifications = Array.isArray(data) ? data : [];
           updateBell(notifications.length);
           renderNotificationsPanel(notifications);
-          applyNotificationCountsToProducts();
           if (onlyUnread && notifications.length) {
             const newest = notifications[0];
             const f = formatNotification(newest);
@@ -1447,7 +1365,6 @@
           notifications = notifications.filter(n => n.id !== id);
           updateBell(notifications.length);
           renderNotificationsPanel(notifications);
-          applyNotificationCountsToProducts();
         } catch (e) {
           console.error('mark read failed', e);
         }
@@ -1605,97 +1522,6 @@
         if (daysLeft === null || daysLeft === undefined) return 'N/A';
         if (daysLeft < 60) return `${daysLeft} days left`;
         return `${Math.max(0, Math.round(daysLeft / 30))} months left`;
-      }
-
-      function setWarrantyMeta(warrantyId, patch) {
-        if (!warrantyId || !patch || typeof patch !== 'object') return;
-        warrantyMetaMap[warrantyId] = { ...(warrantyMetaMap[warrantyId] || {}), ...patch };
-        allWarranties = allWarranties.map((w) => (w.id === warrantyId ? { ...w, ...patch } : w));
-      }
-
-      function syncSelectionVisuals() {
-        const selectedId = document.getElementById('warrantyId')?.value?.trim() || '';
-        document.querySelectorAll('.warranty-radio-item').forEach((card) => {
-          card.classList.toggle('is-selected', card.dataset.warrantyId === selectedId);
-        });
-      }
-
-      function selectWarrantyById(warrantyId, autoLoad = true) {
-        if (!warrantyId) return;
-        const input = document.getElementById('warrantyId');
-        const dropdown = document.getElementById('warrantyDropdown');
-        if (input) input.value = warrantyId;
-        if (dropdown) dropdown.value = warrantyId;
-        syncSelectionVisuals();
-        const selected = allWarranties.find((w) => w.id === warrantyId);
-        if (selected) {
-          updateSaveContext(selected);
-          updateProductContext(selected);
-        } else {
-          updateSaveContext();
-          updateProductContext();
-        }
-        if (!autoLoad) return;
-        const showBtn = document.getElementById('show-warranty-btn');
-        if (showBtn) showBtn.click();
-      }
-
-      function renderWarrantyRadioList() {
-        const container = document.getElementById('warrantyRadioList');
-        if (!container) return;
-        if (!Array.isArray(allWarranties) || !allWarranties.length) {
-          container.innerHTML = '<div class="warranty-radio-empty">No saved products yet. Upload a bill to add your first product.</div>';
-          return;
-        }
-        const selectedId = document.getElementById('warrantyId')?.value?.trim() || '';
-        container.innerHTML = allWarranties
-          .map((w) => {
-            const wid = w.id || '';
-            const info = getExpiryInfo(w);
-            const cov = coverageStatus(info.daysLeft);
-            const risk = predictiveStatus((w.risk_label || '').toString());
-            const alerts = Number(w.alert_count || 0);
-            const pills = [
-              `<span class="badge ${cov.cls}">Status: ${cov.text}</span>`,
-              `<span class="badge ${risk.cls}">Health: ${risk.text}</span>`,
-              `<span class="badge ${cov.cls}">Time: ${formatTimeLeft(info.daysLeft)}</span>`,
-            ];
-            if (alerts > 0) {
-              pills.push(`<span class="badge badge-danger">Alerts: ${alerts}</span>`);
-            }
-            const title = escapeHtml(productLabelWithId(w));
-            const checked = selectedId === wid ? 'checked' : '';
-            const selectedCls = selectedId === wid ? 'is-selected' : '';
-            return `
-              <label class="warranty-radio-item ${selectedCls}" data-warranty-id="${wid}">
-                <div class="warranty-radio-main">
-                  <input type="radio" name="warrantyChoice" value="${wid}" ${checked} aria-label="${title}">
-                  <div class="warranty-radio-content">
-                    <div class="warranty-radio-title">${title}</div>
-                    <div class="warranty-radio-pills">${pills.join('')}</div>
-                  </div>
-                </div>
-              </label>
-            `;
-          })
-          .join('');
-        container.querySelectorAll('input[type="radio"][name="warrantyChoice"]').forEach((radio) => {
-          radio.addEventListener('change', () => {
-            if (!radio.checked) return;
-            selectWarrantyById(radio.value, true);
-          });
-        });
-        syncSelectionVisuals();
-      }
-
-      function applyNotificationCountsToProducts() {
-        const counts = {};
-        (notifications || []).forEach((n) => {
-          if (!n || !n.warranty_id) return;
-          counts[n.warranty_id] = (counts[n.warranty_id] || 0) + 1;
-        });
-        allWarranties = allWarranties.map((w) => ({ ...w, alert_count: counts[w.id] || 0 }));
-        renderWarrantyRadioList();
       }
 
       function updateSaveContext(w) {
@@ -2108,18 +1934,9 @@
           document.getElementById('exportPdf').href = `/warranties/${warrantyId}/export?format=pdf`;
           document.getElementById('exportPdf').classList.remove('disabled');
           renderCoverage(w);
-          setWarrantyMeta(warrantyId, {
-            brand: w.brand || '',
-            product_name: w.product_name || '',
-            model_code: w.model_code || '',
-            purchase_date: w.purchase_date || null,
-            expiry_date: w.expiry_date || null,
-            coverage_months: w.coverage_months || null,
-          });
           updateWarrantyLabel(w);
           updateProductContext(w);
           updateSaveContext(w);
-          syncSelectionVisuals();
           if (notifications && notifications.length) {
             renderNotificationsPanel(notifications);
           }
@@ -2167,11 +1984,6 @@
           const expiryLine = document.getElementById('expiryLine');
           if (expiryLine) expiryLine.classList.remove('hidden');
           updateSnapshot(cov, predStatus, daysLeft);
-          setWarrantyMeta(warrantyId, {
-            risk_label: pred.risk_label || pred.band || 'UNKNOWN',
-            risk_score: pred.risk_score ?? null,
-          });
-          renderWarrantyRadioList();
           document.getElementById('overviewData').classList.remove('hidden');
           document.getElementById('detailsHelper').textContent = 'Loaded from your warranty. Scroll to read more.';
           warrantyLoaded = true;
@@ -2689,7 +2501,7 @@
         updateSaveContext();
         updateProductContext();
         const warrantyInput = document.getElementById('warrantyId');
-        if (warrantyInput) warrantyInput.addEventListener('input', () => { updateSaveContext(); updateProductContext(); syncSelectionVisuals(); });
+        if (warrantyInput) warrantyInput.addEventListener('input', () => { updateSaveContext(); updateProductContext(); });
         const viewDetailsBtn = document.getElementById('btnSeeFullSummary');
         if (viewDetailsBtn && detailsSection) {
           viewDetailsBtn.addEventListener('click', (e) => {
@@ -2781,13 +2593,7 @@
           const res = await fetch(`/warranties/list${suffix}`, { headers: h() });
           const data = await res.json();
           const warranties = data.warranties || [];
-          allWarranties = warranties.map((w) => ({ ...w }));
-          Object.keys(warrantyMetaMap).forEach((k) => delete warrantyMetaMap[k]);
-          allWarranties.forEach((w) => {
-            if (!w || !w.id) return;
-            warrantyMetaMap[w.id] = { ...w };
-            updateWarrantyLabel(w);
-          });
+          warranties.forEach((w) => updateWarrantyLabel(w));
 
           dropdown.innerHTML = '<option value="">-- Select a warranty (' + warranties.length + ' saved) --</option>';
           warranties.forEach(w => {
@@ -2795,20 +2601,19 @@
             const expiry = w.expiry_date ? new Date(w.expiry_date).toLocaleDateString() : 'No expiry';
             dropdown.innerHTML += `<option value="${w.id}">${label} - ${w.model_code || w.id} (Exp: ${expiry})</option>`;
           });
-          renderWarrantyRadioList();
-          applyNotificationCountsToProducts();
         } catch (e) {
           dropdown.innerHTML = '<option value="">-- No warranties found --</option>';
-          allWarranties = [];
-          renderWarrantyRadioList();
           console.error('loadWarrantyDropdown error', e);
         }
       }
 
       function selectWarrantyFromDropdown() {
         const dropdown = document.getElementById('warrantyDropdown');
-        if (dropdown && dropdown.value) {
-          selectWarrantyById(dropdown.value, true);
+        const warrantyInput = document.getElementById('warrantyId');
+        if (dropdown && warrantyInput && dropdown.value) {
+          warrantyInput.value = dropdown.value;
+          const showBtn = document.getElementById('show-warranty-btn');
+          if (showBtn) showBtn.click();
         }
       }
       window.selectWarrantyFromDropdown = selectWarrantyFromDropdown;
