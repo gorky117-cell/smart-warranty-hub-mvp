@@ -56,7 +56,6 @@ from .services import invoice_pipeline
 from .services import summary_engine
 from .services import terms_lookup
 from .services.notifications import run_initial_analysis_and_notifications
-from .routes import oem_questions, oem_recommendations
 logger = logging.getLogger(__name__)
 from .deps import (
     rbac_dependency,
@@ -95,6 +94,7 @@ from .db_models import (
     WarrantySummaryDB,
     RegionalPolicyDB,
     OemIssueSignalDB,
+    RiskSnapshotDB,
     ProductReviewDB,
     ReviewPageDB,
 )
@@ -331,23 +331,12 @@ app = FastAPI(
 )
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
 
-# OEM routers (and /api aliases)
-app.include_router(oem_questions.router, prefix="/oem/questions", tags=["OEM Questions"])
-app.include_router(oem_questions.router, prefix="/api/oem/questions", tags=["OEM Questions"])
-app.include_router(oem_recommendations.router, prefix="/oem/recommendations", tags=["OEM Recommendations"])
-app.include_router(oem_recommendations.router, prefix="/api/oem/recommendations", tags=["OEM Recommendations"])
-
-
 @app.get("/favicon.ico")
 def favicon():
     return Response(status_code=204)
 
 
 # Reviews Router
-from .routes import reviews
-app.include_router(reviews.router, prefix="/reviews", tags=["Reviews"])
-
-
 from .routes import reviews
 app.include_router(reviews.router, prefix="/reviews", tags=["Reviews"])
 
@@ -704,33 +693,8 @@ def oem_questions_disable_alias(payload: Dict = Body(...), current=Depends(requi
     return oem_questions_disable(payload)
 
 
-@app.post("/oem/recommendations/generate", dependencies=[Depends(require_oem_or_admin)])
-def oem_recommendations_generate(payload: Dict = Body(None)):
-    try:
-        payload = payload or {}
-        brand = payload.get("brand")
-        model = payload.get("model")
-        product_type = payload.get("product_type")
-        region = payload.get("region")
-        count = int(payload.get("count", 3))
-        # simple heuristic recs
-        base_recs = [
-            {"title": "Voltage protection", "message": "Offer a surge protector for regions with fluctuations.", "cta_label": "View surge protectors"},
-            {"title": "Maintenance kit", "message": "Recommend a cleaning/maintenance kit for heavy usage.", "cta_label": "View kit"},
-            {"title": "Extended coverage", "message": "Suggest extended warranty before expiry.", "cta_label": "Explore coverage"},
-        ]
-        out = []
-        for i in range(min(count, len(base_recs))):
-            rec = base_recs[i].copy()
-            rec.update({"brand": brand, "model": model, "product_type": product_type, "region": region, "source": "oem_manual"})
-            out.append(rec)
-        return {"ok": True, "recommendations": out}
-    except Exception as e:
-        logger.exception("oem recommendations generate failed", exc_info=e)
-        return {"ok": False, "recommendations": [], "error": "server_error"}
-
-
 @app.post("/oem/recommendations/publish", dependencies=[Depends(require_oem_or_admin)])
+@app.post("/api/oem/recommendations/publish", dependencies=[Depends(require_oem_or_admin)])
 def oem_recommendations_publish(payload: Dict = Body(...)):
     try:
         rec = payload.get("recommendation") or {}
@@ -742,6 +706,7 @@ def oem_recommendations_publish(payload: Dict = Body(...)):
 
 
 @app.get("/oem/recommendations/active", dependencies=[Depends(require_oem_or_admin)])
+@app.get("/api/oem/recommendations/active", dependencies=[Depends(require_oem_or_admin)])
 def oem_recommendations_active(product_type: str | None = None, brand: str | None = None, model: str | None = None, region: str | None = None):
     try:
         items = oem_recommendation_service.list_active({"product_type": product_type, "brand": brand, "model": model, "region": region})
@@ -752,6 +717,7 @@ def oem_recommendations_active(product_type: str | None = None, brand: str | Non
 
 
 @app.post("/oem/recommendations/disable", dependencies=[Depends(require_oem_or_admin)])
+@app.post("/api/oem/recommendations/disable", dependencies=[Depends(require_oem_or_admin)])
 def oem_recommendations_disable(payload: Dict = Body(...)):
     try:
         rec_id = payload.get("id")
@@ -763,16 +729,67 @@ def oem_recommendations_disable(payload: Dict = Body(...)):
         logger.exception("oem recommendations disable failed", exc_info=e)
         return {"ok": False, "disabled": False, "error": "server_error"}
 @app.get("/oem/recommendations/preview", dependencies=[Depends(require_oem_or_admin)])
-def oem_recommendations_preview(product_type: str | None = None, brand: str | None = None, model: str | None = None, region: str | None = None):
+@app.get("/api/oem/recommendations/preview", dependencies=[Depends(require_oem_or_admin)])
+def oem_recommendations_preview(
+    product_type: str | None = None,
+    brand: str | None = None,
+    model: str | None = None,
+    region: str | None = None,
+    db=Depends(get_db),
+):
     try:
-        # simple heuristic placeholders
-        risk_distribution = {"low": 5, "medium": 3, "high": 2}
-        top_risks = ["Potential high wear in humid regions", "Users reporting installation by non-authorized techs"]
-        likely_user_needs = ["Clear maintenance steps", "Voltage stabilizer guidance"]
-        suggested_oem_actions = ["Push care tips to affected regions", "Offer discounted check-up coupon"]
-        suggested_products = ["Extended warranty offer", "Protective accessory kit"]
+        risk_distribution = {"low": 0, "medium": 0, "high": 0}
+        snapshots = db.query(RiskSnapshotDB).all()
+        for snap in snapshots:
+            w = store.get_warranty_db(snap.warranty_id)
+            if brand and w and (w.brand or "").lower() != brand.lower():
+                continue
+            if model and w and (w.model_code or "").lower() != model.lower():
+                continue
+            if region and w and (w.region_code or "").lower() != region.lower():
+                continue
+            label = (snap.risk_label or "").upper()
+            if label == "HIGH":
+                risk_distribution["high"] += 1
+            elif label == "MEDIUM":
+                risk_distribution["medium"] += 1
+            else:
+                risk_distribution["low"] += 1
+
+        issue_query = db.query(OemIssueSignalDB)
+        if brand:
+            issue_query = issue_query.filter_by(brand=brand)
+        if model:
+            issue_query = issue_query.filter_by(model_code=model)
+        if region:
+            issue_query = issue_query.filter_by(region=region)
+        issues = issue_query.order_by(OemIssueSignalDB.last_seen_at.desc()).limit(25).all()
+        top_risks = []
+        for row in issues[:5]:
+            issue = row.issue_type or "unknown_issue"
+            sev = row.severity if row.severity is not None else 0.0
+            cnt = row.count or 0
+            top_risks.append(f"{issue}: severity {sev:.2f}, reports {cnt}")
+        if not top_risks:
+            top_risks = ["No major OEM issue spikes in current window."]
+
+        symptoms = search_log_service.get_symptom_trends(product_type, brand, model, region)
+        likely_user_needs = symptoms.get("top_keywords") or symptoms.get("top_components") or ["General preventive care guidance"]
+
+        suggested_oem_actions = []
+        if risk_distribution["high"] > 0:
+            suggested_oem_actions.append("Send targeted preventive tips to high-risk segments.")
+        if any("overheat" in s.lower() or "heating" in s.lower() for s in top_risks):
+            suggested_oem_actions.append("Issue temperature and ventilation advisory.")
+        if any("voltage" in s.lower() for s in likely_user_needs):
+            suggested_oem_actions.append("Recommend stabilizer usage for affected regions.")
+        if not suggested_oem_actions:
+            suggested_oem_actions.append("Continue weekly monitoring and trend validation.")
+
+        product_interest = prod_recs_service.aggregate_product_interest(region=region, limit=5)
+        suggested_products = [item.get("title") or item.get("product_id") for item in product_interest] or ["No strong product demand signal yet."]
         recommendation_message = (
-            f"Based on current signals for {brand or 'your brand'}, focus on preventive care and voltage protection."
+            f"Live recommendation for {brand or 'your brand'}: prioritize preventive care for high-risk users and act on top issue trends."
         )
         return {
             "ok": True,
@@ -795,6 +812,38 @@ def oem_recommendations_preview(product_type: str | None = None, brand: str | No
             "recommendation_message": "",
             "error": "server_error",
         }
+
+
+@app.post("/oem/recommendations/generate", dependencies=[Depends(require_oem_or_admin)])
+@app.post("/api/oem/recommendations/generate", dependencies=[Depends(require_oem_or_admin)])
+def oem_recommendations_generate(payload: Dict = Body(None), db=Depends(get_db)):
+    try:
+        payload = payload or {}
+        preview = oem_recommendations_preview(
+            product_type=payload.get("product_type"),
+            brand=payload.get("brand"),
+            model=payload.get("model") or payload.get("model_code"),
+            region=payload.get("region"),
+            db=db,
+        )
+        if not preview.get("ok"):
+            return {"ok": False, "recommendations": [], "error": preview.get("error", "server_error")}
+        rec = {
+            "product_type": payload.get("product_type"),
+            "brand": payload.get("brand"),
+            "model": payload.get("model") or payload.get("model_code"),
+            "region": payload.get("region"),
+            "title": "Preventive care recommendation",
+            "message": preview.get("recommendation_message"),
+            "tags": preview.get("top_risks", [])[:3],
+            "risk_hint": preview.get("risk_distribution"),
+            "source": "swh_generated",
+            "status": "draft",
+        }
+        return {"ok": True, "recommendations": [rec], "preview": preview}
+    except Exception as e:
+        logger.exception("oem recommendations generate failed", exc_info=e)
+        return {"ok": False, "recommendations": [], "error": "server_error"}
 def _ensure_users_table_and_admin(db) -> None:
     """Safety fallback for partially initialized production DBs."""
     try:
@@ -802,8 +851,15 @@ def _ensure_users_table_and_admin(db) -> None:
     except Exception:
         return
     try:
-        admin_user = os.getenv("ADMIN_USER", "admin")
-        admin_pass = os.getenv("ADMIN_PASS", "admin123")
+        allow_insecure = os.getenv("ALLOW_INSECURE_DEFAULTS", "true").strip().lower() in ("1", "true", "yes", "on")
+        admin_user = os.getenv("ADMIN_USER")
+        admin_pass = os.getenv("ADMIN_PASS")
+        if not admin_user or not admin_pass:
+            if allow_insecure:
+                admin_user = "admin"
+                admin_pass = "admin123"
+            else:
+                return
         existing = db.query(UserDB).filter_by(username=admin_user).first()
         if not existing:
             db.add(
@@ -904,6 +960,14 @@ def signup_form(
     )
 
 
+def _cookie_secure_flag(request: Request) -> bool:
+    explicit = os.getenv("COOKIE_SECURE")
+    if explicit is not None:
+        return explicit.strip().lower() in ("1", "true", "yes", "on")
+    forwarded = (request.headers.get("x-forwarded-proto") or "").lower()
+    return request.url.scheme == "https" or forwarded == "https"
+
+
 @app.post("/auth/login")
 def login(
     request: Request,
@@ -914,6 +978,7 @@ def login(
     next_url: str | None = Form(None),
 ):
     accepts_json = "application/json" in (request.headers.get("accept") or "")
+    secure_cookie = _cookie_secure_flag(request)
     try:
         user = db.query(UserDB).filter_by(username=username).first()
     except (ProgrammingError, OperationalError):
@@ -933,7 +998,7 @@ def login(
         value=token,
         httponly=True,
         samesite="lax",
-        secure=False,
+        secure=secure_cookie,
         max_age=ACCESS_TOKEN_EXPIRE_HOURS * 3600,
         path="/",
     )
@@ -947,7 +1012,7 @@ def login(
         value=token,
         httponly=True,
         samesite="lax",
-        secure=False,
+        secure=secure_cookie,
         max_age=ACCESS_TOKEN_EXPIRE_HOURS * 3600,
         path="/",
     )
@@ -2035,23 +2100,42 @@ def oem_risk_stats(
             risk_counts[band] = risk_counts.get(band, 0) + 1
         except Exception:
             risk_counts["UNKNOWN"] = risk_counts.get("UNKNOWN", 0) + 1
-        # EV battery quick count (placeholder)
         name = (w.product_name or "").lower() if w else ""
         pt_lower = p.product_type.lower() if getattr(p, "product_type", None) else ""
         if "ev" in name or ("ev" in pt_lower):
+            ev_payload = {
+                "product_type": 3,
+                "age_months": 12,
+                "daily_km": 40,
+                "fast_charge_sessions": 4,
+                "deep_discharge_events": 1,
+                "max_temp_seen": 32,
+                "behaviour_score": p.behaviour_score,
+                "care_score": p.care_score,
+                "responsiveness_score": p.responsiveness_score,
+                "region_climate_band": 1,
+            }
+            try:
+                latest_ev = (
+                    db.query(EVTelemetryDB)
+                    .filter_by(warranty_id=p.warranty_id)
+                    .order_by(EVTelemetryDB.created_at.desc())
+                    .first()
+                )
+                if latest_ev:
+                    ev_payload.update(
+                        {
+                            "daily_km": float(latest_ev.daily_km or ev_payload["daily_km"]),
+                            "fast_charge_sessions": int(latest_ev.fast_charge_sessions or ev_payload["fast_charge_sessions"]),
+                            "deep_discharge_events": int(latest_ev.deep_discharge_events or ev_payload["deep_discharge_events"]),
+                            "max_temp_seen": float(latest_ev.max_temp_seen or ev_payload["max_temp_seen"]),
+                            "region_climate_band": int(latest_ev.region_climate_band or ev_payload["region_climate_band"]),
+                        }
+                    )
+            except Exception:
+                pass
             ev_score = ev_battery_service.score_ev_battery(
-                {
-                    "product_type": 3,
-                    "age_months": 12,
-                    "daily_km": 40,
-                    "fast_charge_sessions": 4,
-                    "deep_discharge_events": 1,
-                    "max_temp_seen": 32,
-                    "behaviour_score": p.behaviour_score,
-                    "care_score": p.care_score,
-                    "responsiveness_score": p.responsiveness_score,
-                    "region_climate_band": 1,
-                }
+                ev_payload
             )
             ev_counts[ev_score.risk_label] = ev_counts.get(ev_score.risk_label, 0) + 1
 

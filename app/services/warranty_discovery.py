@@ -41,6 +41,7 @@ _PREFLIGHT_STRICT = os.getenv("TERMS_PREFLIGHT_STRICT", "true").strip().lower() 
 _ALLOW_BROAD_FALLBACK = os.getenv("TERMS_ALLOW_BROAD_FALLBACK", "false").strip().lower() in ("1", "true", "yes")
 _PREFLIGHT_MAX_DOMAINS = int(os.getenv("TERMS_PREFLIGHT_MAX_DOMAINS", "4"))
 _PREFLIGHT_TIMEOUT = int(os.getenv("TERMS_PREFLIGHT_TIMEOUT_SEC", "4"))
+_ALLOW_LOCAL_DEV_SOURCES = os.getenv("TERMS_ALLOW_LOCAL_DEV_SOURCES", "false").strip().lower() in ("1", "true", "yes")
 
 
 def _host(url: str) -> str:
@@ -189,8 +190,9 @@ def discover_sources(
     data_path: Optional[Path] = None,
 ) -> List[DiscoverySource]:
     """
-    Offline discovery stub.
-    Reads from data/warranty_sources.json and returns ranked candidates.
+    Discover candidate warranty sources from:
+    1) curated local source file entries
+    2) configured online search providers.
     """
     if not brand:
         return []
@@ -211,6 +213,9 @@ def discover_sources(
         if not allow_retail and entry.get("source_type") == "retail":
             continue
         url = str(entry.get("url") or "")
+        lower_url = url.lower()
+        if (lower_url.startswith("test_data/") or lower_url.startswith("file://")) and not _ALLOW_LOCAL_DEV_SOURCES:
+            continue
         host = _host(url)
         entry_official_domains = _domains_for_brand(oem_domains, entry.get("brand") or "")
         official = _host_matches_any(host, entry_official_domains) if entry_official_domains else bool(entry.get("official", False))

@@ -182,6 +182,11 @@ Last updated: 2026-02-13
   - Pgvector DDL made opt-in via `PGVECTOR_DDL_ENABLED`.
   - Auth fallback added for missing `users` table (auto-create + seed admin on auth access).
   - `GET /auth/login` now redirects to `/login` to avoid user confusion.
+  - Removed duplicate OEM router wiring to avoid route shadowing and auth bypass paths.
+  - Replaced OEM recommendation preview/generate placeholder responses with DB-driven live signals.
+  - Hardened auth cookie security (`secure` now auto-detected from HTTPS/proxy or `COOKIE_SECURE` env).
+  - Added startup safety creation for `audit_logs` and stronger audit table auto-heal in `app/services/audit.py`.
+  - Cleared mock discovery seed from `data/warranty_sources.json` and blocked local test-data URLs unless explicitly enabled (`TERMS_ALLOW_LOCAL_DEV_SOURCES=true`).
 - UI refinement baseline:
   - Unauthenticated `/ui/*` routes now redirect to `/login?next=...` instead of returning raw `{"detail":"Missing token"}`.
   - Added mobile-first welcome auth page with both sign-in and sign-up flow in `templates/login.html`.

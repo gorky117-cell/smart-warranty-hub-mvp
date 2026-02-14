@@ -5,9 +5,10 @@ import requests
 
 from ..db import SessionLocal
 from ..db_models import AuditLogDB
-from sqlalchemy.exc import ProgrammingError, OperationalError
+from sqlalchemy.exc import ProgrammingError, OperationalError, DBAPIError
 
 MAX_DETAIL_LEN = 2000
+_AUDIT_TABLE_READY = False
 
 
 def _trim(detail: str) -> str:
@@ -16,18 +17,31 @@ def _trim(detail: str) -> str:
     return detail
 
 
+def _ensure_audit_table(db) -> None:
+    global _AUDIT_TABLE_READY
+    if _AUDIT_TABLE_READY:
+        return
+    try:
+        AuditLogDB.__table__.create(bind=db.get_bind(), checkfirst=True)
+        _AUDIT_TABLE_READY = True
+    except Exception:
+        _AUDIT_TABLE_READY = False
+
+
 def log_action(action: str, detail: str) -> None:
     with SessionLocal() as db:
+        _ensure_audit_table(db)
         entry = AuditLogDB(action=action, detail=_trim(detail), created_at=datetime.utcnow())
         try:
             db.add(entry)
             db.commit()
-        except (ProgrammingError, OperationalError) as exc:
+        except (ProgrammingError, OperationalError, DBAPIError) as exc:
             # Safety for partially-migrated DBs: create table and retry once.
             db.rollback()
             msg = str(exc).lower()
             if "audit_logs" in msg and ("does not exist" in msg or "undefinedtable" in msg):
                 try:
+                    _ensure_audit_table(db)
                     AuditLogDB.__table__.create(bind=db.get_bind(), checkfirst=True)
                     db.add(AuditLogDB(action=action, detail=_trim(detail), created_at=datetime.utcnow()))
                     db.commit()

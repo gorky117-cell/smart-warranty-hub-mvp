@@ -12,7 +12,7 @@ from .audit import log_action
 from .oem_parsers import parse_oem_text, parse_oem_html
 
 HEADERS = {
-    "User-Agent": "SmartWarrantyHub/1.0 (+https://example.com)",
+    "User-Agent": "SmartWarrantyHub/1.0 (+https://smartwarrantyhub.com)",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 }
 

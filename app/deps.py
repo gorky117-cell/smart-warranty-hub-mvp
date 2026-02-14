@@ -1,5 +1,6 @@
 import os
 import hashlib
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -8,9 +9,32 @@ from fastapi import Header, HTTPException, Depends, Cookie
 from sqlalchemy.orm import Session
 
 from .db import SessionLocal, engine
-from .db_models import Base, UserDB
+from .db_models import Base, UserDB, AuditLogDB
 
-SECRET_KEY = os.getenv("JWT_SECRET", "change-me")
+
+def _is_truthy(value: Optional[str]) -> bool:
+    return (value or "").strip().lower() in ("1", "true", "yes", "on")
+
+
+_ALLOW_INSECURE_DEFAULTS = _is_truthy(os.getenv("ALLOW_INSECURE_DEFAULTS", "true"))
+
+SECRET_KEY = os.getenv("JWT_SECRET")
+if not SECRET_KEY:
+    if _ALLOW_INSECURE_DEFAULTS:
+        SECRET_KEY = "change-me"
+        print("WARNING: JWT_SECRET is not set; using insecure default for compatibility.")
+    else:
+        SECRET_KEY = secrets.token_urlsafe(48)
+        print("WARNING: JWT_SECRET is not set; generated ephemeral secret for this runtime.")
+
+_JWT_SALT = os.getenv("JWT_SALT")
+if not _JWT_SALT:
+    if _ALLOW_INSECURE_DEFAULTS:
+        _JWT_SALT = "swh-salt"
+        print("WARNING: JWT_SALT is not set; using insecure default for compatibility.")
+    else:
+        _JWT_SALT = hashlib.sha256(f"{SECRET_KEY}:swh".encode()).hexdigest()
+        print("WARNING: JWT_SALT is not set; derived runtime salt from JWT_SECRET.")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "8"))
 
@@ -24,7 +48,7 @@ def get_db():
 
 
 def hash_password(password: str) -> str:
-    salt = os.getenv("JWT_SALT", "swh-salt").encode()
+    salt = _JWT_SALT.encode()
     return hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 200000).hex()
 
 
@@ -122,14 +146,25 @@ def init_db():
 
     try:
         Base.metadata.create_all(bind=engine)
+        # Belt-and-suspenders creation for hotfix safety on partially-migrated DBs.
+        UserDB.__table__.create(bind=engine, checkfirst=True)
+        AuditLogDB.__table__.create(bind=engine, checkfirst=True)
     except Exception as exc:
         print(f"DB create_all failed: {exc}")
         return
 
     try:
         with SessionLocal() as db:
-            admin_user = os.getenv("ADMIN_USER", "admin")
-            admin_pass = os.getenv("ADMIN_PASS", "admin123")
+            admin_user = os.getenv("ADMIN_USER")
+            admin_pass = os.getenv("ADMIN_PASS")
+            if not admin_user or not admin_pass:
+                if _ALLOW_INSECURE_DEFAULTS:
+                    admin_user = "admin"
+                    admin_pass = "admin123"
+                    print("WARNING: ADMIN_USER/ADMIN_PASS not set; using insecure defaults for compatibility.")
+                else:
+                    print("Skipping admin seed: set ADMIN_USER and ADMIN_PASS for production.")
+                    return
             existing = db.query(UserDB).filter_by(username=admin_user).first()
             if not existing:
                 db.add(
