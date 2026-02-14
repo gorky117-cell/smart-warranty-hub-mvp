@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from . import predictive, ev_battery
-from ..db_models import NotificationDB, WarrantyDB
+from ..db_models import NotificationDB, WarrantyDB, RiskSnapshotDB
 from ..storage import generate_id
 
 # existing functions ----------------------------------------------------------------
@@ -265,6 +265,19 @@ def run_initial_analysis_and_notifications(db: Session, user_id: str, warranty_i
         risk_result = None
     if risk_result:
         label = (risk_result.get("risk_label") or "LOW").upper()
+        score = float(risk_result.get("risk_score", 0.0) or 0.0)
+        try:
+            db.add(
+                RiskSnapshotDB(
+                    user_id=user_id,
+                    warranty_id=warranty_id,
+                    risk_label=label,
+                    risk_score=score,
+                )
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
         if label == "MEDIUM":
             create_notification(
                 db=db,

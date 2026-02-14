@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import List, Optional, Dict
 from contextlib import asynccontextmanager
 from urllib.parse import quote, urlencode
+from html import escape
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Depends, Form, Response, status, Body, BackgroundTasks
 from fastapi.templating import Jinja2Templates
@@ -95,6 +96,7 @@ from .db_models import (
     RegionalPolicyDB,
     OemIssueSignalDB,
     RiskSnapshotDB,
+    NotificationDB,
     ProductReviewDB,
     ReviewPageDB,
 )
@@ -1108,17 +1110,46 @@ async def upload_artifact(
 
 
 @app.get("/warranties/list")
-def list_warranties_sorted(user_id: str = None, db=Depends(get_db)):
+def list_warranties_sorted(
+    user_id: str | None = None,
+    db=Depends(get_db),
+    current: Optional[UserDB] = Depends(get_current_user_optional),
+):
     """List all warranties sorted by expiry date (soonest first)."""
-    from .db_models import WarrantyDB
+    uid = user_id or (current.username if current else None)
     query = db.query(WarrantyDB)
     # Sort by expiry_date ascending (soonest first), nulls last
     warranties = query.order_by(
         WarrantyDB.expiry_date.asc().nullslast()
     ).limit(100).all()
-    
+
+    latest_risk_by_warranty: Dict[str, Dict[str, object]] = {}
+    unread_alert_count: Dict[str, int] = {}
+    if uid:
+        snaps = (
+            db.query(RiskSnapshotDB)
+            .filter_by(user_id=uid)
+            .order_by(RiskSnapshotDB.created_at.desc())
+            .all()
+        )
+        for snap in snaps:
+            if snap.warranty_id and snap.warranty_id not in latest_risk_by_warranty:
+                latest_risk_by_warranty[snap.warranty_id] = {
+                    "risk_label": snap.risk_label,
+                    "risk_score": float(snap.risk_score) if snap.risk_score is not None else None,
+                }
+        unread = (
+            db.query(NotificationDB)
+            .filter_by(user_id=uid, is_read=0)
+            .all()
+        )
+        for n in unread:
+            if n.warranty_id:
+                unread_alert_count[n.warranty_id] = unread_alert_count.get(n.warranty_id, 0) + 1
+
     result = []
     for w in warranties:
+        risk_meta = latest_risk_by_warranty.get(w.id, {})
         result.append({
             "id": w.id,
             "brand": w.brand,
@@ -1129,6 +1160,9 @@ def list_warranties_sorted(user_id: str = None, db=Depends(get_db)):
             "expiry_date": w.expiry_date.isoformat() if w.expiry_date else None,
             "coverage_months": w.coverage_months,
             "created_at": w.created_at.isoformat() if w.created_at else None,
+            "risk_label": risk_meta.get("risk_label"),
+            "risk_score": risk_meta.get("risk_score"),
+            "alert_count": unread_alert_count.get(w.id, 0),
         })
     return {"warranties": result, "count": len(result)}
 
@@ -1609,7 +1643,10 @@ def neo_dashboard(request: Request, current: Optional[UserDB] = Depends(get_curr
         return ui_redirect
     from fastapi.responses import HTMLResponse
     html_path = Path(__file__).resolve().parents[1] / "templates" / "neo_dashboard.html"
-    return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
+    html = html_path.read_text(encoding="utf-8")
+    html = html.replace("__SWH_CURRENT_USER__", escape(current.username if current else ""))
+    html = html.replace("__SWH_CURRENT_ROLE__", escape(current.role if current else ""))
+    return HTMLResponse(content=html, status_code=200)
 
 
 
