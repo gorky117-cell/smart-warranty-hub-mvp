@@ -188,6 +188,7 @@ Last updated: 2026-02-13
   - Added browser form endpoint `POST /auth/signup/form` for user-role self-signup (toggle: `PUBLIC_SIGNUP_ENABLED`, default on).
   - Added persistent UI rules doc: `docs/ui_refinement_rules.md`.
   - Refined `templates/neo_dashboard.html` for mobile-first spacing, typography, sticky navigation, and section-focused quick nav without backend logic changes.
+  - Second UI pass refined Neo card/form hierarchy with clearer sub-panels, field grouping, and step-level visual structure (UI-only).
 
 ## Operational Notes
 - For live web discovery, set `BRAVE_SEARCH_KEY`.

@@ -225,6 +225,34 @@
       margin-bottom: 10px;
     }
 
+    .card-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .step-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.72px;
+      color: #64748b;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .step-kicker::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 99px;
+      background: linear-gradient(145deg, var(--primary), var(--accent));
+    }
+
     .card-locked {
       opacity: 0.9;
       pointer-events: auto;
@@ -341,6 +369,43 @@
       margin-top: 0;
       margin-bottom: 10px;
       line-height: 1.45;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .field-inline-note {
+      margin-top: -2px;
+      margin-bottom: 0;
+    }
+
+    .subtle-panel {
+      border: 1px solid var(--border);
+      background: #f7fbff;
+      border-radius: 13px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+
+    .subtle-panel .panel-title {
+      margin: 0 0 8px 0;
+      font-size: 13px;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .card-divider {
+      border: 0;
+      border-top: 1px dashed var(--border);
+      margin: 12px 0;
     }
 
     .intro-note {
@@ -489,6 +554,10 @@
         padding: 26px;
       }
 
+      .form-grid.two-col {
+        grid-template-columns: 1fr 1fr;
+      }
+
       .sticky-bar {
         display: none;
       }
@@ -582,6 +651,10 @@
 
     #step-add-bill .panel {
       margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      background: #f8fbff;
+      padding: 12px;
     }
 
     #step-add-bill .panel.hidden {
@@ -747,28 +820,40 @@
     <!-- Section: Your Warranty Data -->
     <div class="section-title" id="step1">Step 1 - Your product</div>
     <div class="card hero" id="step1Card">
+      <div class="step-kicker">Primary setup</div>
       <div class="card-title">Your product</div>
-      <label>Your ID (optional)</label><input id="userId" value="user-1" aria-label="Your ID">
+      <div class="form-grid two-col">
+        <div class="field">
+          <label>Your ID (optional)</label>
+          <input id="userId" value="user-1" aria-label="Your ID">
+        </div>
+        <div class="field">
+          <label>Select from saved warranties</label>
+          <select id="warrantyDropdown" onchange="selectWarrantyFromDropdown()" style="margin-bottom:8px;">
+            <option value="">-- Loading warranties... --</option>
+          </select>
+          <div class="helper field-inline-note">Or enter ID manually below</div>
+        </div>
+      </div>
 
-      <!-- NEW: Warranty Dropdown Selector -->
-      <label>Select from saved warranties</label>
-      <select id="warrantyDropdown" onchange="selectWarrantyFromDropdown()" style="margin-bottom:8px;">
-        <option value="">-- Loading warranties... --</option>
-      </select>
-      <div class="helper" style="margin-top:-4px; margin-bottom:12px;">Or enter ID manually below</div>
-
-      <label>Product / Warranty ID</label><input id="warrantyId" placeholder="wty_xxx" aria-label="Warranty number">
+      <div class="field">
+        <label>Product / Warranty ID</label>
+        <input id="warrantyId" placeholder="wty_xxx" aria-label="Warranty number">
+      </div>
       <div class="toggle advanced-toggle" aria-hidden="true" style="display:none; margin:4px 0 8px 0;">
         <input type="checkbox" id="advancedKeyToggle" onchange="toggleKey()">
         <label for="advancedKeyToggle" style="margin:0; text-transform:none;">Advanced settings</label>
       </div>
       <div id="apiKeyWrap" class="hidden" aria-hidden="true" style="display:none;">
-        <label>Access Key</label><input id="apiKey" placeholder="optional" aria-label="Access Key">
+        <div class="field">
+          <label>Access Key</label>
+          <input id="apiKey" placeholder="optional" aria-label="Access Key">
+        </div>
       </div>
       <button id="show-warranty-btn" type="button" data-role="show-warranty-btn">Load product details</button>
       <div class="helper">Enter an ID or select from dropdown to fetch your product + coverage details.</div>
       <div id="status" class="status-line"></div>
-
+      <hr class="card-divider">
 
       <div id="overviewData" class="hidden" style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
         <div class="placeholder" id="summaryShort"></div>
@@ -797,7 +882,9 @@
       <summary class="section-title" id="step2" style="cursor:pointer; list-style:none;">Step 2 - Details & care (tap to
         expand)</summary>
       <div class="card card-locked" id="detailsCare" data-step-lock="true" style="margin-top:10px;">
-        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">Details & care
+        <div class="step-kicker">Coverage view</div>
+        <div class="card-title-row">
+          <div class="card-title" style="margin-bottom:0;">Details & care</div>
           <button type="button" class="btn-ghost" id="collapseStep2"
             style="width:auto; padding:8px 12px; font-weight:700;">Collapse</button>
         </div>
@@ -843,12 +930,14 @@
     <!-- Section: Document Actions -->
     <div class="section-title" id="step3">Step 3 - Add your bill</div>
     <div class="card card-locked" data-step-lock="true" id="step-add-bill">
+      <div class="step-kicker">Proof of purchase</div>
       <div class="card-title">Add your bill</div>
       <div class="card-hint" id="step3Hint">After your product appears in Step 1, you can add your bill or receipt here.
       </div>
       <div class="helper" id="productContextStep3" style="display:none;"></div>
       <button id="btnReceiptStart" type="button">Add receipt</button>
-      <div id="billChoicePanel" class="panel hidden">
+      <div id="billChoicePanel" class="panel hidden subtle-panel">
+        <p class="panel-title">Choose method</p>
         <label>Add receipt via</label>
         <select id="billMethod">
           <option value="" selected>Select a method</option>
@@ -858,14 +947,16 @@
         </select>
       </div>
 
-      <div id="billUploadPanel" class="panel hidden">
+      <div id="billUploadPanel" class="panel hidden subtle-panel">
+        <p class="panel-title">Upload document</p>
         <label>Upload receipt/bill</label>
         <input id="billFile" type="file" accept="image/*,application/pdf">
         <button id="btnUploadBill" type="button">Upload</button>
         <div id="billUploadMsg" class="status-line placeholder">No document added yet.</div>
       </div>
 
-      <div id="billCameraPanel" class="panel hidden">
+      <div id="billCameraPanel" class="panel hidden subtle-panel">
+        <p class="panel-title">Use camera</p>
         <div id="cameraWrap" class="hidden" style="margin-top:10px;">
           <video id="cameraVideo" autoplay playsinline
             style="width:100%; border-radius:12px; border:1px solid var(--border);"></video>
@@ -878,7 +969,8 @@
         </div>
       </div>
 
-      <div id="billManualPanel" class="panel hidden">
+      <div id="billManualPanel" class="panel hidden subtle-panel">
+        <p class="panel-title">Manual entry</p>
         <label>Seller / Store</label>
         <input id="mSeller" placeholder="e.g., Reliance Digital">
         <label>Invoice date</label>
@@ -895,12 +987,13 @@
     <!-- Section: Device Health Logs -->
     <div class="section-title" id="step4">Step 4 - Usage & health</div>
     <div class="card card-locked" data-step-lock="true">
+      <div class="step-kicker">Care intelligence</div>
       <div class="card-title">Device usage & issues</div>
       <div class="card-hint" id="step4Hint">Load your product in Step 1 to unlock these details.</div>
       <div class="helper" id="productContextStep4" style="display:none;"></div>
       <div class="helper" style="margin-top:-2px;">Quick questions about your usage</div>
-      <div id="behaviourCard" class="card"
-        style="padding:12px; border:1px dashed var(--border); background:#fdfefe; display:none;">
+      <div id="behaviourCard" class="subtle-panel"
+        style="border-style:dashed; background:#fdfefe; display:none;">
         <div id="behaviourQuestionText" style="font-weight:700; font-size:14px;"></div>
         <div id="behaviourChoices" class="actions" style="margin-top:8px;"></div>
         <div class="helper" id="behaviourThanks" style="display:none;">Thanks, this helps us keep your product healthier
@@ -909,16 +1002,18 @@
       <details id="recCard" style="padding:0; margin-top:10px; display:none;">
         <summary class="card-title" style="cursor:pointer;">Smart suggestions for you <span class="helper"
             style="display:inline; font-weight:400;">(tap to expand)</span></summary>
-        <div class="card" style="padding:14px; margin-top:10px;">
+        <div class="subtle-panel" style="margin-top:10px;">
           <div id="recList" class="placeholder">Loading suggestions...</div>
         </div>
       </details>
-      <div class="card" id="evCard" style="padding:14px; margin-top:10px; display:none;">
+      <div class="subtle-panel" id="evCard" style="margin-top:10px; display:none;">
         <div class="card-title">EV battery health</div>
         <div class="helper">Enter a few details and we'll estimate battery health.</div>
-        <input id="evDailyKm" type="number" min="0" placeholder="Daily km (optional)">
-        <input id="evFastCharges" type="number" min="0" placeholder="Fast charge sessions / month (optional)">
-        <input id="evDeepDischarge" type="number" min="0" placeholder="Times below 10% (optional)">
+        <div class="form-grid two-col">
+          <input id="evDailyKm" type="number" min="0" placeholder="Daily km (optional)">
+          <input id="evFastCharges" type="number" min="0" placeholder="Fast charge sessions / month (optional)">
+          <input id="evDeepDischarge" type="number" min="0" placeholder="Times below 10% (optional)">
+        </div>
         <button type="button" onclick="fetchEvScore()">Check EV battery health</button>
         <div id="evStatus" class="status-line placeholder">No EV battery info yet.</div>
         <div id="evReasons" class="helper"></div>
