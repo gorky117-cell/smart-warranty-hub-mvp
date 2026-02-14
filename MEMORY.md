@@ -187,6 +187,7 @@ Last updated: 2026-02-13
   - Hardened auth cookie security (`secure` now auto-detected from HTTPS/proxy or `COOKIE_SECURE` env).
   - Added startup safety creation for `audit_logs` and stronger audit table auto-heal in `app/services/audit.py`.
   - Cleared mock discovery seed from `data/warranty_sources.json` and blocked local test-data URLs unless explicitly enabled (`TERMS_ALLOW_LOCAL_DEV_SOURCES=true`).
+  - `app/services/llm.py` now supports `LLM_PROVIDER=mistral` for `/llm/generate` (non-tech markdown-friendly response style), while keeping Ollama connector fallback.
 - UI refinement baseline:
   - Unauthenticated `/ui/*` routes now redirect to `/login?next=...` instead of returning raw `{"detail":"Missing token"}`.
   - Added mobile-first welcome auth page with both sign-in and sign-up flow in `templates/login.html`.
