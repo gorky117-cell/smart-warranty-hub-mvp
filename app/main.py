@@ -1757,7 +1757,7 @@ def verify_domain(payload: OemVerifyRequest):
 
 
 @app.post("/predictive/score", dependencies=[Depends(rbac_dependency)])
-def predictive_score(payload: PredictiveRequest):
+def predictive_score(payload: PredictiveRequest, db=Depends(get_db)):
     data = score_warranty(payload.user_id, payload.warranty_id)
     try:
         risk_label = (data.get("risk_label") or "LOW").upper()
@@ -1771,17 +1771,13 @@ def predictive_score(payload: PredictiveRequest):
                 message=f"Predictive model flagged {risk_label.lower()} risk for warranty {payload.warranty_id}.",
                 severity=severity,
             )
-        warranty = store.get_warranty_db(payload.warranty_id)
-        if warranty and warranty.expiry_date:
-            days_left = (warranty.expiry_date - datetime.utcnow().date()).days
-            if days_left < 30:
-                notification_service.create_notification(
-                    user_id=payload.user_id,
-                    warranty_id=payload.warranty_id,
-                    type="expiry_soon",
-                    title="Warranty expiring soon",
-                    message=f"Warranty {payload.warranty_id} ends in {max(days_left, 0)} days.",
-                    severity="warning" if days_left > 0 else "critical",
+        warranty = db.query(WarrantyDB).filter(WarrantyDB.id == payload.warranty_id).first()
+        if warranty:
+            notification_service.create_expiry_notifications(
+                db=db,
+                user_id=payload.user_id,
+                warranty_id=payload.warranty_id,
+                warranty=warranty,
             )
     except Exception:
         pass

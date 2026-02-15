@@ -11,6 +11,7 @@ from ..db_models import OEMFetchDB
 from .audit import log_action
 from .oem_issue_feeds import ingest_oem_issue_feeds
 from .risk_refresh import refresh_risk_snapshots
+from . import notifications as notification_service
 from .data_governance import cleanup_retention
 from .review_crawler import crawl_reviews
 from .oem_dispatch import run_weekly_dispatch
@@ -21,6 +22,7 @@ def oem_refresh_loop(interval_minutes: int = 60):
     last_risk_refresh = datetime.datetime.min
     last_review_crawl = datetime.datetime.min
     last_cleanup = datetime.datetime.min
+    last_expiry_refresh = datetime.datetime.min
     last_oem_analysis = datetime.datetime.min
     last_oem_dispatch = datetime.datetime.min
     issue_interval = int(os.getenv("OEM_ISSUE_FEED_REFRESH_MINUTES", "180"))
@@ -28,6 +30,8 @@ def oem_refresh_loop(interval_minutes: int = 60):
     review_interval = int(os.getenv("REVIEW_CRAWL_MINUTES", "1440"))
     review_enabled = os.getenv("REVIEW_CRAWL_ENABLED", "true").lower() == "true"
     cleanup_interval = int(os.getenv("DATA_GOVERNANCE_CLEANUP_MINUTES", "1440"))
+    expiry_interval = int(os.getenv("EXPIRY_REMINDER_MINUTES", "720"))
+    expiry_enabled = os.getenv("EXPIRY_REMINDER_ENABLED", "true").lower() == "true"
     oem_analysis_enabled = os.getenv("OEM_ANALYSIS_ENABLED", "true").lower() == "true"
     oem_analysis_interval = int(os.getenv("OEM_ANALYSIS_MINUTES", "10080"))  # weekly analysis
     oem_dispatch_enabled = os.getenv("OEM_AUTO_DISPATCH_ENABLED", "true").lower() == "true"
@@ -94,6 +98,13 @@ def oem_refresh_loop(interval_minutes: int = 60):
                     stats = cleanup_retention(db)
                     log_action("governance_cleanup", f"{stats}")
                     last_cleanup = now
+                if expiry_enabled and expiry_interval > 0 and (now - last_expiry_refresh).total_seconds() >= expiry_interval * 60:
+                    try:
+                        stats = notification_service.refresh_expiry_notifications(db)
+                        log_action("expiry_reminder_refresh", f"{stats}")
+                    except Exception as exc:
+                        log_action("expiry_reminder_refresh_fail", str(exc))
+                    last_expiry_refresh = now
                 if oem_analysis_enabled and oem_analysis_interval > 0 and (now - last_oem_analysis).total_seconds() >= oem_analysis_interval * 60:
                     try:
                         stats = run_weekly_dispatch(db, dry_run=True)

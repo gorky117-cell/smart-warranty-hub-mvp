@@ -1,5 +1,6 @@
+import os
 from datetime import datetime, timedelta, date
-from typing import List, Optional
+from typing import Dict, List, Optional, Set, Tuple
 
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -45,6 +46,205 @@ def _to_dict(n: NotificationDB) -> dict:
         "severity": n.severity,
         "is_read": bool(n.is_read),
         "created_at": n.created_at,
+    }
+
+
+def _as_date(value) -> Optional[date]:
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    return None
+
+
+def _add_months(start: date, months: int) -> date:
+    year = start.year + (start.month - 1 + months) // 12
+    month = (start.month - 1 + months) % 12 + 1
+    day = min(
+        start.day,
+        [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][
+            month - 1
+        ],
+    )
+    return date(year, month, day)
+
+
+def resolve_expiry_date(warranty: Optional[WarrantyDB]) -> Optional[date]:
+    if not warranty:
+        return None
+    direct = _as_date(getattr(warranty, "expiry_date", None))
+    if direct:
+        return direct
+    purchase = _as_date(getattr(warranty, "purchase_date", None))
+    coverage = getattr(warranty, "coverage_months", None)
+    if purchase and coverage:
+        try:
+            return _add_months(purchase, int(coverage))
+        except Exception:
+            return None
+    return None
+
+
+def _parse_expiry_stages() -> List[int]:
+    raw = os.getenv("EXPIRY_REMINDER_STAGE_DAYS", "30,7,0")
+    vals: Set[int] = set()
+    for part in str(raw).split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            v = int(part)
+        except ValueError:
+            continue
+        if v >= 0:
+            vals.add(v)
+    if not vals:
+        vals = {30, 7, 0}
+    return sorted(vals)
+
+
+def _closest_stage(days_left: int, stages: List[int]) -> Optional[int]:
+    eligible = [s for s in stages if days_left <= s]
+    if not eligible:
+        return None
+    return min(eligible)
+
+
+def _notification_exists(db: Session, user_id: str, warranty_id: str, ntype: str) -> bool:
+    row = (
+        db.query(NotificationDB.id)
+        .filter(
+            NotificationDB.user_id == user_id,
+            NotificationDB.warranty_id == warranty_id,
+            NotificationDB.type == ntype,
+            NotificationDB.audience == "user",
+        )
+        .first()
+    )
+    return bool(row)
+
+
+def _expiry_payload(days_left: int, expiry_dt: date) -> Tuple[str, str, str]:
+    if days_left < 0:
+        days_over = abs(days_left)
+        return (
+            "expiry_expired",
+            "Warranty expired",
+            f"Your warranty expired {days_over} day(s) ago on {expiry_dt.isoformat()}.",
+        )
+    if days_left == 0:
+        return (
+            "expiry_due",
+            "Warranty expires today",
+            f"Your warranty expires today ({expiry_dt.isoformat()}). Save documents and claim if needed.",
+        )
+    stage = _closest_stage(days_left, _parse_expiry_stages())
+    if stage is None:
+        return ("", "", "")
+    if stage <= 7:
+        return (
+            f"expiry_{stage}d",
+            f"Warranty expires in {days_left} day(s)",
+            f"Your warranty ends on {expiry_dt.isoformat()} ({days_left} day(s) left). Finalize any pending claim steps now.",
+        )
+    return (
+        f"expiry_{stage}d",
+        f"Warranty expires in {days_left} day(s)",
+        f"Your warranty ends on {expiry_dt.isoformat()} ({days_left} day(s) left). Keep invoice and service docs ready.",
+    )
+
+
+def create_expiry_notifications(
+    db: Session,
+    user_id: str,
+    warranty_id: str,
+    warranty: Optional[WarrantyDB] = None,
+) -> List[dict]:
+    """
+    Create staged expiry reminders (30d/7d/today/expired) exactly once per stage+user+warranty.
+    Returns list of created notifications (0 or 1).
+    """
+    _ensure_schema(db)
+    w = warranty or db.query(WarrantyDB).filter(WarrantyDB.id == warranty_id).first()
+    expiry_dt = resolve_expiry_date(w)
+    if not expiry_dt:
+        return []
+    days_left = (expiry_dt - date.today()).days
+    ntype, title, message = _expiry_payload(days_left, expiry_dt)
+    if not ntype:
+        return []
+    if _notification_exists(db, user_id, warranty_id, ntype):
+        return []
+    severity = "critical" if ntype in ("expiry_due", "expiry_expired") else "warning"
+    created = create_notification(
+        db=db,
+        user_id=user_id,
+        warranty_id=warranty_id,
+        type=ntype,
+        title=title,
+        message=message,
+        severity=severity,
+    )
+    return [created] if created else []
+
+
+def _distinct_user_warranty_pairs_for_expiry(db: Session, limit: int = 2000) -> Set[Tuple[str, str]]:
+    pairs: Set[Tuple[str, str]] = set()
+    rows_a = (
+        db.query(NotificationDB.user_id, NotificationDB.warranty_id)
+        .filter(NotificationDB.user_id.isnot(None), NotificationDB.warranty_id.isnot(None))
+        .limit(max(1, int(limit)))
+        .all()
+    )
+    for user_id, warranty_id in rows_a:
+        if user_id and warranty_id:
+            pairs.add((str(user_id), str(warranty_id)))
+    rows_b = (
+        db.query(RiskSnapshotDB.user_id, RiskSnapshotDB.warranty_id)
+        .filter(RiskSnapshotDB.user_id.isnot(None), RiskSnapshotDB.warranty_id.isnot(None))
+        .limit(max(1, int(limit)))
+        .all()
+    )
+    for user_id, warranty_id in rows_b:
+        if user_id and warranty_id:
+            pairs.add((str(user_id), str(warranty_id)))
+    return pairs
+
+
+def refresh_expiry_notifications(db: Session) -> Dict[str, int]:
+    """
+    Periodic sweep to send staged expiry reminders for existing user+warranty pairs.
+    Safe to run repeatedly (idempotent by stage type checks).
+    """
+    _ensure_schema(db)
+    scan_limit = int(os.getenv("EXPIRY_REMINDER_SCAN_LIMIT", "1500"))
+    stages = _parse_expiry_stages()
+    max_days = max(stages) if stages else 30
+    scanned = 0
+    created = 0
+    skipped_no_expiry = 0
+    pairs = _distinct_user_warranty_pairs_for_expiry(db, limit=scan_limit)
+    warranty_cache: Dict[str, Optional[WarrantyDB]] = {}
+    for user_id, warranty_id in pairs:
+        scanned += 1
+        if scanned > scan_limit:
+            break
+        if warranty_id not in warranty_cache:
+            warranty_cache[warranty_id] = db.query(WarrantyDB).filter(WarrantyDB.id == warranty_id).first()
+        w = warranty_cache[warranty_id]
+        exp = resolve_expiry_date(w)
+        if not exp:
+            skipped_no_expiry += 1
+            continue
+        days_left = (exp - date.today()).days
+        # Only evaluate near-expiry and overdue windows.
+        if days_left > max_days:
+            continue
+        created += len(create_expiry_notifications(db=db, user_id=user_id, warranty_id=warranty_id, warranty=w))
+    return {
+        "scanned": scanned,
+        "created": created,
+        "skipped_no_expiry": skipped_no_expiry,
     }
 
 
@@ -321,22 +521,7 @@ def run_initial_analysis_and_notifications(db: Session, user_id: str, warranty_i
     except Exception:
         pass
 
-    # Expiry soon
     try:
-        if warranty.expiry_date:
-            today = date.today()
-            days_left = (warranty.expiry_date.date() if hasattr(warranty.expiry_date, "date") else warranty.expiry_date) - today
-            if hasattr(days_left, "days"):
-                days = days_left.days
-                if 0 <= days <= 30:
-                    create_notification(
-                        db=db,
-                        user_id=user_id,
-                        warranty_id=warranty_id,
-                        type="expiry_soon",
-                        title="Warranty expiring soon",
-                        message=f"Your warranty expires in {days} days. Consider backing up receipts or buying extended cover.",
-                        severity="warning",
-                    )
+        create_expiry_notifications(db=db, user_id=user_id, warranty_id=warranty_id, warranty=warranty)
     except Exception:
         pass

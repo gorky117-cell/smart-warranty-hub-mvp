@@ -11,6 +11,7 @@ Last updated: 2026-02-13
 - Optional headless scraping (Playwright) is integrated and gated by env var.
 - Regional policy rules + OEM issue signals are integrated into predictive risk.
 - Scheduled ingestion + risk refresh is integrated via scheduler.
+- Staged expiry reminders are integrated (30d/7d/today/expired) with periodic refresh.
 - Mistral LLM + RAG (pgvector) is integrated for smarter summaries.
 - RAG indices now ingest product/user behaviour, telemetry, and OEM issue signals for predictive context.
 - Review crawling pipeline added (India focus, daily scheduling, robots-respecting). Stores raw snapshots in object storage and ingests review sentiment into predictive signals.
@@ -100,6 +101,11 @@ Last updated: 2026-02-13
 - `RAG_ENABLED=1`
 - `SCHEDULER_ENABLED=true|false` (new kill switch for low-memory deploys)
 - `PGVECTOR_DDL_ENABLED=true|false` (controls pgvector column DDL usage)
+- Expiry reminder controls:
+  - `EXPIRY_REMINDER_ENABLED=true|false`
+  - `EXPIRY_REMINDER_MINUTES=720`
+  - `EXPIRY_REMINDER_STAGE_DAYS=30,7,0`
+  - `EXPIRY_REMINDER_SCAN_LIMIT=1500`
 
 ## Changes & Additions
 - Added warranty discovery + parsing:
@@ -128,6 +134,7 @@ Last updated: 2026-02-13
   - `app/services/oem_issue_feeds.py`
   - `app/services/risk_refresh.py`
   - Scheduler updated in `app/services/scheduler.py`
+  - Added staged expiry reminder engine (`30d/7d/today/expired`) with periodic scheduler refresh.
 - Added APIs:
   - `POST /region-rules`, `GET /region-rules`
   - `POST /oem/issues`, `GET /oem/issues/summary`
