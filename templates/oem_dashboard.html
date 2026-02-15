@@ -127,7 +127,12 @@
     }
     .grid-cards { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:12px; }
     #productInterest .card { box-shadow:none; border:1px solid var(--border); margin-bottom:10px; }
-    #riskChart, #behChart, #forecastChart { width: 100% !important; min-height: 200px; }
+    #riskChart, #behChart, #forecastChart {
+      width: 100% !important;
+      min-height: 220px;
+      height: 260px !important;
+      display: block;
+    }
     #customer-qs button, #rec-studio button { margin-top: 8px; }
     @media (max-width: 640px) {
       .container { padding: 12px 12px 22px; gap: 10px; }
@@ -139,7 +144,10 @@
       h3 { font-size: 16px; margin-bottom: 10px; }
       label { font-size: 12px; }
       select, button, input, textarea { font-size: 14px; padding: 11px; border-radius: 10px; }
-      #riskChart, #behChart, #forecastChart { min-height: 180px; }
+      #riskChart, #behChart, #forecastChart {
+        min-height: 200px;
+        height: 240px !important;
+      }
     }
   </style>
 </head>
@@ -454,6 +462,7 @@
       const insightsEl = document.getElementById('forecastInsights');
       const canvas = document.getElementById('forecastChart');
       if (!canvas) return;
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
       const history = Array.isArray(data?.history) ? data.history : [];
       const future = Array.isArray(data?.forecast) ? data.forecast : [];
       const insightLines = Array.isArray(data?.insights) ? data.insights : [];
@@ -494,8 +503,20 @@
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: isMobile ? 'bottom' : 'top',
+              labels: { boxWidth: isMobile ? 10 : 14, font: { size: isMobile ? 10 : 12 } }
+            }
+          },
           scales: {
-            y: { beginAtZero: true, title: { display: true, text: 'Cases' } },
+            x: { ticks: { maxRotation: 0, minRotation: 0, font: { size: isMobile ? 10 : 12 } } },
+            y: {
+              beginAtZero: true,
+              title: { display: !isMobile, text: 'Cases' },
+              ticks: { font: { size: isMobile ? 10 : 12 } }
+            },
           },
         },
       });
@@ -516,6 +537,7 @@
     function renderRiskChart(risk, peer) {
       const ctx = document.getElementById('riskChart');
       if (!ctx) return;
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
       const labels = ['Low', 'Medium', 'High'];
       const counts = [risk.low || 0, risk.medium || 0, risk.high || 0];
       const avgRating = peer?.avg_rating || 0;
@@ -556,10 +578,43 @@
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: isMobile ? 'bottom' : 'top',
+              labels: {
+                boxWidth: isMobile ? 10 : 14,
+                font: { size: isMobile ? 10 : 12 }
+              }
+            }
+          },
           scales: {
-            y: { beginAtZero: true, title: { display: true, text: 'Risk Count' } },
-            y1: { beginAtZero: true, position: 'right', min: 0, max: 5, grid: { drawOnChartArea: false }, title: { display: true, text: 'Avg Rating (0-5)' } },
-            y2: { beginAtZero: true, position: 'right', min: 0, max: 1, grid: { drawOnChartArea: false }, title: { display: true, text: 'Avg Sentiment (0-1)' } }
+            x: {
+              ticks: { maxRotation: 0, minRotation: 0, font: { size: isMobile ? 10 : 12 } }
+            },
+            y: {
+              beginAtZero: true,
+              title: { display: !isMobile, text: 'Risk Count' },
+              ticks: { font: { size: isMobile ? 10 : 12 } }
+            },
+            y1: {
+              beginAtZero: true,
+              position: 'right',
+              min: 0,
+              max: 5,
+              display: !isMobile,
+              grid: { drawOnChartArea: false },
+              title: { display: false }
+            },
+            y2: {
+              beginAtZero: true,
+              position: 'right',
+              min: 0,
+              max: 1,
+              display: !isMobile,
+              grid: { drawOnChartArea: false },
+              title: { display: false }
+            }
           }
         }
       });
@@ -599,6 +654,7 @@
     function renderBehaviourChart(beh) {
       const ctx = document.getElementById('behChart');
       if (!ctx) return;
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
       const labels = ['Care', 'Behaviour', 'Responsiveness'];
       const data = [
         beh.care_score || 0,
@@ -619,7 +675,13 @@
           ]
         },
         options: {
-          scales: { y: { min: 0, max: 1 } }
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: !isMobile } },
+          scales: {
+            x: { ticks: { maxRotation: 0, minRotation: 0, font: { size: isMobile ? 10 : 12 } } },
+            y: { min: 0, max: 1, ticks: { font: { size: isMobile ? 10 : 12 } } }
+          }
         }
       });
     }
