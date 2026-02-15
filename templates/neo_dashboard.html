@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -994,10 +994,10 @@
     <div class="section-title" id="step4">Step 4 - Usage & health</div>
     <div class="card card-locked" data-step-lock="true">
       <div class="step-kicker">Care intelligence</div>
-      <div class="card-title">Device usage & issues</div>
+      <div class="card-title">Usage notes (optional)</div>
       <div class="card-hint" id="step4Hint">Load your product in Step 1 to unlock these details.</div>
       <div class="helper" id="productContextStep4" style="display:none;"></div>
-      <div class="helper" style="margin-top:-2px;">Quick questions about your usage</div>
+      <div class="helper" style="margin-top:-2px;">Optional notes help improve risk insights and reminders.</div>
       <div id="behaviourCard" class="subtle-panel"
         style="border-style:dashed; background:#fdfefe; display:none;">
         <div id="behaviourQuestionText" style="font-weight:700; font-size:14px;"></div>
@@ -1025,19 +1025,19 @@
         <div id="evReasons" class="helper"></div>
       </div>
       <details id="saveInfoDetails">
-        <summary>Quick log (optional) <span style="font-weight:400; color:var(--muted); font-size:13px;">— Save a quick
-            note for this warranty to improve future advice.</span></summary>
-        <div class="helper" style="margin-top:8px;">Saving for: <span id="saveContextBrand">—</span> <span
-            id="saveContextModel">—</span> • Warranty: <span id="saveContextWarrantyId">—</span></div>
-        <div class="helper">Saved notes help improve advice and predictive care for this product.</div>
-        <label>What do you want to save?</label>
+        <summary>Add a quick note (optional) <span style="font-weight:400; color:var(--muted); font-size:13px;">â€” Short updates can make guidance
+            more accurate over time.</span></summary>
+        <div class="helper" style="margin-top:8px;">Saving for: <span id="saveContextBrand">â€”</span> <span
+            id="saveContextModel">â€”</span> â€¢ Warranty: <span id="saveContextWarrantyId">â€”</span></div>
+        <div class="helper">These notes are used only to personalize care guidance for this product.</div>
+        <label>What would you like to log?</label>
         <select id="telType">
           <option value="usage">Usage hours</option>
           <option value="error">Error message</option>
           <option value="failure">Breakdown / repair</option>
           <option value="maintenance">Maintenance</option>
         </select>
-        <input id="telPayloadSimple" placeholder="Add a quick note or value" />
+        <input id="telPayloadSimple" placeholder="Add a short note or value" />
         <div class="toggle toggle-switch">
           <label class="slider-wrap" for="advancedToggle">
             <input type="checkbox" id="advancedToggle" onchange="toggleAdvanced()" />
@@ -1047,8 +1047,8 @@
             (optional)</label>
         </div>
         <textarea id="telPayload" rows="3" class="hidden" placeholder='{"hours":10}'></textarea>
-        <button onclick="sendTelemetry()">Save this info</button>
-        <div id="telStatus" class="status-line placeholder">No usage info saved yet.</div>
+        <button onclick="sendTelemetry()">Save note</button>
+        <div id="telStatus" class="status-line placeholder">No notes saved yet.</div>
         <div id="devTelemetryTools" class="helper"
           style="display:none; margin-top:8px; border-top:1px dashed var(--border); padding-top:8px;">
           <strong>DEV tools</strong>
@@ -1064,19 +1064,19 @@
     <!-- Sticky bottom bar -->
     <div class="sticky-bar">
       <button type="button" class="active" data-target="step1" onclick="scrollToStep('step1', this)">
-        <span class="nav-icon">⌂</span>
+        <span class="nav-icon">âŒ‚</span>
         <span>Home</span>
       </button>
       <button type="button" data-target="step2" onclick="scrollToStep('step2', this)">
-        <span class="nav-icon">◫</span>
+        <span class="nav-icon">â—«</span>
         <span>Details</span>
       </button>
       <button type="button" data-target="step3" onclick="scrollToStep('step3', this)">
-        <span class="nav-icon">◎</span>
+        <span class="nav-icon">â—Ž</span>
         <span>Bill</span>
       </button>
       <button type="button" data-target="step4" onclick="scrollToStep('step4', this)">
-        <span class="nav-icon">◔</span>
+        <span class="nav-icon">â—”</span>
         <span>Health</span>
       </button>
     </div>
@@ -1323,7 +1323,7 @@
             title = replaceWarrantyId(title, wid, label);
             message = replaceWarrantyId(message, wid, label);
             if (!title.includes(label) && !message.includes(label)) {
-              title = `${title} — ${label}`;
+              title = `${title} â€” ${label}`;
             }
           }
         }
@@ -1455,7 +1455,7 @@
         setText('laymanSummary', 'Load data to see a simple summary.');
         setText('uploadResult', 'No document added yet.');
         setText('oemStatus', 'No brand info fetched yet.');
-        setText('telStatus', 'No usage info saved yet.');
+        setText('telStatus', 'No notes saved yet.');
         setText('detailsHelper', 'Load your product in Step 1 to unlock these details.');
         setText('step3Hint', 'After your product appears in Step 1, you can add your bill or receipt here.');
         setText('step4Hint', 'Once your product is loaded, you can save how you are using the device or any issues here.');
@@ -2681,3 +2681,4 @@
 </body>
 
 </html>
+
