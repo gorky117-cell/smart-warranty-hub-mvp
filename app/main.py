@@ -1004,7 +1004,11 @@ def login(
         max_age=ACCESS_TOKEN_EXPIRE_HOURS * 3600,
         path="/",
     )
-    target = next_url or ("/ui/oem-dashboard" if user.role in ("admin", "oem") else "/ui/neo-dashboard")
+    target = next_url or (
+        "/ui/admin-hub"
+        if user.role == "admin"
+        else ("/ui/oem-dashboard" if user.role == "oem" else "/ui/neo-dashboard")
+    )
     if accepts_json:
         response.status_code = status.HTTP_200_OK
         return {"access_token": token, "token_type": "bearer", "role": user.role, "redirect": target}
@@ -1634,6 +1638,22 @@ def console_ui(request: Request, current: Optional[UserDB] = Depends(get_current
     from fastapi.responses import HTMLResponse
     html_path = Path(__file__).resolve().parents[1] / "templates" / "console.html"
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
+
+
+@app.get("/ui/admin-hub")
+def admin_hub_ui(request: Request, current: Optional[UserDB] = Depends(get_current_user_optional)):
+    ui_redirect = _ensure_ui_oem_or_admin(request, current)
+    if ui_redirect:
+        return ui_redirect
+    if not current or current.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    from fastapi.responses import HTMLResponse
+
+    html_path = Path(__file__).resolve().parents[1] / "templates" / "admin_hub.html"
+    html = html_path.read_text(encoding="utf-8")
+    html = html.replace("__SWH_CURRENT_USER__", escape(current.username))
+    html = html.replace("__SWH_CURRENT_ROLE__", escape(current.role))
+    return HTMLResponse(content=html, status_code=200)
 
 
 @app.get("/ui/neo-dashboard")

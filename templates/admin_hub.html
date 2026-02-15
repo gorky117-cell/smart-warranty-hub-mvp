@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Smart Warranty Hub - Admin Hub</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --ink: #0f172a;
+      --muted: #475569;
+      --line: #dbe2ee;
+      --brand: #1d4ed8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    .top {
+      background: linear-gradient(120deg, #0f172a, #1e3a8a);
+      color: #fff;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    .top h1 {
+      margin: 0 0 6px 0;
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    .top p {
+      margin: 0;
+      font-size: 0.92rem;
+      opacity: 0.9;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .card h2 {
+      margin: 0 0 6px 0;
+      font-size: 1rem;
+    }
+    .card p {
+      margin: 0 0 10px 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.35;
+    }
+    .btn {
+      display: inline-block;
+      text-decoration: none;
+      background: var(--brand);
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-radius: 10px;
+      padding: 9px 12px;
+    }
+    .row {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn.secondary {
+      background: #0f172a;
+    }
+    @media (min-width: 780px) {
+      .grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="top">
+      <h1>Admin Hub</h1>
+      <p>User: <strong>__SWH_CURRENT_USER__</strong> | Role: <strong>__SWH_CURRENT_ROLE__</strong></p>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>User View (Neo)</h2>
+        <p>Open the end-user dashboard exactly as users see it.</p>
+        <a class="btn" href="/ui/neo-dashboard">Open Neo Dashboard</a>
+      </article>
+
+      <article class="card">
+        <h2>OEM Dashboard</h2>
+        <p>Open OEM controls, OEM signals, recommendations, and OEM notifications.</p>
+        <a class="btn" href="/ui/oem-dashboard">Open OEM Dashboard</a>
+      </article>
+
+      <article class="card">
+        <h2>Scheduler</h2>
+        <p>View queue and scheduler state for refresh and pipeline monitoring.</p>
+        <a class="btn" href="/ui/scheduler">Open Scheduler</a>
+      </article>
+
+      <article class="card">
+        <h2>System Health</h2>
+        <p>Quickly verify OCR, LLM, and predictive services are live.</p>
+        <a class="btn" href="/health/full">Open Health Check</a>
+      </article>
+    </section>
+
+    <div class="row">
+      <a class="btn secondary" href="/login">Go To Login</a>
+      <a class="btn secondary" href="/">Go Home</a>
+    </div>
+  </div>
+</body>
+</html>
