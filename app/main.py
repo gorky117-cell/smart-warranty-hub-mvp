@@ -1,7 +1,7 @@
 import os
 import logging
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional, Dict
 from contextlib import asynccontextmanager
 from urllib.parse import quote, urlencode
@@ -1366,6 +1366,7 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db)):
     evidence = {
         "source_artifact_ids": getattr(warranty, "source_artifact_ids", None) or [],
     }
+    layman = summary_engine.build_layman_summary(warranty)
     summary_row = invoice_pipeline.get_latest_summary(db, warranty_id)
     if summary_row:
         return {
@@ -1379,6 +1380,7 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db)):
             "terms": warranty.terms or [],
             "exclusions": warranty.exclusions or [],
             "claim_steps": warranty.claim_steps or [],
+            "layman_summary": layman,
             "evidence": evidence,
             "processing_status": latest_job.status if latest_job else None,
         }
@@ -1395,6 +1397,7 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db)):
         "terms": warranty.terms or [],
         "exclusions": warranty.exclusions or [],
         "claim_steps": warranty.claim_steps or [],
+        "layman_summary": layman,
         "evidence": evidence,
         "processing_status": latest_job.status if latest_job else None,
     }
@@ -2247,6 +2250,160 @@ def oem_risk_stats(
     return stats
 
 
+@app.get("/oem/forecast", dependencies=[Depends(require_oem_or_admin)])
+def oem_forecast(
+    brand: str | None = None,
+    model: str | None = None,
+    product_type: str | None = None,
+    region: str | None = None,
+    weeks: int = 12,
+    horizon_weeks: int = 4,
+    current=Depends(require_oem_or_admin),
+    db=Depends(get_db),
+):
+    """
+    Lightweight OEM forecast endpoint.
+    Additive only: uses existing risk snapshots and issue signals.
+    """
+    weeks = max(4, min(52, int(weeks or 12)))
+    horizon_weeks = max(1, min(12, int(horizon_weeks or 4)))
+    now = datetime.utcnow()
+    start = now - timedelta(days=weeks * 7)
+
+    warranty_q = db.query(WarrantyDB.id)
+    if brand:
+        warranty_q = warranty_q.filter(WarrantyDB.brand == brand)
+    if model:
+        warranty_q = warranty_q.filter(WarrantyDB.model_code == model)
+    if region:
+        warranty_q = warranty_q.filter(WarrantyDB.region_code == region)
+    if product_type:
+        warranty_q = warranty_q.filter(WarrantyDB.product_name.ilike(f"%{product_type}%"))
+    warranty_ids = [row[0] for row in warranty_q.all()]
+    if not warranty_ids:
+        return {
+            "ok": True,
+            "history": [],
+            "forecast": [],
+            "insights": ["No matching warranty data for this filter yet."],
+            "confidence": "low",
+        }
+
+    snaps = (
+        db.query(RiskSnapshotDB)
+        .filter(RiskSnapshotDB.warranty_id.in_(warranty_ids), RiskSnapshotDB.created_at >= start)
+        .all()
+    )
+
+    def _week_start(dt: datetime) -> datetime:
+        base = dt - timedelta(days=dt.weekday())
+        return base.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    current_week = _week_start(now)
+    week_points = [current_week - timedelta(days=7 * i) for i in reversed(range(weeks))]
+    by_week: Dict[str, Dict[str, int]] = {
+        p.date().isoformat(): {"LOW": 0, "MEDIUM": 0, "HIGH": 0, "UNKNOWN": 0}
+        for p in week_points
+    }
+
+    for s in snaps:
+        key = _week_start(s.created_at).date().isoformat()
+        if key not in by_week:
+            continue
+        label = (s.risk_label or "UNKNOWN").upper()
+        if label not in by_week[key]:
+            label = "UNKNOWN"
+        by_week[key][label] += 1
+
+    history = []
+    for p in week_points:
+        key = p.date().isoformat()
+        c = by_week[key]
+        history.append(
+            {
+                "week_start": key,
+                "low": c["LOW"],
+                "medium": c["MEDIUM"],
+                "high": c["HIGH"],
+                "unknown": c["UNKNOWN"],
+                "total": c["LOW"] + c["MEDIUM"] + c["HIGH"] + c["UNKNOWN"],
+            }
+        )
+
+    def _forecast(series: List[int], n: int) -> List[int]:
+        if not series:
+            return [0] * n
+        if len(series) == 1:
+            return [max(0, int(round(series[0])))] * n
+        slope = (series[-1] - series[0]) / max(1, (len(series) - 1))
+        last = series[-1]
+        out = []
+        for i in range(1, n + 1):
+            out.append(max(0, int(round(last + slope * i))))
+        return out
+
+    low_series = [h["low"] for h in history]
+    med_series = [h["medium"] for h in history]
+    high_series = [h["high"] for h in history]
+
+    f_low = _forecast(low_series, horizon_weeks)
+    f_med = _forecast(med_series, horizon_weeks)
+    f_high = _forecast(high_series, horizon_weeks)
+
+    forecast = []
+    for i in range(horizon_weeks):
+        wk = (current_week + timedelta(days=7 * (i + 1))).date().isoformat()
+        failure_pressure = f_high[i] + max(0, round(f_med[i] * 0.6))
+        forecast.append(
+            {
+                "week_start": wk,
+                "low": f_low[i],
+                "medium": f_med[i],
+                "high": f_high[i],
+                "failure_pressure": int(failure_pressure),
+            }
+        )
+
+    issue_q = db.query(OemIssueSignalDB)
+    if brand:
+        issue_q = issue_q.filter(OemIssueSignalDB.brand == brand)
+    if model:
+        issue_q = issue_q.filter(OemIssueSignalDB.model_code == model)
+    if region:
+        issue_q = issue_q.filter(OemIssueSignalDB.region == region)
+    issue_rows = issue_q.filter(OemIssueSignalDB.created_at >= start).all()
+    issue_load = sum(int(r.count or 0) for r in issue_rows)
+
+    trend = "stable"
+    if len(high_series) >= 2:
+        if high_series[-1] > high_series[0]:
+            trend = "rising"
+        elif high_series[-1] < high_series[0]:
+            trend = "falling"
+
+    avg_future_pressure = (sum(x["failure_pressure"] for x in forecast) / len(forecast)) if forecast else 0.0
+    insights = [
+        f"High-risk trend is {trend}.",
+        f"Estimated average failure pressure for next {horizon_weeks} weeks: {avg_future_pressure:.1f}.",
+        f"Recent OEM issue volume in selected window: {issue_load}.",
+    ]
+    if avg_future_pressure >= 8:
+        insights.append("Recommend proactive spares/service slot planning for this model segment.")
+    elif avg_future_pressure >= 3:
+        insights.append("Recommend moderate readiness: monitor parts and service capacity weekly.")
+    else:
+        insights.append("Current projected pressure is low; continue weekly monitoring.")
+
+    confidence = "high" if len(history) >= 12 else ("medium" if len(history) >= 8 else "low")
+    return {
+        "ok": True,
+        "history": history,
+        "forecast": forecast,
+        "insights": insights,
+        "confidence": confidence,
+    }
+
+
 @app.post("/oem/fetch", dependencies=[Depends(rbac_dependency)])
 def oem_fetch(payload: OemFetchRequest):
     with SessionLocal() as db:
@@ -2301,8 +2458,15 @@ def warranty_summary(payload: SummaryRequest):
             "Claim steps: " + "; ".join(warranty.claim_steps),
         ]
         text = "\n".join(lines)
+    structured = summary_engine.build_structured_summary(warranty)
+    layman = summary_engine.build_layman_summary(warranty)
     log_action("warranty_summary", f"warranty_id={payload.warranty_id} prompt_len={len(prompt)}")
-    return {"summary": text}
+    return {
+        "summary": text,
+        "summary_points": structured.get("points", []),
+        "summary_tags": structured.get("tags", []),
+        "layman_summary": layman,
+    }
 
 
 @app.get("/warranties/{warranty_id}/export", dependencies=[Depends(rbac_dependency)])

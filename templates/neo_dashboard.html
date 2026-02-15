@@ -917,6 +917,11 @@
             <div class="helper"><a href="javascript:void(0)" data-role="open-fullview" data-target="warranty"
                 data-title="Full warranty text" id="warrantyFullLink" style="display:none;">Open full-screen</a></div>
           </details>
+          <details>
+            <summary>Easy summary (pros, limits, fine print)</summary>
+            <div class="helper">Short, non-technical view from extracted warranty terms.</div>
+            <div id="laymanSummary" class="placeholder">Load data to see a simple summary.</div>
+          </details>
         </details>
         <details>
           <summary>How to look after it</summary>
@@ -1447,6 +1452,7 @@
         setText('advisories', 'Load data to see guidance.');
         setText('warranty', 'Load data to see warranty details.');
         setText('coverageDetails', 'Load data to see coverage details.');
+        setText('laymanSummary', 'Load data to see a simple summary.');
         setText('uploadResult', 'No document added yet.');
         setText('oemStatus', 'No brand info fetched yet.');
         setText('telStatus', 'No usage info saved yet.');
@@ -1983,6 +1989,7 @@
             body: JSON.stringify({ warranty_id: warrantyId })
           }, 'warranty summary');
           document.getElementById('summary').textContent = sum.summary || '';
+          renderLaymanSummary(sum.layman_summary);
           const displayName = productLabelWithId(w);
           const compactLine = [
             w.expiry_date ? `Expiry: ${w.expiry_date}` : null,
@@ -2118,6 +2125,29 @@
         friendly.innerHTML = parts.join('') || 'No details available yet.';
         lastWarrantyPlainText = renderWarrantyPlainText(data);
         setWarrantyFullLinkVisibility(data);
+      }
+
+      function renderLaymanSummary(layman) {
+        const el = document.getElementById('laymanSummary');
+        if (!el) return;
+        if (!layman || typeof layman !== 'object') {
+          el.textContent = 'Simple summary not available yet.';
+          return;
+        }
+        const list = (items, ordered = false) => {
+          const arr = Array.isArray(items) ? items.filter(Boolean) : [];
+          if (!arr.length) return '<div class="helper">Not available yet.</div>';
+          const tag = ordered ? 'ol' : 'ul';
+          return `<${tag}>${arr.map(x => `<li>${x}</li>`).join('')}</${tag}>`;
+        };
+        el.innerHTML = `
+          <div><strong>What this means:</strong> ${layman.overview || 'N/A'}</div>
+          <div style="margin-top:8px;"><strong>Pros</strong>${list(layman.pros)}</div>
+          <div style="margin-top:8px;"><strong>Limits / Cons</strong>${list(layman.cons)}</div>
+          <div style="margin-top:8px;"><strong>Fine print</strong>${list(layman.fine_print)}</div>
+          <div style="margin-top:8px;"><strong>Claim effort</strong>${list(layman.claim_friction, true)}</div>
+          <div style="margin-top:8px;"><strong>Red flags</strong>${list(layman.red_flags)}</div>
+        `;
       }
 
       function renderCoverage(w) {

@@ -185,6 +185,65 @@ def build_structured_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
     return {"points": points, "tags": list(dict.fromkeys(tags))}
 
 
+def build_layman_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
+    """
+    Human-friendly warranty explanation for non-technical users.
+    Additive helper: does not change core predictive/terms logic.
+    """
+    terms = [str(t).strip() for t in (warranty.terms or []) if str(t).strip()]
+    exclusions = [str(e).strip() for e in (warranty.exclusions or []) if str(e).strip()]
+    claim_steps = [str(c).strip() for c in (warranty.claim_steps or []) if str(c).strip()]
+
+    product = " ".join([x for x in [warranty.brand, warranty.model_code] if x]) or (warranty.product_name or "product")
+    coverage = f"{warranty.coverage_months} months" if warranty.coverage_months else "not clearly stated"
+
+    pros = terms[:4] if terms else ["Coverage details are partially available from current records."]
+    cons = exclusions[:4] if exclusions else ["No explicit exclusions were parsed yet. Please verify on OEM page/bill."]
+
+    claim_friction = []
+    if claim_steps:
+        claim_friction.extend(claim_steps[:3])
+    else:
+        claim_friction.append("Claim process is not fully available yet.")
+
+    fine_print = []
+    low_all = " ".join(exclusions).lower()
+    checks = [
+        ("physical damage", "Physical damage is usually excluded."),
+        ("liquid", "Liquid damage is often excluded."),
+        ("unauthor", "Unauthorized repair can void coverage."),
+        ("wear", "Normal wear-and-tear may not be covered."),
+        ("consum", "Consumables are usually not covered."),
+    ]
+    for key, note in checks:
+        if key in low_all:
+            fine_print.append(note)
+    if not fine_print:
+        fine_print.append("Read exclusions carefully before raising a claim.")
+
+    red_flags = []
+    if not warranty.coverage_months:
+        red_flags.append("Coverage term is unclear. Verify with OEM source.")
+    if not warranty.expiry_date and warranty.purchase_date and warranty.coverage_months:
+        red_flags.append("Expiry date is derived estimate from purchase date + coverage.")
+    if not terms and not exclusions and not claim_steps:
+        red_flags.append("Only limited warranty text was found; confidence may be low.")
+
+    overview = (
+        f"For {product}, expected coverage is {coverage}. "
+        "Use this as guidance and verify final terms on official OEM sources."
+    )
+
+    return {
+        "overview": overview,
+        "pros": pros,
+        "cons": cons,
+        "fine_print": fine_print,
+        "claim_friction": claim_friction,
+        "red_flags": red_flags,
+    }
+
+
 def health() -> Tuple[bool, str, Optional[str]]:
     if _LLM_PROVIDER == "none":
         return False, "LLM_PROVIDER=none (disabled)", None

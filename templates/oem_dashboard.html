@@ -191,6 +191,13 @@
       <canvas id="riskChart" height="120"></canvas>
     </div>
 
+    <details class="card" id="forecast-card">
+      <summary style="cursor:pointer; font-weight:700;">Forecast (weekly, simple view)</summary>
+      <div class="helper" style="margin-top:8px;">Projected high-risk pressure for next weeks based on current trends.</div>
+      <div id="forecastInsights" class="helper" style="margin-top:8px;">Loading forecast...</div>
+      <canvas id="forecastChart" height="120" style="margin-top:8px;"></canvas>
+    </details>
+
     <div class="card">
       <h3>User Behaviour Snapshot (Bar)</h3>
       <canvas id="behChart" height="120"></canvas>
@@ -280,6 +287,7 @@
     window.API_BASE = window.API_BASE || '';
     let riskChart = null;
     let behChart = null;
+    let forecastChart = null;
 
     async function fetchJsonSafe(url, options={}, label='request') {
       const res = await fetch(url, options);
@@ -362,6 +370,7 @@
       const brand = document.getElementById('brand').value || '';
       const ptype = document.getElementById('ptype').value || '';
       const region = document.getElementById('region').value || '';
+      const model = document.getElementById('qs-model')?.value || '';
       const btn = document.getElementById('run');
       btn.disabled = true;
       btn.textContent = 'Loading...';
@@ -380,6 +389,7 @@
         renderBehaviourChart(data.behaviour_snapshot || {});
         renderEv(data.ev_battery);
         renderProductInterest(data.product_interest || []);
+        fetchForecast({ brand, model, product_type: ptype, region });
         fetchOemNotifications();
       } catch (err) {
         document.getElementById('risk-content').innerHTML = `<p style="color:red;">${err}</p>`;
@@ -392,6 +402,75 @@
         btn.disabled = false;
         btn.textContent = 'Refresh';
       }
+    }
+
+    async function fetchForecast(filters) {
+      const insightsEl = document.getElementById('forecastInsights');
+      if (insightsEl) insightsEl.textContent = 'Loading forecast...';
+      try {
+        const params = new URLSearchParams();
+        if (filters?.brand) params.set('brand', filters.brand);
+        if (filters?.model) params.set('model', filters.model);
+        if (filters?.product_type) params.set('product_type', filters.product_type);
+        if (filters?.region) params.set('region', filters.region);
+        params.set('weeks', '12');
+        params.set('horizon_weeks', '4');
+        const data = await fetchApiJson(`/oem/forecast?${params.toString()}`, {}, 'oem forecast');
+        renderForecast(data);
+      } catch (e) {
+        if (insightsEl) insightsEl.textContent = `Forecast not available: ${e}`;
+      }
+    }
+
+    function renderForecast(data) {
+      const insightsEl = document.getElementById('forecastInsights');
+      const canvas = document.getElementById('forecastChart');
+      if (!canvas) return;
+      const history = Array.isArray(data?.history) ? data.history : [];
+      const future = Array.isArray(data?.forecast) ? data.forecast : [];
+      const insightLines = Array.isArray(data?.insights) ? data.insights : [];
+      const confidence = data?.confidence || 'low';
+      if (insightsEl) {
+        const bullets = insightLines.length ? `<ul>${insightLines.map(i => `<li>${i}</li>`).join('')}</ul>` : 'No forecast insights yet.';
+        insightsEl.innerHTML = `<div><strong>Confidence:</strong> ${confidence}</div>${bullets}`;
+      }
+      const labels = [...history.map(h => h.week_start), ...future.map(f => f.week_start)];
+      const histHigh = history.map(h => h.high || 0);
+      const futHigh = future.map(f => f.high || 0);
+      const fullHigh = histHigh.concat(futHigh);
+      const splitIndex = histHigh.length;
+      const forecastSegment = labels.map((_, idx) => (idx < splitIndex ? null : fullHigh[idx]));
+      const actualSegment = labels.map((_, idx) => (idx < splitIndex ? fullHigh[idx] : null));
+      if (forecastChart) forecastChart.destroy();
+      forecastChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'High risk (actual)',
+              data: actualSegment,
+              borderColor: '#2563eb',
+              backgroundColor: 'rgba(37,99,235,0.12)',
+              tension: 0.25,
+            },
+            {
+              label: 'High risk (forecast)',
+              data: forecastSegment,
+              borderColor: '#ef4444',
+              backgroundColor: 'rgba(239,68,68,0.12)',
+              borderDash: [6, 4],
+              tension: 0.25,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'Cases' } },
+          },
+        },
+      });
     }
 
     function renderRisk(risk) {
