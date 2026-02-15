@@ -1036,6 +1036,13 @@ def logout(response: Response):
     return {"status": "logged_out"}
 
 
+@app.get("/auth/session")
+def auth_session(current: Optional[UserDB] = Depends(get_current_user_optional)):
+    if not current:
+        return {"authenticated": False, "username": None, "role": None}
+    return {"authenticated": True, "username": current.username, "role": current.role}
+
+
 @app.get("/login")
 def login_form():
     from fastapi.responses import HTMLResponse

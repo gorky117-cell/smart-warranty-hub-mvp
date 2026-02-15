@@ -1,0 +1,26 @@
+TAX INVOICE
+Retailer: Croma
+Store: Phoenix Marketcity, Pune, Maharashtra
+GSTIN: 27AAACT1798P1ZL
+Invoice No: CRO-PUN-2602-44119
+Invoice Date: 2026-02-08
+
+Bill To: Neha Verma
+Phone: +91-97XXXXXX22
+
+Item 1:
+  Category: Air Conditioner
+  Brand: LG
+  Product Name: LG 1.5 Ton 5 Star Inverter Split AC
+  Model: PS-Q19YNZE
+  Serial Number: 402INLG19Z88
+  Quantity: 1
+  Unit Price: INR 54129.00
+
+Tax Summary:
+  Taxable Amount: INR 42288.14
+  CGST 14%: INR 5920.34
+  SGST 14%: INR 5920.34
+Grand Total: INR 54129.00
+
+Payment Method: Card

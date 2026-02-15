@@ -1,0 +1,26 @@
+INVOICE
+Retailer: Amazon Seller Services Pvt Ltd
+Ship From: Chennai, Tamil Nadu
+GSTIN: 29AAMCA2802M1ZK
+Invoice No: AMZ-BLR-4028821
+Invoice Date: 2026-02-09
+
+Bill To: Priya Iyer
+Phone: +91-95XXXXXX18
+
+Item 1:
+  Category: Television
+  Brand: Sony
+  Product Name: Sony BRAVIA 55-inch 4K LED TV
+  Model: KD-55X75L
+  Serial Number: SONY55X75LCHN61
+  Quantity: 1
+  Unit Price: INR 63998.91
+
+Tax Summary:
+  Taxable Amount: INR 49999.15
+  CGST 14%: INR 6999.88
+  SGST 14%: INR 6999.88
+Grand Total: INR 63998.91
+
+Payment Method: Net Banking

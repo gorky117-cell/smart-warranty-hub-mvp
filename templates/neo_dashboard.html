@@ -1152,6 +1152,36 @@
       }
       function setStatus(msg) { document.getElementById('status').textContent = msg; }
 
+      function updateUserIdHint() {
+        const userIdInput = document.getElementById('userId');
+        const userIdHint = document.getElementById('userIdHint');
+        if (!userIdHint) return;
+        const uid = userIdInput ? (userIdInput.value || '').trim() : '';
+        userIdHint.textContent = uid
+          ? `Signed in as ${uid}. Alerts and risk history are linked to this login.`
+          : 'Enter your user ID to link alerts and risk history.';
+      }
+
+      async function ensureSessionUser() {
+        const userIdInput = document.getElementById('userId');
+        if (!userIdInput) return '';
+        const existing = (userIdInput.value || '').trim();
+        if (existing) return existing;
+        try {
+          const res = await fetch('/auth/session', { headers: h() });
+          if (!res.ok) return '';
+          const data = await res.json();
+          const sessionUser = (data && data.authenticated && data.username) ? String(data.username).trim() : '';
+          if (sessionUser) {
+            userIdInput.value = sessionUser;
+            updateUserIdHint();
+          }
+          return sessionUser;
+        } catch (_) {
+          return '';
+        }
+      }
+
       async function fetchJsonSafe(url, options = {}, label = 'request') {
         console.info('neo-dashboard: calling', url);
         const res = await fetch(url, options);
@@ -1921,9 +1951,12 @@
 
       async function loadAll() {
         console.info('neo-dashboard: Show my warranty clicked');
-        const userId = document.getElementById('userId').value.trim();
+        let userId = document.getElementById('userId').value.trim();
         const warrantyId = document.getElementById('warrantyId').value.trim();
-        if (!userId) { setStatus('User ID missing for this session'); return; }
+        if (!userId) {
+          userId = await ensureSessionUser();
+          if (!userId) { setStatus('User ID missing for this session'); return; }
+        }
         if (!warrantyId) { setStatus('Enter product ID'); return; }
         setStatus('Loading...');
         resetPlaceholders();
@@ -2462,10 +2495,9 @@
           if (el && e.target === el) el.style.display = 'none';
         });
       });
-      document.addEventListener('DOMContentLoaded', () => {
+      document.addEventListener('DOMContentLoaded', async () => {
         console.info('neo-dashboard: DOMContentLoaded');
         const userIdInput = document.getElementById('userId');
-        const userIdHint = document.getElementById('userIdHint');
         if (userIdInput) {
           const raw = (userIdInput.value || '').trim();
           if (!raw || raw.includes('__SWH_CURRENT_USER__')) {
@@ -2473,12 +2505,8 @@
           }
           userIdInput.value = (userIdInput.value || '').trim();
         }
-        if (userIdHint) {
-          const uid = userIdInput ? userIdInput.value.trim() : '';
-          userIdHint.textContent = uid
-            ? `Signed in as ${uid}. Alerts and risk history are linked to this login.`
-            : 'Enter your user ID to link alerts and risk history.';
-        }
+        await ensureSessionUser();
+        updateUserIdHint();
         toggleDocSource();
         toggleKey();
         lockSteps(true);
@@ -2586,7 +2614,8 @@
         const dropdown = document.getElementById('warrantyDropdown');
         if (!dropdown) return;
         try {
-          const userId = document.getElementById('userId')?.value?.trim();
+          const sessionUser = await ensureSessionUser();
+          const userId = sessionUser || document.getElementById('userId')?.value?.trim();
           const params = new URLSearchParams();
           if (userId) params.set('user_id', userId);
           const suffix = params.toString() ? `?${params.toString()}` : '';

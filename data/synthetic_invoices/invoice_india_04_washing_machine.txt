@@ -1,0 +1,26 @@
+TAX INVOICE
+Retailer: Flipkart Internet Pvt Ltd
+Fulfilment Center: Bengaluru, Karnataka
+GSTIN: 29AABCF1234N1ZQ
+Invoice No: FKAPL-2602-993174
+Invoice Date: 2026-02-11
+
+Ship To: Arjun Nair
+Phone: +91-96XXXXXX83
+
+Item 1:
+  Category: Washing Machine
+  Brand: IFB
+  Product Name: IFB Front Load Washing Machine 8 Kg
+  Model: SENATOR MXS 8012
+  Serial Number: IFB8K8012KOC92
+  Quantity: 1
+  Unit Price: INR 38942.37
+
+Tax Summary:
+  Taxable Amount: INR 30423.73
+  CGST 14%: INR 4259.32
+  SGST 14%: INR 4259.32
+Grand Total: INR 38942.37
+
+Payment Method: Prepaid

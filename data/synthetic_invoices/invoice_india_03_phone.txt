@@ -1,0 +1,27 @@
+INVOICE
+Retailer: Vijay Sales
+Store: Andheri West, Mumbai, Maharashtra
+GSTIN: 27AAACV3344J1ZX
+Invoice No: VS-MUM-2602-77102
+Invoice Date: 2026-02-10
+
+Bill To: Rohan Mehta
+Phone: +91-99XXXXXX45
+
+Item 1:
+  Category: Smartphone
+  Brand: Samsung
+  Product Name: Samsung Galaxy S24 256GB
+  Model: SM-S921B
+  IMEI 1: 352099887711223
+  IMEI 2: 352099887711231
+  Quantity: 1
+  Unit Price: INR 74000.00
+
+Tax Summary:
+  Taxable Amount: INR 62711.86
+  CGST 9%: INR 5644.07
+  SGST 9%: INR 5644.07
+Grand Total: INR 74000.00
+
+Payment Method: Credit Card

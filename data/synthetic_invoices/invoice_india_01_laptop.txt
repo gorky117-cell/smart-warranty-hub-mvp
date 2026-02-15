@@ -1,0 +1,26 @@
+INVOICE
+Retailer: Reliance Digital
+Store: MG Road, Bengaluru, Karnataka
+GSTIN: 29AABCR1718E1ZV
+Invoice No: RD-BLR-2602-19872
+Invoice Date: 2026-02-12
+
+Bill To: Gaurav Singh
+Phone: +91-98XXXXXX10
+
+Item 1:
+  Category: Laptop
+  Brand: HP
+  Product Name: HP 15s Thin and Light Laptop
+  Model: 15s-fq5326TU
+  Serial Number: 5CD4123AB9
+  Quantity: 1
+  Unit Price: INR 62000.00
+
+Tax Summary:
+  Taxable Amount: INR 52542.37
+  CGST 9%: INR 4728.81
+  SGST 9%: INR 4728.81
+Grand Total: INR 62000.00
+
+Payment Method: UPI
