@@ -363,6 +363,11 @@
       box-shadow: 0 10px 22px rgba(37, 99, 235, 0.25);
     }
 
+    .mobile-soft-btn {
+      letter-spacing: 0;
+      border-radius: 14px;
+    }
+
     .helper {
       font-size: 12px;
       color: var(--muted);
@@ -771,6 +776,26 @@
         width: 100%;
       }
 
+      .mobile-soft-btn {
+        min-height: 44px;
+        padding: 12px 14px;
+        font-size: 15px;
+        border-radius: 14px;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.16);
+      }
+
+      button.mobile-soft-btn:hover,
+      a.button-link.mobile-soft-btn:hover {
+        transform: none;
+        filter: none;
+      }
+
+      a.button-link.mobile-soft-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
       input,
       select,
       textarea {
@@ -860,8 +885,8 @@
         <div class="placeholder" id="summaryShort"></div>
         <div class="helper" id="summaryMeta">Summary source details appear after load.</div>
         <div class="actions">
-          <a class="button-link" id="btnSeeFullSummary" href="#detailsCare">See full summary</a>
-          <a class="button-link" id="exportPdf" target="_blank">Download summary</a>
+          <a class="button-link mobile-soft-btn" id="btnSeeFullSummary" href="#detailsCare">See full summary</a>
+          <a class="button-link mobile-soft-btn" id="exportPdf" target="_blank">Download summary</a>
         </div>
         <div id="snapshotRow" class="pill-row hidden">
           <div class="pill pill-warn" id="pillStatus"><span class="pill-label">Status: --</span><span class="pill-info"
@@ -942,7 +967,7 @@
       <div class="card-hint" id="step3Hint">After your product appears in Step 1, you can add your bill or receipt here.
       </div>
       <div class="helper" id="productContextStep3" style="display:none;"></div>
-      <button id="btnReceiptStart" type="button">Add receipt</button>
+      <button id="btnReceiptStart" type="button" class="mobile-soft-btn">Add receipt</button>
       <div id="billChoicePanel" class="panel hidden subtle-panel">
         <p class="panel-title">Choose method</p>
         <label>Add receipt via</label>
@@ -958,7 +983,7 @@
         <p class="panel-title">Upload document</p>
         <label>Upload receipt/bill</label>
         <input id="billFile" type="file" accept="image/*,application/pdf,.docx">
-        <button id="btnUploadBill" type="button">Upload</button>
+        <button id="btnUploadBill" type="button" class="mobile-soft-btn">Upload</button>
         <div id="billUploadMsg" class="status-line placeholder">No document added yet.</div>
       </div>
 
