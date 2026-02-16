@@ -1000,18 +1000,15 @@ def signup_form(
     db.commit()
 
     # Auto-login new user and route to Neo UI (smoother UX for MVP demos).
-    secure_cookie = _cookie_secure_flag(request)
+    cookie_opts = _cookie_options(request)
     token = create_access_token(username, "user")
     target = next_url or "/ui/neo-dashboard"
     resp = RedirectResponse(url=target, status_code=status.HTTP_303_SEE_OTHER)
     resp.set_cookie(
         key="access_token",
         value=token,
-        httponly=True,
-        samesite="lax",
-        secure=secure_cookie,
         max_age=ACCESS_TOKEN_EXPIRE_HOURS * 3600,
-        path="/",
+        **cookie_opts,
     )
     return resp
 
@@ -1024,6 +1021,22 @@ def _cookie_secure_flag(request: Request) -> bool:
     return request.url.scheme == "https" or forwarded == "https"
 
 
+def _cookie_options(request: Request) -> dict:
+    secure_cookie = _cookie_secure_flag(request)
+    samesite = (os.getenv("COOKIE_SAMESITE", "lax") or "lax").strip().lower()
+    if samesite not in ("lax", "strict", "none"):
+        samesite = "lax"
+    domain = (os.getenv("COOKIE_DOMAIN") or "").strip() or None
+    path = (os.getenv("COOKIE_PATH") or "/").strip() or "/"
+    return {
+        "httponly": True,
+        "samesite": samesite,
+        "secure": secure_cookie,
+        "path": path,
+        "domain": domain,
+    }
+
+
 @app.post("/auth/login")
 def login(
     request: Request,
@@ -1034,7 +1047,7 @@ def login(
     next_url: str | None = Form(None),
 ):
     accepts_json = "application/json" in (request.headers.get("accept") or "")
-    secure_cookie = _cookie_secure_flag(request)
+    cookie_opts = _cookie_options(request)
     try:
         user = db.query(UserDB).filter_by(username=username).first()
     except (ProgrammingError, OperationalError):
@@ -1052,11 +1065,8 @@ def login(
     response.set_cookie(
         key="access_token",
         value=token,
-        httponly=True,
-        samesite="lax",
-        secure=secure_cookie,
         max_age=ACCESS_TOKEN_EXPIRE_HOURS * 3600,
-        path="/",
+        **cookie_opts,
     )
     target = next_url or (
         "/ui/admin-hub"
@@ -1070,11 +1080,8 @@ def login(
     resp.set_cookie(
         key="access_token",
         value=token,
-        httponly=True,
-        samesite="lax",
-        secure=secure_cookie,
         max_age=ACCESS_TOKEN_EXPIRE_HOURS * 3600,
-        path="/",
+        **cookie_opts,
     )
     return resp
 
@@ -1085,8 +1092,13 @@ def login_redirect():
 
 
 @app.post("/auth/logout")
-def logout(response: Response):
-    response.delete_cookie("access_token", path="/")
+def logout(response: Response, request: Request):
+    cookie_opts = _cookie_options(request)
+    response.delete_cookie(
+        "access_token",
+        path=cookie_opts.get("path") or "/",
+        domain=cookie_opts.get("domain"),
+    )
     return {"status": "logged_out"}
 
 
