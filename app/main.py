@@ -464,7 +464,11 @@ def _ensure_ui_oem_or_admin(request: Request, current: Optional[UserDB]) -> Opti
     if not current:
         return _build_ui_login_redirect(request)
     if current.role not in ("admin", "oem"):
-        raise HTTPException(status_code=403, detail="OEM/admin only")
+        # UI-friendly behavior: send normal users back to their dashboard instead of a JSON 403.
+        return RedirectResponse(
+            url="/ui/neo-dashboard?notice=oem_admin_only",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
     return None
 
 
@@ -912,6 +916,7 @@ def signup(payload: SignupRequest, db=Depends(get_db), current=Depends(get_curre
 
 @app.post("/auth/signup/form")
 def signup_form(
+    request: Request,
     username: str = Form(...),
     password: str = Form(...),
     email: str | None = Form(None),
@@ -954,12 +959,22 @@ def signup_form(
         )
     )
     db.commit()
-    login_params["signup"] = "ok"
-    login_params["username"] = username
-    return RedirectResponse(
-        url=f"/login?{urlencode(login_params)}",
-        status_code=status.HTTP_303_SEE_OTHER,
+
+    # Auto-login new user and route to Neo UI (smoother UX for MVP demos).
+    secure_cookie = _cookie_secure_flag(request)
+    token = create_access_token(username, "user")
+    target = next_url or "/ui/neo-dashboard"
+    resp = RedirectResponse(url=target, status_code=status.HTTP_303_SEE_OTHER)
+    resp.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        samesite="lax",
+        secure=secure_cookie,
+        max_age=ACCESS_TOKEN_EXPIRE_HOURS * 3600,
+        path="/",
     )
+    return resp
 
 
 def _cookie_secure_flag(request: Request) -> bool:
