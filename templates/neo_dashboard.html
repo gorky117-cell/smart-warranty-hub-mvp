@@ -1051,10 +1051,10 @@
         <div id="evReasons" class="helper"></div>
       </div>
       <details id="saveInfoDetails">
-        <summary>Add a quick note (optional) <span style="font-weight:400; color:var(--muted); font-size:13px;">â€” Short updates can make guidance
+        <summary>Add a quick note (optional) <span style="font-weight:400; color:var(--muted); font-size:13px;">- Short updates can make guidance
             more accurate over time.</span></summary>
-        <div class="helper" style="margin-top:8px;">Saving for: <span id="saveContextBrand">â€”</span> <span
-            id="saveContextModel">â€”</span> â€¢ Warranty: <span id="saveContextWarrantyId">â€”</span></div>
+        <div class="helper" style="margin-top:8px;">Saving for: <span id="saveContextBrand">-</span> <span
+            id="saveContextModel">-</span> | Warranty: <span id="saveContextWarrantyId">-</span></div>
         <div class="helper">These notes are used only to personalize care guidance for this product.</div>
         <label>What would you like to log?</label>
         <select id="telType">
@@ -1090,19 +1090,19 @@
     <!-- Sticky bottom bar -->
     <div class="sticky-bar">
       <button type="button" class="active" data-target="step1" onclick="scrollToStep('step1', this)">
-        <span class="nav-icon">âŒ‚</span>
+        <span class="nav-icon">H</span>
         <span>Home</span>
       </button>
       <button type="button" data-target="step2" onclick="scrollToStep('step2', this)">
-        <span class="nav-icon">â—«</span>
+        <span class="nav-icon">D</span>
         <span>Details</span>
       </button>
       <button type="button" data-target="step3" onclick="scrollToStep('step3', this)">
-        <span class="nav-icon">â—Ž</span>
+        <span class="nav-icon">B</span>
         <span>Bill</span>
       </button>
       <button type="button" data-target="step4" onclick="scrollToStep('step4', this)">
-        <span class="nav-icon">â—”</span>
+        <span class="nav-icon">U</span>
         <span>Health</span>
       </button>
     </div>
@@ -1349,7 +1349,7 @@
             title = replaceWarrantyId(title, wid, label);
             message = replaceWarrantyId(message, wid, label);
             if (!title.includes(label) && !message.includes(label)) {
-              title = `${title} â€” ${label}`;
+              title = `${title} - ${label}`;
             }
           }
         }
