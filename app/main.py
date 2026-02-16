@@ -486,8 +486,29 @@ def _user_can_access_warranty(db: Session, *, user: UserDB, warranty_id: str) ->
 
 
 def _require_warranty_access(db: Session, *, user: UserDB, warranty_id: str) -> None:
-    if not _user_can_access_warranty(db, user=user, warranty_id=warranty_id):
-        raise HTTPException(status_code=403, detail="forbidden")
+    if _user_can_access_warranty(db, user=user, warranty_id=warranty_id):
+        return
+
+    # Backward-compatibility + resilience: if a warranty has no owners recorded yet,
+    # allow the first authenticated user who already has the ID to claim it.
+    # This avoids users getting stuck if ownership link creation failed on upload.
+    if user.role == "user":
+        try:
+            any_owner = (
+                db.query(WarrantyOwnerDB)
+                .filter_by(warranty_id=warranty_id)
+                .first()
+            )
+            if any_owner is None:
+                exists = db.query(WarrantyDB.id).filter_by(id=warranty_id).first()
+                if exists:
+                    db.merge(WarrantyOwnerDB(user_id=user.username, warranty_id=warranty_id))
+                    db.commit()
+                    return
+        except Exception:
+            db.rollback()
+
+    raise HTTPException(status_code=403, detail="forbidden")
 
 
 @app.get("/behaviour/next-question", dependencies=[Depends(require_user)])
