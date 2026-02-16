@@ -493,10 +493,29 @@ def score_warranty(user_id: str, warranty_id: str, product_type: Optional[str] =
 
             # RAG context for product + user
             try:
-                from .rag import build_context, rag_enabled
+                from .rag import build_context_multi, rag_enabled
                 if rag_enabled():
                     query = f"user {user_id} brand {brand} model {model_code} region {region} issue failure error maintenance"
-                    ctx = build_context(db, query_text=query, limit=6)
+
+                    # Strict user-only context (prevents cross-user leakage).
+                    user_ctx = build_context_multi(
+                        db,
+                        query_text=query,
+                        limit=4,
+                        doc_types=("behaviour", "telemetry"),
+                        metadata_filter={"user_id": user_id},
+                    )
+
+                    # Product/global context (does not include user-specific docs).
+                    product_ctx = build_context_multi(
+                        db,
+                        query_text=query,
+                        limit=4,
+                        doc_types=("oem_issue", "warranty_summary"),
+                        metadata_filter=None,
+                    )
+
+                    ctx = "\n".join([c for c in [user_ctx, product_ctx] if c])
                     if ctx:
                         ctx_low = ctx.lower()
                         rag_delta = 0.0
@@ -504,7 +523,7 @@ def score_warranty(user_id: str, warranty_id: str, product_type: Optional[str] =
                         if any(k in ctx_low for k in ["failure", "error", "issue", "recall"]):
                             rag_delta += 0.05
                             rag_reasons.append("RAG signals show recent issues for this product/user.")
-                        if any(k in ctx_low for k in ["maintenance", "care", "clean"]):
+                        if user_ctx and any(k in ctx_low for k in ["maintenance", "care", "clean"]):
                             rag_delta -= 0.03
                             rag_reasons.append("RAG signals show recent maintenance/care activity.")
                         if rag_delta:

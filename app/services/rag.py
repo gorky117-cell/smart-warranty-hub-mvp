@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 import os
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Iterable
 
 import requests
 from sqlalchemy.orm import Session
@@ -104,6 +104,7 @@ def query_similar(
     query_text: str,
     limit: int = 5,
     doc_type: Optional[str] = None,
+    metadata_filter: Optional[Dict[str, object]] = None,
 ) -> List[Tuple[DocumentEmbeddingDB, float]]:
     if not rag_enabled():
         return []
@@ -111,17 +112,43 @@ def query_similar(
     if not emb:
         return []
 
-    # Try vector DB ordering if available
     q = db.query(DocumentEmbeddingDB)
     if doc_type:
         q = q.filter_by(doc_type=doc_type)
+
+    # Helper: apply metadata filter in Python for cross-DB compatibility.
+    def _matches_meta(rec: DocumentEmbeddingDB) -> bool:
+        if not metadata_filter:
+            return True
+        meta = getattr(rec, "meta_json", None) or getattr(rec, "metadata", None) or {}
+        if not isinstance(meta, dict):
+            return False
+        for k, v in metadata_filter.items():
+            if meta.get(k) != v:
+                return False
+        return True
+
+    # If a metadata_filter is present, we intentionally do Python-side filtering.
+    # This avoids DB-specific JSON query syntax and guarantees strict matching.
+    if metadata_filter:
+        rows = q.limit(1000).all()
+        rows = [r for r in rows if _matches_meta(r)]
+        scored: List[Tuple[DocumentEmbeddingDB, float]] = []
+        for r in rows:
+            vec = r.embedding_json if isinstance(r.embedding_json, list) else None
+            if not vec:
+                continue
+            scored.append((r, _cosine(emb, vec)))
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return scored[:limit]
+
+    # Fast path: try vector ordering if available (no metadata filter).
     try:
-        # pgvector: lower distance = better
         rows = q.order_by(DocumentEmbeddingDB.embedding.l2_distance(emb)).limit(limit).all()
         return [(r, 0.0) for r in rows]
     except Exception:
         rows = q.limit(500).all()
-        scored = []
+        scored: List[Tuple[DocumentEmbeddingDB, float]] = []
         for r in rows:
             vec = r.embedding_json if isinstance(r.embedding_json, list) else None
             if not vec:
@@ -137,8 +164,15 @@ def build_context(
     query_text: str,
     limit: int = 5,
     doc_type: Optional[str] = None,
+    metadata_filter: Optional[Dict[str, object]] = None,
 ) -> str:
-    items = query_similar(db, query_text=query_text, limit=limit, doc_type=doc_type)
+    items = query_similar(
+        db,
+        query_text=query_text,
+        limit=limit,
+        doc_type=doc_type,
+        metadata_filter=metadata_filter,
+    )
     if not items:
         return ""
     parts = []
@@ -146,6 +180,28 @@ def build_context(
         snippet = (rec.content or "")[:600]
         parts.append(f"- {snippet}")
     return "\n".join(parts)
+
+
+def build_context_multi(
+    db: Session,
+    *,
+    query_text: str,
+    limit: int = 5,
+    doc_types: Iterable[str],
+    metadata_filter: Optional[Dict[str, object]] = None,
+) -> str:
+    parts: List[str] = []
+    for dt in doc_types:
+        ctx = build_context(
+            db,
+            query_text=query_text,
+            limit=limit,
+            doc_type=dt,
+            metadata_filter=metadata_filter,
+        )
+        if ctx:
+            parts.append(ctx)
+    return "\n".join([p for p in parts if p])
 
 
 def add_event_documents(
