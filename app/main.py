@@ -1120,6 +1120,15 @@ async def upload_artifact(
             warranty = canonicalize_artifact(artifact, None)
     else:
         warranty = canonicalize_artifact(artifact, None)
+
+    # Ownership link for per-user data isolation in the UI.
+    # Use a separate DB session so it still succeeds even if the job pipeline transaction fails.
+    try:
+        with SessionLocal() as owner_db:
+            owner_db.merge(WarrantyOwnerDB(user_id=current.username, warranty_id=warranty.id))
+            owner_db.commit()
+    except Exception:
+        pass
     
     job = invoice_pipeline.create_job(
         db,
@@ -1143,12 +1152,6 @@ async def upload_artifact(
         run_initial_analysis_and_notifications(db, current.username, warranty.id)
     except Exception:
         pass
-    # Ownership link for per-user data isolation in the UI.
-    try:
-        db.merge(WarrantyOwnerDB(user_id=current.username, warranty_id=warranty.id))
-        db.commit()
-    except Exception:
-        db.rollback()
     return {
         "artifact": artifact,
         "warranty_id": warranty.id,
@@ -1276,10 +1279,11 @@ def create_warranty(payload: CanonicalRequest, db=Depends(get_db), current=Depen
     except Exception:
         pass
     try:
-        db.merge(WarrantyOwnerDB(user_id=current.username, warranty_id=warranty.id))
-        db.commit()
+        with SessionLocal() as owner_db:
+            owner_db.merge(WarrantyOwnerDB(user_id=current.username, warranty_id=warranty.id))
+            owner_db.commit()
     except Exception:
-        db.rollback()
+        pass
     return warranty
 
 @app.get("/warranties/{warranty_id}", dependencies=[Depends(rbac_dependency)])
