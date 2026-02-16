@@ -260,6 +260,18 @@ class NotificationDB(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
 
+class WarrantyOwnerDB(Base):
+    __tablename__ = "warranty_owners"
+    __table_args__ = (
+        UniqueConstraint("user_id", "warranty_id", name="uq_warranty_owner_user_warranty"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String, index=True)
+    warranty_id: Mapped[str] = mapped_column(String, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
 class OemCommunicationTraceDB(Base):
     __tablename__ = "oem_communication_traces"
 

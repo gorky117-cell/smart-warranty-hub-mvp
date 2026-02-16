@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel as PydanticBaseModel
 from sqlalchemy.exc import ProgrammingError, OperationalError
+from sqlalchemy.orm import Session
 
 
 class BaseModel(PydanticBaseModel):
@@ -99,6 +100,7 @@ from .db_models import (
     NotificationDB,
     ProductReviewDB,
     ReviewPageDB,
+    WarrantyOwnerDB,
 )
 
 
@@ -470,6 +472,22 @@ def _ensure_ui_oem_or_admin(request: Request, current: Optional[UserDB]) -> Opti
             status_code=status.HTTP_303_SEE_OTHER,
         )
     return None
+
+
+def _user_can_access_warranty(db: Session, *, user: UserDB, warranty_id: str) -> bool:
+    if user.role in ("admin", "oem"):
+        return True
+    rec = (
+        db.query(WarrantyOwnerDB)
+        .filter_by(user_id=user.username, warranty_id=warranty_id)
+        .first()
+    )
+    return rec is not None
+
+
+def _require_warranty_access(db: Session, *, user: UserDB, warranty_id: str) -> None:
+    if not _user_can_access_warranty(db, user=user, warranty_id=warranty_id):
+        raise HTTPException(status_code=403, detail="forbidden")
 
 
 @app.get("/behaviour/next-question", dependencies=[Depends(require_user)])
@@ -1125,6 +1143,12 @@ async def upload_artifact(
         run_initial_analysis_and_notifications(db, current.username, warranty.id)
     except Exception:
         pass
+    # Ownership link for per-user data isolation in the UI.
+    try:
+        db.merge(WarrantyOwnerDB(user_id=current.username, warranty_id=warranty.id))
+        db.commit()
+    except Exception:
+        db.rollback()
     return {
         "artifact": artifact,
         "warranty_id": warranty.id,
@@ -1142,8 +1166,17 @@ def list_warranties_sorted(
     current: Optional[UserDB] = Depends(get_current_user_optional),
 ):
     """List all warranties sorted by expiry date (soonest first)."""
-    uid = user_id or (current.username if current else None)
+    if current and current.role != "admin":
+        uid = current.username
+    else:
+        uid = user_id or (current.username if current else None)
+
     query = db.query(WarrantyDB)
+    if uid and (not current or current.role != "admin"):
+        query = (
+            query.join(WarrantyOwnerDB, WarrantyOwnerDB.warranty_id == WarrantyDB.id)
+            .filter(WarrantyOwnerDB.user_id == uid)
+        )
     # Sort by expiry_date ascending (soonest first), nulls last
     warranties = query.order_by(
         WarrantyDB.expiry_date.asc().nullslast()
@@ -1242,10 +1275,16 @@ def create_warranty(payload: CanonicalRequest, db=Depends(get_db), current=Depen
         run_initial_analysis_and_notifications(db, current.username, warranty.id)
     except Exception:
         pass
+    try:
+        db.merge(WarrantyOwnerDB(user_id=current.username, warranty_id=warranty.id))
+        db.commit()
+    except Exception:
+        db.rollback()
     return warranty
 
 @app.get("/warranties/{warranty_id}", dependencies=[Depends(rbac_dependency)])
-def get_warranty(warranty_id: str):
+def get_warranty(warranty_id: str, db=Depends(get_db), current: UserDB = Depends(require_user)):
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
     warranty = store.get_warranty_db(warranty_id)
     if not warranty:
         raise HTTPException(status_code=404, detail="Warranty not found")
@@ -1258,7 +1297,9 @@ def process_warranty(
     payload: ProcessWarrantyRequest | None = Body(default=None),
     db=Depends(get_db),
     background_tasks: BackgroundTasks = None,
+    current: UserDB = Depends(require_user),
 ):
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
     artifact_id = payload.artifact_id if payload else None
     source_path = payload.source_path if payload else None
     if not artifact_id:
@@ -1351,7 +1392,8 @@ def refresh_warranty_terms(payload: TermsRefreshRequest, db=Depends(get_db)):
 
 
 @app.get("/warranties/{warranty_id}/summary", dependencies=[Depends(rbac_dependency)])
-def get_warranty_summary(warranty_id: str, db=Depends(get_db)):
+def get_warranty_summary(warranty_id: str, db=Depends(get_db), current: UserDB = Depends(require_user)):
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
     warranty = store.get_warranty_db(warranty_id)
     if not warranty:
         raise HTTPException(status_code=404, detail="Warranty not found")
@@ -2448,7 +2490,8 @@ def oem_fetch_form(
 
 
 @app.post("/warranties/summary", dependencies=[Depends(rbac_dependency)])
-def warranty_summary(payload: SummaryRequest):
+def warranty_summary(payload: SummaryRequest, db=Depends(get_db), current: UserDB = Depends(require_user)):
+    _require_warranty_access(db, user=current, warranty_id=payload.warranty_id)
     warranty = store.get_warranty_db(payload.warranty_id)
     if not warranty:
         raise HTTPException(status_code=404, detail="Warranty not found")
@@ -2481,7 +2524,8 @@ def warranty_summary(payload: SummaryRequest):
 
 
 @app.get("/warranties/{warranty_id}/export", dependencies=[Depends(rbac_dependency)])
-def warranty_export(warranty_id: str, format: str = "txt"):
+def warranty_export(warranty_id: str, format: str = "txt", db=Depends(get_db), current: UserDB = Depends(require_user)):
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
     warranty = store.get_warranty_db(warranty_id)
     if not warranty:
         raise HTTPException(status_code=404, detail="Warranty not found")
