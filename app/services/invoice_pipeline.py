@@ -217,6 +217,25 @@ def run_job(job_id: str) -> None:
                 warranty.terms = terms_result.terms
                 warranty.exclusions = terms_result.exclusions
                 warranty.claim_steps = terms_result.claim_steps
+            # Persist source hints for UI transparency.
+            meta = dict(warranty.alternatives or {})
+            if terms_result:
+                source_url = terms_result.source_url or ""
+                source_type = "internal"
+                if source_url.startswith(("http://", "https://")):
+                    source_type = "scraped"
+                elif source_url.endswith("default_rules"):
+                    source_type = "default_rules"
+                elif source_url.endswith("warranty_db"):
+                    source_type = "internal_warranty_db"
+                elif source_url.endswith("terms_cache"):
+                    source_type = "internal_terms_cache"
+                meta["terms_source_url"] = source_url or None
+                meta["terms_source_type"] = source_type
+                meta["terms_last_refreshed_at"] = datetime.utcnow().isoformat()
+            else:
+                meta.setdefault("terms_source_type", "invoice_only")
+            warranty.alternatives = meta
             # Optional: per-upload review crawl for real-time enrichment
             if os.getenv("REVIEW_CRAWL_ON_UPLOAD", "false").lower() == "true":
                 try:

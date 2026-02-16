@@ -1379,6 +1379,22 @@ def refresh_warranty_terms(payload: TermsRefreshRequest, db=Depends(get_db)):
         warranty.exclusions = result.exclusions
     if result.claim_steps:
         warranty.claim_steps = result.claim_steps
+    # Persist terms source hints for UI transparency.
+    alt = dict(getattr(warranty, "alternatives", None) or {})
+    src = result.source_url or ""
+    src_type = "internal"
+    if src.startswith(("http://", "https://")):
+        src_type = "scraped"
+    elif src.endswith("default_rules"):
+        src_type = "default_rules"
+    elif src.endswith("warranty_db"):
+        src_type = "internal_warranty_db"
+    elif src.endswith("terms_cache"):
+        src_type = "internal_terms_cache"
+    alt["terms_source_url"] = src or None
+    alt["terms_source_type"] = src_type
+    alt["terms_last_refreshed_at"] = datetime.utcnow().isoformat()
+    warranty.alternatives = alt
     if warranty.purchase_date and warranty.coverage_months and not warranty.expiry_date:
         exp = warranty.purchase_date.date()
         year = exp.year + (exp.month - 1 + warranty.coverage_months) // 12
@@ -1448,6 +1464,8 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db), current: UserDB =
     evidence = {
         "source_artifact_ids": getattr(warranty, "source_artifact_ids", None) or [],
     }
+    terms_source_url = ((getattr(warranty, "alternatives", None) or {}).get("terms_source_url"))
+    terms_source_type = ((getattr(warranty, "alternatives", None) or {}).get("terms_source_type"))
     layman = summary_engine.build_layman_summary(warranty)
     summary_row = invoice_pipeline.get_latest_summary(db, warranty_id)
     if summary_row:
@@ -1465,6 +1483,8 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db), current: UserDB =
             "layman_summary": layman,
             "evidence": evidence,
             "processing_status": latest_job.status if latest_job else None,
+            "terms_source_url": terms_source_url,
+            "terms_source_type": terms_source_type,
         }
     summary_text, source = summary_engine.summarize_warranty(warranty)
     structured = summary_engine.build_structured_summary(warranty)
@@ -1482,6 +1502,8 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db), current: UserDB =
         "layman_summary": layman,
         "evidence": evidence,
         "processing_status": latest_job.status if latest_job else None,
+        "terms_source_url": terms_source_url,
+        "terms_source_type": terms_source_type,
     }
 
 
@@ -2528,7 +2550,9 @@ def warranty_summary(payload: SummaryRequest, db=Depends(get_db), current: UserD
         f"Claim steps: {warranty.claim_steps}\n"
     )
     text, err = generate_text(prompt, None)
+    source = "llm"
     if err or not text:
+        source = "template"
         lines = [
             f"Brand: {warranty.brand or 'N/A'} Model: {warranty.model_code or 'N/A'}",
             f"Expiry: {warranty.expiry_date or 'N/A'} Coverage months: {warranty.coverage_months or 'N/A'}",
@@ -2539,12 +2563,17 @@ def warranty_summary(payload: SummaryRequest, db=Depends(get_db), current: UserD
         text = "\n".join(lines)
     structured = summary_engine.build_structured_summary(warranty)
     layman = summary_engine.build_layman_summary(warranty)
+    terms_source_url = ((getattr(warranty, "alternatives", None) or {}).get("terms_source_url"))
+    terms_source_type = ((getattr(warranty, "alternatives", None) or {}).get("terms_source_type"))
     log_action("warranty_summary", f"warranty_id={payload.warranty_id} prompt_len={len(prompt)}")
     return {
         "summary": text,
+        "source": source,
         "summary_points": structured.get("points", []),
         "summary_tags": structured.get("tags", []),
         "layman_summary": layman,
+        "terms_source_url": terms_source_url,
+        "terms_source_type": terms_source_type,
     }
 
 

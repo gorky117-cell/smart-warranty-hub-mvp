@@ -858,6 +858,7 @@
 
       <div id="overviewData" class="hidden" style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
         <div class="placeholder" id="summaryShort"></div>
+        <div class="helper" id="summaryMeta">Summary source details appear after load.</div>
         <div class="actions">
           <a class="button-link" id="btnSeeFullSummary" href="#detailsCare">See full summary</a>
           <a class="button-link" id="exportPdf" target="_blank">Download summary</a>
@@ -1449,6 +1450,7 @@
         setText('predictive', '');
         setText('summary', '');
         setText('summaryShort', '');
+        setText('summaryMeta', 'Summary source details appear after load.');
         setText('advisories', 'Load data to see guidance.');
         setText('warranty', 'Load data to see warranty details.');
         setText('coverageDetails', 'Load data to see coverage details.');
@@ -1984,12 +1986,10 @@
           const evCard = document.getElementById('evCard');
           if (evCard) evCard.style.display = isEV ? 'block' : 'none';
           console.info('neo-dashboard: fetch warranty summary', { warrantyId });
-          const sum = await fetchJsonSafe('/warranties/summary', {
-            method: 'POST', headers: h({ 'Content-Type': 'application/json' }),
-            body: JSON.stringify({ warranty_id: warrantyId })
-          }, 'warranty summary');
+          const sum = await fetchJsonSafe(`/warranties/${encodeURIComponent(warrantyId)}/summary`, { headers: h() }, 'warranty summary');
           document.getElementById('summary').textContent = sum.summary || '';
           renderLaymanSummary(sum.layman_summary);
+          renderSummaryMeta(sum);
           const displayName = productLabelWithId(w);
           const compactLine = [
             w.expiry_date ? `Expiry: ${w.expiry_date}` : null,
@@ -2057,6 +2057,25 @@
         buttons.forEach((btn) => {
           btn.classList.toggle('active', btn.dataset.target === stepId);
         });
+      }
+
+      function renderSummaryMeta(sum) {
+        const el = document.getElementById('summaryMeta');
+        if (!el) return;
+        const summarySource = (sum && sum.source) ? String(sum.source) : 'unknown';
+        const termsSourceType = (sum && sum.terms_source_type) ? String(sum.terms_source_type) : 'unknown';
+        const termsSourceUrl = (sum && sum.terms_source_url) ? String(sum.terms_source_url) : '';
+        const labels = [];
+        labels.push(`Summary: ${summarySource}`);
+        labels.push(`Terms: ${termsSourceType}`);
+        if (termsSourceUrl && (termsSourceUrl.startsWith('http://') || termsSourceUrl.startsWith('https://'))) {
+          labels.push(`Source URL: ${termsSourceUrl}`);
+        }
+        if (!labels.length) {
+          el.textContent = 'Summary source details not available.';
+          return;
+        }
+        el.innerHTML = labels.map((x) => escapeHtml(x)).join(' | ');
       }
 
       function refreshMobileNavFromScroll() {

@@ -194,8 +194,6 @@ def discover_sources(
     1) curated local source file entries
     2) configured online search providers.
     """
-    if not brand:
-        return []
     if "auto" not in mode:
         return []
 
@@ -208,8 +206,15 @@ def discover_sources(
     results: List[DiscoverySource] = []
     for entry in raw:
         entry_brand = _normalize(entry.get("brand"))
-        if entry_brand and entry_brand != _normalize(brand):
+        if brand and entry_brand and entry_brand != _normalize(brand):
             continue
+        if not brand:
+            entry_model = _normalize(entry.get("model_code"))
+            entry_product = _normalize(entry.get("product_name"))
+            model_match = bool(model_code and entry_model and entry_model == _normalize(model_code))
+            product_match = bool(product_name and entry_product and entry_product == _normalize(product_name))
+            if not (model_match or product_match):
+                continue
         if not allow_retail and entry.get("source_type") == "retail":
             continue
         url = str(entry.get("url") or "")
@@ -220,7 +225,7 @@ def discover_sources(
         entry_official_domains = _domains_for_brand(oem_domains, entry.get("brand") or "")
         official = _host_matches_any(host, entry_official_domains) if entry_official_domains else bool(entry.get("official", False))
         verified = _verified_match(entry.get("brand") or "", host, verified_domains)
-        if _OFFICIAL_ONLY and not official:
+        if _OFFICIAL_ONLY and brand and not official:
             continue
         if region and entry.get("region") and _normalize(entry.get("region")) != _normalize(region):
             continue
@@ -243,16 +248,29 @@ def discover_sources(
 
     # Online search (if API key present)
     queries: List[str] = []
+    if brand and model_code:
+        queries.append(f"{brand} {model_code} warranty terms claim process")
+        queries.append(f"{brand} {model_code} warranty policy pdf")
+    if brand and product_name:
+        queries.append(f"{brand} {product_name} warranty terms")
     if brand:
-        if model_code:
-            queries.append(f"{brand} {model_code} warranty")
-            queries.append(f"{brand} {model_code} manual pdf")
-        elif product_name:
-            queries.append(f"{brand} {product_name} warranty")
-            queries.append(f"{brand} {product_name} manual pdf")
-        else:
-            queries.append(f"{brand} warranty")
-    queries = queries[: max(_SEARCH_MAX_QUERIES, 0)]
+        queries.append(f"{brand} warranty terms conditions")
+    if (not brand) and model_code:
+        queries.append(f"{model_code} warranty terms")
+        queries.append(f"{model_code} warranty policy pdf")
+    if (not brand) and product_name:
+        queries.append(f"{product_name} warranty terms")
+
+    # Preserve order and uniqueness.
+    uniq_queries: List[str] = []
+    seen_queries = set()
+    for q in queries:
+        k = _normalize(q)
+        if not k or k in seen_queries:
+            continue
+        seen_queries.add(k)
+        uniq_queries.append(q)
+    queries = uniq_queries[: max(_SEARCH_MAX_QUERIES, 0)]
 
     if queries:
         def _append_search_items(search_query: str) -> int:
@@ -268,7 +286,7 @@ def discover_sources(
                 host = _host(url)
                 official = _host_matches_any(host, official_for_brand) if official_for_brand else (_normalize(brand) in host if brand else False)
                 verified = _verified_match(brand, host, verified_domains)
-                if _OFFICIAL_ONLY and not official:
+                if _OFFICIAL_ONLY and brand and not official:
                     continue
                 base = _TYPE_SCORES.get(source_type, 30)
                 score = base + (10 if official else 0) + (15 if verified else 0) + _region_score(region, url)
@@ -293,8 +311,13 @@ def discover_sources(
                 for domain in preflight_alive_domains:
                     site_query_hits += _append_search_items(f"site:{domain} {q}")
 
-        # If strict mode is on and no preflight domain is alive, skip paid search calls entirely.
-        should_run_broad = not _PREFLIGHT_STRICT and (not preflight_alive_domains or (_ALLOW_BROAD_FALLBACK and site_query_hits == 0))
+        # If brand is unknown, run bounded broad search (we cannot preflight unknown OEM domains).
+        if not brand:
+            should_run_broad = True
+        elif preflight_alive_domains:
+            should_run_broad = _ALLOW_BROAD_FALLBACK and site_query_hits == 0
+        else:
+            should_run_broad = (not _PREFLIGHT_STRICT) or _ALLOW_BROAD_FALLBACK
         if should_run_broad:
             for q in queries:
                 _append_search_items(q)

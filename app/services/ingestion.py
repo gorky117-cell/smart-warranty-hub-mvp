@@ -6,6 +6,68 @@ from ..models import Artifact, ArtifactType
 from ..storage import generate_id, store
 from .ocr import extract_text
 
+_RETAILER_MARKERS = (
+    "flipkart",
+    "amazon",
+    "croma",
+    "reliance digital",
+    "vijay sales",
+    "tatacliq",
+    "jiomart",
+    "myntra",
+    "snapdeal",
+    "meesho",
+)
+
+
+def _normalize_spaces(value: str) -> str:
+    return re.sub(r"\s+", " ", (value or "")).strip()
+
+
+def _looks_like_seller_text(value: str) -> bool:
+    low = (value or "").strip().lower()
+    if not low:
+        return True
+    if low.startswith(("seller", "sold by", "merchant", "supplier", "retailer")):
+        return True
+    return any(marker in low for marker in _RETAILER_MARKERS)
+
+
+def _clean_brand_candidate(raw: str) -> Optional[str]:
+    text = _normalize_spaces(raw).strip(":-|")
+    if not text:
+        return None
+    # Remove noisy prefixes that often appear in OCR.
+    text = re.sub(r"^(brand|make)\s*[:\-]\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"^(seller|sold by|merchant|supplier|retailer)\s*[:\-]\s*", "", text, flags=re.IGNORECASE)
+    # Stop at other field labels.
+    text = re.split(r"\b(model|invoice|serial|imei|warranty|purchase date|date|gstin)\b", text, flags=re.IGNORECASE)[0]
+    text = _normalize_spaces(text).strip(":-|")
+    if len(text) < 2:
+        return None
+    if _looks_like_seller_text(text):
+        return None
+    # Trim common legal suffixes.
+    text = re.sub(r"\s*(pvt\.?|ltd\.?|private|limited|inc\.?|llc|corp\.?).*$", "", text, flags=re.IGNORECASE).strip()
+    if len(text) < 2:
+        return None
+    return text.title()
+
+
+def _infer_product_category(*, product_name: Optional[str], model_code: Optional[str], lowered_text: str) -> Optional[str]:
+    hay = " ".join([product_name or "", model_code or "", lowered_text]).lower()
+    if any(k in hay for k in ("phone", "mobile", "iphone", "android")):
+        return "mobile"
+    if any(k in hay for k in ("tv", "oled", "qled", "led")):
+        return "electronics"
+    if any(k in hay for k in ("laptop", "notebook", "macbook")):
+        return "electronics"
+    if any(k in hay for k in ("ac", "air conditioner", "fridge", "refrigerator", "washing", "microwave", "geyser", "air fryer")):
+        return "appliance"
+    if any(k in hay for k in ("ev", "battery", "scooter", "motor", "car")):
+        return "ev"
+    return None
+
 
 def ingest_artifact(
     artifact_type: ArtifactType,
@@ -80,22 +142,18 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
     # Strategy 1: Explicit "Brand:" label
     brand_match = re.search(r"brand\s*[:\-]\s*([a-zA-Z0-9 \-]{2,40})", text, re.IGNORECASE)
     if brand_match:
-        raw_brand = brand_match.group(1).strip()
-        # Trim if the model label leaked into the brand capture
-        lower = raw_brand.lower()
-        if " model" in lower:
-            raw_brand = raw_brand[: lower.index(" model")].strip()
-        fields["brand"] = raw_brand.title()
-        confidence["brand"] = 0.8
+        cleaned = _clean_brand_candidate(brand_match.group(1))
+        if cleaned:
+            fields["brand"] = cleaned
+            confidence["brand"] = 0.8
     else:
         # Strategy 2: First non-empty line (usually company name on invoices)
         for line in lines[:5]:  # Check first 5 lines
             line = line.strip()
             if len(line) > 3 and not line.lower().startswith(('invoice', 'bill', 'receipt', 'tax', 'gst', 'date')):
-                # Clean up common suffixes
-                cleaned = re.sub(r'\s*(Pvt\.?|Ltd\.?|Private|Limited|Inc\.?|LLC|Corp\.?).*$', '', line, flags=re.IGNORECASE).strip()
+                cleaned = _clean_brand_candidate(line)
                 if cleaned and len(cleaned) >= 3:
-                    fields["brand"] = cleaned.title()
+                    fields["brand"] = cleaned
                     confidence["brand"] = 0.6
                     break
 
@@ -124,6 +182,14 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
     if model_match:
         fields["model_code"] = model_match.group(1).strip().upper()
         confidence["model_code"] = 0.7
+    else:
+        # Fallback model signal from common invoice token shapes.
+        model_token = re.search(r"\b([A-Z]{2,}[A-Z0-9\-]{2,})\b", text)
+        if model_token:
+            token = model_token.group(1).strip().upper()
+            if token not in ("GST", "HSN", "SAC", "INR", "CGST", "SGST", "IGST"):
+                fields["model_code"] = token
+                confidence["model_code"] = 0.4
 
     # === SERIAL NUMBER ===
     serial_match = re.search(r"(?:serial|s/n|sn|imei)\s*[:\-#]?\s*([a-zA-Z0-9\-]{6,})", text, re.IGNORECASE)
@@ -161,6 +227,15 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
             val = val * 12
         fields["coverage_months"] = str(val)
         confidence["coverage_months"] = 0.7
+
+    product_category = _infer_product_category(
+        product_name=fields.get("product_name"),
+        model_code=fields.get("model_code"),
+        lowered_text=lowered,
+    )
+    if product_category:
+        fields["product_category"] = product_category
+        confidence["product_category"] = max(confidence.get("product_category", 0.0), 0.55)
 
     if not confidence:
         alternatives["notes"] = ["No strong signals found; manual entry may be required."]

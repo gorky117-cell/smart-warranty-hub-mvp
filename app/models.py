@@ -39,7 +39,7 @@ class CanonicalWarranty(AppBaseModel):
     exclusions: List[str] = Field(default_factory=list)
     claim_steps: List[str] = Field(default_factory=list)
     confidence: Dict[str, float] = Field(default_factory=dict)
-    alternatives: Dict[str, List[str]] = Field(default_factory=dict)
+    alternatives: Dict[str, Any] = Field(default_factory=dict)
     source_artifact_ids: List[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 

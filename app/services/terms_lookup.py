@@ -29,6 +29,9 @@ DEFAULT_RULES = {
 _SCRAPE_ENABLED = os.getenv("TERMS_SCRAPE_ENABLED", "1").strip().lower() in ("1", "true", "yes")
 _SCRAPE_MODE = os.getenv("TERMS_SCRAPE_MODE", "auto+manual").strip().lower()
 _SCRAPE_ALLOW_RETAIL = os.getenv("TERMS_SCRAPE_ALLOW_RETAIL", "1").strip().lower() in ("1", "true", "yes")
+_SOURCE_INTERNAL_WARRANTY = "internal://warranty_db"
+_SOURCE_INTERNAL_CACHE = "internal://terms_cache"
+_SOURCE_INTERNAL_DEFAULT = "internal://default_rules"
 
 
 def _mode_allows_auto(mode: str) -> bool:
@@ -73,7 +76,7 @@ def _default_terms(duration_months: int) -> TermsResult:
         terms=terms,
         exclusions=exclusions,
         claim_steps=claim_steps,
-        source_url=None,
+        source_url=_SOURCE_INTERNAL_DEFAULT,
         raw_text=None,
     )
 
@@ -136,19 +139,25 @@ def lookup_terms(
     # 1) Try internal warranty records first (brand + model/product_name)
     if not force_refresh:
         try:
-            q = db.query(WarrantyDB).filter(WarrantyDB.brand == brand)
+            q = db.query(WarrantyDB)
+            has_filter = False
+            if brand:
+                q = q.filter(WarrantyDB.brand == brand)
+                has_filter = True
             if model_code:
                 q = q.filter(WarrantyDB.model_code == model_code)
+                has_filter = True
             elif product_name:
                 q = q.filter(WarrantyDB.product_name == product_name)
-            rec = q.order_by(WarrantyDB.created_at.desc()).first()
+                has_filter = True
+            rec = q.order_by(WarrantyDB.created_at.desc()).first() if has_filter else None
             if rec and (rec.terms or rec.exclusions or rec.claim_steps or rec.coverage_months):
                 result = TermsResult(
                     duration_months=rec.coverage_months,
                     terms=rec.terms or [],
                     exclusions=rec.exclusions or [],
                     claim_steps=rec.claim_steps or [],
-                    source_url=None,
+                    source_url=_SOURCE_INTERNAL_WARRANTY,
                     raw_text=None,
                 )
                 return _apply_region_policy(
@@ -163,19 +172,21 @@ def lookup_terms(
             pass
 
         # 2) fallback: brand/category/region cache
-        cache_q = db.query(WarrantyTermsCacheDB).filter(
-            WarrantyTermsCacheDB.brand == brand,
-            WarrantyTermsCacheDB.category == norm_category,
-            WarrantyTermsCacheDB.region == region,
-        )
-        cached = cache_q.order_by(WarrantyTermsCacheDB.fetched_at.desc()).first()
+        cached = None
+        if brand:
+            cache_q = db.query(WarrantyTermsCacheDB).filter(
+                WarrantyTermsCacheDB.brand == brand,
+                WarrantyTermsCacheDB.category == norm_category,
+                WarrantyTermsCacheDB.region == region,
+            )
+            cached = cache_q.order_by(WarrantyTermsCacheDB.fetched_at.desc()).first()
         if cached and _cache_is_fresh(cached):
             result = TermsResult(
                 duration_months=cached.duration_months,
                 terms=cached.terms or [],
                 exclusions=cached.exclusions or [],
                 claim_steps=cached.claim_steps or [],
-                source_url=cached.source_url,
+                source_url=cached.source_url or _SOURCE_INTERNAL_CACHE,
                 raw_text=cached.raw_text,
             )
             return _apply_region_policy(
