@@ -94,6 +94,39 @@ def test_pipeline_with_mock_text():
         assert parsed.brand == "Acmeco"
 
 
+def test_pipeline_completes_with_docx(tmp_path):
+    from docx import Document
+
+    docx_path = tmp_path / "invoice.docx"
+    doc = Document()
+    doc.add_paragraph("Invoice No: INV-456")
+    doc.add_paragraph("Brand: Acmeco")
+    doc.add_paragraph("Model: ZX-200")
+    doc.add_paragraph("Purchase date: 2025-01-01")
+    doc.add_paragraph("Warranty 24 months")
+    doc.save(str(docx_path))
+
+    artifact = ingest_artifact(ArtifactType.invoice, file_path=str(docx_path), use_ocr=True)
+    assert "Acmeco" in (artifact.content or "")
+    assert "[OCR note]" not in (artifact.content or "")
+
+    warranty = canonicalize_artifact(artifact, None)
+    with SessionLocal() as db:
+        job = invoice_pipeline.create_job(
+            db,
+            warranty_id=warranty.id,
+            artifact_id=artifact.id,
+            source_path=str(docx_path),
+        )
+    invoice_pipeline.run_job(job.id)
+    with SessionLocal() as db:
+        job_row = db.query(PipelineJobDB).filter_by(id=job.id).first()
+        assert job_row is not None
+        assert job_row.status == "done"
+        summary = db.query(WarrantySummaryDB).filter_by(warranty_id=warranty.id).first()
+        assert summary is not None
+
+
 def test_summary_template_when_llm_disabled():
     summary_engine._LLM_PROVIDER = "none"
     warranty = CanonicalWarranty(

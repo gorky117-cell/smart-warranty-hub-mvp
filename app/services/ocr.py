@@ -150,6 +150,30 @@ def _extract_pdf_text(path_obj: Path) -> Tuple[Optional[str], Optional[str]]:
         return None, f"PDF text extraction failed: {exc}"
 
 
+def _extract_docx_text(path_obj: Path) -> Tuple[Optional[str], Optional[str]]:
+    try:
+        from docx import Document  # type: ignore
+    except Exception as exc:  # pragma: no cover - optional dependency
+        return None, f"DOCX reader unavailable: {exc}"
+    try:
+        doc = Document(str(path_obj))
+        chunks: List[str] = []
+        for para in doc.paragraphs:
+            txt = (para.text or "").strip()
+            if txt:
+                chunks.append(txt)
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    txt = (cell.text or "").strip()
+                    if txt:
+                        chunks.append(txt)
+        text = "\n".join(chunks).strip()
+        return text if text else None, None
+    except Exception as exc:
+        return None, f"DOCX extraction failed: {exc}"
+
+
 def _maybe_ocr_pdf(path_obj: Path) -> Tuple[Optional[str], Optional[str]]:
     # Try pymupdf (fitz) first, then fall back to pdf2image
     try:
@@ -238,6 +262,19 @@ def extract_text_with_meta(image_path: str, min_chars: int | None = None) -> Tup
             return (text if text else None), None, {"ocr_used": False, "method": "text"}
         except Exception as exc:
             return None, f"Text read failed: {exc}", {"ocr_used": False, "method": "text"}
+
+    if suffix == ".docx":
+        text, err = _extract_docx_text(path_obj)
+        if text:
+            return text, None, {"ocr_used": False, "method": "docx"}
+        return None, err or "DOCX extraction produced no content.", {"ocr_used": False, "method": "docx"}
+
+    if suffix == ".doc":
+        return (
+            None,
+            "Legacy .doc files are not supported. Please upload PDF, image, or .docx.",
+            {"ocr_used": False, "method": "doc"},
+        )
 
     if suffix == ".pdf":
         text, err = _extract_pdf_text(path_obj)
