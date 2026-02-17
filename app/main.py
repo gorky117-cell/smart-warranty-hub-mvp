@@ -942,6 +942,9 @@ def signup(payload: SignupRequest, db=Depends(get_db), current=Depends(get_curre
         raise HTTPException(status_code=403, detail="Only admin can create users")
     if payload.role == "admin" and (not current or current.role != "admin") and user_count > 0:
         raise HTTPException(status_code=403, detail="Only admin can create admin users")
+    # Fresh-account safety: if this username existed historically and was deleted,
+    # remove any stale ownership links so the new account starts clean.
+    db.query(WarrantyOwnerDB).filter_by(user_id=payload.username).delete(synchronize_session=False)
     user = UserDB(
         username=payload.username,
         role=payload.role if current and current.role == "admin" else "user",
@@ -989,6 +992,8 @@ def signup_form(
             url=f"/login?{urlencode(login_params)}",
             status_code=status.HTTP_303_SEE_OTHER,
         )
+    # Fresh-account safety: clear stale ownership links for recycled usernames.
+    db.query(WarrantyOwnerDB).filter_by(user_id=username).delete(synchronize_session=False)
     db.add(
         UserDB(
             username=username,
