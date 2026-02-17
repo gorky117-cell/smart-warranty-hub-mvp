@@ -1195,20 +1195,20 @@ async def upload_artifact(
     }
 
 
-@app.get("/warranties/list")
+@app.get("/warranties/list", dependencies=[Depends(require_user)])
 def list_warranties_sorted(
     user_id: str | None = None,
     db=Depends(get_db),
-    current: Optional[UserDB] = Depends(get_current_user_optional),
+    current: UserDB = Depends(require_user),
 ):
     """List all warranties sorted by expiry date (soonest first)."""
-    if current and current.role != "admin":
+    if current.role != "admin":
         uid = current.username
     else:
-        uid = user_id or (current.username if current else None)
+        uid = user_id or current.username
 
     query = db.query(WarrantyDB)
-    if uid and (not current or current.role != "admin"):
+    if current.role != "admin":
         query = (
             query.join(WarrantyOwnerDB, WarrantyOwnerDB.warranty_id == WarrantyDB.id)
             .filter(WarrantyOwnerDB.user_id == uid)
