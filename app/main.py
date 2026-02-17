@@ -2595,7 +2595,7 @@ def warranty_export(warranty_id: str, format: str = "txt", db=Depends(get_db), c
     warranty = store.get_warranty_db(warranty_id)
     if not warranty:
         raise HTTPException(status_code=404, detail="Warranty not found")
-    summary = warranty_summary(SummaryRequest(warranty_id=warranty_id)).get("summary", "")
+    summary = warranty_summary(SummaryRequest(warranty_id=warranty_id), db=db, current=current).get("summary", "")
     fname = f"warranty_{warranty_id}.{format}"
     if format == "txt":
         data = export_warranty_txt(summary)
