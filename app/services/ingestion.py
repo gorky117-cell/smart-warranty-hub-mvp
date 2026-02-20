@@ -56,15 +56,34 @@ def _clean_brand_candidate(raw: str) -> Optional[str]:
 
 def _infer_product_category(*, product_name: Optional[str], model_code: Optional[str], lowered_text: str) -> Optional[str]:
     hay = " ".join([product_name or "", model_code or "", lowered_text]).lower()
-    if any(k in hay for k in ("phone", "mobile", "iphone", "android")):
+    tokens = set(re.findall(r"[a-z0-9]+", hay))
+    if any(k in hay for k in ("phone", "mobile", "iphone", "android", "galaxy")):
         return "mobile"
-    if any(k in hay for k in ("tv", "oled", "qled", "led")):
+    if any(k in hay for k in ("tv", "oled", "qled", "bravia")):
         return "electronics"
     if any(k in hay for k in ("laptop", "notebook", "macbook")):
         return "electronics"
-    if any(k in hay for k in ("ac", "air conditioner", "fridge", "refrigerator", "washing", "microwave", "geyser", "air fryer")):
+    if (
+        "ac" in tokens
+        or any(
+            k in hay
+            for k in (
+                "air conditioner",
+                "fridge",
+                "refrigerator",
+                "washing",
+                "microwave",
+                "geyser",
+                "air fryer",
+                "whirlpool",
+                "bosch",
+                "wm-",
+                "fr-",
+            )
+        )
+    ):
         return "appliance"
-    if any(k in hay for k in ("ev", "battery", "scooter", "motor", "car")):
+    if any(k in hay for k in ("ev", "battery", "batt", "scooter", "motor", "car", "ather", "450x", "nexon")):
         return "ev"
     return None
 
@@ -137,6 +156,9 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
     confidence: Dict[str, float] = {}
     alternatives: Dict[str, List[str]] = {}
     lines = text.strip().split('\n')
+    has_warranty_context = bool(
+        re.search(r"\b(warranty|serial|imei|model|product|device)\b", lowered, re.IGNORECASE)
+    )
 
     # === BRAND EXTRACTION ===
     # Strategy 1: Explicit "Brand:" label
@@ -146,7 +168,7 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
         if cleaned:
             fields["brand"] = cleaned
             confidence["brand"] = 0.8
-    else:
+    elif has_warranty_context:
         # Strategy 2: First non-empty line (usually company name on invoices)
         for line in lines[:5]:  # Check first 5 lines
             line = line.strip()
@@ -178,7 +200,7 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
                 confidence["product_name"] = 0.5
 
     # === MODEL CODE ===
-    model_match = re.search(r"model\s*[:\-#]\s*([a-zA-Z0-9\-]{2,30})", text, re.IGNORECASE)
+    model_match = re.search(r"(?:model|mode[li1])\s*[:\-#]\s*([a-zA-Z0-9\-]{2,30})", text, re.IGNORECASE)
     if model_match:
         fields["model_code"] = model_match.group(1).strip().upper()
         confidence["model_code"] = 0.7
@@ -187,7 +209,10 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
         model_token = re.search(r"\b([A-Z]{2,}[A-Z0-9\-]{2,})\b", text)
         if model_token:
             token = model_token.group(1).strip().upper()
-            if token not in ("GST", "HSN", "SAC", "INR", "CGST", "SGST", "IGST"):
+            if token not in (
+                "GST", "HSN", "SAC", "INR", "CGST", "SGST", "IGST",
+                "INVOICE", "BILL", "RETAIL", "TAX", "CUSTOMER", "COPY", "TOTAL",
+            ):
                 fields["model_code"] = token
                 confidence["model_code"] = 0.4
 
@@ -199,33 +224,64 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
 
     # === PURCHASE DATE ===
     # Look specifically for "Date:" labeled date first
-    date_label_match = re.search(r"(?:date|invoice date|purchase date)\s*[:\-]\s*(.{8,20})", text, re.IGNORECASE)
-    if date_label_match:
-        date_str = parse_date_from_text(date_label_match.group(1))
-        if date_str:
-            fields["purchase_date"] = date_str
-            confidence["purchase_date"] = 0.8
+    if has_warranty_context:
+        date_label_match = re.search(r"(?:date|invoice date|purchase date)\s*[:\-]\s*(.{8,20})", text, re.IGNORECASE)
+        if date_label_match:
+            date_str = parse_date_from_text(date_label_match.group(1))
+            if date_str:
+                fields["purchase_date"] = date_str
+                confidence["purchase_date"] = 0.8
     
     # Fallback: Any date in text
-    if "purchase_date" not in fields:
+    if has_warranty_context and "purchase_date" not in fields:
         date_str = parse_date_from_text(text)
         if date_str:
             fields["purchase_date"] = date_str
             confidence["purchase_date"] = 0.5
 
     # === INVOICE NUMBER ===
-    inv_match = re.search(r"(?:invoice|inv|bill)\s*(?:no|number|#)?\s*[:\-]?\s*([a-zA-Z0-9\-/]{3,20})", text, re.IGNORECASE)
-    if inv_match:
-        fields["invoice_no"] = inv_match.group(1).strip().upper()
+    inv_patterns = [
+        r"(?:invoice|invo[il1]ce|inv)\s*(?:no|number|#)\s*[:\-]?\s*([a-zA-Z0-9][a-zA-Z0-9\-/]{2,30})",
+        r"(?:invoice|invo[il1]ce)\s*[:\-]\s*([a-zA-Z0-9][a-zA-Z0-9\-/]{2,30})",
+    ]
+    if has_warranty_context:
+        inv_patterns.append(r"(?:bill)\s*(?:no|number|#)\s*[:\-]?\s*([a-zA-Z0-9][a-zA-Z0-9\-/]{2,30})")
+    invalid_invoice_tokens = {"INVOICE", "BILL", "NUMBER", "NO", "TAX", "DATE", "PRODUCT", "MODEL", "SERIAL"}
+    invoice_value = None
+    for pat in inv_patterns:
+        m = re.search(pat, text, re.IGNORECASE)
+        if not m:
+            continue
+        candidate = m.group(1).strip().upper()
+        if candidate in invalid_invoice_tokens:
+            continue
+        invoice_value = candidate
+        break
+    if invoice_value:
+        fields["invoice_no"] = invoice_value
         confidence["invoice_no"] = 0.7
 
     # === WARRANTY DURATION ===
-    warranty_match = re.search(r"(\d{1,2})\s*(?:year|yr|month|mo)s?\s*warranty", text, re.IGNORECASE)
-    if warranty_match:
-        val = int(warranty_match.group(1))
-        if "year" in text.lower() or "yr" in text.lower():
-            val = val * 12
-        fields["coverage_months"] = str(val)
+    coverage_months = None
+    # Pattern A: "Warranty: 24 months" / "Warranty - 2 years"
+    m_a = re.search(r"warranty\s*[:\-]?\s*(\d{1,2})\s*(year|yr|month|mo)s?\b", text, re.IGNORECASE)
+    if m_a:
+        qty = int(m_a.group(1))
+        unit = m_a.group(2).lower()
+        coverage_months = qty * 12 if unit in ("year", "yr") else qty
+    else:
+        # Pattern B: "24 months manufacturer warranty"
+        m_b = re.search(
+            r"(\d{1,2})\s*(year|yr|month|mo)s?(?:\s+\w+){0,4}\s+warranty\b",
+            text,
+            re.IGNORECASE,
+        )
+        if m_b:
+            qty = int(m_b.group(1))
+            unit = m_b.group(2).lower()
+            coverage_months = qty * 12 if unit in ("year", "yr") else qty
+    if coverage_months:
+        fields["coverage_months"] = str(coverage_months)
         confidence["coverage_months"] = 0.7
 
     product_category = _infer_product_category(

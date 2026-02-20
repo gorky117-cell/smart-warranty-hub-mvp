@@ -1,0 +1,67 @@
+{
+  "dataset_rows": 50,
+  "processed_rows": 50,
+  "missing_file_rows": 0,
+  "ocr_success_rate_pct": 0.0,
+  "ocr_empty_rate_pct": 100.0,
+  "latency_p50_ms": 1.3,
+  "latency_p95_ms": 7.01,
+  "field_metrics": {
+    "brand": {
+      "tp": 0.0,
+      "fp": 0.0,
+      "fn": 40.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "model_code": {
+      "tp": 0.0,
+      "fp": 0.0,
+      "fn": 40.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "purchase_date": {
+      "tp": 0.0,
+      "fp": 0.0,
+      "fn": 40.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "serial_no": {
+      "tp": 0.0,
+      "fp": 0.0,
+      "fn": 40.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "invoice_no": {
+      "tp": 0.0,
+      "fp": 0.0,
+      "fn": 40.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "coverage_months": {
+      "tp": 0.0,
+      "fp": 0.0,
+      "fn": 40.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "product_category": {
+      "tp": 0.0,
+      "fp": 0.0,
+      "fn": 40.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    }
+  }
+}

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from app.db import SessionLocal
-from app.services.warranty_parser import parse_terms_from_text, parse_terms_from_url
+from app.services.warranty_parser import ParsedTerms, parse_terms_from_text, parse_terms_from_url
 from app.services.terms_lookup import lookup_terms
 
 
@@ -60,3 +60,63 @@ def test_lookup_terms_with_url_override(tmp_path: Path):
             force_refresh=True,
         )
     assert result.duration_months == 18
+
+
+def test_parse_terms_low_confidence_uses_nlp_enrichment(tmp_path: Path, monkeypatch):
+    html = "<html><body><p>Warranty details available from support team.</p></body></html>"
+    path = tmp_path / "low_conf.html"
+    path.write_text(html, encoding="utf-8")
+
+    monkeypatch.setenv("TERMS_NLP_ENRICH_ENABLED", "1")
+    monkeypatch.setenv("TERMS_NLP_MIN_CONFIDENCE", "0.9")
+
+    def _fake_enrich(raw_text: str):
+        return (
+            ParsedTerms(
+                duration_months=24,
+                terms=["Covers manufacturing defects."],
+                exclusions=["Accidental damage is excluded."],
+                claim_steps=["Contact support with invoice."],
+                raw_text=None,
+                confidence=0.8,
+            ),
+            None,
+        )
+
+    monkeypatch.setattr("app.services.warranty_parser._mistral_enrich_terms", _fake_enrich)
+    parsed, err = parse_terms_from_url(str(path))
+    assert err is None
+    assert parsed is not None
+    assert parsed.duration_months == 24
+    assert "Covers manufacturing defects." in parsed.terms
+    assert "Accidental damage is excluded." in parsed.exclusions
+    assert "Contact support with invoice." in parsed.claim_steps
+
+
+def test_parse_terms_keeps_deterministic_duration_when_present(tmp_path: Path, monkeypatch):
+    html = "<html><body><p>Coverage: 12 months warranty from purchase date.</p></body></html>"
+    path = tmp_path / "deterministic_win.html"
+    path.write_text(html, encoding="utf-8")
+
+    monkeypatch.setenv("TERMS_NLP_ENRICH_ENABLED", "1")
+    monkeypatch.setenv("TERMS_NLP_MIN_CONFIDENCE", "0.99")
+
+    def _fake_enrich(raw_text: str):
+        return (
+            ParsedTerms(
+                duration_months=36,
+                terms=["Extended support terms."],
+                exclusions=[],
+                claim_steps=[],
+                raw_text=None,
+                confidence=0.8,
+            ),
+            None,
+        )
+
+    monkeypatch.setattr("app.services.warranty_parser._mistral_enrich_terms", _fake_enrich)
+    parsed, err = parse_terms_from_url(str(path))
+    assert err is None
+    assert parsed is not None
+    # Deterministic parser remains primary.
+    assert parsed.duration_months == 12

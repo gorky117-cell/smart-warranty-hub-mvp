@@ -1,0 +1,302 @@
+[
+  {
+    "case_id": "NLP001",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP001</p><p>Coverage: 24 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP002",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP002</p><p>Coverage: 12 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP003",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP003</p><p>Coverage: 24 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP004",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP004</p><p>Coverage: 12 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP005",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP005</p><p>Coverage: 24 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP006",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP006</p><p>Coverage: 12 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP007",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP007</p><p>Coverage: 24 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP008",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP008</p><p>Coverage: 12 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP009",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP009</p><p>Coverage: 24 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP010",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP010</p><p>Coverage: 12 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP011",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP011</p><p>Coverage: 24 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP012",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP012</p><p>Coverage: 12 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP013",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP013</p><p>Coverage: 24 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP014",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP014</p><p>Coverage: 12 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP015",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP015</p><p>Coverage: 24 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP016",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP016</p><p>Coverage: 12 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP017",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP017</p><p>Coverage: 24 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP018",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP018</p><p>Coverage: 12 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP019",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP019</p><p>Coverage: 24 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP020",
+    "scenario": "high_conf_deterministic",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty Policy</h1><p>CaseID: NLP020</p><p>Coverage: 12 months warranty from purchase date.</p><h2>Exclusions</h2><ul><li>Physical damage</li><li>Liquid damage</li></ul><h2>Claim steps</h2><ol><li>Contact support</li><li>Provide invoice</li></ol></body></html>"
+  },
+  {
+    "case_id": "NLP021",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 36,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP021</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP022",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP022</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP023",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP023</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP024",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 36,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP024</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP025",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP025</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP026",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP026</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP027",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 36,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP027</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP028",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP028</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP029",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP029</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP030",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 36,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP030</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP031",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP031</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP032",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP032</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP033",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 36,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP033</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP034",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP034</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP035",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP035</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP036",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 36,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP036</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP037",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP037</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP038",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP038</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP039",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 36,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP039</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP040",
+    "scenario": "low_conf_enrich",
+    "expected_duration": 24,
+    "html": "<html><body><h1>Support</h1><p>CaseID: NLP040</p><p>Warranty details available from customer support team.</p></body></html>"
+  },
+  {
+    "case_id": "NLP041",
+    "scenario": "partial_duration_keep",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty</h1><p>CaseID: NLP041</p><p>Coverage: 12 months warranty from purchase date.</p><p>Additional details available on request.</p></body></html>"
+  },
+  {
+    "case_id": "NLP042",
+    "scenario": "partial_duration_keep",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty</h1><p>CaseID: NLP042</p><p>Coverage: 12 months warranty from purchase date.</p><p>Additional details available on request.</p></body></html>"
+  },
+  {
+    "case_id": "NLP043",
+    "scenario": "partial_duration_keep",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty</h1><p>CaseID: NLP043</p><p>Coverage: 12 months warranty from purchase date.</p><p>Additional details available on request.</p></body></html>"
+  },
+  {
+    "case_id": "NLP044",
+    "scenario": "partial_duration_keep",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty</h1><p>CaseID: NLP044</p><p>Coverage: 12 months warranty from purchase date.</p><p>Additional details available on request.</p></body></html>"
+  },
+  {
+    "case_id": "NLP045",
+    "scenario": "partial_duration_keep",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty</h1><p>CaseID: NLP045</p><p>Coverage: 12 months warranty from purchase date.</p><p>Additional details available on request.</p></body></html>"
+  },
+  {
+    "case_id": "NLP046",
+    "scenario": "partial_duration_keep",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty</h1><p>CaseID: NLP046</p><p>Coverage: 12 months warranty from purchase date.</p><p>Additional details available on request.</p></body></html>"
+  },
+  {
+    "case_id": "NLP047",
+    "scenario": "partial_duration_keep",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty</h1><p>CaseID: NLP047</p><p>Coverage: 12 months warranty from purchase date.</p><p>Additional details available on request.</p></body></html>"
+  },
+  {
+    "case_id": "NLP048",
+    "scenario": "partial_duration_keep",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty</h1><p>CaseID: NLP048</p><p>Coverage: 12 months warranty from purchase date.</p><p>Additional details available on request.</p></body></html>"
+  },
+  {
+    "case_id": "NLP049",
+    "scenario": "partial_duration_keep",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty</h1><p>CaseID: NLP049</p><p>Coverage: 12 months warranty from purchase date.</p><p>Additional details available on request.</p></body></html>"
+  },
+  {
+    "case_id": "NLP050",
+    "scenario": "partial_duration_keep",
+    "expected_duration": 12,
+    "html": "<html><body><h1>Warranty</h1><p>CaseID: NLP050</p><p>Coverage: 12 months warranty from purchase date.</p><p>Additional details available on request.</p></body></html>"
+  }
+]

@@ -5,7 +5,7 @@ import tempfile
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Tuple, List, Dict
+from typing import Optional, Tuple, List, Dict, Any
 
 import requests
 from bs4 import BeautifulSoup
@@ -18,6 +18,9 @@ import json
 MAX_RAW_TEXT = 4000
 _HEADLESS_ENABLED = os.getenv("HEADLESS_SCRAPE", "0").strip().lower() in ("1", "true", "yes")
 _OEM_DOMAIN_PATH = Path(__file__).resolve().parents[2] / "data" / "oem_domains.json"
+_MISTRAL_API = os.getenv("MISTRAL_API_URL", "https://api.mistral.ai/v1")
+_MISTRAL_MODEL = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
+_MISTRAL_KEY = os.getenv("MISTRAL_API_KEY")
 
 
 @dataclass
@@ -32,6 +35,43 @@ class ParsedTerms:
 
 _YEAR_RE = re.compile(r"(\d{1,2})\s*(?:year|years|yr|yrs)", re.IGNORECASE)
 _MONTH_RE = re.compile(r"(\d{1,2})\s*(?:month|months|mo)", re.IGNORECASE)
+
+
+def _env_true(name: str, default: str = "0") -> bool:
+    return os.getenv(name, default).strip().lower() in ("1", "true", "yes")
+
+
+def _env_float(name: str, default: float) -> float:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return float(raw)
+    except Exception:
+        return default
+
+
+def _env_int(name: str, default: int) -> int:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except Exception:
+        return default
+
+
+def _nlp_enrich_enabled() -> bool:
+    # Keep deterministic parser primary. NLP enrich is optional fallback.
+    return _env_true("TERMS_NLP_ENRICH_ENABLED", "1")
+
+
+def _nlp_min_confidence() -> float:
+    return _env_float("TERMS_NLP_MIN_CONFIDENCE", 0.45)
+
+
+def _nlp_max_chars() -> int:
+    return _env_int("TERMS_NLP_MAX_CHARS", 3000)
 
 
 def _best_duration_months(text: str) -> Optional[int]:
@@ -73,19 +113,197 @@ def _extract_section(lines: List[str], keywords: Tuple[str, ...]) -> List[str]:
     return out
 
 
+def _clean_item(text: str) -> str:
+    s = (text or "").strip()
+    s = re.sub(r"^[\-\*\u2022\d\.\)\(]+\s*", "", s)
+    s = re.sub(r"\s+", " ", s).strip(" :;,-")
+    return s
+
+
+def _dedupe_keep_order(items: List[str]) -> List[str]:
+    out: List[str] = []
+    seen = set()
+    for item in items:
+        val = _clean_item(item)
+        if len(val) < 3:
+            continue
+        key = val.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(val)
+    return out
+
+
+def _extract_json_object(text: str) -> Optional[Dict[str, Any]]:
+    raw = (text or "").strip()
+    if not raw:
+        return None
+    try:
+        obj = json.loads(raw)
+        return obj if isinstance(obj, dict) else None
+    except Exception:
+        pass
+    start = raw.find("{")
+    end = raw.rfind("}")
+    if start >= 0 and end > start:
+        chunk = raw[start : end + 1]
+        try:
+            obj = json.loads(chunk)
+            return obj if isinstance(obj, dict) else None
+        except Exception:
+            return None
+    return None
+
+
+def _to_str_list(value: Any) -> List[str]:
+    if isinstance(value, list):
+        return _dedupe_keep_order([str(x) for x in value if str(x).strip()])
+    if isinstance(value, str) and value.strip():
+        # If model returns a newline/bullet string, split to list.
+        if "\n" in value:
+            return _dedupe_keep_order([x for x in value.splitlines() if x.strip()])
+        return _dedupe_keep_order([value.strip()])
+    return []
+
+
+def _parse_mistral_terms_json(content: str) -> Optional[ParsedTerms]:
+    obj = _extract_json_object(content)
+    if not obj:
+        return None
+    duration_raw = obj.get("duration_months")
+    duration: Optional[int] = None
+    if duration_raw is not None and str(duration_raw).strip():
+        try:
+            duration = int(float(str(duration_raw)))
+        except Exception:
+            duration = None
+    terms = _to_str_list(obj.get("terms"))
+    exclusions = _to_str_list(obj.get("exclusions"))
+    claim_steps = _to_str_list(obj.get("claim_steps"))
+    confidence = 0.0
+    if duration:
+        confidence += 0.4
+    if exclusions:
+        confidence += 0.2
+    if claim_steps:
+        confidence += 0.2
+    if terms:
+        confidence += 0.2
+    confidence = min(confidence, 1.0)
+    return ParsedTerms(
+        duration_months=duration,
+        terms=terms,
+        exclusions=exclusions,
+        claim_steps=claim_steps,
+        raw_text=None,
+        confidence=confidence,
+    )
+
+
+def _mistral_enrich_terms(raw_text: str) -> Tuple[Optional[ParsedTerms], Optional[str]]:
+    if not _MISTRAL_KEY:
+        return None, "MISTRAL_API_KEY not set"
+    text = (raw_text or "").strip()
+    if not text:
+        return None, "No text to enrich"
+    clipped = text[: max(200, _nlp_max_chars())]
+    prompt = (
+        "Extract warranty details from text. Return JSON only with keys: "
+        "duration_months (number or null), terms (array), exclusions (array), claim_steps (array). "
+        "Do not include markdown.\n\n"
+        f"Text:\n{clipped}"
+    )
+    try:
+        resp = requests.post(
+            f"{_MISTRAL_API.rstrip('/')}/chat/completions",
+            headers={"Authorization": f"Bearer {_MISTRAL_KEY}"},
+            json={
+                "model": _MISTRAL_MODEL,
+                "messages": [
+                    {"role": "system", "content": "You extract structured warranty information."},
+                    {"role": "user", "content": prompt},
+                ],
+                "temperature": 0.0,
+            },
+            timeout=20,
+        )
+    except requests.exceptions.RequestException as exc:
+        return None, f"Mistral call failed: {exc}"
+    if resp.status_code != 200:
+        return None, f"Mistral error {resp.status_code}"
+    try:
+        data = resp.json()
+    except Exception as exc:
+        return None, f"Mistral parse failed: {exc}"
+    content = (data.get("choices") or [{}])[0].get("message", {}).get("content", "")
+    parsed = _parse_mistral_terms_json(content)
+    if not parsed:
+        return None, "Mistral returned non-JSON terms payload"
+    return parsed, None
+
+
+def _needs_enrichment(parsed: ParsedTerms) -> bool:
+    if parsed.confidence < _nlp_min_confidence():
+        return True
+    if not parsed.duration_months and (not parsed.terms or not parsed.exclusions or not parsed.claim_steps):
+        return True
+    return False
+
+
+def _merge_parsed(base: ParsedTerms, enrich: ParsedTerms) -> ParsedTerms:
+    duration = base.duration_months if base.duration_months else enrich.duration_months
+    terms = _dedupe_keep_order((base.terms or []) + (enrich.terms or []))
+    exclusions = _dedupe_keep_order((base.exclusions or []) + (enrich.exclusions or []))
+    claim_steps = _dedupe_keep_order((base.claim_steps or []) + (enrich.claim_steps or []))
+    conf = max(base.confidence, enrich.confidence)
+    # Small confidence lift only when enrichment adds new signals.
+    if len(terms) > len(base.terms or []) or len(exclusions) > len(base.exclusions or []) or len(claim_steps) > len(base.claim_steps or []):
+        conf = min(1.0, conf + 0.1)
+    return ParsedTerms(
+        duration_months=duration,
+        terms=terms,
+        exclusions=exclusions,
+        claim_steps=claim_steps,
+        raw_text=base.raw_text or enrich.raw_text,
+        confidence=min(conf, 1.0),
+    )
+
+
+def _finalize_parsed(parsed: ParsedTerms, raw_text_for_enrich: Optional[str] = None) -> ParsedTerms:
+    # Always normalize deterministic parser output.
+    normalized = ParsedTerms(
+        duration_months=parsed.duration_months,
+        terms=_dedupe_keep_order(parsed.terms or []),
+        exclusions=_dedupe_keep_order(parsed.exclusions or []),
+        claim_steps=_dedupe_keep_order(parsed.claim_steps or []),
+        raw_text=parsed.raw_text,
+        confidence=parsed.confidence,
+    )
+    if not _nlp_enrich_enabled():
+        return normalized
+    if not _needs_enrichment(normalized):
+        return normalized
+    enrich_text = (raw_text_for_enrich or normalized.raw_text or "").strip()
+    enrich, _err = _mistral_enrich_terms(enrich_text)
+    if not enrich:
+        return normalized
+    return _merge_parsed(normalized, enrich)
+
+
 def parse_terms_from_text(text: str) -> ParsedTerms:
     text = (text or "").strip()
     lines = _split_lines(text)
 
     duration_months = _best_duration_months(text)
-    exclusions = _extract_section(lines, ("exclusion", "not covered", "limitations"))
-    claim_steps = _extract_section(lines, ("claim", "how to claim", "procedure", "steps"))
+    exclusions = _dedupe_keep_order(_extract_section(lines, ("exclusion", "not covered", "limitations")))
+    claim_steps = _dedupe_keep_order(_extract_section(lines, ("claim", "how to claim", "procedure", "steps")))
 
     terms: List[str] = []
     if duration_months:
         terms.append(f"Standard coverage for {duration_months} months from purchase date.")
     if not terms:
-        terms = _extract_section(lines, ("coverage", "warranty", "includes"))
+        terms = _dedupe_keep_order(_extract_section(lines, ("coverage", "warranty", "includes")))
 
     confidence = 0.0
     if duration_months:
@@ -181,10 +399,13 @@ def parse_terms_from_url(url: str, timeout: int = 10) -> Tuple[Optional[ParsedTe
         if err:
             return None, err
         if is_pdf:
-            return parse_terms_from_text(text or ""), None
+            parsed = parse_terms_from_text(text or "")
+            return _finalize_parsed(parsed, raw_text_for_enrich=text), None
         if local_path.suffix.lower() in (".html", ".htm"):
-            return parse_terms_from_html(text or ""), None
-        return parse_terms_from_text(text or ""), None
+            parsed = parse_terms_from_html(text or "")
+            return _finalize_parsed(parsed, raw_text_for_enrich=text), None
+        parsed = parse_terms_from_text(text or "")
+        return _finalize_parsed(parsed, raw_text_for_enrich=text), None
 
     if Path(url).exists():
         local_path = Path(url)
@@ -192,10 +413,13 @@ def parse_terms_from_url(url: str, timeout: int = 10) -> Tuple[Optional[ParsedTe
         if err:
             return None, err
         if is_pdf:
-            return parse_terms_from_text(text or ""), None
+            parsed = parse_terms_from_text(text or "")
+            return _finalize_parsed(parsed, raw_text_for_enrich=text), None
         if local_path.suffix.lower() in (".html", ".htm"):
-            return parse_terms_from_html(text or ""), None
-        return parse_terms_from_text(text or ""), None
+            parsed = parse_terms_from_html(text or "")
+            return _finalize_parsed(parsed, raw_text_for_enrich=text), None
+        parsed = parse_terms_from_text(text or "")
+        return _finalize_parsed(parsed, raw_text_for_enrich=text), None
 
     try:
         resp = requests.get(url, timeout=timeout, headers={"User-Agent": "SmartWarrantyHub/1.0"})
@@ -215,7 +439,8 @@ def parse_terms_from_url(url: str, timeout: int = 10) -> Tuple[Optional[ParsedTe
             text, err, _meta = extract_text_with_meta(str(tmp_path))
             if err:
                 return None, err
-            return parse_terms_from_text(text or ""), None
+            parsed = parse_terms_from_text(text or "")
+            return _finalize_parsed(parsed, raw_text_for_enrich=text), None
         finally:
             try:
                 tmp_path.unlink()
@@ -251,5 +476,5 @@ def parse_terms_from_url(url: str, timeout: int = 10) -> Tuple[Optional[ParsedTe
     if _HEADLESS_ENABLED and (parsed.confidence < 0.2 or len(parsed.raw_text or "") < 200):
         headless_html = _fetch_headless(url)
         if headless_html:
-            return parse_terms_from_html(headless_html), None
-    return parsed, None
+            parsed = parse_terms_from_html(headless_html)
+    return _finalize_parsed(parsed, raw_text_for_enrich=parsed.raw_text), None
