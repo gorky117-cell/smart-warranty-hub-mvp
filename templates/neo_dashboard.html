@@ -1090,19 +1090,15 @@
     <!-- Sticky bottom bar -->
     <div class="sticky-bar">
       <button type="button" class="active" data-target="step1" onclick="scrollToStep('step1', this)">
-        <span class="nav-icon">H</span>
         <span>Home</span>
       </button>
       <button type="button" data-target="step2" onclick="scrollToStep('step2', this)">
-        <span class="nav-icon">D</span>
         <span>Details</span>
       </button>
       <button type="button" data-target="step3" onclick="scrollToStep('step3', this)">
-        <span class="nav-icon">B</span>
         <span>Bill</span>
       </button>
       <button type="button" data-target="step4" onclick="scrollToStep('step4', this)">
-        <span class="nav-icon">U</span>
         <span>Health</span>
       </button>
     </div>
@@ -2409,7 +2405,7 @@
         }
 
         const uploadBtn = document.getElementById('btnUploadBill');
-        if (uploadBtn) uploadBtn.addEventListener('click', handleBillUpload);
+        if (uploadBtn) uploadBtn.addEventListener('click', () => handleBillUpload(false));
         const openBtn = document.getElementById('btnOpenCamera');
         if (openBtn) openBtn.addEventListener('click', openCamera);
         const capBtn = document.getElementById('btnCapture');
@@ -2420,7 +2416,7 @@
         if (saveManualBtn) saveManualBtn.addEventListener('click', saveManualBill);
       }
 
-      async function handleBillUpload() {
+      async function handleBillUpload(forceProcess = false) {
         const msg = document.getElementById('billUploadMsg');
         const file = document.getElementById('billFile')?.files?.[0];
         if (!file) { if (msg) msg.textContent = 'Choose a file to upload.'; return; }
@@ -2429,14 +2425,33 @@
           const fd = new FormData();
           fd.append('file', file);
           fd.append('type', 'invoice');
+          fd.append('force_process', forceProcess ? '1' : '0');
           const res = await fetch('/artifacts/upload', { method: 'POST', headers: h(), body: fd, credentials: 'same-origin' });
+          const data = await res.json().catch(() => null);
           if (!res.ok) {
-            const txt = await res.text().catch(() => '');
-            if (msg) msg.textContent = `Upload failed: ${txt || res.statusText}`;
+            const reason = (data && (data.detail || data.message)) || res.statusText;
+            if (msg) msg.textContent = `Upload failed: ${reason}`;
             return;
           }
-          const data = await res.json();
-          if (msg) msg.textContent = 'Uploaded. Loading extracted data...';
+          if (data && data.status === 'needs_review') {
+            if (msg) {
+              msg.textContent = (data.guardrail && data.guardrail.message) || 'This bill may be outside warranty scope.';
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.textContent = 'Continue anyway';
+              btn.style.marginLeft = '8px';
+              btn.addEventListener('click', () => handleBillUpload(true));
+              msg.appendChild(btn);
+            }
+            return;
+          }
+
+          if (msg) {
+            const warnMsg = data && data.guardrail && data.guardrail.decision === 'warn'
+              ? data.guardrail.message
+              : null;
+            msg.textContent = warnMsg ? `${warnMsg} Loading extracted data...` : 'Uploaded. Loading extracted data...';
+          }
 
           // Update warranty ID and reload
           if (data && data.warranty_id) {

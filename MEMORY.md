@@ -230,3 +230,12 @@ Last updated: 2026-02-13
 - Add search retry/backoff + rate limit handling.
 - Add per‑OEM parsers for higher accuracy.
 - Add cron job to refresh summaries after risk changes.
+
+## Working Rules (Execution Discipline)
+- Anti-regression first: one fix must not break previously working behavior.
+- Before each micro-fix, check related routes/services and ownership/security side effects.
+- After each fix, run the smallest relevant verification first, then broader checks when needed.
+- Keep changes scoped: avoid unrelated refactors while solving production issues.
+- Preserve previous successful fixes unless explicitly replaced by a safer/newer implementation.
+- Update this memory after meaningful discussion decisions and after each shipped code change.
+- Keep a clear stream of work: issue -> root cause -> fix -> verification -> deployment status.

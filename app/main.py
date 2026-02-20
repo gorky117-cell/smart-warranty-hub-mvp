@@ -1,5 +1,6 @@
 import os
 import logging
+import re
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict
@@ -440,6 +441,63 @@ def _demo_public_ui_enabled() -> bool:
 
 def _public_signup_enabled() -> bool:
     return os.getenv("PUBLIC_SIGNUP_ENABLED", "1").strip().lower() in ("1", "true", "yes")
+
+
+_INVOICE_NON_WARRANTY_HINTS = (
+    "sweet",
+    "sweets",
+    "bakery",
+    "restaurant",
+    "cafe",
+    "grocery",
+    "vegetable",
+    "fruit",
+    "milk",
+    "snack",
+    "food",
+    "pharmacy",
+)
+
+
+def _invoice_guardrail(content: str) -> Dict[str, object]:
+    """
+    Soft classifier for invoice relevance.
+    - clear: looks like warranty-related invoice
+    - warn: uncertain, still process
+    - needs_review: strongly non-warranty, require explicit continue
+    """
+    text = (content or "").strip()
+    low = text.lower()
+    if not low:
+        return {
+            "decision": "warn",
+            "message": "We could not read enough invoice text. If this is a warranty invoice, continue and add product details manually.",
+        }
+
+    positive = 0
+    for token in ("warranty", "serial", "imei", "model", "invoice", "purchase date", "product", "device"):
+        if token in low:
+            positive += 1
+    if re.search(r"\b\d{1,2}\s*(month|months|year|years|yr|yrs)\s*warranty\b", low):
+        positive += 2
+    if re.search(r"\b(imei|serial|s\/n|sn)\b", low):
+        positive += 1
+
+    negative_hits = [token for token in _INVOICE_NON_WARRANTY_HINTS if token in low]
+
+    if len(negative_hits) >= 2 and positive == 0:
+        return {
+            "decision": "needs_review",
+            "message": "This looks like a non-warranty bill. Continue only if this is actually a product warranty invoice.",
+            "negative_hints": negative_hits[:3],
+        }
+    if len(negative_hits) >= 1 and positive <= 1:
+        return {
+            "decision": "warn",
+            "message": "This bill may be outside warranty scope. We will still process it, and you can correct product details if needed.",
+            "negative_hints": negative_hits[:3],
+        }
+    return {"decision": "clear", "message": None}
 
 
 def _build_ui_login_redirect(request: Request) -> RedirectResponse:
@@ -1138,6 +1196,7 @@ async def upload_artifact(
     file: UploadFile = File(...),
     type: ArtifactType = ArtifactType.invoice,
     warranty_id: Optional[str] = Form(default=None),  # NEW: Optional existing warranty ID
+    force_process: bool = Form(default=False),
     db=Depends(get_db),
     current=Depends(require_user),
     background_tasks: BackgroundTasks = None,
@@ -1149,6 +1208,17 @@ async def upload_artifact(
     with dest.open("wb") as f:
         f.write(await file.read())
     artifact = ingest_artifact(type, file_path=str(dest), use_ocr=True)
+
+    guardrail = {"decision": "clear", "message": None}
+    if type == ArtifactType.invoice:
+        guardrail = _invoice_guardrail(artifact.content)
+    if guardrail.get("decision") == "needs_review" and not force_process:
+        return {
+            "artifact": artifact,
+            "saved_path": str(dest),
+            "status": "needs_review",
+            "guardrail": guardrail,
+        }
     
     # Use existing warranty if provided, otherwise create new one
     if warranty_id:
@@ -1197,6 +1267,8 @@ async def upload_artifact(
         "job_id": job.id,
         "status": job.status,
         "job_error": job_error,
+        "guardrail": guardrail if type == ArtifactType.invoice else None,
+        "forced_process": bool(force_process),
     }
 
 
