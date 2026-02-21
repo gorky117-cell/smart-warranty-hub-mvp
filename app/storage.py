@@ -210,11 +210,23 @@ class MemoryStore:
         key = f"{experiment}:{user_id}:{warranty_id}"
         self.policy_assignments[key] = variant
         with SessionLocal() as db:
-            db.merge(
-                PolicyAssignmentDB(
-                    experiment=experiment, user_id=user_id, warranty_id=warranty_id, variant=variant
+            row = (
+                db.query(PolicyAssignmentDB)
+                .filter(
+                    PolicyAssignmentDB.experiment == experiment,
+                    PolicyAssignmentDB.user_id == user_id,
+                    PolicyAssignmentDB.warranty_id == warranty_id,
                 )
+                .first()
             )
+            if row:
+                row.variant = variant
+            else:
+                db.add(
+                    PolicyAssignmentDB(
+                        experiment=experiment, user_id=user_id, warranty_id=warranty_id, variant=variant
+                    )
+                )
             db.commit()
         return variant
 

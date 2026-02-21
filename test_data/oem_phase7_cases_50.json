@@ -1,0 +1,402 @@
+[
+  {
+    "case_id": "OEM001",
+    "user_id": "user_oem001",
+    "warranty_id": "wty_oem001",
+    "brand": "Samsung",
+    "model_code": "SA-M0",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM002",
+    "user_id": "user_oem002",
+    "warranty_id": "wty_oem002",
+    "brand": "LG",
+    "model_code": "LG-M1",
+    "region": "US"
+  },
+  {
+    "case_id": "OEM003",
+    "user_id": "user_oem003",
+    "warranty_id": "wty_oem003",
+    "brand": "Sony",
+    "model_code": "SO-M2",
+    "region": "EU"
+  },
+  {
+    "case_id": "OEM004",
+    "user_id": "user_oem004",
+    "warranty_id": "wty_oem004",
+    "brand": "Apple",
+    "model_code": "AP-M3",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM005",
+    "user_id": "user_oem005",
+    "warranty_id": "wty_oem005",
+    "brand": "Samsung",
+    "model_code": "SA-M4",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM006",
+    "user_id": "user_oem006",
+    "warranty_id": "wty_oem006",
+    "brand": "LG",
+    "model_code": "LG-M0",
+    "region": "US"
+  },
+  {
+    "case_id": "OEM007",
+    "user_id": "user_oem007",
+    "warranty_id": "wty_oem007",
+    "brand": "Sony",
+    "model_code": "SO-M1",
+    "region": "EU"
+  },
+  {
+    "case_id": "OEM008",
+    "user_id": "user_oem008",
+    "warranty_id": "wty_oem008",
+    "brand": "Apple",
+    "model_code": "AP-M2",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM009",
+    "user_id": "user_oem009",
+    "warranty_id": "wty_oem009",
+    "brand": "Samsung",
+    "model_code": "SA-M3",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM010",
+    "user_id": "user_oem010",
+    "warranty_id": "wty_oem010",
+    "brand": "LG",
+    "model_code": "LG-M4",
+    "region": "US"
+  },
+  {
+    "case_id": "OEM011",
+    "user_id": "user_oem011",
+    "warranty_id": "wty_oem011",
+    "brand": "Sony",
+    "model_code": "SO-M0",
+    "region": "EU"
+  },
+  {
+    "case_id": "OEM012",
+    "user_id": "user_oem012",
+    "warranty_id": "wty_oem012",
+    "brand": "Apple",
+    "model_code": "AP-M1",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM013",
+    "user_id": "user_oem013",
+    "warranty_id": "wty_oem013",
+    "brand": "Samsung",
+    "model_code": "SA-M2",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM014",
+    "user_id": "user_oem014",
+    "warranty_id": "wty_oem014",
+    "brand": "LG",
+    "model_code": "LG-M3",
+    "region": "US"
+  },
+  {
+    "case_id": "OEM015",
+    "user_id": "user_oem015",
+    "warranty_id": "wty_oem015",
+    "brand": "Sony",
+    "model_code": "SO-M4",
+    "region": "EU"
+  },
+  {
+    "case_id": "OEM016",
+    "user_id": "user_oem016",
+    "warranty_id": "wty_oem016",
+    "brand": "Apple",
+    "model_code": "AP-M0",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM017",
+    "user_id": "user_oem017",
+    "warranty_id": "wty_oem017",
+    "brand": "Samsung",
+    "model_code": "SA-M1",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM018",
+    "user_id": "user_oem018",
+    "warranty_id": "wty_oem018",
+    "brand": "LG",
+    "model_code": "LG-M2",
+    "region": "US"
+  },
+  {
+    "case_id": "OEM019",
+    "user_id": "user_oem019",
+    "warranty_id": "wty_oem019",
+    "brand": "Sony",
+    "model_code": "SO-M3",
+    "region": "EU"
+  },
+  {
+    "case_id": "OEM020",
+    "user_id": "user_oem020",
+    "warranty_id": "wty_oem020",
+    "brand": "Apple",
+    "model_code": "AP-M4",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM021",
+    "user_id": "user_oem021",
+    "warranty_id": "wty_oem021",
+    "brand": "Samsung",
+    "model_code": "SA-M0",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM022",
+    "user_id": "user_oem022",
+    "warranty_id": "wty_oem022",
+    "brand": "LG",
+    "model_code": "LG-M1",
+    "region": "US"
+  },
+  {
+    "case_id": "OEM023",
+    "user_id": "user_oem023",
+    "warranty_id": "wty_oem023",
+    "brand": "Sony",
+    "model_code": "SO-M2",
+    "region": "EU"
+  },
+  {
+    "case_id": "OEM024",
+    "user_id": "user_oem024",
+    "warranty_id": "wty_oem024",
+    "brand": "Apple",
+    "model_code": "AP-M3",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM025",
+    "user_id": "user_oem025",
+    "warranty_id": "wty_oem025",
+    "brand": "Samsung",
+    "model_code": "SA-M4",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM026",
+    "user_id": "user_oem026",
+    "warranty_id": "wty_oem026",
+    "brand": "LG",
+    "model_code": "LG-M0",
+    "region": "US"
+  },
+  {
+    "case_id": "OEM027",
+    "user_id": "user_oem027",
+    "warranty_id": "wty_oem027",
+    "brand": "Sony",
+    "model_code": "SO-M1",
+    "region": "EU"
+  },
+  {
+    "case_id": "OEM028",
+    "user_id": "user_oem028",
+    "warranty_id": "wty_oem028",
+    "brand": "Apple",
+    "model_code": "AP-M2",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM029",
+    "user_id": "user_oem029",
+    "warranty_id": "wty_oem029",
+    "brand": "Samsung",
+    "model_code": "SA-M3",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM030",
+    "user_id": "user_oem030",
+    "warranty_id": "wty_oem030",
+    "brand": "LG",
+    "model_code": "LG-M4",
+    "region": "US"
+  },
+  {
+    "case_id": "OEM031",
+    "user_id": "user_oem031",
+    "warranty_id": "wty_oem031",
+    "brand": "Sony",
+    "model_code": "SO-M0",
+    "region": "EU"
+  },
+  {
+    "case_id": "OEM032",
+    "user_id": "user_oem032",
+    "warranty_id": "wty_oem032",
+    "brand": "Apple",
+    "model_code": "AP-M1",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM033",
+    "user_id": "user_oem033",
+    "warranty_id": "wty_oem033",
+    "brand": "Samsung",
+    "model_code": "SA-M2",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM034",
+    "user_id": "user_oem034",
+    "warranty_id": "wty_oem034",
+    "brand": "LG",
+    "model_code": "LG-M3",
+    "region": "US"
+  },
+  {
+    "case_id": "OEM035",
+    "user_id": "user_oem035",
+    "warranty_id": "wty_oem035",
+    "brand": "Sony",
+    "model_code": "SO-M4",
+    "region": "EU"
+  },
+  {
+    "case_id": "OEM036",
+    "user_id": "user_oem036",
+    "warranty_id": "wty_oem036",
+    "brand": "Apple",
+    "model_code": "AP-M0",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM037",
+    "user_id": "user_oem037",
+    "warranty_id": "wty_oem037",
+    "brand": "Samsung",
+    "model_code": "SA-M1",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM038",
+    "user_id": "user_oem038",
+    "warranty_id": "wty_oem038",
+    "brand": "LG",
+    "model_code": "LG-M2",
+    "region": "US"
+  },
+  {
+    "case_id": "OEM039",
+    "user_id": "user_oem039",
+    "warranty_id": "wty_oem039",
+    "brand": "Sony",
+    "model_code": "SO-M3",
+    "region": "EU"
+  },
+  {
+    "case_id": "OEM040",
+    "user_id": "user_oem040",
+    "warranty_id": "wty_oem040",
+    "brand": "Apple",
+    "model_code": "AP-M4",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM041",
+    "user_id": "user_oem041",
+    "warranty_id": "wty_oem041",
+    "brand": "Samsung",
+    "model_code": "SA-M0",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM042",
+    "user_id": "user_oem042",
+    "warranty_id": "wty_oem042",
+    "brand": "LG",
+    "model_code": "LG-M1",
+    "region": "US"
+  },
+  {
+    "case_id": "OEM043",
+    "user_id": "user_oem043",
+    "warranty_id": "wty_oem043",
+    "brand": "Sony",
+    "model_code": "SO-M2",
+    "region": "EU"
+  },
+  {
+    "case_id": "OEM044",
+    "user_id": "user_oem044",
+    "warranty_id": "wty_oem044",
+    "brand": "Apple",
+    "model_code": "AP-M3",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM045",
+    "user_id": "user_oem045",
+    "warranty_id": "wty_oem045",
+    "brand": "Samsung",
+    "model_code": "SA-M4",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM046",
+    "user_id": "user_oem046",
+    "warranty_id": "wty_oem046",
+    "brand": "LG",
+    "model_code": "LG-M0",
+    "region": "US"
+  },
+  {
+    "case_id": "OEM047",
+    "user_id": "user_oem047",
+    "warranty_id": "wty_oem047",
+    "brand": "Sony",
+    "model_code": "SO-M1",
+    "region": "EU"
+  },
+  {
+    "case_id": "OEM048",
+    "user_id": "user_oem048",
+    "warranty_id": "wty_oem048",
+    "brand": "Apple",
+    "model_code": "AP-M2",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM049",
+    "user_id": "user_oem049",
+    "warranty_id": "wty_oem049",
+    "brand": "Samsung",
+    "model_code": "SA-M3",
+    "region": "IN"
+  },
+  {
+    "case_id": "OEM050",
+    "user_id": "user_oem050",
+    "warranty_id": "wty_oem050",
+    "brand": "LG",
+    "model_code": "LG-M4",
+    "region": "US"
+  }
+]

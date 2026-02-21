@@ -1,0 +1,14 @@
+stakeholder,kpi,formula,target,value,status,instrumented,notes
+User,Failure Prevention Rate,(high-risk users with preventive action and no failure in 30d) / (high-risk users nudged),>= 25%,26.67,pass,True,Derived from risk+nudge+30-day outcome simulation.
+User,Alert Usefulness Rate,(nudges acted) / (nudges shown),>= 35%,40.0,pass,True,From nudge event outcomes.
+User,False Alert Rate,(high-risk alerts with no supporting event) / (high-risk alerts),<= 20%,6.67,pass,True,Supporting event = failure or repeated symptom search.
+OEM,Early Warning Lead Time,"days(alert_date before failure date), median",>= 14 days,21.0,pass,True,Computed for high-risk cases with observed failure.
+OEM,High-Risk Precision,TP / (TP + FP) for high-risk,>= 55%,60.0,pass,True,Failure within 30 days used as positive label.
+Platform,Data Freshness SLA,% telemetry events updated within 24h,>= 98%,98.0,pass,True,Window threshold = 24 hours.
+Platform,Model Calibration Error (ECE),Expected calibration error across 10 bins,<= 0.12,0.1162,pass,True,Lower is better.
+Platform,Brier Score,mean((predicted_probability - outcome)^2),<= 0.22,0.1896,pass,True,Lower is better.
+Platform,Drift PSI,PSI between baseline and current score distribution,<= 0.20,0.1169,pass,True,PSI > 0.20 indicates drift watchlist.
+Platform,A/B Variant Balance Gap,max(variant_count)-min(variant_count),<= 1,0,pass,True,"Variant counts: {'A': 15, 'B': 15}"
+TPA,Claim Turnaround Time (TAT),median(claim_close_date - claim_open_date),-30% vs baseline,,not_instrumented,False,Claim close/open timestamps not yet persisted in DB tables.
+Retailer,"Escalations per 1,000 Units",(support escalations / units sold) * 1000,-20%,,not_instrumented,False,Retail sales and escalation linkage not yet in schema.
+Supplier,Stockout Rate,(stockout SKUs) / (critical SKUs),< 5%,,not_instrumented,False,Inventory feed integration pending.

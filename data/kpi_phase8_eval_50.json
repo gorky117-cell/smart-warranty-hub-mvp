@@ -1,0 +1,159 @@
+{
+  "summary": {
+    "dataset_rows": 50,
+    "instrumented_kpis": 10,
+    "passing_kpis": 10,
+    "kpi_pass_rate_pct": 100.0,
+    "failure_prevention_rate_pct": 26.67,
+    "alert_usefulness_rate_pct": 40.0,
+    "false_alert_rate_pct": 6.67,
+    "oem_high_risk_precision_pct": 60.0,
+    "oem_early_warning_lead_time_days_median": 21.0,
+    "data_freshness_sla_pct": 98.0,
+    "calibration_ece": 0.1162,
+    "brier_score": 0.1896,
+    "drift_psi": 0.1169,
+    "ab_variant_counts": {
+      "A": 15,
+      "B": 15
+    },
+    "ab_variant_gap": 0
+  },
+  "kpis": [
+    {
+      "stakeholder": "User",
+      "kpi": "Failure Prevention Rate",
+      "formula": "(high-risk users with preventive action and no failure in 30d) / (high-risk users nudged)",
+      "target": ">= 25%",
+      "value": 26.67,
+      "status": "pass",
+      "instrumented": true,
+      "notes": "Derived from risk+nudge+30-day outcome simulation."
+    },
+    {
+      "stakeholder": "User",
+      "kpi": "Alert Usefulness Rate",
+      "formula": "(nudges acted) / (nudges shown)",
+      "target": ">= 35%",
+      "value": 40.0,
+      "status": "pass",
+      "instrumented": true,
+      "notes": "From nudge event outcomes."
+    },
+    {
+      "stakeholder": "User",
+      "kpi": "False Alert Rate",
+      "formula": "(high-risk alerts with no supporting event) / (high-risk alerts)",
+      "target": "<= 20%",
+      "value": 6.67,
+      "status": "pass",
+      "instrumented": true,
+      "notes": "Supporting event = failure or repeated symptom search."
+    },
+    {
+      "stakeholder": "OEM",
+      "kpi": "Early Warning Lead Time",
+      "formula": "days(alert_date before failure date), median",
+      "target": ">= 14 days",
+      "value": 21.0,
+      "status": "pass",
+      "instrumented": true,
+      "notes": "Computed for high-risk cases with observed failure."
+    },
+    {
+      "stakeholder": "OEM",
+      "kpi": "High-Risk Precision",
+      "formula": "TP / (TP + FP) for high-risk",
+      "target": ">= 55%",
+      "value": 60.0,
+      "status": "pass",
+      "instrumented": true,
+      "notes": "Failure within 30 days used as positive label."
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "Data Freshness SLA",
+      "formula": "% telemetry events updated within 24h",
+      "target": ">= 98%",
+      "value": 98.0,
+      "status": "pass",
+      "instrumented": true,
+      "notes": "Window threshold = 24 hours."
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "Model Calibration Error (ECE)",
+      "formula": "Expected calibration error across 10 bins",
+      "target": "<= 0.12",
+      "value": 0.1162,
+      "status": "pass",
+      "instrumented": true,
+      "notes": "Lower is better."
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "Brier Score",
+      "formula": "mean((predicted_probability - outcome)^2)",
+      "target": "<= 0.22",
+      "value": 0.1896,
+      "status": "pass",
+      "instrumented": true,
+      "notes": "Lower is better."
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "Drift PSI",
+      "formula": "PSI between baseline and current score distribution",
+      "target": "<= 0.20",
+      "value": 0.1169,
+      "status": "pass",
+      "instrumented": true,
+      "notes": "PSI > 0.20 indicates drift watchlist."
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "A/B Variant Balance Gap",
+      "formula": "max(variant_count)-min(variant_count)",
+      "target": "<= 1",
+      "value": 0,
+      "status": "pass",
+      "instrumented": true,
+      "notes": "Variant counts: {'A': 15, 'B': 15}"
+    },
+    {
+      "stakeholder": "TPA",
+      "kpi": "Claim Turnaround Time (TAT)",
+      "formula": "median(claim_close_date - claim_open_date)",
+      "target": "-30% vs baseline",
+      "value": null,
+      "status": "not_instrumented",
+      "instrumented": false,
+      "notes": "Claim close/open timestamps not yet persisted in DB tables."
+    },
+    {
+      "stakeholder": "Retailer",
+      "kpi": "Escalations per 1,000 Units",
+      "formula": "(support escalations / units sold) * 1000",
+      "target": "-20%",
+      "value": null,
+      "status": "not_instrumented",
+      "instrumented": false,
+      "notes": "Retail sales and escalation linkage not yet in schema."
+    },
+    {
+      "stakeholder": "Supplier",
+      "kpi": "Stockout Rate",
+      "formula": "(stockout SKUs) / (critical SKUs)",
+      "target": "< 5%",
+      "value": null,
+      "status": "not_instrumented",
+      "instrumented": false,
+      "notes": "Inventory feed integration pending."
+    }
+  ],
+  "artifacts": {
+    "db_file": "data/kpi_phase8_eval.db",
+    "cases_file": "test_data/kpi_phase8_cases_50.json",
+    "scorecard_csv": "data/kpi_phase8_scorecard_50.csv"
+  }
+}

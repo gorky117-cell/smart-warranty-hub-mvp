@@ -1,0 +1,143 @@
+{
+  "summary": {
+    "dataset_rows": 50,
+    "run1_decision": "completed",
+    "run1_send_rate_pct": 100.0,
+    "run1_trace_integrity_ok": true,
+    "run2_decision": "completed",
+    "run2_rate_limit_block_pct": 100.0,
+    "run2_trace_integrity_ok": true,
+    "run3_decision": "dry_run",
+    "run3_sent_zero_ok": true,
+    "run4_decision": "insufficient_signal",
+    "run4_oem_notified": 1,
+    "run4_insufficient_signal_notify_ok": true,
+    "total_trace_sent": 50,
+    "total_trace_blocked": 50,
+    "total_oem_dispatch_notifications": 1,
+    "latency_p50_ms": 1037.0,
+    "latency_p95_ms": 16512.91
+  },
+  "runs": {
+    "run1_strong_signal": {
+      "ok": true,
+      "enabled": true,
+      "targets": 50,
+      "eligible": 50,
+      "sent": 50,
+      "blocked": 0,
+      "decision": "completed",
+      "oem_notified": 1,
+      "policy": {
+        "enabled": true,
+        "plan_tier": "free",
+        "allowed_kinds": [
+          "important_update"
+        ],
+        "send_product_recommendations": false,
+        "max_targets_per_run": 50,
+        "min_eligible_for_send": 2,
+        "min_issue_count": 1,
+        "min_issue_severity": 0.5,
+        "issue_lookback_days": 90,
+        "include_regions": [],
+        "exclude_regions": [],
+        "notify_oem_when_no_signal": true,
+        "notify_oem_summary": true,
+        "sender_user_id": "oem_sender_phase7",
+        "sender_role": "oem"
+      }
+    },
+    "run2_rate_limit": {
+      "ok": true,
+      "enabled": true,
+      "targets": 50,
+      "eligible": 50,
+      "sent": 0,
+      "blocked": 50,
+      "decision": "completed",
+      "oem_notified": 1,
+      "policy": {
+        "enabled": true,
+        "plan_tier": "free",
+        "allowed_kinds": [
+          "important_update"
+        ],
+        "send_product_recommendations": false,
+        "max_targets_per_run": 50,
+        "min_eligible_for_send": 2,
+        "min_issue_count": 1,
+        "min_issue_severity": 0.5,
+        "issue_lookback_days": 90,
+        "include_regions": [],
+        "exclude_regions": [],
+        "notify_oem_when_no_signal": true,
+        "notify_oem_summary": true,
+        "sender_user_id": "oem_sender_phase7",
+        "sender_role": "oem"
+      }
+    },
+    "run3_dry_run": {
+      "ok": true,
+      "enabled": true,
+      "targets": 50,
+      "eligible": 50,
+      "sent": 0,
+      "blocked": 0,
+      "decision": "dry_run",
+      "policy": {
+        "enabled": true,
+        "plan_tier": "free",
+        "allowed_kinds": [
+          "important_update"
+        ],
+        "send_product_recommendations": false,
+        "max_targets_per_run": 50,
+        "min_eligible_for_send": 2,
+        "min_issue_count": 1,
+        "min_issue_severity": 0.5,
+        "issue_lookback_days": 90,
+        "include_regions": [],
+        "exclude_regions": [],
+        "notify_oem_when_no_signal": true,
+        "notify_oem_summary": true,
+        "sender_user_id": "oem_sender_phase7",
+        "sender_role": "oem"
+      }
+    },
+    "run4_insufficient_signal": {
+      "ok": true,
+      "enabled": true,
+      "targets": 50,
+      "eligible": 0,
+      "sent": 0,
+      "blocked": 0,
+      "decision": "insufficient_signal",
+      "oem_notified": 1,
+      "policy": {
+        "enabled": true,
+        "plan_tier": "free",
+        "allowed_kinds": [
+          "important_update"
+        ],
+        "send_product_recommendations": false,
+        "max_targets_per_run": 50,
+        "min_eligible_for_send": 2,
+        "min_issue_count": 999,
+        "min_issue_severity": 0.5,
+        "issue_lookback_days": 90,
+        "include_regions": [],
+        "exclude_regions": [],
+        "notify_oem_when_no_signal": true,
+        "notify_oem_summary": false,
+        "sender_user_id": "oem_sender_phase7",
+        "sender_role": "oem"
+      }
+    }
+  },
+  "artifacts": {
+    "db_file": "data/oem_phase7_eval.db",
+    "policy_file": "data/oem_dispatch_policy_phase7_eval.json",
+    "cases_file": "test_data/oem_phase7_cases_50.json"
+  }
+}

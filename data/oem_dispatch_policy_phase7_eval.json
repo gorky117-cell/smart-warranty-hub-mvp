@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "plan_tier": "free",
+  "allowed_kinds": [
+    "important_update"
+  ],
+  "send_product_recommendations": false,
+  "max_targets_per_run": 50,
+  "min_eligible_for_send": 2,
+  "min_issue_count": 999,
+  "min_issue_severity": 0.5,
+  "issue_lookback_days": 90,
+  "include_regions": [],
+  "exclude_regions": [],
+  "notify_oem_when_no_signal": true,
+  "notify_oem_summary": false,
+  "sender_user_id": "oem_sender_phase7",
+  "sender_role": "oem"
+}
