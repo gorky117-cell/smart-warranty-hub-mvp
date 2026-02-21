@@ -1,0 +1,1037 @@
+{
+  "summary": {
+    "dataset_rows": 50,
+    "risk_band_accuracy_pct": 100.0,
+    "bundle_generation_success_pct": 100.0,
+    "care_nudge_recall_pct": 100.0,
+    "care_nudge_false_positive_pct": 0.0,
+    "expiry_nudge_recall_pct": 100.0,
+    "expiry_nudge_false_positive_pct": 0.0,
+    "variant_stability_pct": 100.0,
+    "variant_a_count": 32,
+    "variant_b_count": 18,
+    "variant_balance_pct": 56.25,
+    "nudge_event_integrity_pct": 100.0,
+    "latency_p50_ms": 11.23,
+    "latency_p95_ms": 17.03
+  },
+  "scenarios": {
+    "low_stable": 20,
+    "medium_attention": 15,
+    "high_urgent": 15,
+    "near_expiry": 26,
+    "far_expiry": 24
+  },
+  "artifacts": {
+    "db_file": "data/nip_phase5_eval.db",
+    "cases_file": "test_data/nip_phase5_cases_50.json"
+  },
+  "cases": [
+    {
+      "case_id": "NIP001",
+      "profile": "low_stable",
+      "expiry_bucket": "near",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "expiry"
+      ],
+      "care_present": false,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 33.22
+    },
+    {
+      "case_id": "NIP002",
+      "profile": "low_stable",
+      "expiry_bucket": "near",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "expiry"
+      ],
+      "care_present": false,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 12.03
+    },
+    {
+      "case_id": "NIP003",
+      "profile": "low_stable",
+      "expiry_bucket": "near",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "expiry"
+      ],
+      "care_present": false,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 11.09
+    },
+    {
+      "case_id": "NIP004",
+      "profile": "low_stable",
+      "expiry_bucket": "near",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "expiry"
+      ],
+      "care_present": false,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 10.91
+    },
+    {
+      "case_id": "NIP005",
+      "profile": "low_stable",
+      "expiry_bucket": "near",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "expiry"
+      ],
+      "care_present": false,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 12.05
+    },
+    {
+      "case_id": "NIP006",
+      "profile": "low_stable",
+      "expiry_bucket": "near",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "expiry"
+      ],
+      "care_present": false,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 10.7
+    },
+    {
+      "case_id": "NIP007",
+      "profile": "low_stable",
+      "expiry_bucket": "near",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "expiry"
+      ],
+      "care_present": false,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 10.92
+    },
+    {
+      "case_id": "NIP008",
+      "profile": "low_stable",
+      "expiry_bucket": "near",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "expiry"
+      ],
+      "care_present": false,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 11.75
+    },
+    {
+      "case_id": "NIP009",
+      "profile": "low_stable",
+      "expiry_bucket": "far",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 1,
+      "nudge_types": [
+        "snapshot"
+      ],
+      "care_present": false,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 10.9
+    },
+    {
+      "case_id": "NIP010",
+      "profile": "low_stable",
+      "expiry_bucket": "far",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 1,
+      "nudge_types": [
+        "snapshot"
+      ],
+      "care_present": false,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 12.1
+    },
+    {
+      "case_id": "NIP011",
+      "profile": "low_stable",
+      "expiry_bucket": "far",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 1,
+      "nudge_types": [
+        "snapshot"
+      ],
+      "care_present": false,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 11.22
+    },
+    {
+      "case_id": "NIP012",
+      "profile": "low_stable",
+      "expiry_bucket": "far",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 1,
+      "nudge_types": [
+        "snapshot"
+      ],
+      "care_present": false,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 11.94
+    },
+    {
+      "case_id": "NIP013",
+      "profile": "low_stable",
+      "expiry_bucket": "far",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 1,
+      "nudge_types": [
+        "snapshot"
+      ],
+      "care_present": false,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 13.33
+    },
+    {
+      "case_id": "NIP014",
+      "profile": "low_stable",
+      "expiry_bucket": "far",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 1,
+      "nudge_types": [
+        "snapshot"
+      ],
+      "care_present": false,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 12.64
+    },
+    {
+      "case_id": "NIP015",
+      "profile": "low_stable",
+      "expiry_bucket": "far",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 1,
+      "nudge_types": [
+        "snapshot"
+      ],
+      "care_present": false,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 12.39
+    },
+    {
+      "case_id": "NIP016",
+      "profile": "low_stable",
+      "expiry_bucket": "far",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 1,
+      "nudge_types": [
+        "snapshot"
+      ],
+      "care_present": false,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 10.44
+    },
+    {
+      "case_id": "NIP017",
+      "profile": "low_stable",
+      "expiry_bucket": "far",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 1,
+      "nudge_types": [
+        "snapshot"
+      ],
+      "care_present": false,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 10.24
+    },
+    {
+      "case_id": "NIP018",
+      "profile": "low_stable",
+      "expiry_bucket": "far",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 1,
+      "nudge_types": [
+        "snapshot"
+      ],
+      "care_present": false,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 11.34
+    },
+    {
+      "case_id": "NIP019",
+      "profile": "low_stable",
+      "expiry_bucket": "far",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 1,
+      "nudge_types": [
+        "snapshot"
+      ],
+      "care_present": false,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 10.69
+    },
+    {
+      "case_id": "NIP020",
+      "profile": "low_stable",
+      "expiry_bucket": "far",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 1,
+      "nudge_types": [
+        "snapshot"
+      ],
+      "care_present": false,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 11.39
+    },
+    {
+      "case_id": "NIP021",
+      "profile": "medium_attention",
+      "expiry_bucket": "near",
+      "expected_risk_band": "medium",
+      "actual_risk_band": "medium",
+      "risk_value": 0.52,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 10.89
+    },
+    {
+      "case_id": "NIP022",
+      "profile": "medium_attention",
+      "expiry_bucket": "near",
+      "expected_risk_band": "medium",
+      "actual_risk_band": "medium",
+      "risk_value": 0.52,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 10.48
+    },
+    {
+      "case_id": "NIP023",
+      "profile": "medium_attention",
+      "expiry_bucket": "near",
+      "expected_risk_band": "medium",
+      "actual_risk_band": "medium",
+      "risk_value": 0.52,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 11.25
+    },
+    {
+      "case_id": "NIP024",
+      "profile": "medium_attention",
+      "expiry_bucket": "near",
+      "expected_risk_band": "medium",
+      "actual_risk_band": "medium",
+      "risk_value": 0.52,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 11.4
+    },
+    {
+      "case_id": "NIP025",
+      "profile": "medium_attention",
+      "expiry_bucket": "near",
+      "expected_risk_band": "medium",
+      "actual_risk_band": "medium",
+      "risk_value": 0.52,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 11.2
+    },
+    {
+      "case_id": "NIP026",
+      "profile": "medium_attention",
+      "expiry_bucket": "near",
+      "expected_risk_band": "medium",
+      "actual_risk_band": "medium",
+      "risk_value": 0.52,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 10.85
+    },
+    {
+      "case_id": "NIP027",
+      "profile": "medium_attention",
+      "expiry_bucket": "near",
+      "expected_risk_band": "medium",
+      "actual_risk_band": "medium",
+      "risk_value": 0.52,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 11.01
+    },
+    {
+      "case_id": "NIP028",
+      "profile": "medium_attention",
+      "expiry_bucket": "near",
+      "expected_risk_band": "medium",
+      "actual_risk_band": "medium",
+      "risk_value": 0.52,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 14.71
+    },
+    {
+      "case_id": "NIP029",
+      "profile": "medium_attention",
+      "expiry_bucket": "far",
+      "expected_risk_band": "medium",
+      "actual_risk_band": "medium",
+      "risk_value": 0.52,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "care"
+      ],
+      "care_present": true,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 12.06
+    },
+    {
+      "case_id": "NIP030",
+      "profile": "medium_attention",
+      "expiry_bucket": "far",
+      "expected_risk_band": "medium",
+      "actual_risk_band": "medium",
+      "risk_value": 0.52,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "care"
+      ],
+      "care_present": true,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 18.53
+    },
+    {
+      "case_id": "NIP031",
+      "profile": "medium_attention",
+      "expiry_bucket": "far",
+      "expected_risk_band": "medium",
+      "actual_risk_band": "medium",
+      "risk_value": 0.52,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "care"
+      ],
+      "care_present": true,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 15.2
+    },
+    {
+      "case_id": "NIP032",
+      "profile": "medium_attention",
+      "expiry_bucket": "far",
+      "expected_risk_band": "medium",
+      "actual_risk_band": "medium",
+      "risk_value": 0.52,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "care"
+      ],
+      "care_present": true,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 10.53
+    },
+    {
+      "case_id": "NIP033",
+      "profile": "medium_attention",
+      "expiry_bucket": "far",
+      "expected_risk_band": "medium",
+      "actual_risk_band": "medium",
+      "risk_value": 0.52,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "care"
+      ],
+      "care_present": true,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 11.47
+    },
+    {
+      "case_id": "NIP034",
+      "profile": "medium_attention",
+      "expiry_bucket": "far",
+      "expected_risk_band": "medium",
+      "actual_risk_band": "medium",
+      "risk_value": 0.52,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "care"
+      ],
+      "care_present": true,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 11.16
+    },
+    {
+      "case_id": "NIP035",
+      "profile": "medium_attention",
+      "expiry_bucket": "far",
+      "expected_risk_band": "medium",
+      "actual_risk_band": "medium",
+      "risk_value": 0.52,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "care"
+      ],
+      "care_present": true,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 10.67
+    },
+    {
+      "case_id": "NIP036",
+      "profile": "high_urgent",
+      "expiry_bucket": "near",
+      "expected_risk_band": "high",
+      "actual_risk_band": "high",
+      "risk_value": 0.85,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 11.17
+    },
+    {
+      "case_id": "NIP037",
+      "profile": "high_urgent",
+      "expiry_bucket": "near",
+      "expected_risk_band": "high",
+      "actual_risk_band": "high",
+      "risk_value": 0.85,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 10.98
+    },
+    {
+      "case_id": "NIP038",
+      "profile": "high_urgent",
+      "expiry_bucket": "near",
+      "expected_risk_band": "high",
+      "actual_risk_band": "high",
+      "risk_value": 0.85,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 13.7
+    },
+    {
+      "case_id": "NIP039",
+      "profile": "high_urgent",
+      "expiry_bucket": "near",
+      "expected_risk_band": "high",
+      "actual_risk_band": "high",
+      "risk_value": 0.85,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 10.96
+    },
+    {
+      "case_id": "NIP040",
+      "profile": "high_urgent",
+      "expiry_bucket": "near",
+      "expected_risk_band": "high",
+      "actual_risk_band": "high",
+      "risk_value": 0.85,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 12.7
+    },
+    {
+      "case_id": "NIP041",
+      "profile": "high_urgent",
+      "expiry_bucket": "near",
+      "expected_risk_band": "high",
+      "actual_risk_band": "high",
+      "risk_value": 0.85,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 10.9
+    },
+    {
+      "case_id": "NIP042",
+      "profile": "high_urgent",
+      "expiry_bucket": "near",
+      "expected_risk_band": "high",
+      "actual_risk_band": "high",
+      "risk_value": 0.85,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 11.76
+    },
+    {
+      "case_id": "NIP043",
+      "profile": "high_urgent",
+      "expiry_bucket": "near",
+      "expected_risk_band": "high",
+      "actual_risk_band": "high",
+      "risk_value": 0.85,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 11.0
+    },
+    {
+      "case_id": "NIP044",
+      "profile": "high_urgent",
+      "expiry_bucket": "near",
+      "expected_risk_band": "high",
+      "actual_risk_band": "high",
+      "risk_value": 0.85,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 10.99
+    },
+    {
+      "case_id": "NIP045",
+      "profile": "high_urgent",
+      "expiry_bucket": "near",
+      "expected_risk_band": "high",
+      "actual_risk_band": "high",
+      "risk_value": 0.85,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 21.57
+    },
+    {
+      "case_id": "NIP046",
+      "profile": "high_urgent",
+      "expiry_bucket": "far",
+      "expected_risk_band": "high",
+      "actual_risk_band": "high",
+      "risk_value": 0.85,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "care"
+      ],
+      "care_present": true,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 11.96
+    },
+    {
+      "case_id": "NIP047",
+      "profile": "high_urgent",
+      "expiry_bucket": "far",
+      "expected_risk_band": "high",
+      "actual_risk_band": "high",
+      "risk_value": 0.85,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "care"
+      ],
+      "care_present": true,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 11.95
+    },
+    {
+      "case_id": "NIP048",
+      "profile": "high_urgent",
+      "expiry_bucket": "far",
+      "expected_risk_band": "high",
+      "actual_risk_band": "high",
+      "risk_value": 0.85,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "care"
+      ],
+      "care_present": true,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 12.47
+    },
+    {
+      "case_id": "NIP049",
+      "profile": "high_urgent",
+      "expiry_bucket": "far",
+      "expected_risk_band": "high",
+      "actual_risk_band": "high",
+      "risk_value": 0.85,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "care"
+      ],
+      "care_present": true,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 9.18
+    },
+    {
+      "case_id": "NIP050",
+      "profile": "high_urgent",
+      "expiry_bucket": "far",
+      "expected_risk_band": "high",
+      "actual_risk_band": "high",
+      "risk_value": 0.85,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 2,
+      "nudge_types": [
+        "snapshot",
+        "care"
+      ],
+      "care_present": true,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 11.02
+    }
+  ]
+}

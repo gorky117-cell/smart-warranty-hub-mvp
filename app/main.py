@@ -58,6 +58,7 @@ from .services import oem_dispatch as oem_dispatch_service
 from .services import invoice_pipeline
 from .services import summary_engine
 from .services import terms_lookup
+from .services.warranty_status import compute_warranty_status
 from .services.notifications import run_initial_analysis_and_notifications
 logger = logging.getLogger(__name__)
 from .deps import (
@@ -567,6 +568,24 @@ def _require_warranty_access(db: Session, *, user: UserDB, warranty_id: str) -> 
             db.rollback()
 
     raise HTTPException(status_code=403, detail="forbidden")
+
+
+def _build_warranty_status_info(warranty) -> Dict[str, object]:
+    st = compute_warranty_status(
+        purchase_date=getattr(warranty, "purchase_date", None),
+        coverage_months=getattr(warranty, "coverage_months", None),
+        expiry_date=getattr(warranty, "expiry_date", None),
+    )
+    return {
+        "warranty_status": st.get("status"),
+        "claim_eligibility": st.get("claim_eligibility"),
+        "claim_message": st.get("claim_message"),
+        "days_left": st.get("days_left"),
+        "days_lapsed": st.get("days_lapsed"),
+        "lapsed_text": st.get("lapsed_text"),
+        "expiry_date_used": st.get("expiry_date_used"),
+        "expiry_source": st.get("expiry_source"),
+    }
 
 
 @app.get("/behaviour/next-question", dependencies=[Depends(require_user)])
@@ -1322,6 +1341,11 @@ def list_warranties_sorted(
     result = []
     for w in warranties:
         risk_meta = latest_risk_by_warranty.get(w.id, {})
+        st = compute_warranty_status(
+            purchase_date=w.purchase_date,
+            coverage_months=w.coverage_months,
+            expiry_date=w.expiry_date,
+        )
         result.append({
             "id": w.id,
             "brand": w.brand,
@@ -1335,6 +1359,10 @@ def list_warranties_sorted(
             "risk_label": risk_meta.get("risk_label"),
             "risk_score": risk_meta.get("risk_score"),
             "alert_count": unread_alert_count.get(w.id, 0),
+            "warranty_status": st.get("status"),
+            "claim_eligibility": st.get("claim_eligibility"),
+            "days_left": st.get("days_left"),
+            "lapsed_text": st.get("lapsed_text"),
         })
     return {"warranties": result, "count": len(result)}
 
@@ -1402,7 +1430,9 @@ def get_warranty(warranty_id: str, db=Depends(get_db), current: UserDB = Depends
     warranty = store.get_warranty_db(warranty_id)
     if not warranty:
         raise HTTPException(status_code=404, detail="Warranty not found")
-    return warranty
+    payload = warranty.model_dump()
+    payload.update(_build_warranty_status_info(warranty))
+    return payload
 
 
 @app.post("/warranties/{warranty_id}/process", dependencies=[Depends(rbac_dependency)])
@@ -1555,6 +1585,7 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db), current: UserDB =
     }
     terms_source_url = ((getattr(warranty, "alternatives", None) or {}).get("terms_source_url"))
     terms_source_type = ((getattr(warranty, "alternatives", None) or {}).get("terms_source_type"))
+    status_info = _build_warranty_status_info(warranty)
     layman = summary_engine.build_layman_summary(warranty)
     summary_row = invoice_pipeline.get_latest_summary(db, warranty_id)
     if summary_row:
@@ -1574,6 +1605,7 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db), current: UserDB =
             "processing_status": latest_job.status if latest_job else None,
             "terms_source_url": terms_source_url,
             "terms_source_type": terms_source_type,
+            "warranty_status_info": status_info,
         }
     summary_text, source = summary_engine.summarize_warranty(warranty)
     structured = summary_engine.build_structured_summary(warranty)
@@ -1593,6 +1625,7 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db), current: UserDB =
         "processing_status": latest_job.status if latest_job else None,
         "terms_source_url": terms_source_url,
         "terms_source_type": terms_source_type,
+        "warranty_status_info": status_info,
     }
 
 
@@ -1623,10 +1656,13 @@ def advisories(warranty_id: str, user_id: str):
     if not warranty:
         raise HTTPException(status_code=404, detail="Warranty not found")
     risk = compute_risk(user_id, warranty_id)
+    status_info = _build_warranty_status_info(warranty)
     variant = policy.assign_variant(user_id, warranty_id, experiment="fogg_nudge", variants=("A", "B"))
     nudges = generate_nudges(risk, variant)
     band_map = {"high": "critical", "medium": "warning", "low": "info"}
     severity = band_map.get(getattr(risk, "band", "low"), "info")
+    if status_info.get("warranty_status") == "expired":
+        severity = "critical"
     items = [
         {
             "title": n.title,
@@ -1641,6 +1677,7 @@ def advisories(warranty_id: str, user_id: str):
         "items": items,
         "risk": risk,
         "nudges": nudges,
+        "warranty_status_info": status_info,
         "experiment": "fogg_nudge",
         "variant": variant,
     }

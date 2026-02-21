@@ -1,0 +1,634 @@
+[
+  {
+    "case_id": "SV001",
+    "user_id": "user_sv001",
+    "warranty_id": "wty_sv001",
+    "symptom": "no_cooling",
+    "expected_parts": [
+      "capacitor",
+      "blower_motor"
+    ],
+    "evidence": [
+      "log_SV001.txt",
+      "photo_SV001.jpg"
+    ]
+  },
+  {
+    "case_id": "SV002",
+    "user_id": "user_sv002",
+    "warranty_id": "wty_sv002",
+    "symptom": "noise",
+    "expected_parts": [
+      "suspension_kit",
+      "drum_stabiliser"
+    ],
+    "evidence": [
+      "log_SV002.txt",
+      "photo_SV002.jpg"
+    ]
+  },
+  {
+    "case_id": "SV003",
+    "user_id": "user_sv003",
+    "warranty_id": "wty_sv003",
+    "symptom": "power_failure",
+    "expected_parts": [
+      "power_board"
+    ],
+    "evidence": [
+      "log_SV003.txt",
+      "photo_SV003.jpg"
+    ]
+  },
+  {
+    "case_id": "SV004",
+    "user_id": "user_sv004",
+    "warranty_id": "wty_sv004",
+    "symptom": "no_cooling",
+    "expected_parts": [
+      "capacitor",
+      "blower_motor"
+    ],
+    "evidence": [
+      "log_SV004.txt",
+      "photo_SV004.jpg"
+    ]
+  },
+  {
+    "case_id": "SV005",
+    "user_id": "user_sv005",
+    "warranty_id": "wty_sv005",
+    "symptom": "noise",
+    "expected_parts": [
+      "suspension_kit",
+      "drum_stabiliser"
+    ],
+    "evidence": [
+      "log_SV005.txt",
+      "photo_SV005.jpg"
+    ]
+  },
+  {
+    "case_id": "SV006",
+    "user_id": "user_sv006",
+    "warranty_id": "wty_sv006",
+    "symptom": "power_failure",
+    "expected_parts": [
+      "power_board"
+    ],
+    "evidence": [
+      "log_SV006.txt",
+      "photo_SV006.jpg"
+    ]
+  },
+  {
+    "case_id": "SV007",
+    "user_id": "user_sv007",
+    "warranty_id": "wty_sv007",
+    "symptom": "no_cooling",
+    "expected_parts": [
+      "capacitor",
+      "blower_motor"
+    ],
+    "evidence": [
+      "log_SV007.txt",
+      "photo_SV007.jpg"
+    ]
+  },
+  {
+    "case_id": "SV008",
+    "user_id": "user_sv008",
+    "warranty_id": "wty_sv008",
+    "symptom": "noise",
+    "expected_parts": [
+      "suspension_kit",
+      "drum_stabiliser"
+    ],
+    "evidence": [
+      "log_SV008.txt",
+      "photo_SV008.jpg"
+    ]
+  },
+  {
+    "case_id": "SV009",
+    "user_id": "user_sv009",
+    "warranty_id": "wty_sv009",
+    "symptom": "power_failure",
+    "expected_parts": [
+      "power_board"
+    ],
+    "evidence": [
+      "log_SV009.txt",
+      "photo_SV009.jpg"
+    ]
+  },
+  {
+    "case_id": "SV010",
+    "user_id": "user_sv010",
+    "warranty_id": "wty_sv010",
+    "symptom": "no_cooling",
+    "expected_parts": [
+      "capacitor",
+      "blower_motor"
+    ],
+    "evidence": [
+      "log_SV010.txt",
+      "photo_SV010.jpg"
+    ]
+  },
+  {
+    "case_id": "SV011",
+    "user_id": "user_sv011",
+    "warranty_id": "wty_sv011",
+    "symptom": "noise",
+    "expected_parts": [
+      "suspension_kit",
+      "drum_stabiliser"
+    ],
+    "evidence": [
+      "log_SV011.txt",
+      "photo_SV011.jpg"
+    ]
+  },
+  {
+    "case_id": "SV012",
+    "user_id": "user_sv012",
+    "warranty_id": "wty_sv012",
+    "symptom": "power_failure",
+    "expected_parts": [
+      "power_board"
+    ],
+    "evidence": [
+      "log_SV012.txt",
+      "photo_SV012.jpg"
+    ]
+  },
+  {
+    "case_id": "SV013",
+    "user_id": "user_sv013",
+    "warranty_id": "wty_sv013",
+    "symptom": "no_cooling",
+    "expected_parts": [
+      "capacitor",
+      "blower_motor"
+    ],
+    "evidence": [
+      "log_SV013.txt",
+      "photo_SV013.jpg"
+    ]
+  },
+  {
+    "case_id": "SV014",
+    "user_id": "user_sv014",
+    "warranty_id": "wty_sv014",
+    "symptom": "noise",
+    "expected_parts": [
+      "suspension_kit",
+      "drum_stabiliser"
+    ],
+    "evidence": [
+      "log_SV014.txt",
+      "photo_SV014.jpg"
+    ]
+  },
+  {
+    "case_id": "SV015",
+    "user_id": "user_sv015",
+    "warranty_id": "wty_sv015",
+    "symptom": "power_failure",
+    "expected_parts": [
+      "power_board"
+    ],
+    "evidence": [
+      "log_SV015.txt",
+      "photo_SV015.jpg"
+    ]
+  },
+  {
+    "case_id": "SV016",
+    "user_id": "user_sv016",
+    "warranty_id": "wty_sv016",
+    "symptom": "no_cooling",
+    "expected_parts": [
+      "capacitor",
+      "blower_motor"
+    ],
+    "evidence": [
+      "log_SV016.txt",
+      "photo_SV016.jpg"
+    ]
+  },
+  {
+    "case_id": "SV017",
+    "user_id": "user_sv017",
+    "warranty_id": "wty_sv017",
+    "symptom": "noise",
+    "expected_parts": [
+      "suspension_kit",
+      "drum_stabiliser"
+    ],
+    "evidence": [
+      "log_SV017.txt",
+      "photo_SV017.jpg"
+    ]
+  },
+  {
+    "case_id": "SV018",
+    "user_id": "user_sv018",
+    "warranty_id": "wty_sv018",
+    "symptom": "power_failure",
+    "expected_parts": [
+      "power_board"
+    ],
+    "evidence": [
+      "log_SV018.txt",
+      "photo_SV018.jpg"
+    ]
+  },
+  {
+    "case_id": "SV019",
+    "user_id": "user_sv019",
+    "warranty_id": "wty_sv019",
+    "symptom": "no_cooling",
+    "expected_parts": [
+      "capacitor",
+      "blower_motor"
+    ],
+    "evidence": [
+      "log_SV019.txt",
+      "photo_SV019.jpg"
+    ]
+  },
+  {
+    "case_id": "SV020",
+    "user_id": "user_sv020",
+    "warranty_id": "wty_sv020",
+    "symptom": "noise",
+    "expected_parts": [
+      "suspension_kit",
+      "drum_stabiliser"
+    ],
+    "evidence": [
+      "log_SV020.txt",
+      "photo_SV020.jpg"
+    ]
+  },
+  {
+    "case_id": "SV021",
+    "user_id": "user_sv021",
+    "warranty_id": "wty_sv021",
+    "symptom": "power_failure",
+    "expected_parts": [
+      "power_board"
+    ],
+    "evidence": [
+      "log_SV021.txt",
+      "photo_SV021.jpg"
+    ]
+  },
+  {
+    "case_id": "SV022",
+    "user_id": "user_sv022",
+    "warranty_id": "wty_sv022",
+    "symptom": "no_cooling",
+    "expected_parts": [
+      "capacitor",
+      "blower_motor"
+    ],
+    "evidence": [
+      "log_SV022.txt",
+      "photo_SV022.jpg"
+    ]
+  },
+  {
+    "case_id": "SV023",
+    "user_id": "user_sv023",
+    "warranty_id": "wty_sv023",
+    "symptom": "noise",
+    "expected_parts": [
+      "suspension_kit",
+      "drum_stabiliser"
+    ],
+    "evidence": [
+      "log_SV023.txt",
+      "photo_SV023.jpg"
+    ]
+  },
+  {
+    "case_id": "SV024",
+    "user_id": "user_sv024",
+    "warranty_id": "wty_sv024",
+    "symptom": "power_failure",
+    "expected_parts": [
+      "power_board"
+    ],
+    "evidence": [
+      "log_SV024.txt",
+      "photo_SV024.jpg"
+    ]
+  },
+  {
+    "case_id": "SV025",
+    "user_id": "user_sv025",
+    "warranty_id": "wty_sv025",
+    "symptom": "no_cooling",
+    "expected_parts": [
+      "capacitor",
+      "blower_motor"
+    ],
+    "evidence": [
+      "log_SV025.txt",
+      "photo_SV025.jpg"
+    ]
+  },
+  {
+    "case_id": "SV026",
+    "user_id": "user_sv026",
+    "warranty_id": "wty_sv026",
+    "symptom": "noise",
+    "expected_parts": [
+      "suspension_kit",
+      "drum_stabiliser"
+    ],
+    "evidence": [
+      "log_SV026.txt",
+      "photo_SV026.jpg"
+    ]
+  },
+  {
+    "case_id": "SV027",
+    "user_id": "user_sv027",
+    "warranty_id": "wty_sv027",
+    "symptom": "power_failure",
+    "expected_parts": [
+      "power_board"
+    ],
+    "evidence": [
+      "log_SV027.txt",
+      "photo_SV027.jpg"
+    ]
+  },
+  {
+    "case_id": "SV028",
+    "user_id": "user_sv028",
+    "warranty_id": "wty_sv028",
+    "symptom": "no_cooling",
+    "expected_parts": [
+      "capacitor",
+      "blower_motor"
+    ],
+    "evidence": [
+      "log_SV028.txt",
+      "photo_SV028.jpg"
+    ]
+  },
+  {
+    "case_id": "SV029",
+    "user_id": "user_sv029",
+    "warranty_id": "wty_sv029",
+    "symptom": "noise",
+    "expected_parts": [
+      "suspension_kit",
+      "drum_stabiliser"
+    ],
+    "evidence": [
+      "log_SV029.txt",
+      "photo_SV029.jpg"
+    ]
+  },
+  {
+    "case_id": "SV030",
+    "user_id": "user_sv030",
+    "warranty_id": "wty_sv030",
+    "symptom": "power_failure",
+    "expected_parts": [
+      "power_board"
+    ],
+    "evidence": [
+      "log_SV030.txt",
+      "photo_SV030.jpg"
+    ]
+  },
+  {
+    "case_id": "SV031",
+    "user_id": "user_sv031",
+    "warranty_id": "wty_sv031",
+    "symptom": "no_cooling",
+    "expected_parts": [
+      "capacitor",
+      "blower_motor"
+    ],
+    "evidence": [
+      "log_SV031.txt",
+      "photo_SV031.jpg"
+    ]
+  },
+  {
+    "case_id": "SV032",
+    "user_id": "user_sv032",
+    "warranty_id": "wty_sv032",
+    "symptom": "noise",
+    "expected_parts": [
+      "suspension_kit",
+      "drum_stabiliser"
+    ],
+    "evidence": [
+      "log_SV032.txt",
+      "photo_SV032.jpg"
+    ]
+  },
+  {
+    "case_id": "SV033",
+    "user_id": "user_sv033",
+    "warranty_id": "wty_sv033",
+    "symptom": "power_failure",
+    "expected_parts": [
+      "power_board"
+    ],
+    "evidence": [
+      "log_SV033.txt",
+      "photo_SV033.jpg"
+    ]
+  },
+  {
+    "case_id": "SV034",
+    "user_id": "user_sv034",
+    "warranty_id": "wty_sv034",
+    "symptom": "no_cooling",
+    "expected_parts": [
+      "capacitor",
+      "blower_motor"
+    ],
+    "evidence": [
+      "log_SV034.txt",
+      "photo_SV034.jpg"
+    ]
+  },
+  {
+    "case_id": "SV035",
+    "user_id": "user_sv035",
+    "warranty_id": "wty_sv035",
+    "symptom": "noise",
+    "expected_parts": [
+      "suspension_kit",
+      "drum_stabiliser"
+    ],
+    "evidence": [
+      "log_SV035.txt",
+      "photo_SV035.jpg"
+    ]
+  },
+  {
+    "case_id": "SV036",
+    "user_id": "user_sv036",
+    "warranty_id": "wty_sv036",
+    "symptom": "power_failure",
+    "expected_parts": [
+      "power_board"
+    ],
+    "evidence": [
+      "log_SV036.txt",
+      "photo_SV036.jpg"
+    ]
+  },
+  {
+    "case_id": "SV037",
+    "user_id": "user_sv037",
+    "warranty_id": "wty_sv037",
+    "symptom": "display_glitch",
+    "expected_parts": [],
+    "evidence": [
+      "log_SV037.txt"
+    ]
+  },
+  {
+    "case_id": "SV038",
+    "user_id": "user_sv038",
+    "warranty_id": "wty_sv038",
+    "symptom": "wifi_drop",
+    "expected_parts": [],
+    "evidence": [
+      "log_SV038.txt"
+    ]
+  },
+  {
+    "case_id": "SV039",
+    "user_id": "user_sv039",
+    "warranty_id": "wty_sv039",
+    "symptom": "random_restart",
+    "expected_parts": [],
+    "evidence": [
+      "log_SV039.txt"
+    ]
+  },
+  {
+    "case_id": "SV040",
+    "user_id": "user_sv040",
+    "warranty_id": "wty_sv040",
+    "symptom": "slow_response",
+    "expected_parts": [],
+    "evidence": [
+      "log_SV040.txt"
+    ]
+  },
+  {
+    "case_id": "SV041",
+    "user_id": "user_sv041",
+    "warranty_id": "wty_sv041",
+    "symptom": "display_glitch",
+    "expected_parts": [],
+    "evidence": [
+      "log_SV041.txt"
+    ]
+  },
+  {
+    "case_id": "SV042",
+    "user_id": "user_sv042",
+    "warranty_id": "wty_sv042",
+    "symptom": "wifi_drop",
+    "expected_parts": [],
+    "evidence": [
+      "log_SV042.txt"
+    ]
+  },
+  {
+    "case_id": "SV043",
+    "user_id": "user_sv043",
+    "warranty_id": "wty_sv043",
+    "symptom": "random_restart",
+    "expected_parts": [],
+    "evidence": [
+      "log_SV043.txt"
+    ]
+  },
+  {
+    "case_id": "SV044",
+    "user_id": "user_sv044",
+    "warranty_id": "wty_sv044",
+    "symptom": "slow_response",
+    "expected_parts": [],
+    "evidence": [
+      "log_SV044.txt"
+    ]
+  },
+  {
+    "case_id": "SV045",
+    "user_id": "user_sv045",
+    "warranty_id": "wty_sv045",
+    "symptom": "display_glitch",
+    "expected_parts": [],
+    "evidence": [
+      "log_SV045.txt"
+    ]
+  },
+  {
+    "case_id": "SV046",
+    "user_id": "user_sv046",
+    "warranty_id": "wty_sv046",
+    "symptom": "wifi_drop",
+    "expected_parts": [],
+    "evidence": [
+      "log_SV046.txt"
+    ]
+  },
+  {
+    "case_id": "SV047",
+    "user_id": "user_sv047",
+    "warranty_id": "wty_sv047",
+    "symptom": "random_restart",
+    "expected_parts": [],
+    "evidence": [
+      "log_SV047.txt"
+    ]
+  },
+  {
+    "case_id": "SV048",
+    "user_id": "user_sv048",
+    "warranty_id": "wty_sv048",
+    "symptom": "slow_response",
+    "expected_parts": [],
+    "evidence": [
+      "log_SV048.txt"
+    ]
+  },
+  {
+    "case_id": "SV049",
+    "user_id": "user_sv049",
+    "warranty_id": "wty_sv049",
+    "symptom": "display_glitch",
+    "expected_parts": [],
+    "evidence": [
+      "log_SV049.txt"
+    ]
+  },
+  {
+    "case_id": "SV050",
+    "user_id": "user_sv050",
+    "warranty_id": "wty_sv050",
+    "symptom": "wifi_drop",
+    "expected_parts": [],
+    "evidence": [
+      "log_SV050.txt"
+    ]
+  }
+]

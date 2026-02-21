@@ -1,8 +1,8 @@
-from datetime import date
 from typing import List
 
 from ..models import Nudge, RiskScore
 from ..storage import generate_id, store
+from .warranty_status import compute_warranty_status
 
 
 def _variant_copy(variant: str | None) -> dict:
@@ -62,10 +62,30 @@ def generate_nudges(risk: RiskScore, variant: str | None = None) -> List[Nudge]:
             )
         )
 
-    if warranty and warranty.expiry_date:
-        today = date.today()
-        days_left = (warranty.expiry_date - today).days
-        if days_left < 60:
+    if warranty:
+        st = compute_warranty_status(
+            purchase_date=getattr(warranty, "purchase_date", None),
+            coverage_months=getattr(warranty, "coverage_months", None),
+            expiry_date=getattr(warranty, "expiry_date", None),
+        )
+        days_left = st.get("days_left")
+        if st.get("status") == "expired":
+            lapse_text = st.get("lapsed_text") or "some time"
+            nudges.append(
+                Nudge(
+                    id=generate_id("ndg"),
+                    warranty_id=risk.warranty_id,
+                    user_id=risk.user_id,
+                    title="Coverage Lapsed",
+                    message=f"Warranty lapsed {lapse_text} ago. Standard claim is likely not eligible.",
+                    reason="Coverage window expired",
+                    suggested_actions=[
+                        "Contact OEM support for goodwill or paid repair options.",
+                        "Upload invoice and service history for exception review.",
+                    ],
+                )
+            )
+        elif isinstance(days_left, int) and days_left < 60:
             nudges.append(
                 Nudge(
                     id=generate_id("ndg"),

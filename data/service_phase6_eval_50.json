@@ -1,0 +1,824 @@
+{
+  "summary": {
+    "dataset_rows": 50,
+    "ticket_creation_success_pct": 100.0,
+    "known_symptom_parts_accuracy_pct": 100.0,
+    "unknown_symptom_no_false_parts_pct": 100.0,
+    "evidence_passthrough_pct": 100.0,
+    "draft_status_consistency_pct": 100.0,
+    "ticket_retrieval_completeness_pct": 100.0,
+    "latency_p50_ms": 0.01,
+    "latency_p95_ms": 0.03
+  },
+  "symptom_mapping": {
+    "no_cooling": [
+      "capacitor",
+      "blower_motor"
+    ],
+    "noise": [
+      "suspension_kit",
+      "drum_stabiliser"
+    ],
+    "power_failure": [
+      "power_board"
+    ]
+  },
+  "scenarios": {
+    "known_symptoms": 36,
+    "unknown_symptoms": 14
+  },
+  "cases": [
+    {
+      "case_id": "SV001",
+      "symptom": "no_cooling",
+      "expected_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "recommended_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.06
+    },
+    {
+      "case_id": "SV002",
+      "symptom": "noise",
+      "expected_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "recommended_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.17
+    },
+    {
+      "case_id": "SV003",
+      "symptom": "power_failure",
+      "expected_parts": [
+        "power_board"
+      ],
+      "recommended_parts": [
+        "power_board"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.02
+    },
+    {
+      "case_id": "SV004",
+      "symptom": "no_cooling",
+      "expected_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "recommended_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.03
+    },
+    {
+      "case_id": "SV005",
+      "symptom": "noise",
+      "expected_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "recommended_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.02
+    },
+    {
+      "case_id": "SV006",
+      "symptom": "power_failure",
+      "expected_parts": [
+        "power_board"
+      ],
+      "recommended_parts": [
+        "power_board"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV007",
+      "symptom": "no_cooling",
+      "expected_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "recommended_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV008",
+      "symptom": "noise",
+      "expected_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "recommended_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.02
+    },
+    {
+      "case_id": "SV009",
+      "symptom": "power_failure",
+      "expected_parts": [
+        "power_board"
+      ],
+      "recommended_parts": [
+        "power_board"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV010",
+      "symptom": "no_cooling",
+      "expected_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "recommended_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV011",
+      "symptom": "noise",
+      "expected_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "recommended_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV012",
+      "symptom": "power_failure",
+      "expected_parts": [
+        "power_board"
+      ],
+      "recommended_parts": [
+        "power_board"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV013",
+      "symptom": "no_cooling",
+      "expected_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "recommended_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV014",
+      "symptom": "noise",
+      "expected_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "recommended_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV015",
+      "symptom": "power_failure",
+      "expected_parts": [
+        "power_board"
+      ],
+      "recommended_parts": [
+        "power_board"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV016",
+      "symptom": "no_cooling",
+      "expected_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "recommended_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV017",
+      "symptom": "noise",
+      "expected_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "recommended_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV018",
+      "symptom": "power_failure",
+      "expected_parts": [
+        "power_board"
+      ],
+      "recommended_parts": [
+        "power_board"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV019",
+      "symptom": "no_cooling",
+      "expected_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "recommended_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV020",
+      "symptom": "noise",
+      "expected_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "recommended_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV021",
+      "symptom": "power_failure",
+      "expected_parts": [
+        "power_board"
+      ],
+      "recommended_parts": [
+        "power_board"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV022",
+      "symptom": "no_cooling",
+      "expected_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "recommended_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV023",
+      "symptom": "noise",
+      "expected_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "recommended_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV024",
+      "symptom": "power_failure",
+      "expected_parts": [
+        "power_board"
+      ],
+      "recommended_parts": [
+        "power_board"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV025",
+      "symptom": "no_cooling",
+      "expected_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "recommended_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.02
+    },
+    {
+      "case_id": "SV026",
+      "symptom": "noise",
+      "expected_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "recommended_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV027",
+      "symptom": "power_failure",
+      "expected_parts": [
+        "power_board"
+      ],
+      "recommended_parts": [
+        "power_board"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV028",
+      "symptom": "no_cooling",
+      "expected_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "recommended_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV029",
+      "symptom": "noise",
+      "expected_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "recommended_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV030",
+      "symptom": "power_failure",
+      "expected_parts": [
+        "power_board"
+      ],
+      "recommended_parts": [
+        "power_board"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV031",
+      "symptom": "no_cooling",
+      "expected_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "recommended_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV032",
+      "symptom": "noise",
+      "expected_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "recommended_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.03
+    },
+    {
+      "case_id": "SV033",
+      "symptom": "power_failure",
+      "expected_parts": [
+        "power_board"
+      ],
+      "recommended_parts": [
+        "power_board"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV034",
+      "symptom": "no_cooling",
+      "expected_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "recommended_parts": [
+        "capacitor",
+        "blower_motor"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV035",
+      "symptom": "noise",
+      "expected_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "recommended_parts": [
+        "suspension_kit",
+        "drum_stabiliser"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV036",
+      "symptom": "power_failure",
+      "expected_parts": [
+        "power_board"
+      ],
+      "recommended_parts": [
+        "power_board"
+      ],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV037",
+      "symptom": "display_glitch",
+      "expected_parts": [],
+      "recommended_parts": [],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV038",
+      "symptom": "wifi_drop",
+      "expected_parts": [],
+      "recommended_parts": [],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV039",
+      "symptom": "random_restart",
+      "expected_parts": [],
+      "recommended_parts": [],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV040",
+      "symptom": "slow_response",
+      "expected_parts": [],
+      "recommended_parts": [],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV041",
+      "symptom": "display_glitch",
+      "expected_parts": [],
+      "recommended_parts": [],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.01
+    },
+    {
+      "case_id": "SV042",
+      "symptom": "wifi_drop",
+      "expected_parts": [],
+      "recommended_parts": [],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.02
+    },
+    {
+      "case_id": "SV043",
+      "symptom": "random_restart",
+      "expected_parts": [],
+      "recommended_parts": [],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.02
+    },
+    {
+      "case_id": "SV044",
+      "symptom": "slow_response",
+      "expected_parts": [],
+      "recommended_parts": [],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.02
+    },
+    {
+      "case_id": "SV045",
+      "symptom": "display_glitch",
+      "expected_parts": [],
+      "recommended_parts": [],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.02
+    },
+    {
+      "case_id": "SV046",
+      "symptom": "wifi_drop",
+      "expected_parts": [],
+      "recommended_parts": [],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.02
+    },
+    {
+      "case_id": "SV047",
+      "symptom": "random_restart",
+      "expected_parts": [],
+      "recommended_parts": [],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.02
+    },
+    {
+      "case_id": "SV048",
+      "symptom": "slow_response",
+      "expected_parts": [],
+      "recommended_parts": [],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.02
+    },
+    {
+      "case_id": "SV049",
+      "symptom": "display_glitch",
+      "expected_parts": [],
+      "recommended_parts": [],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.02
+    },
+    {
+      "case_id": "SV050",
+      "symptom": "wifi_drop",
+      "expected_parts": [],
+      "recommended_parts": [],
+      "create_success": true,
+      "parts_mapping_ok": true,
+      "evidence_ok": true,
+      "status_ok": true,
+      "retrieval_ok": true,
+      "latency_ms": 0.02
+    }
+  ]
+}

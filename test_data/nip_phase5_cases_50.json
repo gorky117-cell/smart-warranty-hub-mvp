@@ -1,0 +1,402 @@
+[
+  {
+    "case_id": "NIP001",
+    "user_id": "user_nip001",
+    "warranty_id": "wty_nip001",
+    "profile": "low_stable",
+    "expiry_bucket": "near",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP002",
+    "user_id": "user_nip002",
+    "warranty_id": "wty_nip002",
+    "profile": "low_stable",
+    "expiry_bucket": "near",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP003",
+    "user_id": "user_nip003",
+    "warranty_id": "wty_nip003",
+    "profile": "low_stable",
+    "expiry_bucket": "near",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP004",
+    "user_id": "user_nip004",
+    "warranty_id": "wty_nip004",
+    "profile": "low_stable",
+    "expiry_bucket": "near",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP005",
+    "user_id": "user_nip005",
+    "warranty_id": "wty_nip005",
+    "profile": "low_stable",
+    "expiry_bucket": "near",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP006",
+    "user_id": "user_nip006",
+    "warranty_id": "wty_nip006",
+    "profile": "low_stable",
+    "expiry_bucket": "near",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP007",
+    "user_id": "user_nip007",
+    "warranty_id": "wty_nip007",
+    "profile": "low_stable",
+    "expiry_bucket": "near",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP008",
+    "user_id": "user_nip008",
+    "warranty_id": "wty_nip008",
+    "profile": "low_stable",
+    "expiry_bucket": "near",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP009",
+    "user_id": "user_nip009",
+    "warranty_id": "wty_nip009",
+    "profile": "low_stable",
+    "expiry_bucket": "far",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP010",
+    "user_id": "user_nip010",
+    "warranty_id": "wty_nip010",
+    "profile": "low_stable",
+    "expiry_bucket": "far",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP011",
+    "user_id": "user_nip011",
+    "warranty_id": "wty_nip011",
+    "profile": "low_stable",
+    "expiry_bucket": "far",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP012",
+    "user_id": "user_nip012",
+    "warranty_id": "wty_nip012",
+    "profile": "low_stable",
+    "expiry_bucket": "far",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP013",
+    "user_id": "user_nip013",
+    "warranty_id": "wty_nip013",
+    "profile": "low_stable",
+    "expiry_bucket": "far",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP014",
+    "user_id": "user_nip014",
+    "warranty_id": "wty_nip014",
+    "profile": "low_stable",
+    "expiry_bucket": "far",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP015",
+    "user_id": "user_nip015",
+    "warranty_id": "wty_nip015",
+    "profile": "low_stable",
+    "expiry_bucket": "far",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP016",
+    "user_id": "user_nip016",
+    "warranty_id": "wty_nip016",
+    "profile": "low_stable",
+    "expiry_bucket": "far",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP017",
+    "user_id": "user_nip017",
+    "warranty_id": "wty_nip017",
+    "profile": "low_stable",
+    "expiry_bucket": "far",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP018",
+    "user_id": "user_nip018",
+    "warranty_id": "wty_nip018",
+    "profile": "low_stable",
+    "expiry_bucket": "far",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP019",
+    "user_id": "user_nip019",
+    "warranty_id": "wty_nip019",
+    "profile": "low_stable",
+    "expiry_bucket": "far",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP020",
+    "user_id": "user_nip020",
+    "warranty_id": "wty_nip020",
+    "profile": "low_stable",
+    "expiry_bucket": "far",
+    "expected_risk_band": "low"
+  },
+  {
+    "case_id": "NIP021",
+    "user_id": "user_nip021",
+    "warranty_id": "wty_nip021",
+    "profile": "medium_attention",
+    "expiry_bucket": "near",
+    "expected_risk_band": "medium"
+  },
+  {
+    "case_id": "NIP022",
+    "user_id": "user_nip022",
+    "warranty_id": "wty_nip022",
+    "profile": "medium_attention",
+    "expiry_bucket": "near",
+    "expected_risk_band": "medium"
+  },
+  {
+    "case_id": "NIP023",
+    "user_id": "user_nip023",
+    "warranty_id": "wty_nip023",
+    "profile": "medium_attention",
+    "expiry_bucket": "near",
+    "expected_risk_band": "medium"
+  },
+  {
+    "case_id": "NIP024",
+    "user_id": "user_nip024",
+    "warranty_id": "wty_nip024",
+    "profile": "medium_attention",
+    "expiry_bucket": "near",
+    "expected_risk_band": "medium"
+  },
+  {
+    "case_id": "NIP025",
+    "user_id": "user_nip025",
+    "warranty_id": "wty_nip025",
+    "profile": "medium_attention",
+    "expiry_bucket": "near",
+    "expected_risk_band": "medium"
+  },
+  {
+    "case_id": "NIP026",
+    "user_id": "user_nip026",
+    "warranty_id": "wty_nip026",
+    "profile": "medium_attention",
+    "expiry_bucket": "near",
+    "expected_risk_band": "medium"
+  },
+  {
+    "case_id": "NIP027",
+    "user_id": "user_nip027",
+    "warranty_id": "wty_nip027",
+    "profile": "medium_attention",
+    "expiry_bucket": "near",
+    "expected_risk_band": "medium"
+  },
+  {
+    "case_id": "NIP028",
+    "user_id": "user_nip028",
+    "warranty_id": "wty_nip028",
+    "profile": "medium_attention",
+    "expiry_bucket": "near",
+    "expected_risk_band": "medium"
+  },
+  {
+    "case_id": "NIP029",
+    "user_id": "user_nip029",
+    "warranty_id": "wty_nip029",
+    "profile": "medium_attention",
+    "expiry_bucket": "far",
+    "expected_risk_band": "medium"
+  },
+  {
+    "case_id": "NIP030",
+    "user_id": "user_nip030",
+    "warranty_id": "wty_nip030",
+    "profile": "medium_attention",
+    "expiry_bucket": "far",
+    "expected_risk_band": "medium"
+  },
+  {
+    "case_id": "NIP031",
+    "user_id": "user_nip031",
+    "warranty_id": "wty_nip031",
+    "profile": "medium_attention",
+    "expiry_bucket": "far",
+    "expected_risk_band": "medium"
+  },
+  {
+    "case_id": "NIP032",
+    "user_id": "user_nip032",
+    "warranty_id": "wty_nip032",
+    "profile": "medium_attention",
+    "expiry_bucket": "far",
+    "expected_risk_band": "medium"
+  },
+  {
+    "case_id": "NIP033",
+    "user_id": "user_nip033",
+    "warranty_id": "wty_nip033",
+    "profile": "medium_attention",
+    "expiry_bucket": "far",
+    "expected_risk_band": "medium"
+  },
+  {
+    "case_id": "NIP034",
+    "user_id": "user_nip034",
+    "warranty_id": "wty_nip034",
+    "profile": "medium_attention",
+    "expiry_bucket": "far",
+    "expected_risk_band": "medium"
+  },
+  {
+    "case_id": "NIP035",
+    "user_id": "user_nip035",
+    "warranty_id": "wty_nip035",
+    "profile": "medium_attention",
+    "expiry_bucket": "far",
+    "expected_risk_band": "medium"
+  },
+  {
+    "case_id": "NIP036",
+    "user_id": "user_nip036",
+    "warranty_id": "wty_nip036",
+    "profile": "high_urgent",
+    "expiry_bucket": "near",
+    "expected_risk_band": "high"
+  },
+  {
+    "case_id": "NIP037",
+    "user_id": "user_nip037",
+    "warranty_id": "wty_nip037",
+    "profile": "high_urgent",
+    "expiry_bucket": "near",
+    "expected_risk_band": "high"
+  },
+  {
+    "case_id": "NIP038",
+    "user_id": "user_nip038",
+    "warranty_id": "wty_nip038",
+    "profile": "high_urgent",
+    "expiry_bucket": "near",
+    "expected_risk_band": "high"
+  },
+  {
+    "case_id": "NIP039",
+    "user_id": "user_nip039",
+    "warranty_id": "wty_nip039",
+    "profile": "high_urgent",
+    "expiry_bucket": "near",
+    "expected_risk_band": "high"
+  },
+  {
+    "case_id": "NIP040",
+    "user_id": "user_nip040",
+    "warranty_id": "wty_nip040",
+    "profile": "high_urgent",
+    "expiry_bucket": "near",
+    "expected_risk_band": "high"
+  },
+  {
+    "case_id": "NIP041",
+    "user_id": "user_nip041",
+    "warranty_id": "wty_nip041",
+    "profile": "high_urgent",
+    "expiry_bucket": "near",
+    "expected_risk_band": "high"
+  },
+  {
+    "case_id": "NIP042",
+    "user_id": "user_nip042",
+    "warranty_id": "wty_nip042",
+    "profile": "high_urgent",
+    "expiry_bucket": "near",
+    "expected_risk_band": "high"
+  },
+  {
+    "case_id": "NIP043",
+    "user_id": "user_nip043",
+    "warranty_id": "wty_nip043",
+    "profile": "high_urgent",
+    "expiry_bucket": "near",
+    "expected_risk_band": "high"
+  },
+  {
+    "case_id": "NIP044",
+    "user_id": "user_nip044",
+    "warranty_id": "wty_nip044",
+    "profile": "high_urgent",
+    "expiry_bucket": "near",
+    "expected_risk_band": "high"
+  },
+  {
+    "case_id": "NIP045",
+    "user_id": "user_nip045",
+    "warranty_id": "wty_nip045",
+    "profile": "high_urgent",
+    "expiry_bucket": "near",
+    "expected_risk_band": "high"
+  },
+  {
+    "case_id": "NIP046",
+    "user_id": "user_nip046",
+    "warranty_id": "wty_nip046",
+    "profile": "high_urgent",
+    "expiry_bucket": "far",
+    "expected_risk_band": "high"
+  },
+  {
+    "case_id": "NIP047",
+    "user_id": "user_nip047",
+    "warranty_id": "wty_nip047",
+    "profile": "high_urgent",
+    "expiry_bucket": "far",
+    "expected_risk_band": "high"
+  },
+  {
+    "case_id": "NIP048",
+    "user_id": "user_nip048",
+    "warranty_id": "wty_nip048",
+    "profile": "high_urgent",
+    "expiry_bucket": "far",
+    "expected_risk_band": "high"
+  },
+  {
+    "case_id": "NIP049",
+    "user_id": "user_nip049",
+    "warranty_id": "wty_nip049",
+    "profile": "high_urgent",
+    "expiry_bucket": "far",
+    "expected_risk_band": "high"
+  },
+  {
+    "case_id": "NIP050",
+    "user_id": "user_nip050",
+    "warranty_id": "wty_nip050",
+    "profile": "high_urgent",
+    "expiry_bucket": "far",
+    "expected_risk_band": "high"
+  }
+]

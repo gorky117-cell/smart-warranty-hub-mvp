@@ -1573,12 +1573,18 @@
         }
         if (!expiryDate) return { expiryDate: null, daysLeft: null, derived };
         const ms = expiryDate.getTime() - Date.now();
-        const daysLeft = Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
+        const daysLeft = Math.floor(ms / (1000 * 60 * 60 * 24));
         return { expiryDate, daysLeft, derived };
       }
 
       function formatTimeLeft(daysLeft) {
         if (daysLeft === null || daysLeft === undefined) return 'N/A';
+        if (daysLeft < 0) {
+          const lapsedDays = Math.abs(daysLeft);
+          if (lapsedDays < 365) return `Lapsed ${Math.max(1, Math.round(lapsedDays / 30))} months ago`;
+          return `Lapsed ${(lapsedDays / 365.25).toFixed(1)} years ago`;
+        }
+        if (daysLeft === 0) return 'Expires today';
         if (daysLeft < 60) return `${daysLeft} days left`;
         return `${Math.max(0, Math.round(daysLeft / 30))} months left`;
       }
@@ -2213,12 +2219,15 @@
           `Brand: ${w.brand || 'N/A'}`,
           `Model: ${w.model_code || 'N/A'}`,
           `Coverage months: ${coverageMonths || 'N/A'}`,
-          `Expiry: ${(expInfo.expiryDate ? expInfo.expiryDate.toISOString().slice(0, 10) : (w.expiry_date || 'N/A'))}${expInfo.derived ? ' (estimated from purchase + coverage)' : ''}`
+          `Expiry: ${(expInfo.expiryDate ? expInfo.expiryDate.toISOString().slice(0, 10) : (w.expiry_date || 'N/A'))}${expInfo.derived ? ' (estimated from purchase + coverage)' : ''}`,
+          `Status: ${w.warranty_status || cov.text}`,
+          `Claim: ${w.claim_eligibility || 'review'}${w.claim_message ? ` - ${w.claim_message}` : ''}`
         ].join('\n');
         const coverageCanvas = document.getElementById('coverageChart');
         if (coverageCanvas && coverageCanvas.getContext) {
           const ctx = coverageCanvas.getContext('2d');
-          const pct = coverageMonths ? Math.min(1, (daysLeft !== null ? daysLeft : 0) / (coverageMonths * 30)) : 0;
+          const remainingDays = (daysLeft !== null && daysLeft !== undefined) ? Math.max(0, daysLeft) : 0;
+          const pct = coverageMonths ? Math.min(1, remainingDays / (coverageMonths * 30)) : 0;
           if (coverageChart) coverageChart.destroy();
           coverageChart = new Chart(ctx, {
             type: 'doughnut',
