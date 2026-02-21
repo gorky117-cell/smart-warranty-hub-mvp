@@ -1,0 +1,36 @@
+{
+  "generated_at": "2026-02-21T09:12:38.581725",
+  "decision": "healthy",
+  "summary": "KPI trend=improving, pass_rate=95.0%, failing=1, alert_streak=0.",
+  "trend": {
+    "window": 3,
+    "trend": "improving",
+    "latest_pass_rate_pct": 95.0,
+    "pass_rate_delta_pct": 22.0,
+    "alert_streak": 0,
+    "recurring_failing_kpis": [
+      {
+        "kpi_key": "OEM::High-Risk Precision",
+        "occurrences": 2
+      },
+      {
+        "kpi_key": "OEM::Model Calibration Error (ECE)",
+        "occurrences": 2
+      }
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T01",
+      "stakeholder": "OEM",
+      "kpi": "Stockout Rate",
+      "current_value": 0.0,
+      "target": "improve",
+      "priority": "medium",
+      "owner": "Operations",
+      "eta_days": 10,
+      "action": "Run root-cause review and implement targeted corrective experiment."
+    }
+  ],
+  "task_count": 1
+}

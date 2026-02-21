@@ -1,0 +1,181 @@
+{
+  "summary": {
+    "dataset_rows": 50,
+    "run1_decision": "alert",
+    "run1_alert_ok": true,
+    "run1_tasks": 3,
+    "run2_decision": "alert",
+    "run2_alert_streak": 2,
+    "run2_streak_ok": true,
+    "run3_decision": "healthy",
+    "run3_healthy_ok": true,
+    "run3_trend": "improving",
+    "history_rows": 3,
+    "history_persist_ok": true,
+    "latest_plan_task_count": 1,
+    "remediation_notifications": 2,
+    "latency_p50_ms": 111.29,
+    "latency_p95_ms": 261.94,
+    "decision_accuracy_pct": 100.0
+  },
+  "runs": {
+    "run1": {
+      "ok": true,
+      "decision": "alert",
+      "pass_rate_pct": 72.0,
+      "failing_kpis_count": 3,
+      "trend": {
+        "window": 1,
+        "trend": "improving",
+        "latest_pass_rate_pct": 72.0,
+        "pass_rate_delta_pct": 72.0,
+        "alert_streak": 1,
+        "recurring_failing_kpis": []
+      },
+      "snapshot": {
+        "timestamp": "2026-02-21T09:12:38.211945",
+        "source": "eval",
+        "decision": "alert",
+        "pass_rate_pct": 72.0,
+        "failing_kpis_count": 3,
+        "instrumented_kpis": 50,
+        "passing_kpis": 47,
+        "report_path": "data/kpi_phase10_report.json",
+        "failing_kpis": [
+          {
+            "stakeholder": "OEM",
+            "kpi": "High-Risk Precision",
+            "value": 0.0,
+            "target": "improve",
+            "status": "needs_improvement"
+          },
+          {
+            "stakeholder": "OEM",
+            "kpi": "Model Calibration Error (ECE)",
+            "value": 0.0,
+            "target": "improve",
+            "status": "needs_improvement"
+          },
+          {
+            "stakeholder": "OEM",
+            "kpi": "Brier Score",
+            "value": 0.0,
+            "target": "improve",
+            "status": "needs_improvement"
+          }
+        ]
+      },
+      "task_count": 3,
+      "plan_path": "data/kpi_phase10_plan.json",
+      "history_path": "data/kpi_phase10_history.json",
+      "notified": 2
+    },
+    "run2": {
+      "ok": true,
+      "decision": "alert",
+      "pass_rate_pct": 74.0,
+      "failing_kpis_count": 2,
+      "trend": {
+        "window": 2,
+        "trend": "improving",
+        "latest_pass_rate_pct": 74.0,
+        "pass_rate_delta_pct": 2.0,
+        "alert_streak": 2,
+        "recurring_failing_kpis": [
+          {
+            "kpi_key": "OEM::High-Risk Precision",
+            "occurrences": 2
+          },
+          {
+            "kpi_key": "OEM::Model Calibration Error (ECE)",
+            "occurrences": 2
+          }
+        ]
+      },
+      "snapshot": {
+        "timestamp": "2026-02-21T09:12:38.431725",
+        "source": "eval",
+        "decision": "alert",
+        "pass_rate_pct": 74.0,
+        "failing_kpis_count": 2,
+        "instrumented_kpis": 50,
+        "passing_kpis": 48,
+        "report_path": "data/kpi_phase10_report.json",
+        "failing_kpis": [
+          {
+            "stakeholder": "OEM",
+            "kpi": "High-Risk Precision",
+            "value": 0.0,
+            "target": "improve",
+            "status": "needs_improvement"
+          },
+          {
+            "stakeholder": "OEM",
+            "kpi": "Model Calibration Error (ECE)",
+            "value": 0.0,
+            "target": "improve",
+            "status": "needs_improvement"
+          }
+        ]
+      },
+      "task_count": 2,
+      "plan_path": "data/kpi_phase10_plan.json",
+      "history_path": "data/kpi_phase10_history.json",
+      "notified": 2
+    },
+    "run3": {
+      "ok": true,
+      "decision": "healthy",
+      "pass_rate_pct": 95.0,
+      "failing_kpis_count": 1,
+      "trend": {
+        "window": 3,
+        "trend": "improving",
+        "latest_pass_rate_pct": 95.0,
+        "pass_rate_delta_pct": 22.0,
+        "alert_streak": 0,
+        "recurring_failing_kpis": [
+          {
+            "kpi_key": "OEM::High-Risk Precision",
+            "occurrences": 2
+          },
+          {
+            "kpi_key": "OEM::Model Calibration Error (ECE)",
+            "occurrences": 2
+          }
+        ]
+      },
+      "snapshot": {
+        "timestamp": "2026-02-21T09:12:38.542919",
+        "source": "eval",
+        "decision": "healthy",
+        "pass_rate_pct": 95.0,
+        "failing_kpis_count": 1,
+        "instrumented_kpis": 50,
+        "passing_kpis": 49,
+        "report_path": "data/kpi_phase10_report.json",
+        "failing_kpis": [
+          {
+            "stakeholder": "OEM",
+            "kpi": "Stockout Rate",
+            "value": 0.0,
+            "target": "improve",
+            "status": "needs_improvement"
+          }
+        ]
+      },
+      "task_count": 1,
+      "plan_path": "data/kpi_phase10_plan.json",
+      "history_path": "data/kpi_phase10_history.json",
+      "notified": 0
+    }
+  },
+  "artifacts": {
+    "db_file": "data/kpi_phase10_eval.db",
+    "report_file": "data/kpi_phase10_report.json",
+    "policy_file": "data/kpi_phase10_policy.json",
+    "history_file": "data/kpi_phase10_history.json",
+    "plan_file": "data/kpi_phase10_plan.json",
+    "cases_file": "test_data/kpi_phase10_cases_50.json"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "summary": {
+    "dataset_rows": 50,
+    "run1_decision": "alert",
+    "run1_alert_ok": true,
+    "run1_notified": 2,
+    "run2_decision": "healthy",
+    "run2_healthy_ok": true,
+    "run2_notified": 2,
+    "total_watchdog_notifications": 4,
+    "latency_p50_ms": 68.8,
+    "latency_p95_ms": 83.62,
+    "decision_accuracy_pct": 100.0
+  },
+  "runs": {
+    "run1_alert": {
+      "ok": true,
+      "enabled": true,
+      "decision": "alert",
+      "pass_rate_pct": 72.0,
+      "failing_kpis_count": 6,
+      "instrumented_kpis": 50,
+      "passing_kpis": 44,
+      "report_path": "data/kpi_watchdog_phase9_report.json",
+      "notified": 2,
+      "thresholds": {
+        "min_pass_rate_pct": 85.0,
+        "max_failing_kpis": 2
+      }
+    },
+    "run2_healthy": {
+      "ok": true,
+      "enabled": true,
+      "decision": "healthy",
+      "pass_rate_pct": 96.0,
+      "failing_kpis_count": 1,
+      "instrumented_kpis": 50,
+      "passing_kpis": 49,
+      "report_path": "data/kpi_watchdog_phase9_report.json",
+      "notified": 2,
+      "thresholds": {
+        "min_pass_rate_pct": 85.0,
+        "max_failing_kpis": 2
+      }
+    }
+  },
+  "artifacts": {
+    "db_file": "data/kpi_watchdog_phase9_eval.db",
+    "report_file": "data/kpi_watchdog_phase9_report.json",
+    "policy_file": "data/kpi_watchdog_phase9_policy.json",
+    "cases_file": "test_data/kpi_watchdog_phase9_cases_50.json"
+  }
+}

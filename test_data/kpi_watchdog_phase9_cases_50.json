@@ -1,0 +1,16 @@
+[
+  {
+    "pass_rate_pct": 72.0,
+    "failing_count": 6,
+    "rows": 50,
+    "decision": "alert",
+    "notified": 2
+  },
+  {
+    "pass_rate_pct": 96.0,
+    "failing_count": 1,
+    "rows": 50,
+    "decision": "healthy",
+    "notified": 2
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "enabled": true,
+  "report_file": "data/kpi_phase10_report.json",
+  "min_pass_rate_pct": 85.0,
+  "max_failing_kpis": 2,
+  "notify_oem": true,
+  "notify_admin": true,
+  "sender_label": "kpi-watchdog",
+  "severity_on_alert": "warning"
+}

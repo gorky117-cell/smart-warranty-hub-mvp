@@ -15,6 +15,8 @@ from . import notifications as notification_service
 from .data_governance import cleanup_retention
 from .review_crawler import crawl_reviews
 from .oem_dispatch import run_weekly_dispatch
+from .kpi_watchdog import run_kpi_watchdog
+from .kpi_remediation import run_kpi_remediation_cycle
 
 
 def oem_refresh_loop(interval_minutes: int = 60):
@@ -25,6 +27,8 @@ def oem_refresh_loop(interval_minutes: int = 60):
     last_expiry_refresh = datetime.datetime.min
     last_oem_analysis = datetime.datetime.min
     last_oem_dispatch = datetime.datetime.min
+    last_kpi_watchdog = datetime.datetime.min
+    last_kpi_remediation = datetime.datetime.min
     issue_interval = int(os.getenv("OEM_ISSUE_FEED_REFRESH_MINUTES", "180"))
     risk_interval = int(os.getenv("RISK_REFRESH_MINUTES", "120"))
     review_interval = int(os.getenv("REVIEW_CRAWL_MINUTES", "1440"))
@@ -36,6 +40,10 @@ def oem_refresh_loop(interval_minutes: int = 60):
     oem_analysis_interval = int(os.getenv("OEM_ANALYSIS_MINUTES", "10080"))  # weekly analysis
     oem_dispatch_enabled = os.getenv("OEM_AUTO_DISPATCH_ENABLED", "true").lower() == "true"
     oem_dispatch_interval = int(os.getenv("OEM_AUTO_DISPATCH_MINUTES", "43200"))  # monthly default
+    kpi_watchdog_enabled = os.getenv("KPI_WATCHDOG_ENABLED", "true").lower() == "true"
+    kpi_watchdog_interval = int(os.getenv("KPI_WATCHDOG_MINUTES", "1440"))  # daily default
+    kpi_remediation_enabled = os.getenv("KPI_REMEDIATION_ENABLED", "true").lower() == "true"
+    kpi_remediation_interval = int(os.getenv("KPI_REMEDIATION_MINUTES", "1440"))  # daily default
     while True:
         try:
             with SessionLocal() as db:
@@ -119,6 +127,20 @@ def oem_refresh_loop(interval_minutes: int = 60):
                     except Exception as exc:
                         log_action("oem_monthly_dispatch_fail", str(exc))
                     last_oem_dispatch = now
+                if kpi_watchdog_enabled and kpi_watchdog_interval > 0 and (now - last_kpi_watchdog).total_seconds() >= kpi_watchdog_interval * 60:
+                    try:
+                        stats = run_kpi_watchdog(db, notify=True)
+                        log_action("kpi_watchdog", f"{stats}")
+                    except Exception as exc:
+                        log_action("kpi_watchdog_fail", str(exc))
+                    last_kpi_watchdog = now
+                if kpi_remediation_enabled and kpi_remediation_interval > 0 and (now - last_kpi_remediation).total_seconds() >= kpi_remediation_interval * 60:
+                    try:
+                        stats = run_kpi_remediation_cycle(db, notify=True, source="scheduler")
+                        log_action("kpi_remediation", f"{stats}")
+                    except Exception as exc:
+                        log_action("kpi_remediation_fail", str(exc))
+                    last_kpi_remediation = now
         except Exception as exc:
             log_action("scheduler_error", str(exc))
         time.sleep(interval_minutes * 60)

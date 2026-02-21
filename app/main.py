@@ -55,6 +55,8 @@ from .services import ollama_questions
 from .services import oem_recommendation_service
 from .services import oem_communication as oem_communication_service
 from .services import oem_dispatch as oem_dispatch_service
+from .services import kpi_watchdog as kpi_watchdog_service
+from .services import kpi_remediation as kpi_remediation_service
 from .services import invoice_pipeline
 from .services import summary_engine
 from .services import terms_lookup
@@ -241,6 +243,17 @@ class OemCommunicationSendRequest(BaseModel):
 
 class OemDispatchRunRequest(BaseModel):
     dry_run: bool = True
+
+
+class KpiWatchdogRunRequest(BaseModel):
+    report_file: str | None = None
+    notify: bool = True
+
+
+class KpiRemediationRunRequest(BaseModel):
+    report_file: str | None = None
+    notify: bool = True
+    source: str = "manual"
 
 
 class SignupRequest(BaseModel):
@@ -2181,6 +2194,52 @@ def admin_set_oem_dispatch_policy(payload: Dict = Body(...)):
 @app.post("/admin/oem-dispatch/run", dependencies=[Depends(require_admin)])
 def admin_run_oem_dispatch(payload: OemDispatchRunRequest, db=Depends(get_db)):
     return oem_dispatch_service.run_weekly_dispatch(db, dry_run=bool(payload.dry_run))
+
+
+@app.get("/admin/kpi-watchdog/policy", dependencies=[Depends(require_admin)])
+def admin_get_kpi_watchdog_policy():
+    return kpi_watchdog_service.get_watchdog_policy()
+
+
+@app.post("/admin/kpi-watchdog/policy", dependencies=[Depends(require_admin)])
+def admin_set_kpi_watchdog_policy(payload: Dict = Body(...)):
+    return kpi_watchdog_service.set_watchdog_policy(payload or {})
+
+
+@app.get("/admin/kpi/report", dependencies=[Depends(require_admin)])
+def admin_get_kpi_report(report_file: str | None = None):
+    report = kpi_watchdog_service.load_kpi_report(report_file=report_file)
+    health = kpi_watchdog_service.evaluate_kpi_health(report)
+    return {"report": report, "health": health}
+
+
+@app.post("/admin/kpi/watchdog/run", dependencies=[Depends(require_admin)])
+def admin_run_kpi_watchdog(payload: KpiWatchdogRunRequest, db=Depends(get_db)):
+    return kpi_watchdog_service.run_kpi_watchdog(
+        db,
+        report_file=payload.report_file,
+        notify=bool(payload.notify),
+    )
+
+
+@app.get("/admin/kpi/history", dependencies=[Depends(require_admin)])
+def admin_get_kpi_history(limit: int = 30):
+    return {"history": kpi_remediation_service.get_history(limit=max(1, min(365, int(limit or 30))))}
+
+
+@app.get("/admin/kpi/remediation/latest", dependencies=[Depends(require_admin)])
+def admin_get_kpi_remediation_latest():
+    return kpi_remediation_service.load_latest_plan()
+
+
+@app.post("/admin/kpi/remediation/run", dependencies=[Depends(require_admin)])
+def admin_run_kpi_remediation(payload: KpiRemediationRunRequest, db=Depends(get_db)):
+    return kpi_remediation_service.run_kpi_remediation_cycle(
+        db,
+        report_file=payload.report_file,
+        notify=bool(payload.notify),
+        source=payload.source or "manual",
+    )
 
 
 @app.post("/region-rules", dependencies=[Depends(require_admin)])

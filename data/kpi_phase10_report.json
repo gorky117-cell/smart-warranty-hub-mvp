@@ -1,0 +1,409 @@
+{
+  "summary": {
+    "kpi_pass_rate_pct": 95.0,
+    "instrumented_kpis": 50,
+    "passing_kpis": 49
+  },
+  "kpis": [
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-0",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-1",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-2",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-3",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-4",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-5",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-6",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-7",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-8",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-9",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-10",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-11",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-12",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-13",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-14",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-15",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-16",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-17",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-18",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-19",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-20",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-21",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-22",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-23",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-24",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-25",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-26",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-27",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-28",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-29",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-30",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-31",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-32",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-33",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-34",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-35",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-36",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-37",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-38",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-39",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-40",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-41",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-42",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-43",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-44",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-45",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-46",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-47",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "Platform",
+      "kpi": "KPI-PASS-48",
+      "status": "pass",
+      "instrumented": true,
+      "value": 1.0,
+      "target": "ok"
+    },
+    {
+      "stakeholder": "OEM",
+      "kpi": "Stockout Rate",
+      "status": "needs_improvement",
+      "instrumented": true,
+      "value": 0.0,
+      "target": "improve"
+    }
+  ]
+}

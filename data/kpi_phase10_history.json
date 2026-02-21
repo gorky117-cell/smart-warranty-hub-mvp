@@ -1,0 +1,80 @@
+[
+  {
+    "timestamp": "2026-02-21T09:12:38.211945",
+    "source": "eval",
+    "decision": "alert",
+    "pass_rate_pct": 72.0,
+    "failing_kpis_count": 3,
+    "instrumented_kpis": 50,
+    "passing_kpis": 47,
+    "report_path": "data/kpi_phase10_report.json",
+    "failing_kpis": [
+      {
+        "stakeholder": "OEM",
+        "kpi": "High-Risk Precision",
+        "value": 0.0,
+        "target": "improve",
+        "status": "needs_improvement"
+      },
+      {
+        "stakeholder": "OEM",
+        "kpi": "Model Calibration Error (ECE)",
+        "value": 0.0,
+        "target": "improve",
+        "status": "needs_improvement"
+      },
+      {
+        "stakeholder": "OEM",
+        "kpi": "Brier Score",
+        "value": 0.0,
+        "target": "improve",
+        "status": "needs_improvement"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-02-21T09:12:38.431725",
+    "source": "eval",
+    "decision": "alert",
+    "pass_rate_pct": 74.0,
+    "failing_kpis_count": 2,
+    "instrumented_kpis": 50,
+    "passing_kpis": 48,
+    "report_path": "data/kpi_phase10_report.json",
+    "failing_kpis": [
+      {
+        "stakeholder": "OEM",
+        "kpi": "High-Risk Precision",
+        "value": 0.0,
+        "target": "improve",
+        "status": "needs_improvement"
+      },
+      {
+        "stakeholder": "OEM",
+        "kpi": "Model Calibration Error (ECE)",
+        "value": 0.0,
+        "target": "improve",
+        "status": "needs_improvement"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-02-21T09:12:38.542919",
+    "source": "eval",
+    "decision": "healthy",
+    "pass_rate_pct": 95.0,
+    "failing_kpis_count": 1,
+    "instrumented_kpis": 50,
+    "passing_kpis": 49,
+    "report_path": "data/kpi_phase10_report.json",
+    "failing_kpis": [
+      {
+        "stakeholder": "OEM",
+        "kpi": "Stockout Rate",
+        "value": 0.0,
+        "target": "improve",
+        "status": "needs_improvement"
+      }
+    ]
+  }
+]

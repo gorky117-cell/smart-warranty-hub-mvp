@@ -1,0 +1,35 @@
+[
+  {
+    "pass_rate_pct": 72.0,
+    "failing": [
+      "High-Risk Precision",
+      "Model Calibration Error (ECE)",
+      "Brier Score"
+    ],
+    "rows": 50,
+    "decision": "alert",
+    "task_count": 3,
+    "trend": "improving"
+  },
+  {
+    "pass_rate_pct": 74.0,
+    "failing": [
+      "High-Risk Precision",
+      "Model Calibration Error (ECE)"
+    ],
+    "rows": 50,
+    "decision": "alert",
+    "task_count": 2,
+    "alert_streak": 2
+  },
+  {
+    "pass_rate_pct": 95.0,
+    "failing": [
+      "Stockout Rate"
+    ],
+    "rows": 50,
+    "decision": "healthy",
+    "task_count": 1,
+    "trend": "improving"
+  }
+]
