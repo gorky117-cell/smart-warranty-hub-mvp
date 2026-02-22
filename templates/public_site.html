@@ -3,18 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Smart Warranty Hub | AI Warranty Platform for Users and OEMs</title>
-  <meta name="description" content="Smart Warranty Hub helps users and OEMs with warranty digitization, OCR extraction, predictive risk alerts, claims support, and diagnostics workflows." />
+  <title>Smart Warranty Hub | AI Warranty Platform for Users, OEMs, and TPAs</title>
+  <meta name="description" content="Smart Warranty Hub is an AI-powered warranty platform with OCR ingestion, term extraction, predictive risk, diagnostics workflows, and OEM intelligence dashboards." />
   <meta name="robots" content="index,follow" />
   <link rel="canonical" href="https://www.smartwarrantyhub.com/" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Smart Warranty Hub" />
-  <meta property="og:description" content="AI-powered warranty intelligence for users, OEMs, TPAs, and service partners." />
+  <meta property="og:description" content="AI warranty intelligence across users, OEMs, TPAs, retailers, and service teams." />
   <meta property="og:url" content="https://www.smartwarrantyhub.com/" />
   <meta property="og:site_name" content="Smart Warranty Hub" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Smart Warranty Hub" />
-  <meta name="twitter:description" content="AI-powered warranty intelligence for users, OEMs, TPAs, and service partners." />
+  <meta name="twitter:description" content="AI warranty intelligence across users, OEMs, TPAs, retailers, and service teams." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -32,53 +35,410 @@
       --ink: #0f172a;
       --muted: #4b5563;
       --line: #d6e0ef;
-      --primary: #1d4ed8;
-      --primary-2: #0ea5e9;
-      --shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+      --brand: #1d4ed8;
+      --brand-2: #0ea5e9;
+      --brand-soft: #e3eeff;
+      --ok: #15803d;
+      --warn: #b45309;
+      --shadow: 0 14px 32px rgba(15, 23, 42, 0.09);
       --radius: 16px;
     }
-    * { box-sizing: border-box; }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
     body {
       margin: 0;
+      padding: 0;
       font-family: "Sora", "Segoe UI", sans-serif;
-      background: radial-gradient(circle at 20% -10%, #ffffff 0%, transparent 38%), var(--bg);
       color: var(--ink);
+      background:
+        radial-gradient(circle at 0% -10%, #ffffff 0%, transparent 35%),
+        radial-gradient(circle at 100% 0%, #d8e8ff 0%, transparent 28%),
+        var(--bg);
     }
-    .wrap { max-width: 1140px; margin: 0 auto; padding: 16px; }
-    .top {
-      display: flex; gap: 10px; align-items: center; justify-content: space-between;
-      background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; box-shadow: var(--shadow);
-      position: sticky; top: 8px; z-index: 10;
+
+    .site {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 14px;
     }
-    .brand { font-weight: 800; letter-spacing: 0.2px; }
-    .nav { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .topbar {
+      position: sticky;
+      top: 8px;
+      z-index: 40;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      padding: 10px 12px;
+      backdrop-filter: blur(8px);
+    }
+
+    .brand {
+      font-weight: 800;
+      font-size: 26px;
+      letter-spacing: 0.2px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 99px;
+      background: linear-gradient(150deg, var(--brand), var(--brand-2));
+      box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.16);
+    }
+
+    .nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
     .btn {
-      text-decoration: none; border-radius: 10px; padding: 10px 12px; font-weight: 700; font-size: 14px;
-      border: 1px solid var(--line); background: #fff; color: var(--ink);
+      display: inline-flex;
+      text-decoration: none;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      border: 1px solid var(--line);
+      color: var(--ink);
+      background: #fff;
+      transition: transform 0.14s ease, box-shadow 0.14s ease;
     }
-    .btn.primary { background: linear-gradient(135deg, var(--primary), #2563eb); color: #fff; border: none; }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.1);
+    }
+
+    .btn.primary {
+      border: none;
+      color: #fff;
+      background: linear-gradient(135deg, var(--brand), #2563eb);
+    }
+
     .hero {
-      margin-top: 14px; background: linear-gradient(145deg, #0f172a, #1e3a8a); color: #eaf1ff;
-      border-radius: var(--radius); padding: 28px 20px;
+      margin-top: 14px;
+      border-radius: var(--radius);
+      padding: 26px 22px;
+      background: linear-gradient(145deg, #0f172a, #1e3a8a 55%, #134e9f 100%);
+      color: #e6efff;
+      box-shadow: var(--shadow);
     }
-    h1 { margin: 0 0 10px; line-height: 1.2; font-size: clamp(26px, 4vw, 42px); }
-    .sub { margin: 0; color: #c9d8f8; max-width: 760px; }
-    .cta { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px; }
-    .grid { margin-top: 14px; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; box-shadow: var(--shadow); }
-    h2 { margin: 0 0 8px; font-size: 20px; }
-    h3 { margin: 0 0 8px; font-size: 16px; }
-    p, li { color: var(--muted); line-height: 1.55; }
-    ul { margin: 0; padding-left: 18px; }
-    .footer { margin: 16px 0 8px; color: var(--muted); font-size: 13px; text-align: center; }
+
+    .hero h1 {
+      margin: 0;
+      line-height: 1.16;
+      font-size: clamp(30px, 5vw, 56px);
+      max-width: 1000px;
+    }
+
+    .hero p {
+      margin: 12px 0 0;
+      color: #c7d7f8;
+      max-width: 860px;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .hero-cta {
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .chip-row {
+      margin-top: 16px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid rgba(224, 236, 255, 0.24);
+      color: #dbe7ff;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .section {
+      margin-top: 14px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .section h2 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.2;
+    }
+
+    .section .lead {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+      max-width: 900px;
+    }
+
+    .stake-tabs {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid #e4ebf8;
+      padding-bottom: 10px;
+    }
+
+    .stake-btn {
+      border: 1px solid var(--line);
+      background: #f7faff;
+      color: #1f2a44;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .stake-btn.active {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(135deg, var(--brand), #2563eb);
+    }
+
+    .stake-panel {
+      display: none;
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid #dfe9fb;
+      background: linear-gradient(180deg, #f9fbff 0%, #ffffff 100%);
+      animation: fadeSlide 0.2s ease;
+    }
+
+    .stake-panel.active {
+      display: block;
+    }
+
+    @keyframes fadeSlide {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .panel-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin-top: 10px;
+    }
+
+    .mini {
+      border: 1px solid #dbe6fa;
+      border-radius: 12px;
+      background: #fff;
+      padding: 12px;
+    }
+
+    .mini h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+
+    .mini ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .mini li {
+      color: var(--muted);
+      line-height: 1.55;
+      margin-bottom: 4px;
+    }
+
+    .kpi-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .kpi {
+      border: 1px solid #deebfd;
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: #f8fbff;
+    }
+
+    .kpi-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #12213e;
+    }
+
+    .kpi small {
+      display: block;
+      margin-top: 4px;
+      color: #5a6b88;
+      font-size: 12px;
+    }
+
+    .bar {
+      height: 6px;
+      margin-top: 6px;
+      border-radius: 99px;
+      background: #e3ecfa;
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--brand), var(--brand-2));
+    }
+
+    .timeline {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .step {
+      background: #fff;
+      border: 1px solid #dce8fc;
+      border-radius: 12px;
+      padding: 12px;
+      position: relative;
+      min-height: 122px;
+    }
+
+    .step .index {
+      width: 24px;
+      height: 24px;
+      border-radius: 99px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, var(--brand), #2563eb);
+      margin-bottom: 8px;
+    }
+
+    .step h3 {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .step p {
+      margin: 7px 0 0;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .module-grid {
+      margin-top: 10px;
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    details.module {
+      border: 1px solid #dce9fb;
+      border-radius: 12px;
+      background: #fff;
+      padding: 10px 12px;
+    }
+
+    details.module summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: #182647;
+    }
+
+    details.module p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 13px;
+    }
+
+    .footer {
+      margin-top: 14px;
+      border-top: 1px solid #dbe4f4;
+      padding: 12px 2px 18px;
+      color: #5c6f8d;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .footer a {
+      color: #1d4ed8;
+      text-decoration: none;
+      font-weight: 600;
+      margin: 0 4px;
+    }
+
+    @media (max-width: 880px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav {
+        justify-content: flex-start;
+      }
+
+      .brand {
+        font-size: 22px;
+      }
+
+      .hero {
+        padding: 20px 16px;
+      }
+
+      .hero h1 {
+        font-size: clamp(28px, 8vw, 42px);
+      }
+    }
   </style>
 </head>
 <body>
-  <main class="wrap">
-    <header class="top">
-      <div class="brand">Smart Warranty Hub</div>
+  <main class="site">
+    <header class="topbar">
+      <div class="brand"><span class="brand-dot"></span>Smart Warranty Hub</div>
       <nav class="nav">
-        <a class="btn" href="/login">Sign In / Sign Up</a>
+        <a class="btn primary" href="/login">Sign In / Sign Up</a>
         <a class="btn" href="/ui/neo-dashboard">Neo Dashboard</a>
         <a class="btn" href="/ui/oem-dashboard">OEM Dashboard</a>
         <a class="btn" href="/ui/scheduler">Scheduler</a>
@@ -87,65 +447,326 @@
     </header>
 
     <section class="hero">
-      <h1>AI Warranty Intelligence for Users, OEMs, and Service Ecosystems</h1>
-      <p class="sub">
-        Smart Warranty Hub digitizes warranty data, extracts terms with OCR, monitors risk, triggers nudges, supports diagnostics,
-        and helps OEM teams reduce warranty cost with proactive monthly insights.
+      <h1>AI Warranty Intelligence Across the Full Product Lifecycle</h1>
+      <p>
+        Smart Warranty Hub ingests warranty and invoice documents, extracts and normalizes terms, detects product risk,
+        and routes preventive and service actions for users, OEMs, TPAs, retailers, and service centers.
       </p>
-      <div class="cta">
-        <a class="btn primary" href="/login">Start Now</a>
-        <a class="btn" href="/ui/neo-dashboard">Open User Experience</a>
+      <div class="hero-cta">
+        <a class="btn primary" href="/login">Start Platform</a>
+        <a class="btn" href="#stakeholders">See Stakeholder Value</a>
+      </div>
+      <div class="chip-row">
+        <span class="chip">OCR Ingestion</span>
+        <span class="chip">Warranty Terms + Exclusions</span>
+        <span class="chip">Predictive Risk + Nudges</span>
+        <span class="chip">IoT / Non-IoT Diagnostics</span>
+        <span class="chip">OEM Forecast + KPI Layer</span>
       </div>
     </section>
 
-    <section class="grid">
-      <article class="card">
-        <h2>User Value</h2>
-        <ul>
-          <li>Warranty upload and OCR-based extraction</li>
-          <li>Clear coverage, exclusions, and claim steps</li>
-          <li>Expiry alerts, care nudges, and claim readiness</li>
-          <li>Remote and guided diagnostics support</li>
-        </ul>
+    <section class="section" id="stakeholders">
+      <h2>Stakeholder Deep View</h2>
+      <p class="lead">
+        Choose a stakeholder to see pain points, Smart Warranty Hub response, KPI targets, and operational outcomes.
+      </p>
+
+      <div class="stake-tabs" role="tablist" aria-label="Stakeholder tabs">
+        <button class="stake-btn active" data-panel="user" role="tab" aria-selected="true">User</button>
+        <button class="stake-btn" data-panel="oem" role="tab" aria-selected="false">OEM</button>
+        <button class="stake-btn" data-panel="tpa" role="tab" aria-selected="false">TPA</button>
+        <button class="stake-btn" data-panel="retailer" role="tab" aria-selected="false">Retailer</button>
+        <button class="stake-btn" data-panel="supplier" role="tab" aria-selected="false">Supplier</button>
+      </div>
+
+      <article class="stake-panel active" id="panel-user" role="tabpanel">
+        <div class="panel-grid">
+          <section class="mini">
+            <h3>User Pain Points</h3>
+            <ul>
+              <li>Warranty papers are lost or hard to understand.</li>
+              <li>Claim steps are unclear when product fails.</li>
+              <li>Users get no early warning before expiry or risk.</li>
+            </ul>
+          </section>
+          <section class="mini">
+            <h3>What SWH Does</h3>
+            <ul>
+              <li>Extracts invoice and warranty terms via OCR.</li>
+              <li>Shows simple summary, exclusions, and claim path.</li>
+              <li>Sends expiry and care nudges for preventive action.</li>
+            </ul>
+          </section>
+          <section class="mini">
+            <h3>User KPI Targets</h3>
+            <div class="kpi-list">
+              <div class="kpi">
+                <div class="kpi-head"><span>Failure Prevention Rate</span><span>>= 25%</span></div>
+                <div class="bar"><div class="fill" style="width:72%"></div></div>
+                <small>High-risk users who acted and avoided failure in window.</small>
+              </div>
+              <div class="kpi">
+                <div class="kpi-head"><span>Claim Turnaround</span><span>-30%</span></div>
+                <div class="bar"><div class="fill" style="width:64%"></div></div>
+                <small>Median claim close time improvement versus baseline.</small>
+              </div>
+              <div class="kpi">
+                <div class="kpi-head"><span>False Alert Rate</span><span>&lt;= 20%</span></div>
+                <div class="bar"><div class="fill" style="width:80%"></div></div>
+                <small>Lower false alarms to maintain user trust and retention.</small>
+              </div>
+            </div>
+          </section>
+        </div>
       </article>
-      <article class="card">
-        <h2>OEM and TPA Value</h2>
-        <ul>
-          <li>OEM dashboard with issue signals and forecast views</li>
-          <li>Monthly risk and early-warning intelligence</li>
-          <li>Workflow support for adjudication and remediation</li>
-          <li>Structured integrations for operations teams</li>
-        </ul>
+
+      <article class="stake-panel" id="panel-oem" role="tabpanel">
+        <div class="panel-grid">
+          <section class="mini">
+            <h3>OEM Pain Points</h3>
+            <ul>
+              <li>Late visibility into model-level field failures.</li>
+              <li>High warranty payout and avoidable service load.</li>
+              <li>Weak linkage between user behavior and product outcomes.</li>
+            </ul>
+          </section>
+          <section class="mini">
+            <h3>What SWH Does</h3>
+            <ul>
+              <li>Builds early warning signals from claims and behavior.</li>
+              <li>Forecasts risk trends for monthly planning.</li>
+              <li>Routes actionable intelligence via OEM dashboard flows.</li>
+            </ul>
+          </section>
+          <section class="mini">
+            <h3>OEM KPI Targets</h3>
+            <div class="kpi-list">
+              <div class="kpi">
+                <div class="kpi-head"><span>Early Warning Lead Time</span><span>>= 14 days</span></div>
+                <div class="bar"><div class="fill" style="width:70%"></div></div>
+                <small>Time gained before expected failure spikes.</small>
+              </div>
+              <div class="kpi">
+                <div class="kpi-head"><span>High-Risk Precision</span><span>>= 55%</span></div>
+                <div class="bar"><div class="fill" style="width:61%"></div></div>
+                <small>Signal quality to reduce alert fatigue in operations.</small>
+              </div>
+              <div class="kpi">
+                <div class="kpi-head"><span>Warranty Cost / Unit</span><span>-10% to -15%</span></div>
+                <div class="bar"><div class="fill" style="width:67%"></div></div>
+                <small>Direct financial impact from proactive intervention.</small>
+              </div>
+            </div>
+          </section>
+        </div>
       </article>
-      <article class="card">
-        <h2>Platform Capabilities</h2>
-        <ul>
-          <li>OCR ingestion and normalization pipelines</li>
-          <li>Warranty term lookup and summary generation</li>
-          <li>Predictive risk scoring and recommendation engine</li>
-          <li>RAG-backed knowledge layer and telemetry traceability</li>
-        </ul>
+
+      <article class="stake-panel" id="panel-tpa" role="tabpanel">
+        <div class="panel-grid">
+          <section class="mini">
+            <h3>TPA Pain Points</h3>
+            <ul>
+              <li>High manual effort in triage and adjudication queues.</li>
+              <li>Re-opened cases from inconsistent decisions.</li>
+              <li>Fraud checks consume significant analyst bandwidth.</li>
+            </ul>
+          </section>
+          <section class="mini">
+            <h3>What SWH Does</h3>
+            <ul>
+              <li>Pre-classifies claims and highlights needed evidence.</li>
+              <li>Supports guided diagnostics and structured intake.</li>
+              <li>Flags suspicious patterns for focused human review.</li>
+            </ul>
+          </section>
+          <section class="mini">
+            <h3>TPA KPI Targets</h3>
+            <div class="kpi-list">
+              <div class="kpi">
+                <div class="kpi-head"><span>Auto-Triage Rate</span><span>>= 50%</span></div>
+                <div class="bar"><div class="fill" style="width:66%"></div></div>
+                <small>Claims automatically classified before manual review.</small>
+              </div>
+              <div class="kpi">
+                <div class="kpi-head"><span>Adjudication TAT</span><span>-25%</span></div>
+                <div class="bar"><div class="fill" style="width:63%"></div></div>
+                <small>Faster decision cycle with workflow assistance.</small>
+              </div>
+              <div class="kpi">
+                <div class="kpi-head"><span>Re-open Rate</span><span>&lt;= 8%</span></div>
+                <div class="bar"><div class="fill" style="width:78%"></div></div>
+                <small>Decision quality signal for stable claim closure.</small>
+              </div>
+            </div>
+          </section>
+        </div>
+      </article>
+
+      <article class="stake-panel" id="panel-retailer" role="tabpanel">
+        <div class="panel-grid">
+          <section class="mini">
+            <h3>Retailer Pain Points</h3>
+            <ul>
+              <li>Returns and escalations increase support costs.</li>
+              <li>Low post-sale visibility into product care and usage.</li>
+              <li>Poor coordination with OEM support teams.</li>
+            </ul>
+          </section>
+          <section class="mini">
+            <h3>What SWH Does</h3>
+            <ul>
+              <li>Improves return prevention through user nudges.</li>
+              <li>Shares aggregate product health insights with OEM workflows.</li>
+              <li>Improves escalation routing and service transparency.</li>
+            </ul>
+          </section>
+          <section class="mini">
+            <h3>Retailer KPI Targets</h3>
+            <div class="kpi-list">
+              <div class="kpi">
+                <div class="kpi-head"><span>Return / Repair Rate</span><span>-10%</span></div>
+                <div class="bar"><div class="fill" style="width:65%"></div></div>
+                <small>Reduced 30/60/90-day return and repair pressure.</small>
+              </div>
+              <div class="kpi">
+                <div class="kpi-head"><span>Escalations / 1,000 Units</span><span>-20%</span></div>
+                <div class="bar"><div class="fill" style="width:62%"></div></div>
+                <small>Lower support burden and better customer experience.</small>
+              </div>
+            </div>
+          </section>
+        </div>
+      </article>
+
+      <article class="stake-panel" id="panel-supplier" role="tabpanel">
+        <div class="panel-grid">
+          <section class="mini">
+            <h3>Supplier Pain Points</h3>
+            <ul>
+              <li>Demand uncertainty causes stockouts or overstock.</li>
+              <li>No proactive signal when field issues rise.</li>
+              <li>Slow response to critical parts demand spikes.</li>
+            </ul>
+          </section>
+          <section class="mini">
+            <h3>What SWH Does</h3>
+            <ul>
+              <li>Provides trend signals tied to issue and forecast layers.</li>
+              <li>Helps align critical inventory with predicted demand.</li>
+              <li>Improves service SLA readiness across partner network.</li>
+            </ul>
+          </section>
+          <section class="mini">
+            <h3>Supplier KPI Targets</h3>
+            <div class="kpi-list">
+              <div class="kpi">
+                <div class="kpi-head"><span>Stockout Rate</span><span>&lt; 5%</span></div>
+                <div class="bar"><div class="fill" style="width:82%"></div></div>
+                <small>Availability for critical components and service SLAs.</small>
+              </div>
+              <div class="kpi">
+                <div class="kpi-head"><span>Excess Inventory</span><span>-15%</span></div>
+                <div class="bar"><div class="fill" style="width:60%"></div></div>
+                <small>Lower working capital lockup from overstock buffers.</small>
+              </div>
+            </div>
+          </section>
+        </div>
       </article>
     </section>
 
-    <section class="grid">
-      <article class="card">
-        <h3>How It Works</h3>
-        <p>Capture invoice or warranty data, standardize fields, enrich terms, calculate risk, and drive preventive actions through user and OEM workflows.</p>
-      </article>
-      <article class="card">
-        <h3>Security and Trust</h3>
-        <p>HTTPS-first deployment, controlled access, audit-friendly flows, and production-grade operational safeguards for enterprise onboarding.</p>
-      </article>
-      <article class="card">
-        <h3>Scalable Architecture</h3>
-        <p>Designed for multi-stakeholder collaboration across users, OEMs, TPAs, retailers, and service centers with API-friendly integration points.</p>
-      </article>
+    <section class="section" id="flow">
+      <h2>End-to-End Operating Flow</h2>
+      <p class="lead">One platform from ingestion to action, designed for simple navigation and stakeholder visibility.</p>
+      <div class="timeline">
+        <article class="step">
+          <div class="index">1</div>
+          <h3>Ingest and Extract</h3>
+          <p>Capture invoice or warranty input. OCR and parsing standardize brand, model, serial, and date signals.</p>
+        </article>
+        <article class="step">
+          <div class="index">2</div>
+          <h3>Normalize Terms</h3>
+          <p>Coverage, exclusions, claim steps, and source confidence are harmonized for user-ready summaries.</p>
+        </article>
+        <article class="step">
+          <div class="index">3</div>
+          <h3>Score and Forecast</h3>
+          <p>Behavior, telemetry, and incident patterns drive risk score layers and monthly forecasting views.</p>
+        </article>
+        <article class="step">
+          <div class="index">4</div>
+          <h3>Trigger Action</h3>
+          <p>Nudges, alerts, diagnostics routes, and service workflows move each case toward prevention and faster closure.</p>
+        </article>
+        <article class="step">
+          <div class="index">5</div>
+          <h3>Measure KPI Outcomes</h3>
+          <p>Platform reports KPI movement for users, OEMs, TPAs, retailers, and suppliers in one traceable layer.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="modules">
+      <h2>Platform Modules</h2>
+      <p class="lead">Open each module for quick detail. This keeps the page simple while still giving full product coverage.</p>
+      <div class="module-grid">
+        <details class="module" open>
+          <summary>Ingestion + OCR</summary>
+          <p>Uploads, camera capture, OCR extraction, confidence traces, and canonical field mapping.</p>
+        </details>
+        <details class="module">
+          <summary>Warranty Terms + Summary</summary>
+          <p>Coverage duration, exclusions, claim steps, and layman summaries backed by source evidence.</p>
+        </details>
+        <details class="module">
+          <summary>Predictive + Nudges</summary>
+          <p>Risk scoring, behavior-informed advisories, and proactive prevention guidance for users.</p>
+        </details>
+        <details class="module">
+          <summary>OEM Intelligence + Forecast</summary>
+          <p>Issue signals, trend analysis, dispatch support, and KPI-driven monthly reporting for OEM teams.</p>
+        </details>
+        <details class="module">
+          <summary>Diagnostics (IoT and Non-IoT)</summary>
+          <p>Remote diagnostics for connected devices and guided diagnostics for non-IoT devices with service center handoff.</p>
+        </details>
+        <details class="module">
+          <summary>RAG + Knowledge Layer</summary>
+          <p>Structured document store for summaries, extracted terms, and retrieval-powered assistance flows.</p>
+        </details>
+      </div>
     </section>
 
     <footer class="footer">
-      Smart Warranty Hub • Warranty AI Platform • <a href="/sitemap.xml">Sitemap</a> • <a href="/robots.txt">Robots</a>
+      Smart Warranty Hub | AI Warranty Platform | <a href="/sitemap.xml">Sitemap</a> | <a href="/robots.txt">Robots</a>
     </footer>
   </main>
+
+  <script>
+    (function () {
+      var buttons = document.querySelectorAll('.stake-btn');
+      var panels = document.querySelectorAll('.stake-panel');
+
+      function activate(name) {
+        buttons.forEach(function (btn) {
+          var on = btn.getAttribute('data-panel') === name;
+          btn.classList.toggle('active', on);
+          btn.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+
+        panels.forEach(function (panel) {
+          panel.classList.toggle('active', panel.id === 'panel-' + name);
+        });
+      }
+
+      buttons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          activate(btn.getAttribute('data-panel'));
+          document.getElementById('stakeholders').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
