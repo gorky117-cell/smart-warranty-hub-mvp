@@ -449,3 +449,104 @@ class ReviewPageDB(Base):
     text_excerpt = Column(Text)
     fetched_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     last_error: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+
+class RemoteDiagnosticSessionDB(Base):
+    __tablename__ = "remote_diagnostic_sessions"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    warranty_id: Mapped[str] = mapped_column(String, index=True)
+    user_id: Mapped[str] = mapped_column(String, index=True)
+    requested_by: Mapped[str] = mapped_column(String, index=True)
+    connector_name: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    device_id: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String, default="open", index=True)  # open | closed
+    context_json = Column(SqliteJSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    last_command_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+
+
+class RemoteDiagnosticCommandDB(Base):
+    __tablename__ = "remote_diagnostic_commands"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    session_id: Mapped[str] = mapped_column(String, index=True)
+    warranty_id: Mapped[str] = mapped_column(String, index=True)
+    user_id: Mapped[str] = mapped_column(String, index=True)
+    requested_by: Mapped[str] = mapped_column(String, index=True)
+    command_type: Mapped[str] = mapped_column(String, index=True)
+    command_payload = Column(SqliteJSON)
+    status: Mapped[str] = mapped_column(
+        String,
+        default="pending_review",
+        index=True,
+    )  # pending_review | queued | executing | executed | failed | rejected | cancelled
+    require_review: Mapped[int] = mapped_column(Integer, default=1, index=True)
+    review_id: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    review_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    connector_name: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0)
+    executed_by: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    result_json = Column(SqliteJSON)
+    error_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    executed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+
+
+class RemoteDiagnosticExecutionDB(Base):
+    __tablename__ = "remote_diagnostic_executions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    command_id: Mapped[str] = mapped_column(String, index=True)
+    session_id: Mapped[str] = mapped_column(String, index=True)
+    connector_name: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    request_json = Column(SqliteJSON)
+    response_json = Column(SqliteJSON)
+    http_status: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    success: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    error_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    latency_ms: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class GuidedDiagnosticSessionDB(Base):
+    __tablename__ = "guided_diagnostic_sessions"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    user_id: Mapped[str] = mapped_column(String, index=True)
+    warranty_id: Mapped[str] = mapped_column(String, index=True)
+    product_name: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    brand: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    model_code: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    region: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    city: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String, default="active", index=True)  # active | completed | escalated
+    current_step: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    context_json = Column(SqliteJSON)
+    summary_json = Column(SqliteJSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class GuidedDiagnosticAnswerDB(Base):
+    __tablename__ = "guided_diagnostic_answers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[str] = mapped_column(String, index=True)
+    question_id: Mapped[str] = mapped_column(String, index=True)
+    question_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    answer_value: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class GuidedDiagnosticEvidenceDB(Base):
+    __tablename__ = "guided_diagnostic_evidence"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[str] = mapped_column(String, index=True)
+    evidence_type: Mapped[str] = mapped_column(String, index=True)  # photo | video | log | text
+    uri: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)

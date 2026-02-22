@@ -1024,6 +1024,16 @@
       <div class="card-hint" id="step4Hint">Load your product in Step 1 to unlock these details.</div>
       <div class="helper" id="productContextStep4" style="display:none;"></div>
       <div class="helper" style="margin-top:-2px;">Optional notes help improve risk insights and reminders.</div>
+      <div class="subtle-panel" id="diagCard" style="margin-top:10px; display:none;">
+        <div class="card-title">Diagnostics assistant</div>
+        <div class="helper" id="diagMode">Detecting device type...</div>
+        <div class="helper" id="diagReason" style="margin-top:4px;"></div>
+        <div class="actions" style="margin-top:8px;">
+          <button type="button" id="btnRunRemoteDiag" class="hidden" onclick="requestRemoteDiag()">Request remote check</button>
+          <button type="button" id="btnRunGuidedDiag" class="hidden" onclick="startGuidedDiagFlow()">Start guided check</button>
+        </div>
+        <div id="diagMsg" class="status-line placeholder" style="margin-top:8px;">Load your product to start diagnostics.</div>
+      </div>
       <div id="behaviourCard" class="subtle-panel"
         style="border-style:dashed; background:#fdfefe; display:none;">
         <div id="behaviourQuestionText" style="font-weight:700; font-size:14px;"></div>
@@ -1166,6 +1176,7 @@
       const DEV_MODE = Boolean(window.__DEV_MODE__) || (new URLSearchParams(window.location.search).get('dev') === '1');
       const DEBUG_MODE = new URLSearchParams(window.location.search).get('debug') === '1';
       let coverageChart, riskChart, warrantyLoaded = false, isEV = false;
+      let diagnosticsCapability = null;
       let notifications = [];
       const warrantyLabelMap = {};
       let toastTimer = null;
@@ -1482,6 +1493,9 @@
         setText('detailsHelper', 'Load your product in Step 1 to unlock these details.');
         setText('step3Hint', 'After your product appears in Step 1, you can add your bill or receipt here.');
         setText('step4Hint', 'Once your product is loaded, you can save how you are using the device or any issues here.');
+        setText('diagMode', 'Detecting device type...');
+        setText('diagReason', '');
+        setText('diagMsg', 'Load your product to start diagnostics.');
         updateProductContext();
         const riskDebugWrap = document.getElementById('riskDebug');
         const riskWhyContent = document.getElementById('riskWhyContent');
@@ -1492,6 +1506,13 @@
         if (recList) recList.textContent = 'No suggestions right now.';
         const evCard = document.getElementById('evCard');
         if (evCard) evCard.style.display = 'none';
+        const diagCard = document.getElementById('diagCard');
+        if (diagCard) diagCard.style.display = 'none';
+        const btnRemote = document.getElementById('btnRunRemoteDiag');
+        const btnGuided = document.getElementById('btnRunGuidedDiag');
+        if (btnRemote) btnRemote.classList.add('hidden');
+        if (btnGuided) btnGuided.classList.add('hidden');
+        diagnosticsCapability = null;
         document.getElementById('evStatus')?.textContent && (document.getElementById('evStatus').textContent = 'No EV battery info yet.');
         document.getElementById('evReasons')?.textContent && (document.getElementById('evReasons').textContent = '');
         isEV = false;
@@ -1919,6 +1940,111 @@
       }
 
 
+      function renderDiagnosticsCapability(cap) {
+        diagnosticsCapability = cap || null;
+        const card = document.getElementById('diagCard');
+        const mode = document.getElementById('diagMode');
+        const reason = document.getElementById('diagReason');
+        const msg = document.getElementById('diagMsg');
+        const btnRemote = document.getElementById('btnRunRemoteDiag');
+        const btnGuided = document.getElementById('btnRunGuidedDiag');
+        if (!card || !mode || !reason || !msg || !btnRemote || !btnGuided) return;
+        card.style.display = 'block';
+        btnRemote.classList.add('hidden');
+        btnGuided.classList.add('hidden');
+        if (!cap || cap.ok === false) {
+          mode.textContent = 'Could not detect device type';
+          reason.textContent = 'You can still use guided diagnostics.';
+          btnGuided.classList.remove('hidden');
+          return;
+        }
+        const m = (cap.mode || '').toLowerCase();
+        if (m === 'remote') {
+          mode.textContent = 'IoT device detected: remote check available';
+          reason.textContent = cap.reason || '';
+          msg.textContent = 'Tap "Request remote check". OEM team will run it safely.';
+          btnRemote.classList.remove('hidden');
+          btnGuided.classList.remove('hidden');
+        } else {
+          mode.textContent = 'Non-IoT or connector not ready: guided check recommended';
+          reason.textContent = cap.reason || '';
+          msg.textContent = 'Tap "Start guided check" for step-by-step help.';
+          btnGuided.classList.remove('hidden');
+        }
+      }
+
+      async function requestRemoteDiag() {
+        const warrantyId = document.getElementById('warrantyId').value.trim();
+        const msg = document.getElementById('diagMsg');
+        if (!warrantyId) return;
+        if (msg) msg.textContent = 'Submitting remote check request...';
+        try {
+          const res = await fetch('/diagnostics/request-remote-check', {
+            method: 'POST',
+            headers: h({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ warranty_id: warrantyId, command_type: 'health_check' })
+          });
+          const data = await res.json();
+          if (!res.ok || data.ok === false) throw new Error(data.detail || data.message || res.statusText);
+          if (msg) msg.textContent = data.message || `Remote check requested. Ref: ${data.command_id}`;
+        } catch (e) {
+          if (msg) msg.textContent = `Could not request remote check: ${e}`;
+        }
+      }
+
+      async function startGuidedDiagFlow() {
+        const warrantyId = document.getElementById('warrantyId').value.trim();
+        const userId = document.getElementById('userId').value.trim();
+        const msg = document.getElementById('diagMsg');
+        if (!warrantyId || !userId) return;
+        if (msg) msg.textContent = 'Starting guided diagnostics...';
+        try {
+          const startRes = await fetch('/guided-diagnostics/start', {
+            method: 'POST',
+            headers: h({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ user_id: userId, warranty_id: warrantyId })
+          });
+          const start = await startRes.json();
+          if (!startRes.ok || !start.ok) throw new Error(start.detail || startRes.statusText);
+          const sid = start.session_id;
+          while (true) {
+            const nq = await fetch(`/guided-diagnostics/${encodeURIComponent(sid)}/next`, { headers: h() }).then(r => r.json());
+            if (!nq.ok) throw new Error(nq.detail || 'next_question_failed');
+            if (nq.done || !nq.question) break;
+            const q = nq.question;
+            let answer = '';
+            if (q.type === 'choice' && Array.isArray(q.options) && q.options.length) {
+              answer = window.prompt(`${q.text}\nOptions: ${q.options.join(' / ')}`, q.options[0] || '') || '';
+            } else {
+              answer = window.prompt(q.text, '') || '';
+            }
+            if (!answer.trim()) answer = 'Not sure';
+            const ansRes = await fetch(`/guided-diagnostics/${encodeURIComponent(sid)}/answer`, {
+              method: 'POST',
+              headers: h({ 'Content-Type': 'application/json' }),
+              body: JSON.stringify({ question_id: q.id, answer_value: answer })
+            });
+            const ans = await ansRes.json();
+            if (!ansRes.ok || !ans.ok) throw new Error(ans.detail || ansRes.statusText);
+          }
+          const finRes = await fetch(`/guided-diagnostics/${encodeURIComponent(sid)}/finalize`, {
+            method: 'POST',
+            headers: h({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ create_service_ticket: true })
+          });
+          const fin = await finRes.json();
+          if (!finRes.ok || !fin.ok) throw new Error(fin.detail || finRes.statusText);
+          const centers = Array.isArray(fin.nearest_service_centers) ? fin.nearest_service_centers : [];
+          const centerTxt = centers.length
+            ? centers.slice(0, 2).map(c => `${c.name} (${c.city})`).join(' | ')
+            : 'No nearby center found in current list.';
+          if (msg) msg.textContent = `${fin.human_summary || 'Guided diagnosis completed.'} Next: ${centerTxt}`;
+        } catch (e) {
+          if (msg) msg.textContent = `Guided diagnostics failed: ${e}`;
+        }
+      }
+
+
       async function fetchEvScore() {
         const evCard = document.getElementById('evCard');
         if (!evCard || !isEV) return;
@@ -2012,6 +2138,12 @@
           isEV = name.includes('ev') || name.includes('electric');
           const evCard = document.getElementById('evCard');
           if (evCard) evCard.style.display = isEV ? 'block' : 'none';
+          try {
+            const cap = await fetchJsonSafe(`/diagnostics/capability/${encodeURIComponent(warrantyId)}`, { headers: h() }, 'diagnostics capability');
+            renderDiagnosticsCapability(cap);
+          } catch (e) {
+            renderDiagnosticsCapability({ ok: false, reason: String(e || '') });
+          }
           console.info('neo-dashboard: fetch warranty summary', { warrantyId });
           const sum = await fetchJsonSafe(`/warranties/${encodeURIComponent(warrantyId)}/summary`, { headers: h() }, 'warranty summary');
           document.getElementById('summary').textContent = sum.summary || '';
@@ -2073,6 +2205,8 @@
       window.setDocSource = setDocSource;
       window.toggleAdvanced = toggleAdvanced;
       window.sendTelemetry = sendTelemetry;
+      window.requestRemoteDiag = requestRemoteDiag;
+      window.startGuidedDiagFlow = startGuidedDiagFlow;
       window.toggleTip = toggleTip;
       window.toggleKey = toggleKey;
       window.openModal = openModal;

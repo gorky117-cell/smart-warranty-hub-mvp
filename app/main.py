@@ -62,6 +62,8 @@ from .services import invoice_pipeline
 from .services import summary_engine
 from .services import terms_lookup
 from .services import rag as rag_service
+from .services import remote_diagnostics as remote_diag_service
+from .services import diagnostics_capability as diag_cap_service
 from .services.warranty_status import compute_warranty_status
 from .services.notifications import run_initial_analysis_and_notifications
 logger = logging.getLogger(__name__)
@@ -228,6 +230,11 @@ class OemIssueSignalRequest(BaseModel):
     source_url: str | None = None
 
 
+class RemoteAssistRequest(BaseModel):
+    warranty_id: str
+    command_type: str = "health_check"
+
+
 class OemCommunicationSendRequest(BaseModel):
     recipient_user_id: str
     kind: str = "important_update"  # important_update | product_recommendation
@@ -366,6 +373,18 @@ def favicon():
 # Reviews Router
 from .routes import reviews
 app.include_router(reviews.router, prefix="/reviews", tags=["Reviews"])
+from .routes import remote_diagnostics
+app.include_router(
+    remote_diagnostics.router,
+    prefix="/remote-diagnostics",
+    tags=["Remote Diagnostics"],
+)
+from .routes import guided_diagnostics
+app.include_router(
+    guided_diagnostics.router,
+    prefix="/guided-diagnostics",
+    tags=["Guided Diagnostics"],
+)
 
 
 dist_path = Path(__file__).resolve().parents[1] / "frontend" / "dist"
@@ -1987,6 +2006,70 @@ def update_consent(payload: ConsentRequest, current=Depends(require_user)):
         db.add(user)
         db.commit()
     return {"ok": True, "user_id": payload.user_id, "consent_analytics": payload.consent_analytics}
+
+
+@app.get("/diagnostics/capability/{warranty_id}", dependencies=[Depends(require_user)])
+def diagnostics_capability(warranty_id: str, db=Depends(get_db), current: UserDB = Depends(require_user)):
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
+    w = db.query(WarrantyDB).filter_by(id=warranty_id).first()
+    if not w:
+        raise HTTPException(status_code=404, detail="warranty_not_found")
+    data = diag_cap_service.infer_capability(
+        product_name=w.product_name,
+        brand=w.brand,
+        model_code=w.model_code,
+        alternatives=getattr(w, "alternatives", None) or {},
+    )
+    return {"ok": True, "warranty_id": warranty_id, **data}
+
+
+@app.post("/diagnostics/request-remote-check", dependencies=[Depends(require_user)])
+def diagnostics_request_remote_check(payload: RemoteAssistRequest, db=Depends(get_db), current: UserDB = Depends(require_user)):
+    _require_warranty_access(db, user=current, warranty_id=payload.warranty_id)
+    w = db.query(WarrantyDB).filter_by(id=payload.warranty_id).first()
+    if not w:
+        raise HTTPException(status_code=404, detail="warranty_not_found")
+    cap = diag_cap_service.infer_capability(
+        product_name=w.product_name,
+        brand=w.brand,
+        model_code=w.model_code,
+        alternatives=getattr(w, "alternatives", None) or {},
+    )
+    if not cap.get("is_iot"):
+        return {
+            "ok": False,
+            "detail": "non_iot_product",
+            "message": "This product appears non-IoT. Use guided diagnostics.",
+        }
+    try:
+        sess = remote_diag_service.create_session(
+            db,
+            user_id=current.username,
+            warranty_id=payload.warranty_id,
+            requested_by=current.username,
+            connector_name=None,
+            device_id=None,
+            context={"source": "neo_dashboard_user_request"},
+        )
+        cmd = remote_diag_service.request_command(
+            db,
+            session_id=sess.id,
+            command_type=(payload.command_type or "health_check"),
+            command_payload={"source": "user_request", "note": "Customer requested remote check"},
+            requested_by=current.username,
+            require_review=True,
+            review_reason="User requested remote diagnostics from dashboard",
+            connector_name=None,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {
+        "ok": True,
+        "session_id": sess.id,
+        "command_id": cmd.id,
+        "status": cmd.status,
+        "message": "Remote check requested. OEM team will review and run diagnostics shortly.",
+    }
 
 
 @app.get("/oem/domains/verified", dependencies=[Depends(require_oem_or_admin)])

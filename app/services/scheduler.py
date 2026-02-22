@@ -18,6 +18,7 @@ from .oem_dispatch import run_weekly_dispatch
 from .kpi_watchdog import run_kpi_watchdog
 from .kpi_remediation import run_kpi_remediation_cycle
 from .kpi_execution import run_execution_cycle
+from . import remote_diagnostics as remote_diag_service
 
 
 def oem_refresh_loop(interval_minutes: int = 60):
@@ -31,6 +32,7 @@ def oem_refresh_loop(interval_minutes: int = 60):
     last_kpi_watchdog = datetime.datetime.min
     last_kpi_remediation = datetime.datetime.min
     last_kpi_execution = datetime.datetime.min
+    last_remote_diag_run = datetime.datetime.min
     issue_interval = int(os.getenv("OEM_ISSUE_FEED_REFRESH_MINUTES", "180"))
     risk_interval = int(os.getenv("RISK_REFRESH_MINUTES", "120"))
     review_interval = int(os.getenv("REVIEW_CRAWL_MINUTES", "1440"))
@@ -48,6 +50,9 @@ def oem_refresh_loop(interval_minutes: int = 60):
     kpi_remediation_interval = int(os.getenv("KPI_REMEDIATION_MINUTES", "1440"))  # daily default
     kpi_execution_enabled = os.getenv("KPI_EXECUTION_ENABLED", "true").lower() == "true"
     kpi_execution_interval = int(os.getenv("KPI_EXECUTION_MINUTES", "720"))  # 12h default
+    remote_diag_enabled = os.getenv("REMOTE_DIAGNOSTICS_AUTO_EXECUTE", "true").lower() == "true"
+    remote_diag_interval = int(os.getenv("REMOTE_DIAGNOSTICS_POLL_MINUTES", "5"))
+    remote_diag_batch = int(os.getenv("REMOTE_DIAGNOSTICS_BATCH_SIZE", "10"))
     while True:
         try:
             with SessionLocal() as db:
@@ -152,6 +157,17 @@ def oem_refresh_loop(interval_minutes: int = 60):
                     except Exception as exc:
                         log_action("kpi_execution_fail", str(exc))
                     last_kpi_execution = now
+                if remote_diag_enabled and remote_diag_interval > 0 and (now - last_remote_diag_run).total_seconds() >= remote_diag_interval * 60:
+                    try:
+                        stats = remote_diag_service.run_pending_commands(
+                            db,
+                            limit=max(1, remote_diag_batch),
+                            executor="scheduler",
+                        )
+                        log_action("remote_diagnostics_run", f"{stats}")
+                    except Exception as exc:
+                        log_action("remote_diagnostics_run_fail", str(exc))
+                    last_remote_diag_run = now
         except Exception as exc:
             log_action("scheduler_error", str(exc))
         time.sleep(interval_minutes * 60)

@@ -1,0 +1,56 @@
+[
+  {
+    "brand": "Samsung",
+    "region": "IN",
+    "city": "Pune",
+    "name": "Samsung Authorized Service - Pune Central",
+    "address": "JM Road, Shivajinagar, Pune",
+    "phone": "+91-20-4000-1100",
+    "hours": "Mon-Sat 10:00-19:00"
+  },
+  {
+    "brand": "LG",
+    "region": "IN",
+    "city": "Pune",
+    "name": "LG Care Center - Pune East",
+    "address": "Nagar Road, Viman Nagar, Pune",
+    "phone": "+91-20-4100-2200",
+    "hours": "Mon-Sat 10:00-19:00"
+  },
+  {
+    "brand": "Whirlpool",
+    "region": "IN",
+    "city": "Mumbai",
+    "name": "Whirlpool Authorized Service - Andheri",
+    "address": "Andheri East, Mumbai",
+    "phone": "+91-22-4300-3300",
+    "hours": "Mon-Sat 10:00-19:00"
+  },
+  {
+    "brand": "Daikin",
+    "region": "IN",
+    "city": "Delhi",
+    "name": "Daikin Service Hub - South Delhi",
+    "address": "Nehru Place, New Delhi",
+    "phone": "+91-11-4400-4400",
+    "hours": "Mon-Sat 10:00-19:00"
+  },
+  {
+    "brand": "Sony",
+    "region": "IN",
+    "city": "Bengaluru",
+    "name": "Sony Service Center - Indiranagar",
+    "address": "100 Feet Road, Indiranagar, Bengaluru",
+    "phone": "+91-80-4500-5500",
+    "hours": "Mon-Sat 10:00-19:00"
+  },
+  {
+    "brand": "Apple",
+    "region": "IN",
+    "city": "Hyderabad",
+    "name": "Apple Authorized Service - Banjara Hills",
+    "address": "Road No. 12, Banjara Hills, Hyderabad",
+    "phone": "+91-40-4600-6600",
+    "hours": "Mon-Sat 10:00-19:00"
+  }
+]
