@@ -472,15 +472,12 @@ def sitemap_xml(request: Request):
 @app.get("/")
 def root(request: Request):
     """
-    Browser users should land on the primary refined UI.
+    Browser users should land on a public SEO page that links into app flows.
     API/CLI callers can still use the JSON health at /api/health (or /health/full).
     """
     accept = (request.headers.get("accept") or "").lower()
     if "text/html" in accept or "*/*" in accept:
-        # Prefer built frontend if available, otherwise use refined template dashboard.
-        if dist_path.exists():
-            return RedirectResponse(url="/dashboard", status_code=302)
-        return RedirectResponse(url="/ui/neo-dashboard", status_code=302)
+        return templates.TemplateResponse("public_site.html", {"request": request})
     return {"status": "ok"}
 
 
@@ -1298,7 +1295,26 @@ def auth_session(current: Optional[UserDB] = Depends(get_current_user_optional))
 def login_form():
     from fastapi.responses import HTMLResponse
     html_path = Path(__file__).resolve().parents[1] / "templates" / "login.html"
-    return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
+    html = html_path.read_text(encoding="utf-8")
+    verification = (os.getenv("GOOGLE_SITE_VERIFICATION") or "").strip()
+    meta = ""
+    if verification:
+        meta = f'<meta name="google-site-verification" content="{escape(verification)}" />'
+    html = html.replace("__GOOGLE_SITE_VERIFICATION_META__", meta)
+    return HTMLResponse(content=html, status_code=200)
+
+
+@app.get("/google{token}.html")
+def google_site_verification_file(token: str):
+    """
+    Supports Google Search Console HTML-file verification.
+    Set GOOGLE_SITE_VERIFICATION_FILE_TOKEN to the token part only (without "google" / ".html").
+    """
+    expected = (os.getenv("GOOGLE_SITE_VERIFICATION_FILE_TOKEN") or "").strip()
+    if not expected or token != expected:
+        raise HTTPException(status_code=404, detail="Not found")
+    body = f"google-site-verification: google{expected}.html"
+    return Response(content=body, media_type="text/plain; charset=utf-8")
 
 
 @app.post("/artifacts", dependencies=[Depends(rbac_dependency)])
