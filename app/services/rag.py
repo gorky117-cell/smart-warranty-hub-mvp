@@ -211,7 +211,7 @@ def add_event_documents(
     doc_id: str,
     content: str,
     metadata: Optional[Dict] = None,
-) -> None:
+    ) -> None:
     try:
         upsert_document(
             db,
@@ -222,3 +222,74 @@ def add_event_documents(
         )
     except Exception:
         pass
+
+
+def health(db: Optional[Session] = None) -> Dict[str, object]:
+    """
+    Lightweight RAG health for runtime checks.
+    Does not call external embedding API.
+    """
+    out: Dict[str, object] = {
+        "ok": bool(rag_enabled()),
+        "enabled_env": bool(_RAG_ENABLED),
+        "api_key_present": bool(_MISTRAL_KEY),
+        "active": bool(rag_enabled()),
+        "embed_model": _EMBED_MODEL,
+    }
+    if db is not None:
+        try:
+            count = int(db.query(DocumentEmbeddingDB).count())
+            out["document_count"] = count
+            out["db_ok"] = True
+        except Exception as exc:
+            out["db_ok"] = False
+            out["db_error"] = str(exc)
+    return out
+
+
+def smoke_test(db: Session) -> Dict[str, object]:
+    """
+    End-to-end RAG smoke check:
+    - verifies active config
+    - executes one embedding request
+    - executes one retrieval query
+    """
+    base = health(db)
+    if not rag_enabled():
+        return {
+            **base,
+            "ok": False,
+            "detail": "rag_disabled_or_missing_api_key",
+            "embed_ok": False,
+            "retrieval_ok": False,
+        }
+
+    emb = _embed("smart warranty hub rag smoke check")
+    if not emb:
+        return {
+            **base,
+            "ok": False,
+            "detail": "embedding_provider_unreachable",
+            "embed_ok": False,
+            "retrieval_ok": False,
+        }
+
+    retrieval_ok = True
+    retrieval_error = None
+    top_hits = 0
+    try:
+        hits = query_similar(db, query_text="warranty failure risk guidance", limit=1)
+        top_hits = len(hits)
+    except Exception as exc:
+        retrieval_ok = False
+        retrieval_error = str(exc)
+
+    return {
+        **base,
+        "ok": bool(retrieval_ok),
+        "detail": "ok" if retrieval_ok else "retrieval_failed",
+        "embed_ok": True,
+        "retrieval_ok": bool(retrieval_ok),
+        "top_hits": int(top_hits),
+        "retrieval_error": retrieval_error,
+    }

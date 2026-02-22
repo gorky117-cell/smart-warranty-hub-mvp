@@ -60,6 +60,7 @@ from .services import kpi_remediation as kpi_remediation_service
 from .services import invoice_pipeline
 from .services import summary_engine
 from .services import terms_lookup
+from .services import rag as rag_service
 from .services.warranty_status import compute_warranty_status
 from .services.notifications import run_initial_analysis_and_notifications
 logger = logging.getLogger(__name__)
@@ -424,11 +425,17 @@ def health_predictive():
     return {"ok": ok, "detail": detail}
 
 
+@app.get("/health/rag")
+def health_rag(db=Depends(get_db)):
+    return rag_service.health(db)
+
+
 @app.get("/health/full")
 def health_full():
     ocr_ok, ocr_detail = ocr_service.health()
     llm_ok, llm_detail, llm_model = summary_engine.health()
     pred_ok, pred_detail = predictive_service.health()
+    rag = rag_service.health()
     status = "ok" if (ocr_ok and llm_ok and pred_ok) else "degraded"
     return {
         "status": status,
@@ -436,6 +443,7 @@ def health_full():
             "ocr": {"ok": ocr_ok, "detail": ocr_detail},
             "llm": {"ok": llm_ok, "detail": llm_detail, "model": llm_model},
             "predictive": {"ok": pred_ok, "detail": pred_detail},
+            "rag": rag,
         },
     }
 
@@ -2220,6 +2228,11 @@ def admin_run_kpi_watchdog(payload: KpiWatchdogRunRequest, db=Depends(get_db)):
         report_file=payload.report_file,
         notify=bool(payload.notify),
     )
+
+
+@app.post("/admin/rag/smoke", dependencies=[Depends(require_admin)])
+def admin_rag_smoke(db=Depends(get_db)):
+    return rag_service.smoke_test(db)
 
 
 @app.get("/admin/kpi/history", dependencies=[Depends(require_admin)])
