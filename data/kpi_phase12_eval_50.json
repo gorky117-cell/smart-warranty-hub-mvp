@@ -1,0 +1,133 @@
+{
+  "summary": {
+    "dataset_rows": 50,
+    "remediation_task_seeded": 3,
+    "run1_tasks_total": 3,
+    "run1_sync_added": 3,
+    "run2_done_count": 1,
+    "run2_in_progress_count": 1,
+    "run2_blocked_count": 1,
+    "run2_completion_rate_pct": 33.33,
+    "run2_overdue_active": 1,
+    "run2_overdue_notify_count": 2,
+    "task_lifecycle_integrity_ok": true,
+    "overdue_alert_ok": true,
+    "latency_p50_ms": 77.55,
+    "latency_p95_ms": 83.54,
+    "execution_success_pct": 100.0
+  },
+  "runs": {
+    "remediation_seed": {
+      "ok": true,
+      "decision": "alert",
+      "pass_rate_pct": 73.0,
+      "failing_kpis_count": 3,
+      "trend": {
+        "window": 1,
+        "trend": "improving",
+        "latest_pass_rate_pct": 73.0,
+        "pass_rate_delta_pct": 73.0,
+        "alert_streak": 1,
+        "recurring_failing_kpis": []
+      },
+      "snapshot": {
+        "timestamp": "2026-02-22T07:22:29.077261",
+        "source": "eval_phase12",
+        "decision": "alert",
+        "pass_rate_pct": 73.0,
+        "failing_kpis_count": 3,
+        "instrumented_kpis": 50,
+        "passing_kpis": 47,
+        "report_path": "data/kpi_phase12_report.json",
+        "failing_kpis": [
+          {
+            "stakeholder": "OEM",
+            "kpi": "High-Risk Precision",
+            "value": 0.0,
+            "target": "improve",
+            "status": "needs_improvement"
+          },
+          {
+            "stakeholder": "OEM",
+            "kpi": "Model Calibration Error (ECE)",
+            "value": 0.0,
+            "target": "improve",
+            "status": "needs_improvement"
+          },
+          {
+            "stakeholder": "OEM",
+            "kpi": "Brier Score",
+            "value": 0.0,
+            "target": "improve",
+            "status": "needs_improvement"
+          }
+        ]
+      },
+      "task_count": 3,
+      "plan_path": "data/kpi_phase12_plan.json",
+      "history_path": "data/kpi_phase12_history.json",
+      "notified": 2
+    },
+    "run1_sync": {
+      "ok": true,
+      "source": "eval_phase12",
+      "sync": {
+        "ok": true,
+        "tasks_total": 3,
+        "added": 3,
+        "updated": 0,
+        "board_file": "data/kpi_phase12_board.json"
+      },
+      "metrics": {
+        "tasks_total": 3,
+        "status_counts": {
+          "open": 3,
+          "in_progress": 0,
+          "blocked": 0,
+          "done": 0,
+          "dropped": 0
+        },
+        "completion_rate_pct": 0.0,
+        "overdue_open": 0,
+        "overdue_active": 0,
+        "board_file": "data/kpi_phase12_board.json"
+      },
+      "notified": 0
+    },
+    "run2_execution": {
+      "ok": true,
+      "source": "eval_phase12",
+      "sync": {
+        "ok": true,
+        "tasks_total": 3,
+        "added": 0,
+        "updated": 3,
+        "board_file": "data/kpi_phase12_board.json"
+      },
+      "metrics": {
+        "tasks_total": 3,
+        "status_counts": {
+          "open": 0,
+          "in_progress": 1,
+          "blocked": 1,
+          "done": 1,
+          "dropped": 0
+        },
+        "completion_rate_pct": 33.33,
+        "overdue_open": 0,
+        "overdue_active": 1,
+        "board_file": "data/kpi_phase12_board.json"
+      },
+      "notified": 2
+    }
+  },
+  "artifacts": {
+    "db_file": "data/kpi_phase12_eval.db",
+    "report_file": "data/kpi_phase12_report.json",
+    "policy_file": "data/kpi_phase12_policy.json",
+    "history_file": "data/kpi_phase12_history.json",
+    "plan_file": "data/kpi_phase12_plan.json",
+    "board_file": "data/kpi_phase12_board.json",
+    "cases_file": "test_data/kpi_phase12_cases_50.json"
+  }
+}

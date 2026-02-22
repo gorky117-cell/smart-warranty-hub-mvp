@@ -1,0 +1,15 @@
+[
+  {
+    "case": "sync_from_plan",
+    "tasks_total": 3,
+    "added": 3,
+    "decision": "ok"
+  },
+  {
+    "case": "status_and_overdue",
+    "completion_rate_pct": 33.33,
+    "overdue_active": 1,
+    "notified": 2,
+    "decision": "ok"
+  }
+]

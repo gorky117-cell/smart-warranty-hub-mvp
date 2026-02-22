@@ -1,0 +1,35 @@
+[
+  {
+    "timestamp": "2026-02-22T07:22:29.077261",
+    "source": "eval_phase12",
+    "decision": "alert",
+    "pass_rate_pct": 73.0,
+    "failing_kpis_count": 3,
+    "instrumented_kpis": 50,
+    "passing_kpis": 47,
+    "report_path": "data/kpi_phase12_report.json",
+    "failing_kpis": [
+      {
+        "stakeholder": "OEM",
+        "kpi": "High-Risk Precision",
+        "value": 0.0,
+        "target": "improve",
+        "status": "needs_improvement"
+      },
+      {
+        "stakeholder": "OEM",
+        "kpi": "Model Calibration Error (ECE)",
+        "value": 0.0,
+        "target": "improve",
+        "status": "needs_improvement"
+      },
+      {
+        "stakeholder": "OEM",
+        "kpi": "Brier Score",
+        "value": 0.0,
+        "target": "improve",
+        "status": "needs_improvement"
+      }
+    ]
+  }
+]

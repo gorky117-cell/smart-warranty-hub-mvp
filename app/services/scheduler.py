@@ -17,6 +17,7 @@ from .review_crawler import crawl_reviews
 from .oem_dispatch import run_weekly_dispatch
 from .kpi_watchdog import run_kpi_watchdog
 from .kpi_remediation import run_kpi_remediation_cycle
+from .kpi_execution import run_execution_cycle
 
 
 def oem_refresh_loop(interval_minutes: int = 60):
@@ -29,6 +30,7 @@ def oem_refresh_loop(interval_minutes: int = 60):
     last_oem_dispatch = datetime.datetime.min
     last_kpi_watchdog = datetime.datetime.min
     last_kpi_remediation = datetime.datetime.min
+    last_kpi_execution = datetime.datetime.min
     issue_interval = int(os.getenv("OEM_ISSUE_FEED_REFRESH_MINUTES", "180"))
     risk_interval = int(os.getenv("RISK_REFRESH_MINUTES", "120"))
     review_interval = int(os.getenv("REVIEW_CRAWL_MINUTES", "1440"))
@@ -44,6 +46,8 @@ def oem_refresh_loop(interval_minutes: int = 60):
     kpi_watchdog_interval = int(os.getenv("KPI_WATCHDOG_MINUTES", "1440"))  # daily default
     kpi_remediation_enabled = os.getenv("KPI_REMEDIATION_ENABLED", "true").lower() == "true"
     kpi_remediation_interval = int(os.getenv("KPI_REMEDIATION_MINUTES", "1440"))  # daily default
+    kpi_execution_enabled = os.getenv("KPI_EXECUTION_ENABLED", "true").lower() == "true"
+    kpi_execution_interval = int(os.getenv("KPI_EXECUTION_MINUTES", "720"))  # 12h default
     while True:
         try:
             with SessionLocal() as db:
@@ -141,6 +145,13 @@ def oem_refresh_loop(interval_minutes: int = 60):
                     except Exception as exc:
                         log_action("kpi_remediation_fail", str(exc))
                     last_kpi_remediation = now
+                if kpi_execution_enabled and kpi_execution_interval > 0 and (now - last_kpi_execution).total_seconds() >= kpi_execution_interval * 60:
+                    try:
+                        stats = run_execution_cycle(db, notify=True, source="scheduler")
+                        log_action("kpi_execution", f"{stats}")
+                    except Exception as exc:
+                        log_action("kpi_execution_fail", str(exc))
+                    last_kpi_execution = now
         except Exception as exc:
             log_action("scheduler_error", str(exc))
         time.sleep(interval_minutes * 60)

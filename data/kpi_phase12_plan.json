@@ -1,0 +1,49 @@
+{
+  "generated_at": "2026-02-22T07:22:29.103639",
+  "decision": "alert",
+  "summary": "KPI trend=improving, pass_rate=73.0%, failing=3, alert_streak=1.",
+  "trend": {
+    "window": 1,
+    "trend": "improving",
+    "latest_pass_rate_pct": 73.0,
+    "pass_rate_delta_pct": 73.0,
+    "alert_streak": 1,
+    "recurring_failing_kpis": []
+  },
+  "tasks": [
+    {
+      "id": "T01",
+      "stakeholder": "OEM",
+      "kpi": "High-Risk Precision",
+      "current_value": 0.0,
+      "target": "improve",
+      "priority": "high",
+      "owner": "Data Science",
+      "eta_days": 10,
+      "action": "Retune high-risk threshold and retrain with latest labeled outcomes."
+    },
+    {
+      "id": "T02",
+      "stakeholder": "OEM",
+      "kpi": "Model Calibration Error (ECE)",
+      "current_value": 0.0,
+      "target": "improve",
+      "priority": "high",
+      "owner": "ML Platform",
+      "eta_days": 7,
+      "action": "Apply probability calibration and monitor ECE/Brier per segment."
+    },
+    {
+      "id": "T03",
+      "stakeholder": "OEM",
+      "kpi": "Brier Score",
+      "current_value": 0.0,
+      "target": "improve",
+      "priority": "high",
+      "owner": "ML Platform",
+      "eta_days": 7,
+      "action": "Apply probability calibration and monitor ECE/Brier per segment."
+    }
+  ],
+  "task_count": 3
+}

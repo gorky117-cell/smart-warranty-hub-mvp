@@ -57,6 +57,7 @@ from .services import oem_communication as oem_communication_service
 from .services import oem_dispatch as oem_dispatch_service
 from .services import kpi_watchdog as kpi_watchdog_service
 from .services import kpi_remediation as kpi_remediation_service
+from .services import kpi_execution as kpi_execution_service
 from .services import invoice_pipeline
 from .services import summary_engine
 from .services import terms_lookup
@@ -255,6 +256,12 @@ class KpiRemediationRunRequest(BaseModel):
     report_file: str | None = None
     notify: bool = True
     source: str = "manual"
+
+
+class KpiTaskUpdateRequest(BaseModel):
+    status: str
+    notes: str | None = None
+    owner: str | None = None
 
 
 class SignupRequest(BaseModel):
@@ -2253,6 +2260,33 @@ def admin_run_kpi_remediation(payload: KpiRemediationRunRequest, db=Depends(get_
         notify=bool(payload.notify),
         source=payload.source or "manual",
     )
+
+
+@app.get("/admin/kpi/tasks", dependencies=[Depends(require_admin)])
+def admin_list_kpi_tasks(status: str | None = None, limit: int = 200):
+    return {
+        "tasks": kpi_execution_service.list_tasks(status=status, limit=max(1, min(1000, int(limit or 200))))
+    }
+
+
+@app.post("/admin/kpi/tasks/{task_key}", dependencies=[Depends(require_admin)])
+def admin_update_kpi_task(task_key: str, payload: KpiTaskUpdateRequest):
+    return kpi_execution_service.update_task_status(
+        task_key=task_key,
+        status=payload.status,
+        notes=payload.notes,
+        owner=payload.owner,
+    )
+
+
+@app.get("/admin/kpi/execution/metrics", dependencies=[Depends(require_admin)])
+def admin_kpi_execution_metrics():
+    return kpi_execution_service.execution_metrics()
+
+
+@app.post("/admin/kpi/execution/run", dependencies=[Depends(require_admin)])
+def admin_kpi_execution_run(db=Depends(get_db)):
+    return kpi_execution_service.run_execution_cycle(db, notify=True, source="manual")
 
 
 @app.post("/region-rules", dependencies=[Depends(require_admin)])
