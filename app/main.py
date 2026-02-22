@@ -12,6 +12,8 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Depends, 
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from pydantic import BaseModel as PydanticBaseModel
 from sqlalchemy.exc import ProgrammingError, OperationalError
 from sqlalchemy.orm import Session
@@ -363,6 +365,15 @@ app = FastAPI(
     version="0.2.0",
     lifespan=lifespan,
 )
+
+# Optional host and HTTPS hardening (recommended for Railway production).
+_allowed_hosts = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()]
+if _allowed_hosts:
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=_allowed_hosts)
+
+if os.getenv("FORCE_HTTPS_REDIRECT", "0").strip().lower() in ("1", "true", "yes"):
+    app.add_middleware(HTTPSRedirectMiddleware)
+
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
 
 @app.get("/favicon.ico")
@@ -410,7 +421,52 @@ async def cache_dashboard(request: Request, call_next):
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
         else:
             response.headers["Cache-Control"] = "public, max-age=300"
+    # Security headers suitable for app + API responses.
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline'; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'",
+    )
+    if request.headers.get("x-forwarded-proto", "").lower() == "https":
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     return response
+
+
+@app.get("/robots.txt")
+def robots_txt(request: Request):
+    base = str(request.base_url).rstrip("/")
+    body = f"User-agent: *\nAllow: /\nSitemap: {base}/sitemap.xml\n"
+    return Response(content=body, media_type="text/plain; charset=utf-8")
+
+
+@app.get("/sitemap.xml")
+def sitemap_xml(request: Request):
+    base = str(request.base_url).rstrip("/")
+    urls = [
+        f"{base}/",
+        f"{base}/api/health",
+        f"{base}/health/full",
+        f"{base}/ui/neo-dashboard",
+        f"{base}/auth/login",
+        f"{base}/login",
+    ]
+    now = datetime.utcnow().strftime("%Y-%m-%d")
+    rows = []
+    for u in urls:
+        rows.append(
+            f"<url><loc>{escape(u)}</loc><lastmod>{now}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>"
+        )
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        + "".join(rows)
+        + "</urlset>"
+    )
+    return Response(content=xml, media_type="application/xml; charset=utf-8")
 
 
 @app.get("/")
