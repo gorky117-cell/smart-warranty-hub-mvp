@@ -149,7 +149,7 @@
     .hero p {
       margin: 12px 0 0;
       color: #c7d7f8;
-      max-width: 860px;
+      max-width: 760px;
       font-size: 15px;
       line-height: 1.55;
     }
@@ -197,6 +197,21 @@
       color: var(--muted);
       line-height: 1.55;
       max-width: 900px;
+    }
+
+    .note {
+      margin-top: 12px;
+      border: 1px solid #dbe8ff;
+      border-radius: 12px;
+      background: #f5f9ff;
+      color: #243450;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .note strong {
+      color: #10264a;
     }
 
     .stake-tabs {
@@ -324,48 +339,6 @@
       background: linear-gradient(90deg, var(--brand), var(--brand-2));
     }
 
-    .timeline {
-      margin-top: 12px;
-      display: grid;
-      gap: 10px;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    }
-
-    .step {
-      background: #fff;
-      border: 1px solid #dce8fc;
-      border-radius: 12px;
-      padding: 12px;
-      position: relative;
-      min-height: 122px;
-    }
-
-    .step .index {
-      width: 24px;
-      height: 24px;
-      border-radius: 99px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: 700;
-      color: #fff;
-      background: linear-gradient(135deg, var(--brand), #2563eb);
-      margin-bottom: 8px;
-    }
-
-    .step h3 {
-      margin: 0;
-      font-size: 15px;
-    }
-
-    .step p {
-      margin: 7px 0 0;
-      font-size: 13px;
-      line-height: 1.5;
-      color: var(--muted);
-    }
-
     .module-grid {
       margin-top: 10px;
       display: grid;
@@ -384,6 +357,29 @@
       cursor: pointer;
       font-weight: 700;
       color: #182647;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .tag.core {
+      background: #e7f0ff;
+      color: #17408d;
+      border: 1px solid #cfe1ff;
+    }
+
+    .tag.optional {
+      background: #fff5e8;
+      color: #8a4b00;
+      border: 1px solid #ffe0b3;
     }
 
     details.module p {
@@ -417,6 +413,15 @@
 
       .nav {
         justify-content: flex-start;
+        width: 100%;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        white-space: nowrap;
+        padding-bottom: 4px;
+      }
+
+      .nav .btn {
+        flex: 0 0 auto;
       }
 
       .brand {
@@ -429,6 +434,52 @@
 
       .hero h1 {
         font-size: clamp(28px, 8vw, 42px);
+      }
+
+      .stake-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+
+      .stake-btn {
+        flex: 0 0 auto;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .site {
+        padding: 10px;
+      }
+
+      .topbar {
+        top: 4px;
+        padding: 9px 10px;
+      }
+
+      .btn {
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+
+      .hero {
+        padding: 16px 14px;
+      }
+
+      .hero h1 {
+        font-size: clamp(24px, 9vw, 34px);
+      }
+
+      .hero p {
+        font-size: 14px;
+      }
+
+      .section {
+        padding: 12px;
+      }
+
+      .section h2 {
+        font-size: 21px;
       }
     }
   </style>
@@ -447,10 +498,10 @@
     </header>
 
     <section class="hero">
-      <h1>AI Warranty Intelligence Across the Full Product Lifecycle</h1>
+      <h1>Simple, Smart Warranty Support for Users and OEM Teams</h1>
       <p>
-        Smart Warranty Hub ingests warranty and invoice documents, extracts and normalizes terms, detects product risk,
-        and routes preventive and service actions for users, OEMs, TPAs, retailers, and service centers.
+        Upload warranty or invoice once. Smart Warranty Hub explains coverage, sends behavior nudges, supports diagnostics,
+        and helps OEM and TPA teams act earlier.
       </p>
       <div class="hero-cta">
         <a class="btn primary" href="/login">Start Platform</a>
@@ -458,18 +509,22 @@
       </div>
       <div class="chip-row">
         <span class="chip">OCR Ingestion</span>
-        <span class="chip">Warranty Terms + Exclusions</span>
-        <span class="chip">Predictive Risk + Nudges</span>
+        <span class="chip">Clear Terms + Exclusions</span>
+        <span class="chip">Behavior Nudges</span>
         <span class="chip">IoT / Non-IoT Diagnostics</span>
-        <span class="chip">OEM Forecast + KPI Layer</span>
+        <span class="chip">EV Battery Health (Optional)</span>
+        <span class="chip">OEM KPI View</span>
       </div>
     </section>
 
     <section class="section" id="stakeholders">
-      <h2>Stakeholder Deep View</h2>
+      <h2>Who We Help</h2>
       <p class="lead">
-        Choose a stakeholder to see pain points, Smart Warranty Hub response, KPI targets, and operational outcomes.
+        Select a role to see pain points, how Smart Warranty Hub helps, and target KPI outcomes.
       </p>
+      <div class="note">
+        <strong>KPI note:</strong> These are target KPIs. Live measured KPIs appear after production data integration.
+      </div>
 
       <div class="stake-tabs" role="tablist" aria-label="Stakeholder tabs">
         <button class="stake-btn active" data-panel="user" role="tab" aria-selected="true">User</button>
@@ -484,17 +539,17 @@
           <section class="mini">
             <h3>User Pain Points</h3>
             <ul>
-              <li>Warranty papers are lost or hard to understand.</li>
-              <li>Claim steps are unclear when product fails.</li>
-              <li>Users get no early warning before expiry or risk.</li>
+              <li>Warranty details are hard to find and understand.</li>
+              <li>Claim steps are confusing during failure.</li>
+              <li>No timely warning before risk or expiry.</li>
             </ul>
           </section>
           <section class="mini">
             <h3>What SWH Does</h3>
             <ul>
-              <li>Extracts invoice and warranty terms via OCR.</li>
-              <li>Shows simple summary, exclusions, and claim path.</li>
-              <li>Sends expiry and care nudges for preventive action.</li>
+              <li>Reads invoice/warranty via OCR.</li>
+              <li>Shows clear summary, exclusions, and claim path.</li>
+              <li>Sends behavior and expiry nudges to reduce failures.</li>
             </ul>
           </section>
           <section class="mini">
@@ -503,17 +558,17 @@
               <div class="kpi">
                 <div class="kpi-head"><span>Failure Prevention Rate</span><span>>= 25%</span></div>
                 <div class="bar"><div class="fill" style="width:72%"></div></div>
-                <small>High-risk users who acted and avoided failure in window.</small>
+                <small>Users who acted on nudges and avoided failure.</small>
               </div>
               <div class="kpi">
                 <div class="kpi-head"><span>Claim Turnaround</span><span>-30%</span></div>
                 <div class="bar"><div class="fill" style="width:64%"></div></div>
-                <small>Median claim close time improvement versus baseline.</small>
+                <small>Faster claim closure compared to baseline.</small>
               </div>
               <div class="kpi">
                 <div class="kpi-head"><span>False Alert Rate</span><span>&lt;= 20%</span></div>
                 <div class="bar"><div class="fill" style="width:80%"></div></div>
-                <small>Lower false alarms to maintain user trust and retention.</small>
+                <small>Keeps alerts useful and trusted.</small>
               </div>
             </div>
           </section>
@@ -525,17 +580,18 @@
           <section class="mini">
             <h3>OEM Pain Points</h3>
             <ul>
-              <li>Late visibility into model-level field failures.</li>
-              <li>High warranty payout and avoidable service load.</li>
-              <li>Weak linkage between user behavior and product outcomes.</li>
+              <li>Late warning of product failures.</li>
+              <li>High warranty and service costs.</li>
+              <li>Limited field visibility by model/region.</li>
             </ul>
           </section>
           <section class="mini">
             <h3>What SWH Does</h3>
             <ul>
-              <li>Builds early warning signals from claims and behavior.</li>
-              <li>Forecasts risk trends for monthly planning.</li>
-              <li>Routes actionable intelligence via OEM dashboard flows.</li>
+              <li>Builds early warning signals.</li>
+              <li>Shows monthly risk and forecast trends.</li>
+              <li>Supports OEM actions in dashboard workflow.</li>
+              <li>EV battery health and IoT insights activate when telemetry is connected.</li>
             </ul>
           </section>
           <section class="mini">
@@ -544,17 +600,17 @@
               <div class="kpi">
                 <div class="kpi-head"><span>Early Warning Lead Time</span><span>>= 14 days</span></div>
                 <div class="bar"><div class="fill" style="width:70%"></div></div>
-                <small>Time gained before expected failure spikes.</small>
+                <small>How early OEM can act before spikes.</small>
               </div>
               <div class="kpi">
                 <div class="kpi-head"><span>High-Risk Precision</span><span>>= 55%</span></div>
                 <div class="bar"><div class="fill" style="width:61%"></div></div>
-                <small>Signal quality to reduce alert fatigue in operations.</small>
+                <small>Better signal quality, less noise.</small>
               </div>
               <div class="kpi">
                 <div class="kpi-head"><span>Warranty Cost / Unit</span><span>-10% to -15%</span></div>
                 <div class="bar"><div class="fill" style="width:67%"></div></div>
-                <small>Direct financial impact from proactive intervention.</small>
+                <small>Direct cost impact from proactive action.</small>
               </div>
             </div>
           </section>
@@ -566,17 +622,17 @@
           <section class="mini">
             <h3>TPA Pain Points</h3>
             <ul>
-              <li>High manual effort in triage and adjudication queues.</li>
-              <li>Re-opened cases from inconsistent decisions.</li>
-              <li>Fraud checks consume significant analyst bandwidth.</li>
+              <li>High manual triage effort.</li>
+              <li>Case reopens due to inconsistent decisions.</li>
+              <li>Fraud checks are time-consuming.</li>
             </ul>
           </section>
           <section class="mini">
             <h3>What SWH Does</h3>
             <ul>
-              <li>Pre-classifies claims and highlights needed evidence.</li>
-              <li>Supports guided diagnostics and structured intake.</li>
-              <li>Flags suspicious patterns for focused human review.</li>
+              <li>Pre-classifies claims with needed evidence.</li>
+              <li>Supports guided diagnostics for non-IoT devices.</li>
+              <li>Flags suspicious patterns for review.</li>
             </ul>
           </section>
           <section class="mini">
@@ -585,17 +641,17 @@
               <div class="kpi">
                 <div class="kpi-head"><span>Auto-Triage Rate</span><span>>= 50%</span></div>
                 <div class="bar"><div class="fill" style="width:66%"></div></div>
-                <small>Claims automatically classified before manual review.</small>
+                <small>More claims triaged automatically.</small>
               </div>
               <div class="kpi">
                 <div class="kpi-head"><span>Adjudication TAT</span><span>-25%</span></div>
                 <div class="bar"><div class="fill" style="width:63%"></div></div>
-                <small>Faster decision cycle with workflow assistance.</small>
+                <small>Faster claim decisions.</small>
               </div>
               <div class="kpi">
                 <div class="kpi-head"><span>Re-open Rate</span><span>&lt;= 8%</span></div>
                 <div class="bar"><div class="fill" style="width:78%"></div></div>
-                <small>Decision quality signal for stable claim closure.</small>
+                <small>Better closure quality.</small>
               </div>
             </div>
           </section>
@@ -607,17 +663,17 @@
           <section class="mini">
             <h3>Retailer Pain Points</h3>
             <ul>
-              <li>Returns and escalations increase support costs.</li>
-              <li>Low post-sale visibility into product care and usage.</li>
-              <li>Poor coordination with OEM support teams.</li>
+              <li>High returns and escalations.</li>
+              <li>Low post-sale visibility.</li>
+              <li>Poor OEM support coordination.</li>
             </ul>
           </section>
           <section class="mini">
             <h3>What SWH Does</h3>
             <ul>
-              <li>Improves return prevention through user nudges.</li>
-              <li>Shares aggregate product health insights with OEM workflows.</li>
-              <li>Improves escalation routing and service transparency.</li>
+              <li>Reduces returns with user nudges.</li>
+              <li>Shares health trends with OEM workflows.</li>
+              <li>Improves escalation routing.</li>
             </ul>
           </section>
           <section class="mini">
@@ -626,12 +682,12 @@
               <div class="kpi">
                 <div class="kpi-head"><span>Return / Repair Rate</span><span>-10%</span></div>
                 <div class="bar"><div class="fill" style="width:65%"></div></div>
-                <small>Reduced 30/60/90-day return and repair pressure.</small>
+                <small>Lower return/repair pressure.</small>
               </div>
               <div class="kpi">
                 <div class="kpi-head"><span>Escalations / 1,000 Units</span><span>-20%</span></div>
                 <div class="bar"><div class="fill" style="width:62%"></div></div>
-                <small>Lower support burden and better customer experience.</small>
+                <small>Lower support load and better CX.</small>
               </div>
             </div>
           </section>
@@ -643,17 +699,17 @@
           <section class="mini">
             <h3>Supplier Pain Points</h3>
             <ul>
-              <li>Demand uncertainty causes stockouts or overstock.</li>
-              <li>No proactive signal when field issues rise.</li>
-              <li>Slow response to critical parts demand spikes.</li>
+              <li>Stockouts or overstock from demand uncertainty.</li>
+              <li>Limited early signal on issue trends.</li>
+              <li>Slow response to parts demand spikes.</li>
             </ul>
           </section>
           <section class="mini">
             <h3>What SWH Does</h3>
             <ul>
-              <li>Provides trend signals tied to issue and forecast layers.</li>
-              <li>Helps align critical inventory with predicted demand.</li>
-              <li>Improves service SLA readiness across partner network.</li>
+              <li>Provides trend signals for demand planning.</li>
+              <li>Helps align critical inventory.</li>
+              <li>Improves SLA readiness across partners.</li>
             </ul>
           </section>
           <section class="mini">
@@ -662,12 +718,12 @@
               <div class="kpi">
                 <div class="kpi-head"><span>Stockout Rate</span><span>&lt; 5%</span></div>
                 <div class="bar"><div class="fill" style="width:82%"></div></div>
-                <small>Availability for critical components and service SLAs.</small>
+                <small>Higher critical part availability.</small>
               </div>
               <div class="kpi">
                 <div class="kpi-head"><span>Excess Inventory</span><span>-15%</span></div>
                 <div class="bar"><div class="fill" style="width:60%"></div></div>
-                <small>Lower working capital lockup from overstock buffers.</small>
+                <small>Lower overstock and working capital lockup.</small>
               </div>
             </div>
           </section>
@@ -675,64 +731,35 @@
       </article>
     </section>
 
-    <section class="section" id="flow">
-      <h2>End-to-End Operating Flow</h2>
-      <p class="lead">One platform from ingestion to action, designed for simple navigation and stakeholder visibility.</p>
-      <div class="timeline">
-        <article class="step">
-          <div class="index">1</div>
-          <h3>Ingest and Extract</h3>
-          <p>Capture invoice or warranty input. OCR and parsing standardize brand, model, serial, and date signals.</p>
-        </article>
-        <article class="step">
-          <div class="index">2</div>
-          <h3>Normalize Terms</h3>
-          <p>Coverage, exclusions, claim steps, and source confidence are harmonized for user-ready summaries.</p>
-        </article>
-        <article class="step">
-          <div class="index">3</div>
-          <h3>Score and Forecast</h3>
-          <p>Behavior, telemetry, and incident patterns drive risk score layers and monthly forecasting views.</p>
-        </article>
-        <article class="step">
-          <div class="index">4</div>
-          <h3>Trigger Action</h3>
-          <p>Nudges, alerts, diagnostics routes, and service workflows move each case toward prevention and faster closure.</p>
-        </article>
-        <article class="step">
-          <div class="index">5</div>
-          <h3>Measure KPI Outcomes</h3>
-          <p>Platform reports KPI movement for users, OEMs, TPAs, retailers, and suppliers in one traceable layer.</p>
-        </article>
-      </div>
-    </section>
-
     <section class="section" id="modules">
       <h2>Platform Modules</h2>
-      <p class="lead">Open each module for quick detail. This keeps the page simple while still giving full product coverage.</p>
+      <p class="lead">Open each module for quick details.</p>
+      <div class="note">
+        <strong>Website scope:</strong> This page shows simple capability and KPI targets. Internal model logic stays inside protected dashboards.
+      </div>
       <div class="module-grid">
         <details class="module" open>
-          <summary>Ingestion + OCR</summary>
+          <summary>Ingestion + OCR <span class="tag core">Core</span></summary>
           <p>Uploads, camera capture, OCR extraction, confidence traces, and canonical field mapping.</p>
         </details>
         <details class="module">
-          <summary>Warranty Terms + Summary</summary>
+          <summary>Warranty Terms + Summary <span class="tag core">Core</span></summary>
           <p>Coverage duration, exclusions, claim steps, and layman summaries backed by source evidence.</p>
         </details>
         <details class="module">
-          <summary>Predictive + Nudges</summary>
-          <p>Risk scoring, behavior-informed advisories, and proactive prevention guidance for users.</p>
+          <summary>Predictive + Nudges <span class="tag core">Core</span></summary>
+          <p>Risk scoring and proactive guidance for users. Behavior-informed enrichment activates when behavior data collection is enabled.</p>
         </details>
         <details class="module">
-          <summary>OEM Intelligence + Forecast</summary>
-          <p>Issue signals, trend analysis, dispatch support, and KPI-driven monthly reporting for OEM teams.</p>
+          <summary>OEM Intelligence + Forecast <span class="tag optional">Data-Integrated</span></summary>
+          <p>Issue signals, trend analysis, EV battery health forecast, dispatch support, and KPI reporting for OEM teams once OEM/claims/telemetry feeds are connected.</p>
         </details>
         <details class="module">
-          <summary>Diagnostics (IoT and Non-IoT)</summary>
+          <summary>Diagnostics (IoT and Non-IoT) <span class="tag optional">Optional</span></summary>
           <p>Remote diagnostics for connected devices and guided diagnostics for non-IoT devices with service center handoff.</p>
         </details>
         <details class="module">
-          <summary>RAG + Knowledge Layer</summary>
+          <summary>RAG + Knowledge Layer <span class="tag core">Core</span></summary>
           <p>Structured document store for summaries, extracted terms, and retrieval-powered assistance flows.</p>
         </details>
       </div>
