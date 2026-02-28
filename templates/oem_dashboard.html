@@ -210,6 +210,13 @@
     <div class="card">
       <div class="row">
         <div>
+          <label>Demo product</label>
+          <select id="productPreset">
+            <option value="">Select product for demo...</option>
+          </select>
+          <div class="helper" style="margin-top:6px;">Select one product to focus all charts/risk/forecast on that product only.</div>
+        </div>
+        <div>
           <label>Product type</label>
           <select id="ptype">
             <option value="">All</option>
@@ -221,6 +228,10 @@
         <div>
           <label>Brand</label>
           <input id="brand" type="text" placeholder="e.g., Samsung" />
+        </div>
+        <div>
+          <label>Model</label>
+          <input id="model" type="text" placeholder="e.g., RT28K" />
         </div>
         <div>
           <label>Region</label>
@@ -335,6 +346,7 @@
 
   <script>
     let oemNotifications = [];
+    let productOptions = [];
     window.API_BASE = window.API_BASE || '';
     let riskChart = null;
     let behChart = null;
@@ -417,17 +429,72 @@
       }
     }
 
+    function riskValue(risk, key) {
+      const up = String(key || '').toUpperCase();
+      const low = String(key || '').toLowerCase();
+      const v = (risk && (risk[up] ?? risk[low])) ?? 0;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function productOptionLabel(item) {
+      const parts = [item?.brand, item?.model_code, item?.product_name, item?.region].filter(Boolean);
+      const base = parts.length ? parts.join(' | ') : 'Unnamed product';
+      const count = item?.warranty_count || 0;
+      return `${base} (${count})`;
+    }
+
+    function applyProductPreset(index, autoRefresh = true) {
+      const i = Number(index);
+      if (!Number.isInteger(i) || i < 0 || i >= productOptions.length) return;
+      const item = productOptions[i] || {};
+      const brandEl = document.getElementById('brand');
+      const modelEl = document.getElementById('model');
+      const ptypeEl = document.getElementById('ptype');
+      const regionEl = document.getElementById('region');
+      if (brandEl) brandEl.value = item.brand || '';
+      if (modelEl) modelEl.value = item.model_code || '';
+      if (regionEl) regionEl.value = item.region || '';
+      if (ptypeEl && item.product_type) ptypeEl.value = item.product_type;
+      qsSyncFilters();
+      if (autoRefresh) fetchStats();
+    }
+
+    async function loadProductOptions() {
+      const sel = document.getElementById('productPreset');
+      if (!sel) return;
+      sel.disabled = true;
+      try {
+        const data = await fetchApiJson('/oem/products?limit=200', {}, 'oem products');
+        productOptions = Array.isArray(data?.items) ? data.items : [];
+        sel.innerHTML = '<option value="">Select product for demo...</option>';
+        productOptions.forEach((item, idx) => {
+          sel.innerHTML += `<option value="${idx}">${productOptionLabel(item)}</option>`;
+        });
+        if (productOptions.length) {
+          sel.value = '0';
+          applyProductPreset(0, false);
+        }
+      } catch (e) {
+        console.error('product list load failed', e);
+        productOptions = [];
+      } finally {
+        sel.disabled = false;
+      }
+    }
+
     async function fetchStats() {
       const brand = document.getElementById('brand').value || '';
       const ptype = document.getElementById('ptype').value || '';
       const region = document.getElementById('region').value || '';
-      const model = document.getElementById('qs-model')?.value || '';
+      const model = document.getElementById('model')?.value || '';
       const btn = document.getElementById('run');
       btn.disabled = true;
       btn.textContent = 'Loading...';
       try {
         const params = new URLSearchParams();
         if (brand) params.append('brand', brand);
+        if (model) params.append('model', model);
         if (ptype) params.append('product_type', ptype);
         if (region) params.append('region', region);
         const res = await fetch(api(`/oem/risk-stats?${params.toString()}`));
@@ -540,7 +607,7 @@
     function renderRisk(risk) {
       const el = document.getElementById('risk-content');
       const blocks = ['low','medium','high'].map(level => {
-        const val = risk[level] || 0;
+        const val = riskValue(risk, level);
         return `<div class="card" style="padding:12px; box-shadow:none; border:1px solid var(--border);">
             <div class="pill">${level.toUpperCase()}</div>
             <div style="font-size:24px;font-weight:600;">${val}</div>
@@ -554,7 +621,11 @@
       if (!ctx) return;
       const isMobile = window.matchMedia('(max-width: 768px)').matches;
       const labels = ['Low', 'Medium', 'High'];
-      const counts = [risk.low || 0, risk.medium || 0, risk.high || 0];
+      const counts = [
+        riskValue(risk, 'low'),
+        riskValue(risk, 'medium'),
+        riskValue(risk, 'high'),
+      ];
       const avgRating = peer?.avg_rating || 0;
       const avgSent = peer?.avg_sentiment || 0;
       const ratingSeries = [avgRating, avgRating, avgRating];
@@ -734,12 +805,15 @@
     function qsSyncFilters() {
       const ptype = document.getElementById('ptype')?.value || '';
       const brand = document.getElementById('brand')?.value || '';
+      const model = document.getElementById('model')?.value || '';
       const region = document.getElementById('region')?.value || '';
       const qsPtype = document.getElementById('qs-ptype');
       const qsBrand = document.getElementById('qs-brand');
+      const qsModel = document.getElementById('qs-model');
       const qsRegion = document.getElementById('qs-region');
       if (qsPtype) qsPtype.value = ptype;
       if (qsBrand) qsBrand.value = brand;
+      if (qsModel) qsModel.value = model;
       if (qsRegion) qsRegion.value = region;
     }
 
@@ -951,6 +1025,16 @@
 
     document.getElementById('run').addEventListener('click', fetchStats);
     document.getElementById('notifBtn').addEventListener('click', toggleNotifications);
+    const productPreset = document.getElementById('productPreset');
+    if (productPreset) {
+      productPreset.addEventListener('change', (e) => {
+        applyProductPreset(e.target.value, true);
+      });
+    }
+    ['ptype', 'brand', 'model', 'region'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', qsSyncFilters);
+    });
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) logoutBtn.addEventListener('click', logoutAndGoLogin);
     const changePasswordBtn = document.getElementById('changePasswordBtn');
@@ -967,7 +1051,7 @@
     qsSyncFilters();
     qsLoadLlmStatus();
     qsLoadActive();
-    fetchStats();
+    loadProductOptions().finally(fetchStats);
   </script>
 <script src=" /static/warranty-dropdown.js\></script></body>
 </html>

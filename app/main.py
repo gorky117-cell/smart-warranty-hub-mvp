@@ -2695,6 +2695,69 @@ def product_interest_event(payload: ProductInterestEvent, current=Depends(requir
     return {"status": "ok"}
 
 
+@app.get("/oem/products", dependencies=[Depends(require_oem_or_admin)])
+def oem_product_catalog(limit: int = 200, current=Depends(require_oem_or_admin), db=Depends(get_db)):
+    """
+    OEM demo helper:
+    Returns unique product filters (brand/model/product/region) so dashboard can
+    lock into one product and show all charts for that product only.
+    """
+    limit = max(1, min(int(limit or 200), 500))
+
+    rows = (
+        db.query(
+            WarrantyDB.id,
+            WarrantyDB.brand,
+            WarrantyDB.model_code,
+            WarrantyDB.product_name,
+            WarrantyDB.region_code,
+            WarrantyDB.created_at,
+        )
+        .order_by(WarrantyDB.created_at.desc())
+        .limit(3000)
+        .all()
+    )
+
+    def _infer_product_type(name: str | None) -> str:
+        low = (name or "").strip().lower()
+        for token in ("washer", "fridge", "ac", "tv", "phone", "mobile", "laptop", "ev"):
+            if token in low:
+                return token
+        return ""
+
+    grouped: Dict[tuple, Dict[str, object]] = {}
+    for row in rows:
+        key = (
+            (row.brand or "").strip(),
+            (row.model_code or "").strip(),
+            (row.product_name or "").strip(),
+            (row.region_code or "").strip(),
+        )
+        if key not in grouped:
+            grouped[key] = {
+                "brand": key[0] or None,
+                "model_code": key[1] or None,
+                "product_name": key[2] or None,
+                "region": key[3] or None,
+                "product_type": _infer_product_type(key[2]),
+                "warranty_count": 0,
+                "sample_warranty_id": row.id,
+                "_latest_created_at": row.created_at or datetime.utcnow(),
+            }
+        grouped[key]["warranty_count"] = int(grouped[key]["warranty_count"]) + 1
+        created = row.created_at or datetime.utcnow()
+        if created > grouped[key]["_latest_created_at"]:
+            grouped[key]["_latest_created_at"] = created
+            grouped[key]["sample_warranty_id"] = row.id
+
+    items = sorted(grouped.values(), key=lambda x: x["_latest_created_at"], reverse=True)[:limit]
+    for it in items:
+        latest = it.pop("_latest_created_at", None)
+        it["latest_seen_at"] = latest.isoformat() if latest else None
+
+    return {"items": items, "count": len(items)}
+
+
 @app.get("/oem/risk-stats", dependencies=[Depends(require_oem_or_admin)])
 def oem_risk_stats(
     brand: str | None = None, model: str | None = None, product_type: str | None = None, region: str | None = None, current=Depends(require_oem_or_admin), db=Depends(get_db)
@@ -2709,9 +2772,15 @@ def oem_risk_stats(
         profiles = []
     for p in profiles:
         w = store.get_warranty_db(p.warranty_id) if p.warranty_id else None
+        if (brand or model or region or product_type) and not w:
+            continue
         if brand and w and w.brand != brand:
             continue
         if model and w and w.model_code != model:
+            continue
+        if region and w and (w.region_code or "") != region:
+            continue
+        if product_type and w and product_type.lower() not in (w.product_name or "").lower():
             continue
         behaviour_snapshot["behaviour"] += p.behaviour_score
         behaviour_snapshot["care"] += p.care_score
