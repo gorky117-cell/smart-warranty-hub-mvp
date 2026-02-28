@@ -2045,7 +2045,10 @@ def oem_dashboard(request: Request, current: Optional[UserDB] = Depends(get_curr
     from fastapi.responses import HTMLResponse
 
     html_path = Path(__file__).resolve().parents[1] / "templates" / "oem_dashboard.html"
-    return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
+    html = html_path.read_text(encoding="utf-8")
+    html = html.replace("__SWH_CURRENT_USER__", escape(current.username if current else ""))
+    html = html.replace("__SWH_CURRENT_ROLE__", escape(current.role if current else ""))
+    return HTMLResponse(content=html, status_code=200)
 
 
 @app.post("/telemetry", dependencies=[Depends(rbac_dependency)])

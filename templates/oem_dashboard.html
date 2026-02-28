@@ -95,6 +95,17 @@
     }
     .helper { color: var(--muted); font-size: 13px; line-height: 1.45; }
     .top-bar { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .header-actions { display:flex; align-items:center; gap:8px; }
+    .logout-btn {
+      width: auto;
+      min-height: 44px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      font-weight: 700;
+    }
     .notif-wrap { position:relative; }
     .icon-btn {
       width:52px; height:52px; border-radius:14px; border:none;
@@ -180,15 +191,18 @@
     <div class="top-bar">
       <div>
         <h1 class="title" style="margin:0;">OEM Analytics</h1>
-        <div class="subtitle">Overview of issues and device health.</div>
+        <div class="subtitle">Overview of issues and device health. Signed in: __SWH_CURRENT_USER__ (__SWH_CURRENT_ROLE__)</div>
       </div>
-      <div class="notif-wrap">
-        <button class="icon-btn" id="notifBtn" aria-label="OEM notifications" type="button">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
-        </button>
-        <div id="notifPanel" class="notif-panel hidden">
-          <div id="notifList" class="notif-list"></div>
+      <div class="header-actions">
+        <button id="logoutBtn" class="logout-btn" type="button">Logout</button>
+        <div class="notif-wrap">
+          <button class="icon-btn" id="notifBtn" aria-label="OEM notifications" type="button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
+          </button>
+          <div id="notifPanel" class="notif-panel hidden">
+            <div id="notifList" class="notif-list"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -901,8 +915,19 @@
       }
     }
 
+    async function logoutAndGoLogin() {
+      try {
+        await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' });
+      } catch (e) {
+        console.warn('logout failed', e);
+      }
+      window.location.href = '/login';
+    }
+
     document.getElementById('run').addEventListener('click', fetchStats);
     document.getElementById('notifBtn').addEventListener('click', toggleNotifications);
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) logoutBtn.addEventListener('click', logoutAndGoLogin);
     const qsGenBtn = document.getElementById('qs-gen');
     if (qsGenBtn) qsGenBtn.addEventListener('click', qsGenerate);
     const qsPublishBtn = document.getElementById('qs-publish');

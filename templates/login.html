@@ -283,14 +283,14 @@
         <p class="sub">Use your Smart Warranty Hub account to open your dashboard.</p>
         <p id="loginMessage" class="msg"></p>
         <form method="post" action="/auth/login" autocomplete="on">
-          <input type="hidden" id="signinNext" name="next_url" value="/ui/neo-dashboard">
+          <input type="hidden" id="signinNext" name="next_url" value="">
           <label for="signinUsername">Username</label>
           <input id="signinUsername" name="username" placeholder="gaurav" autocomplete="username" required>
           <label for="signinPassword">Password</label>
           <input id="signinPassword" name="password" type="password" placeholder="Enter password" autocomplete="current-password" required>
           <button type="submit">Continue</button>
         </form>
-        <p class="note">If you manage OEM accounts, you will be routed to the OEM dashboard after login.</p>
+        <p class="note">OEM/Admin users are routed by role. New signup creates a user-role account only.</p>
       </div>
 
       <div class="tab-pane" id="paneSignup">
@@ -298,7 +298,7 @@
         <p class="sub">Create a user account for warranty tracking.</p>
         <p id="signupMessage" class="msg"></p>
         <form method="post" action="/auth/signup/form" autocomplete="on">
-          <input type="hidden" id="signupNext" name="next_url" value="/ui/neo-dashboard">
+          <input type="hidden" id="signupNext" name="next_url" value="">
           <label for="signupUsername">Username</label>
           <input id="signupUsername" name="username" placeholder="new-user" minlength="3" autocomplete="username" required>
           <label for="signupEmail">Email (optional)</label>
@@ -350,7 +350,7 @@
       tabSignin.addEventListener("click", function () { setTab("signin"); });
       tabSignup.addEventListener("click", function () { setTab("signup"); });
 
-      const nextValue = params.get("next") || "/ui/neo-dashboard";
+      const nextValue = params.get("next") || "";
       signinNext.value = nextValue;
       signupNext.value = nextValue;
 

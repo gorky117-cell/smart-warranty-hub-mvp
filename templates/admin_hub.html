@@ -82,6 +82,12 @@
     .btn.secondary {
       background: #0f172a;
     }
+    .logout-btn {
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #0f172a;
+      font-weight: 700;
+    }
     @media (min-width: 780px) {
       .grid {
         grid-template-columns: 1fr 1fr;
@@ -123,9 +129,22 @@
     </section>
 
     <div class="row">
+      <button class="btn logout-btn" id="logoutBtn" type="button">Logout</button>
       <a class="btn secondary" href="/login">Go To Login</a>
       <a class="btn secondary" href="/">Go Home</a>
     </div>
   </div>
+  <script>
+    (function () {
+      const btn = document.getElementById("logoutBtn");
+      if (!btn) return;
+      btn.addEventListener("click", async function () {
+        try {
+          await fetch("/auth/logout", { method: "POST", credentials: "same-origin" });
+        } catch (e) {}
+        window.location.href = "/login";
+      });
+    })();
+  </script>
 </body>
 </html>

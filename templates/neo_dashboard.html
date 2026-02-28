@@ -95,6 +95,20 @@
     .notif-wrap {
       position: relative;
     }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logout-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
 
     .icon-btn {
       width: 40px;
@@ -823,17 +837,20 @@
           </span>
         </h1>
       </div>
-      <div class="notif-wrap">
-        <button class="icon-btn" id="notifBtn" aria-label="Notifications" type="button">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
-          <span id="notifBadge" class="notif-badge hidden">0</span>
-        </button>
-        <div id="notifPanel" class="notif-panel hidden">
-          <div id="notifList" class="notif-list"></div>
+      <div class="header-actions">
+        <button class="logout-btn" id="logoutBtn" type="button">Logout</button>
+        <div class="notif-wrap">
+          <button class="icon-btn" id="notifBtn" aria-label="Notifications" type="button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            <span id="notifBadge" class="notif-badge hidden">0</span>
+          </button>
+          <div id="notifPanel" class="notif-panel hidden">
+            <div id="notifList" class="notif-list"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1436,6 +1453,15 @@
         } catch (e) {
           console.error('mark read failed', e);
         }
+      }
+
+      async function logoutAndGoLogin() {
+        try {
+          await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' });
+        } catch (e) {
+          console.warn('logout failed', e);
+        }
+        window.location.href = '/login';
       }
       window.markNotificationRead = markNotificationRead;
 
@@ -2865,6 +2891,12 @@
         } catch (e) {
           dropdown.innerHTML = '<option value="">-- No warranties found --</option>';
           console.error('loadWarrantyDropdown error', e);
+        }
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) logoutBtn.addEventListener('click', logoutAndGoLogin);
+        const notice = new URLSearchParams(window.location.search).get('notice');
+        if (notice === 'oem_admin_only') {
+          showToast('Access limited', 'This account is user-only. Sign in with OEM/Admin account to open OEM/Admin pages.');
         }
       }
 
