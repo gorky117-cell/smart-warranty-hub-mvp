@@ -430,8 +430,11 @@ async def cache_dashboard(request: Request, call_next):
     response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
     response.headers.setdefault(
         "Content-Security-Policy",
-        "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; "
-        "script-src 'self' 'unsafe-inline'; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'",
+        "default-src 'self'; img-src 'self' data: https:; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com data:; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'",
     )
     if request.headers.get("x-forwarded-proto", "").lower() == "https":
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
