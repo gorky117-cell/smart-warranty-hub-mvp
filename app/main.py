@@ -418,7 +418,9 @@ async def cache_dashboard(request: Request, call_next):
     # Proxy-aware HTTPS redirect: avoids self-loop behind Railway/edge proxies.
     force_https = os.getenv("FORCE_HTTPS_REDIRECT", "0").strip().lower() in ("1", "true", "yes")
     forwarded_proto = (request.headers.get("x-forwarded-proto") or "").lower()
-    if force_https and request.url.scheme != "https" and forwarded_proto != "https":
+    # Redirect only when proxy explicitly reports HTTP.
+    # This avoids self-loop when upstream omits forwarded proto.
+    if force_https and forwarded_proto == "http":
         return RedirectResponse(url=str(request.url.replace(scheme="https")), status_code=307)
 
     response = await call_next(request)
