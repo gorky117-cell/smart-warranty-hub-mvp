@@ -194,6 +194,7 @@
         <div class="subtitle">Overview of issues and device health. Signed in: __SWH_CURRENT_USER__ (__SWH_CURRENT_ROLE__)</div>
       </div>
       <div class="header-actions">
+        <button id="changePasswordBtn" class="logout-btn" type="button">Change Password</button>
         <button id="logoutBtn" class="logout-btn" type="button">Logout</button>
         <div class="notif-wrap">
           <button class="icon-btn" id="notifBtn" aria-label="OEM notifications" type="button">
@@ -924,10 +925,36 @@
       window.location.href = '/login';
     }
 
+    async function changePasswordFlow() {
+      const currentPassword = window.prompt('Enter current password');
+      if (!currentPassword) return;
+      const newPassword = window.prompt('Enter new password (min 6 characters)');
+      if (!newPassword) return;
+      const confirmPassword = window.prompt('Confirm new password');
+      if (newPassword !== confirmPassword) {
+        alert('New password and confirm password do not match.');
+        return;
+      }
+      const res = await fetch('/auth/password/change', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+        credentials: 'same-origin',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.detail || 'Could not change password');
+        return;
+      }
+      alert('Password updated.');
+    }
+
     document.getElementById('run').addEventListener('click', fetchStats);
     document.getElementById('notifBtn').addEventListener('click', toggleNotifications);
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) logoutBtn.addEventListener('click', logoutAndGoLogin);
+    const changePasswordBtn = document.getElementById('changePasswordBtn');
+    if (changePasswordBtn) changePasswordBtn.addEventListener('click', changePasswordFlow);
     const qsGenBtn = document.getElementById('qs-gen');
     if (qsGenBtn) qsGenBtn.addEventListener('click', qsGenerate);
     const qsPublishBtn = document.getElementById('qs-publish');

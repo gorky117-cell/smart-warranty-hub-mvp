@@ -119,8 +119,8 @@ def require_admin(user: UserDB = Depends(get_current_user)):
 
 
 def require_oem_or_admin(user: UserDB = Depends(get_current_user)):
-    if user.role not in ("admin", "oem"):
-        raise HTTPException(status_code=403, detail="OEM/admin only")
+    if user.role not in ("admin", "oem", "tpa"):
+        raise HTTPException(status_code=403, detail="OEM/TPA/admin only")
     return user
 
 

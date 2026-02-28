@@ -838,6 +838,7 @@
         </h1>
       </div>
       <div class="header-actions">
+        <button class="logout-btn" id="changePasswordBtn" type="button">Change Password</button>
         <button class="logout-btn" id="logoutBtn" type="button">Logout</button>
         <div class="notif-wrap">
           <button class="icon-btn" id="notifBtn" aria-label="Notifications" type="button">
@@ -1462,6 +1463,33 @@
           console.warn('logout failed', e);
         }
         window.location.href = '/login';
+      }
+
+      async function changePasswordFlow() {
+        const currentPassword = window.prompt('Enter current password');
+        if (!currentPassword) return;
+        const newPassword = window.prompt('Enter new password (min 6 characters)');
+        if (!newPassword) return;
+        const confirmPassword = window.prompt('Confirm new password');
+        if (newPassword !== confirmPassword) {
+          showToast('Password update failed', 'New password and confirm password do not match.');
+          return;
+        }
+        try {
+          const res = await fetch('/auth/password/change', {
+            method: 'POST',
+            headers: h({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+            credentials: 'same-origin',
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data.detail || 'Could not change password');
+          }
+          showToast('Password updated', 'Your password has been changed.');
+        } catch (e) {
+          showToast('Password update failed', String(e));
+        }
       }
       window.markNotificationRead = markNotificationRead;
 
@@ -2894,9 +2922,11 @@
         }
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) logoutBtn.addEventListener('click', logoutAndGoLogin);
+        const changePasswordBtn = document.getElementById('changePasswordBtn');
+        if (changePasswordBtn) changePasswordBtn.addEventListener('click', changePasswordFlow);
         const notice = new URLSearchParams(window.location.search).get('notice');
         if (notice === 'oem_admin_only') {
-          showToast('Access limited', 'This account is user-only. Sign in with OEM/Admin account to open OEM/Admin pages.');
+          showToast('Access limited', 'This account is user-only. Sign in with OEM/TPA/Admin account to open OEM/Admin pages.');
         }
       }
 

@@ -13,7 +13,6 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from pydantic import BaseModel as PydanticBaseModel
 from sqlalchemy.exc import ProgrammingError, OperationalError
 from sqlalchemy.orm import Session
@@ -66,6 +65,7 @@ from .services import terms_lookup
 from .services import rag as rag_service
 from .services import remote_diagnostics as remote_diag_service
 from .services import diagnostics_capability as diag_cap_service
+from .services import emailer as emailer_service
 from .services.warranty_status import compute_warranty_status
 from .services.notifications import run_initial_analysis_and_notifications
 logger = logging.getLogger(__name__)
@@ -277,12 +277,17 @@ class SignupRequest(BaseModel):
     username: str
     password: str
     email: str | None = None
-    role: str = "user"  # user | oem | admin (admin only via existing admin)
+    role: str = "user"  # user | oem | tpa | admin (admin only via existing admin)
 
 
 class LoginRequest(BaseModel):
-    username: str
+    username: str  # username or email
     password: str
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 
 class BehaviourAnswerRequest(BaseModel):
@@ -371,9 +376,6 @@ _allowed_hosts = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") i
 if _allowed_hosts:
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=_allowed_hosts)
 
-if os.getenv("FORCE_HTTPS_REDIRECT", "0").strip().lower() in ("1", "true", "yes"):
-    app.add_middleware(HTTPSRedirectMiddleware)
-
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
 
 @app.get("/favicon.ico")
@@ -413,6 +415,12 @@ def dashboard_dev():
 
 @app.middleware("http")
 async def cache_dashboard(request: Request, call_next):
+    # Proxy-aware HTTPS redirect: avoids self-loop behind Railway/edge proxies.
+    force_https = os.getenv("FORCE_HTTPS_REDIRECT", "0").strip().lower() in ("1", "true", "yes")
+    forwarded_proto = (request.headers.get("x-forwarded-proto") or "").lower()
+    if force_https and request.url.scheme != "https" and forwarded_proto != "https":
+        return RedirectResponse(url=str(request.url.replace(scheme="https")), status_code=307)
+
     response = await call_next(request)
     path = request.url.path
     if path.startswith("/dashboard"):
@@ -624,7 +632,7 @@ def _ensure_ui_oem_or_admin(request: Request, current: Optional[UserDB]) -> Opti
         return None
     if not current:
         return _build_ui_login_redirect(request)
-    if current.role not in ("admin", "oem"):
+    if current.role not in ("admin", "oem", "tpa"):
         # UI-friendly behavior: send normal users back to their dashboard instead of a JSON 403.
         return RedirectResponse(
             url="/ui/neo-dashboard?notice=oem_admin_only",
@@ -1099,8 +1107,8 @@ def _ensure_users_table_and_admin(db) -> None:
 
 @app.post("/auth/signup")
 def signup(payload: SignupRequest, db=Depends(get_db), current=Depends(get_current_user_optional)):
-    if payload.role not in ("user", "oem", "admin"):
-        raise HTTPException(status_code=400, detail="Role must be user, oem, or admin")
+    if payload.role not in ("user", "oem", "tpa", "admin"):
+        raise HTTPException(status_code=400, detail="Role must be user, oem, tpa, or admin")
     try:
         existing = db.query(UserDB).filter_by(username=payload.username).first()
     except (ProgrammingError, OperationalError):
@@ -1130,6 +1138,14 @@ def signup(payload: SignupRequest, db=Depends(get_db), current=Depends(get_curre
     )
     db.add(user)
     db.commit()
+    try:
+        emailer_service.send_welcome_email(
+            to_email=user.email,
+            username=user.username,
+            role=user.role,
+        )
+    except Exception:
+        pass
     return {"username": user.username, "role": user.role}
 
 
@@ -1180,6 +1196,14 @@ def signup_form(
         )
     )
     db.commit()
+    try:
+        emailer_service.send_welcome_email(
+            to_email=email,
+            username=username,
+            role="user",
+        )
+    except Exception:
+        pass
 
     # Auto-login new user and route to Neo UI (smoother UX for MVP demos).
     cookie_opts = _cookie_options(request)
@@ -1228,14 +1252,19 @@ def login(
     db=Depends(get_db),
     next_url: str | None = Form(None),
 ):
+    login_id = (username or "").strip()
     accepts_json = "application/json" in (request.headers.get("accept") or "")
     cookie_opts = _cookie_options(request)
     try:
-        user = db.query(UserDB).filter_by(username=username).first()
+        user = db.query(UserDB).filter(UserDB.username == login_id).first()
+        if not user and "@" in login_id:
+            user = db.query(UserDB).filter(UserDB.email == login_id).first()
     except (ProgrammingError, OperationalError):
         db.rollback()
         _ensure_users_table_and_admin(db)
-        user = db.query(UserDB).filter_by(username=username).first()
+        user = db.query(UserDB).filter(UserDB.username == login_id).first()
+        if not user and "@" in login_id:
+            user = db.query(UserDB).filter(UserDB.email == login_id).first()
     if not user or not verify_password(password, user.hashed_password):
         if accepts_json:
             raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -1253,8 +1282,12 @@ def login(
     target = next_url or (
         "/ui/admin-hub"
         if user.role == "admin"
-        else ("/ui/oem-dashboard" if user.role == "oem" else "/ui/neo-dashboard")
+        else ("/ui/oem-dashboard" if user.role in ("oem", "tpa") else "/ui/neo-dashboard")
     )
+    try:
+        emailer_service.send_login_alert_email(to_email=user.email, username=user.username)
+    except Exception:
+        pass
     if accepts_json:
         response.status_code = status.HTTP_200_OK
         return {"access_token": token, "token_type": "bearer", "role": user.role, "redirect": target}
@@ -1282,6 +1315,21 @@ def logout(response: Response, request: Request):
         domain=cookie_opts.get("domain"),
     )
     return {"status": "logged_out"}
+
+
+@app.post("/auth/password/change", dependencies=[Depends(require_user)])
+def change_password(payload: PasswordChangeRequest, db=Depends(get_db), current: UserDB = Depends(require_user)):
+    if len(payload.new_password or "") < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+    user = db.query(UserDB).filter_by(username=current.username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not verify_password(payload.current_password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    user.hashed_password = hash_password(payload.new_password)
+    db.add(user)
+    db.commit()
+    return {"status": "ok", "message": "Password updated"}
 
 
 @app.get("/auth/session")
@@ -1396,6 +1444,14 @@ async def upload_artifact(
     
     try:
         run_initial_analysis_and_notifications(db, current.username, warranty.id)
+    except Exception:
+        pass
+    try:
+        emailer_service.send_product_registered_email(
+            to_email=getattr(current, "email", None),
+            username=current.username,
+            warranty_id=warranty.id,
+        )
     except Exception:
         pass
     return {
@@ -1533,6 +1589,14 @@ def create_warranty(payload: CanonicalRequest, db=Depends(get_db), current=Depen
             pass
     try:
         run_initial_analysis_and_notifications(db, current.username, warranty.id)
+    except Exception:
+        pass
+    try:
+        emailer_service.send_product_registered_email(
+            to_email=getattr(current, "email", None),
+            username=current.username,
+            warranty_id=warranty.id,
+        )
     except Exception:
         pass
     try:
@@ -1910,6 +1974,14 @@ def capture_artifact(
         background_tasks.add_task(invoice_pipeline.run_job, job.id)
     try:
         run_initial_analysis_and_notifications(db, current.username, warranty.id)
+    except Exception:
+        pass
+    try:
+        emailer_service.send_product_registered_email(
+            to_email=getattr(current, "email", None),
+            username=current.username,
+            warranty_id=warranty.id,
+        )
     except Exception:
         pass
     return {"artifact": artifact, "warranty_id": warranty.id, "saved_path": str(dest), "job_id": job.id}

@@ -129,6 +129,7 @@
     </section>
 
     <div class="row">
+      <button class="btn logout-btn" id="changePasswordBtn" type="button">Change Password</button>
       <button class="btn logout-btn" id="logoutBtn" type="button">Logout</button>
       <a class="btn secondary" href="/login">Go To Login</a>
       <a class="btn secondary" href="/">Go Home</a>
@@ -137,6 +138,7 @@
   <script>
     (function () {
       const btn = document.getElementById("logoutBtn");
+      const changeBtn = document.getElementById("changePasswordBtn");
       if (!btn) return;
       btn.addEventListener("click", async function () {
         try {
@@ -144,6 +146,31 @@
         } catch (e) {}
         window.location.href = "/login";
       });
+      if (changeBtn) {
+        changeBtn.addEventListener("click", async function () {
+          const currentPassword = window.prompt("Enter current password");
+          if (!currentPassword) return;
+          const newPassword = window.prompt("Enter new password (min 6 characters)");
+          if (!newPassword) return;
+          const confirmPassword = window.prompt("Confirm new password");
+          if (newPassword !== confirmPassword) {
+            alert("New password and confirm password do not match.");
+            return;
+          }
+          const res = await fetch("/auth/password/change", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+            credentials: "same-origin",
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            alert(data.detail || "Could not change password");
+            return;
+          }
+          alert("Password updated.");
+        });
+      }
     })();
   </script>
 </body>
