@@ -4,12 +4,18 @@ This index points to the complete section-wise documentation set for product, KP
 
 ## Core Manuals
 
-1. Complete Product Spec + KPI Record (single-file summary): `docs/complete_product_specification_and_kpi.md`
-2. Product Manual (end-to-end functional manual): `docs/product_manual_smart_warranty_hub.md`
-3. Exhaustive Feature Catalog (module-wise): `docs/feature_catalog_exhaustive.md`
-4. KPI Master Scorecard (all phases + metrics): `docs/kpi_master_scorecard.md`
-5. OEM Dashboard & Integration Manual (IoT + non-IoT): `docs/oem_dashboard_and_integration_manual.md`
-6. Deployment & Configuration Reference (Railway/env/operations): `docs/deployment_config_reference.md`
+1. Complete Architecture Audit (verified source, route, model, test and architecture findings): `docs/COMPLETE_ARCHITECTURE_AUDIT.md`
+2. AI IDE Handoff Prompt (copy/paste prompt for Kiro, Antigravity/Gemini and IDE agents): `docs/AI_IDE_HANDOFF_PROMPT.md`
+3. Complete Project Reference (architecture, file map, AI boundaries, production plan): `docs/PROJECT_REFERENCE.md`
+4. Engineering Handoff Report (routes, services, storage and smoke-test map): `docs/HANDOFF.md`
+5. Golden Path Test (manual/API acceptance checks): `docs/GOLDEN_PATH_TEST.md`
+6. OEM Intelligence Flow (one-page visual): `docs/OEM_Intelligence_Flow_Simple.pdf`
+7. Complete Product Spec + KPI Record (single-file summary): `docs/complete_product_specification_and_kpi.md`
+8. Product Manual (end-to-end functional manual): `docs/product_manual_smart_warranty_hub.md`
+9. Exhaustive Feature Catalog (module-wise): `docs/feature_catalog_exhaustive.md`
+10. KPI Master Scorecard (all phases + metrics): `docs/kpi_master_scorecard.md`
+11. OEM Dashboard & Integration Manual (IoT + non-IoT): `docs/oem_dashboard_and_integration_manual.md`
+12. Deployment & Configuration Reference (Railway/env/operations): `docs/deployment_config_reference.md`
 
 ## Existing Phase Runbooks (already in repo)
 
@@ -27,9 +33,15 @@ This index points to the complete section-wise documentation set for product, KP
 
 ## Suggested Reading Order
 
-1. `docs/complete_product_specification_and_kpi.md`
-2. `docs/product_manual_smart_warranty_hub.md`
-3. `docs/feature_catalog_exhaustive.md`
-4. `docs/kpi_master_scorecard.md`
-5. `docs/oem_dashboard_and_integration_manual.md`
-6. `docs/deployment_config_reference.md`
+1. `MEMORY.md`
+2. `docs/COMPLETE_ARCHITECTURE_AUDIT.md`
+3. `docs/AI_IDE_HANDOFF_PROMPT.md`
+4. `docs/PROJECT_REFERENCE.md`
+5. `docs/HANDOFF.md`
+6. `docs/GOLDEN_PATH_TEST.md`
+7. `docs/complete_product_specification_and_kpi.md`
+8. `docs/product_manual_smart_warranty_hub.md`
+9. `docs/feature_catalog_exhaustive.md`
+10. `docs/kpi_master_scorecard.md`
+11. `docs/oem_dashboard_and_integration_manual.md`
+12. `docs/deployment_config_reference.md`

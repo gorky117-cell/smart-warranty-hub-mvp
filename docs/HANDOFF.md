@@ -1,5 +1,14 @@
 ﻿# Smart Warranty Hub (SWH) — Handoff Report
 
+**Use with:** `MEMORY.md`, `docs/PROJECT_REFERENCE.md`, `docs/COMPLETE_ARCHITECTURE_AUDIT.md`, `docs/AI_IDE_HANDOFF_PROMPT.md`, and `docs/GOLDEN_PATH_TEST.md`.
+
+## Current verified safeguards
+
+- OCR aliases (`paddleocr`, `paddle`, `pytesseract`) are normalized in `app/services/ocr.py`; Paddle remains lazy and Tesseract is the safe fallback.
+- OCR health checks package availability without loading a model.
+- `/reviews/crawl` and `/reviews/stats` are each registered once by `app/routes/reviews.py`.
+- `tests/test_ocr_and_review_routes.py` covers OCR alias/fallback behavior and review route uniqueness.
+
 ## 1) Repo layout (key files)
 
 - app/main.py — FastAPI app entrypoint, routes, UI mounting, health checks
@@ -84,15 +93,18 @@ uploaded → extracting_text → ocr_if_needed → parsed_fields → terms_looku
 
 ## 4) OEM Question Studio
 
-### Routes (both /oem and /api/oem aliases)
+### Active routes
 - /oem/questions/llm-status
 - /oem/questions/active
 - /oem/questions/generate
 - /oem/questions/publish
 - /oem/questions/disable
 
-### Router
-- app/routes/oem_questions.py
+Compatibility aliases under `/api/oem/questions/*` exist for generate, publish, active, and disable. `llm-status` is currently exposed at the direct `/oem/questions/llm-status` path.
+
+### Implementation note
+- The active OEM Question Studio endpoints are defined directly in `app/main.py`.
+- `app/routes/oem_questions.py` is a retained router variant; do not mount it without first reconciling duplicate paths and auth behavior.
 
 ### Service
 - app/services/oem_question_service.py
@@ -104,15 +116,16 @@ uploaded → extracting_text → ocr_if_needed → parsed_fields → terms_looku
 
 ## 5) OEM Recommendation Studio
 
-### Routes (both /oem and /api/oem aliases)
+### Active routes (both direct and `/api/oem` compatibility aliases)
 - /oem/recommendations/preview
 - /oem/recommendations/generate
 - /oem/recommendations/publish
 - /oem/recommendations/active
 - /oem/recommendations/disable
 
-### Router
-- app/routes/oem_recommendations.py
+### Implementation note
+- The active Recommendation Studio endpoints are defined directly in `app/main.py`.
+- `app/routes/oem_recommendations.py` is a retained router variant; do not mount it without first reconciling duplicate paths and auth behavior.
 
 ### Service
 - app/services/oem_recommendation_service.py
@@ -178,7 +191,7 @@ curl http://127.0.0.1:8000/health/llm
 
 ## 11) Known notes
 
-- OEM routers exist in app/routes/* and are also duplicated in app/main.py (safe, but can be cleaned later).
+- OEM router-variant files exist under `app/routes/*`, but the active public OEM endpoints are defined in `app/main.py`; do not mount variants casually because that would create duplicate paths.
 - JSONL caches under data/*.jsonl are ignored by git.
 - OCR may be degraded if tesseract/paddle not installed; pipeline still works with PDF text extraction.
 

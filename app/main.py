@@ -46,7 +46,6 @@ from .services import recommendation as recommendation_service
 from .services import ev_battery as ev_battery_service
 from .services.oem_domains import load_verified_domains, save_verified_domains
 from .services.oem_domain_verify import verify_or_suggest
-from .services.review_crawler import crawl_reviews
 from .services import notifications as notification_service
 from .services import product_recommendations as prod_recs_service
 from .services import regional_policy as regional_policy_service
@@ -108,8 +107,6 @@ from .db_models import (
     OemIssueSignalDB,
     RiskSnapshotDB,
     NotificationDB,
-    ProductReviewDB,
-    ReviewPageDB,
     WarrantyOwnerDB,
 )
 
@@ -3132,37 +3129,6 @@ def warranty_export(warranty_id: str, format: str = "txt", db=Depends(get_db), c
 @app.get("/reviews", dependencies=[Depends(require_admin)])
 def list_reviews(status: str | None = None):
     return store.list_reviews(status)
-
-
-@app.post("/reviews/crawl", dependencies=[Depends(require_admin)])
-def reviews_crawl(region: str | None = None):
-    with SessionLocal() as db:
-        stats = crawl_reviews(db, region=region or os.getenv("REVIEW_REGION", "IN"))
-        return {"ok": True, "stats": stats}
-
-
-@app.get("/reviews/stats", dependencies=[Depends(require_admin)])
-def reviews_stats(brand: str | None = None, model: str | None = None, region: str | None = None):
-    with SessionLocal() as db:
-        q = db.query(ProductReviewDB)
-        if brand:
-            q = q.filter_by(brand=brand)
-        if model:
-            q = q.filter_by(model_code=model)
-        if region:
-            q = q.filter_by(region=region)
-        rows = q.all()
-        pages = db.query(ReviewPageDB).count()
-        count = len(rows)
-        avg_rating = float(sum(r.rating or 0.0 for r in rows) / count) if count else None
-        avg_sent = float(sum(r.sentiment or 0.0 for r in rows) / count) if count else None
-        return {
-            "ok": True,
-            "pages": pages,
-            "reviews": count,
-            "avg_rating": avg_rating,
-            "avg_sentiment": avg_sent,
-        }
 
 
 @app.post("/reviews/{review_id}/approve", dependencies=[Depends(require_admin)])

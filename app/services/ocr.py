@@ -3,6 +3,7 @@ import time
 import io
 import shutil
 import tempfile
+from importlib.util import find_spec
 from typing import Optional, Tuple, Dict, Any, List
 from pathlib import Path
 
@@ -31,6 +32,16 @@ def _now() -> float:
     return time.time()
 
 
+def _normalize_engine_name(value: Optional[str]) -> str:
+    """Normalize configured OCR engine aliases without changing valid values."""
+    normalized = (value or "").strip().lower().replace("_", "").replace("-", "")
+    if normalized in {"paddle", "paddleocr"}:
+        return "paddle"
+    if normalized in {"tesseract", "pytesseract"}:
+        return "tesseract"
+    return normalized or "tesseract"
+
+
 def _resolve_engine() -> str:
     connector = registry.get("ocr-default") or next(
         (c for c in registry.list("ocr").values()), None
@@ -38,8 +49,8 @@ def _resolve_engine() -> str:
     if connector:
         engine = connector.metadata.get("engine")
         if engine:
-            return str(engine).lower()
-    return _OCR_ENGINE
+            return _normalize_engine_name(str(engine))
+    return _normalize_engine_name(_OCR_ENGINE)
 
 
 def _should_unload(last_used: float) -> bool:
@@ -104,8 +115,6 @@ def run_paddle_ocr(image_path: Path) -> Tuple[Optional[str], Optional[str]]:
     engine, err = get_paddle()
     if err:
         return None, err
-    import cv2
-    import numpy as np
     try:
         result = engine.ocr(str(image_path), cls=True)
         lines = []
@@ -132,6 +141,24 @@ def run_tesseract_ocr(image_path: Path) -> Tuple[Optional[str], Optional[str]]:
         return text if text else None, None
     except Exception as exc:  # pragma: no cover - runtime safeguard
         return None, f"Tesseract OCR failed: {exc}"
+
+
+def _run_image_ocr(path_obj: Path, engine: str) -> Tuple[Optional[str], Optional[str], str]:
+    """Run the configured image engine, preserving Tesseract as a safe fallback."""
+    if engine != "paddle":
+        text, err = run_tesseract_ocr(path_obj)
+        return text, err, "tesseract"
+
+    text, paddle_err = run_paddle_ocr(path_obj)
+    if text:
+        return text, None, "paddle"
+
+    fallback_text, fallback_err = run_tesseract_ocr(path_obj)
+    if fallback_text:
+        return fallback_text, None, "tesseract_fallback"
+
+    errors = [message for message in (paddle_err, fallback_err) if message]
+    return None, "; ".join(errors) or "OCR produced no text", "paddle"
 
 
 def _extract_pdf_text(path_obj: Path) -> Tuple[Optional[str], Optional[str]]:
@@ -195,10 +222,7 @@ def _maybe_ocr_pdf(path_obj: Path) -> Tuple[Optional[str], Optional[str]]:
                 pix.save(tmp_path)
                 
                 engine = _resolve_engine()
-                if engine == "paddle":
-                    text, err = run_paddle_ocr(Path(tmp_path))
-                else:
-                    text, err = run_tesseract_ocr(Path(tmp_path))
+                text, err, _used_engine = _run_image_ocr(Path(tmp_path), engine)
                 
                 if text:
                     all_text.append(text)
@@ -215,10 +239,6 @@ def _maybe_ocr_pdf(path_obj: Path) -> Tuple[Optional[str], Optional[str]]:
         pass  # Fall through to pdf2image
     except Exception as exc:
         return None, f"PDF OCR via pymupdf failed: {exc}"
-    except ImportError:
-        pass  # Fall through to pdf2image
-    except Exception as exc:
-        return None, f"PDF OCR via pymupdf failed: {exc}"
     
     # Fallback to pdf2image (requires poppler)
     try:
@@ -230,9 +250,6 @@ def _maybe_ocr_pdf(path_obj: Path) -> Tuple[Optional[str], Optional[str]]:
         if not images:
             return None, "PDF OCR failed: no pages rendered."
         image = images[0]
-        engine = _resolve_engine()
-        if engine == "paddle":
-            return None, "PDF OCR with Paddle not supported (image path required)."
         try:
             import pytesseract  # type: ignore
         except Exception as exc:
@@ -286,15 +303,12 @@ def extract_text_with_meta(image_path: str, min_chars: int | None = None) -> Tup
         return text, ocr_err or err or "PDF text extraction produced no content.", {"ocr_used": False, "method": "pdf"}
 
     engine = _resolve_engine()
-    if engine == "paddle":
-        text, err = run_paddle_ocr(path_obj)
-    else:
-        text, err = run_tesseract_ocr(path_obj)
+    text, err, used_engine = _run_image_ocr(path_obj, engine)
 
     if text:
-        log_action("ocr_call", f"engine={engine} path={image_path}")
-        return text, None, {"ocr_used": True, "method": engine}
-    return None, err or "OCR produced no text", {"ocr_used": True, "method": engine}
+        log_action("ocr_call", f"engine={used_engine} path={image_path}")
+        return text, None, {"ocr_used": True, "method": used_engine}
+    return None, err or "OCR produced no text", {"ocr_used": True, "method": used_engine}
 
 
 def extract_text(image_path: str) -> Tuple[Optional[str], Optional[str]]:
@@ -305,11 +319,12 @@ def extract_text(image_path: str) -> Tuple[Optional[str], Optional[str]]:
 def health() -> Tuple[bool, str]:
     engine = _resolve_engine()
     if engine == "paddle":
-        # Shallow check: Can we import it? (Not loading model yet)
-        try:
-            import paddleocr
+        # Keep health checks lightweight: importing PaddleOCR can trigger model-host checks.
+        if find_spec("paddleocr") is not None:
             return True, "PaddleOCR available (lazy)"
-        except ImportError:
-            return False, "PaddleOCR package missing"
+        fallback_ok, fallback_err = _tesseract_ready()
+        if fallback_ok:
+            return True, "PaddleOCR package missing; Tesseract fallback ready"
+        return False, f"PaddleOCR package missing; Tesseract fallback unavailable: {fallback_err}"
     ok, err = _tesseract_ready()
     return ok, "Tesseract ready" if ok else (err or "Tesseract unavailable")

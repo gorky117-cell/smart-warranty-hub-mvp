@@ -1,241 +1,561 @@
-# Smart Warranty Hub – Working Memory
+# Smart Warranty Hub — Engineering Memory and Due-Diligence Brief
 
-Purpose: keep a running, human‑readable record of changes, decisions, and integrations so future updates don’t overwrite or duplicate work. Review this file before making new changes.
+**Purpose:** This is the first file a new coding assistant, engineer, Kiro, Antigravity/Gemini, or technical reviewer should read before changing Smart Warranty Hub (SWH). It records the verified architecture, feature wiring, deployment/Git facts, evidence limits and safe next steps.
 
-Last updated: 2026-02-13
+**Last repository audit:** 2026-07-10
+**Project type:** FastAPI + Jinja templates + SQLAlchemy.
+**Product:** AI-assisted warranty intelligence for customers, OEMs/TPAs and administrators.
+**Latest verified hardening:** OCR connector aliases are normalized with a Tesseract fallback; review crawl/stat routes have one active handler each.
 
-## Key Integrations (Current State)
-- OCR + ingestion + warranty parsing is integrated.
-- Auto warranty term discovery and scraping is integrated (offline sources + live search).
-- Brave Search API support is integrated (preferred free-tier option).
-- Optional headless scraping (Playwright) is integrated and gated by env var.
-- Regional policy rules + OEM issue signals are integrated into predictive risk.
-- Scheduled ingestion + risk refresh is integrated via scheduler.
-- Staged expiry reminders are integrated (30d/7d/today/expired) with periodic refresh.
-- Mistral LLM + RAG (pgvector) is integrated for smarter summaries.
-- RAG indices now ingest product/user behaviour, telemetry, and OEM issue signals for predictive context.
-- Review crawling pipeline added (India focus, daily scheduling, robots-respecting). Stores raw snapshots in object storage and ingests review sentiment into predictive signals.
-- Per-upload review crawl supported for real-time enrichment.
-- OEM official domain list added for safer discovery.
-- OEM-specific parsing rules applied during warranty parsing (brand-specific selectors + extended parts).
-- Expanded India OEM domain list for appliances/electronics/audio/EV.
-- Added verified OEM domain store and endpoints for manual verification.
-- Added OEM domain auto-verify + auto-suggest (bounded attempts, no endless loops).
-- Auto-verify OEM domains on invoice ingestion (bounded); notifies OEM if unresolved.
-- Added exhaustive India domain catalog with verification artifacts:
-  - `data/domain_catalog_exhaustive_verified.json`
-  - `data/domain_catalog_exhaustive_verify_report.json`
-  - `data/google_cse_seed_domains_top50_verified.txt`
-- Railway production is live with green health checks:
-  - `/health/full` => `status=ok`
-  - `/health/ocr` => `ok=true`
-  - `/health/llm` => `ok=true`
-  - predictive model load confirmed in production.
+---
 
-## Environment / Config
-- `TERMS_SCRAPE_ENABLED=1` (default)
-- `TERMS_SCRAPE_MODE=auto+manual`
-- `TERMS_SCRAPE_ALLOW_RETAIL=1`
-- `TERMS_SEARCH_PROVIDER=brave|bing|auto`
-- `BRAVE_SEARCH_KEY` (for Brave search)
-- `HEADLESS_SCRAPE=1` (optional, requires Playwright)
-- `OEM_ISSUE_FEED_REFRESH_MINUTES` (default 180)
-- `RISK_REFRESH_MINUTES` (default 120)
-- `REVIEW_CRAWL_ENABLED=true`
-- `REVIEW_CRAWL_MINUTES=1440`
-- `REVIEW_REGION=IN`
-- `REVIEW_MAX_PAGES`, `REVIEW_MAX_PAGES_PER_DOMAIN`, `REVIEW_MAX_QUERIES_PER_PRODUCT`, `REVIEW_MAX_RESULTS_PER_QUERY`
-- `REVIEW_ROBOTS_RESPECT=true`
-- `REVIEW_CRAWL_DELAY_SEC`
-- `REVIEW_SEARCH_PROVIDER` (brave/bing/auto)
-- `REVIEW_SEARCH_PROVIDER` (brave/serpapi/google/bing/auto)
-- `REVIEW_DENYLIST_DOMAINS`
-- Search quota guard:
-  - `SEARCH_DAILY_LIMIT` (0 = unlimited)
-  - `SEARCH_MONTHLY_LIMIT` (0 = unlimited)
-  - Per-provider limits (override global):
-    - `SEARCH_DAILY_LIMIT_SERPER`, `SEARCH_MONTHLY_LIMIT_SERPER`
-    - `SEARCH_DAILY_LIMIT_BRAVE`, `SEARCH_MONTHLY_LIMIT_BRAVE`
-    - `SEARCH_DAILY_LIMIT_GOOGLE`, `SEARCH_MONTHLY_LIMIT_GOOGLE`
-    - `SEARCH_DAILY_LIMIT_SERPAPI`, `SEARCH_MONTHLY_LIMIT_SERPAPI`
-  - `SEARCH_QUOTA_FILE` (default `data/search_quota.json`)
-  - `SERPER_API_KEY` / `SERPER_KEY`
-  - `SERPER_ENDPOINT` (default `https://google.serper.dev/search`)
-  - `SERPAPI_KEY` (SerpAPI fallback)
-  - `SERPAPI_ENDPOINT` (default `https://serpapi.com/search.json`)
-  - `TERMS_SEARCH_AUTO_ORDER` (example: `serper,serpapi,brave,google,bing`)
-- `REVIEW_CRAWL_ON_UPLOAD=true` (real-time per invoice)
-- `REVIEW_ON_UPLOAD_MAX_PAGES=5`
-- `TERMS_OFFICIAL_ONLY=true` (only allow OEM domain matches)
-- `TERMS_PREFLIGHT_STRICT=true` (skip search providers if no alive verified/OEM domain)
-- `TERMS_PREFLIGHT_MAX_DOMAINS=4`
-- `TERMS_PREFLIGHT_TIMEOUT_SEC=4`
-- `TERMS_ALLOW_BROAD_FALLBACK=false` (allow non-site queries only when needed)
-- OEM subtle contact guardrails:
-  - `OEM_CONTACT_MIN_DAYS=180`
-  - `OEM_CONTACT_MAX_PER_WINDOW=1`
-  - `OEM_CONTACT_REQUIRE_IMPORTANCE=true`
-  - `OEM_CONTACT_ALLOW_MARKETING=false`
-  - `OEM_IMPORTANCE_ISSUE_LOOKBACK_DAYS=90`
-  - `OEM_IMPORTANCE_SYMPTOM_LOOKBACK_DAYS=30`
-  - `OEM_IMPORTANCE_EXPIRY_DAYS=45`
-- Weekly OEM auto-dispatch:
-  - `OEM_AUTO_DISPATCH_ENABLED=true`
-  - `OEM_AUTO_DISPATCH_MINUTES=43200` (monthly default)
-  - `OEM_ANALYSIS_ENABLED=true`
-  - `OEM_ANALYSIS_MINUTES=10080` (weekly analysis)
-  - Policy file: `OEM_DISPATCH_POLICY_FILE` (default `data/oem_dispatch_policy.json`)
-- `DATA_GOVERNANCE_CLEANUP_MINUTES=1440`
-- `REVIEW_RETENTION_DAYS`, `REVIEW_PAGE_RETENTION_DAYS`, `TELEMETRY_RETENTION_DAYS`, `SEARCH_LOG_RETENTION_DAYS`
-- `REVIEW_FETCH_RETRIES` (default 2)
-- `ALERT_WEBHOOK_URL`
-- `REQUIRE_USER_CONSENT=true` (enforce consent on telemetry/behaviour)
-- Object storage:
-  - `OBJECT_STORE_DRIVER=local|s3`
-  - `OBJECT_STORE_LOCAL_DIR`
-  - `OBJECT_STORE_S3_BUCKET`, `OBJECT_STORE_S3_ENDPOINT`, `OBJECT_STORE_S3_REGION`
-  - `OBJECT_STORE_S3_ACCESS_KEY`, `OBJECT_STORE_S3_SECRET_KEY`
-- `MISTRAL_API_KEY`
-- `MISTRAL_MODEL` (default `mistral-small-latest`)
-- `MISTRAL_EMBED_MODEL` (default `mistral-embed`)
-- `RAG_ENABLED=1`
-- `SCHEDULER_ENABLED=true|false` (new kill switch for low-memory deploys)
-- `PGVECTOR_DDL_ENABLED=true|false` (controls pgvector column DDL usage)
-- Expiry reminder controls:
-  - `EXPIRY_REMINDER_ENABLED=true|false`
-  - `EXPIRY_REMINDER_MINUTES=720`
-  - `EXPIRY_REMINDER_STAGE_DAYS=30,7,0`
-  - `EXPIRY_REMINDER_SCAN_LIMIT=1500`
+## 1. Read this before touching code
 
-## Changes & Additions
-- Added warranty discovery + parsing:
-  - `app/services/warranty_discovery.py`
-  - `app/services/warranty_parser.py`
-  - `app/services/web_search.py` (Bing + Brave + auto)
-  - Google Custom Search support (`GOOGLE_CSE_API_KEY`, `GOOGLE_CSE_CX`)
-- Added RAG + Mistral:
-  - `app/services/rag.py`
-  - `app/services/summary_engine.py` supports `LLM_PROVIDER=mistral`
-  - New DB table: `DocumentEmbeddingDB`
-- Extended terms lookup:
-- Structured summaries stored with points/tags in `WarrantySummaryDB`.
-- Review crawler:
-  - `app/services/review_crawler.py`
-  - `app/services/review_sources.py`
-  - `app/services/sentiment.py`
-  - `app/services/object_store.py`
-  - New DB table: `ReviewPageDB`
-  - `app/services/terms_lookup.py` (auto discovery + manual URL + regional policy)
-- Added region policy + OEM issue signals:
-  - `app/services/regional_policy.py`
-  - `app/services/oem_issue_signals.py`
-  - New DB tables: `RegionalPolicyDB`, `OemIssueSignalDB`, `RiskSnapshotDB`
-- Added scheduled ingestion + risk refresh:
-  - `app/services/oem_issue_feeds.py`
-  - `app/services/risk_refresh.py`
-  - Scheduler updated in `app/services/scheduler.py`
-  - Added staged expiry reminder engine (`30d/7d/today/expired`) with periodic scheduler refresh.
-- Added APIs:
-  - `POST /region-rules`, `GET /region-rules`
-  - `POST /oem/issues`, `GET /oem/issues/summary`
-  - `POST /warranty/terms/refresh`
-- Demo assets + flow:
-  - `test_data/mock_invoice.txt`
-  - `test_data/mock_oem_warranty.html`
-  - `data/warranty_sources.json` (mock mapping)
-  - `scripts/demo_mock_flow.py` (saves `data/demo_output.json`)
-- Test setup:
-  - `tests/conftest.py` uses temp DB, initializes schema
-  - `pytest.ini` disables cache provider
-  - `tests/test_warranty_parser.py` added
-- Fixes:
-  - Brand parsing trim in `app/services/ingestion.py`
-  - Summary uses refreshed warranty data in `app/services/invoice_pipeline.py`
-- Requirements:
-  - `paddleocr==2.8.0`
-  - `paddlepaddle==2.6.2`
-  - `PyMuPDF==1.23.8`
-- Helper:
-  - `scripts/set_brave_env.ps1`
-- Added strict search preflight:
-  - verified/OEM domain DNS+HTTPS preflight before paid provider calls
-  - verified-domain-first `site:` search queries
-  - broad fallback only if enabled
-  - tests in `tests/test_warranty_discovery.py`
-- Added OEM communication trace + subtle outreach controls:
-  - new table `OemCommunicationTraceDB`
-  - API: `POST /oem/communications/send`
-  - API: `GET /oem/communications/traces`
-  - enforced 6-month throttle + importance/match checks before user outreach
-- Added weekly OEM auto-dispatch with admin controls:
-- Updated to weekly analysis + monthly dispatch:
-  - weekly dry-run analysis logs (`oem_weekly_analysis`)
-  - monthly dispatch run (`oem_monthly_dispatch`)
-  - if insufficient signal, skip user sends and notify OEM "analysis not yet conclusive"
-  - service: `app/services/oem_dispatch.py`
-  - scheduler integration in `app/services/scheduler.py`
-  - APIs:
-    - `GET /admin/oem-dispatch/policy`
-    - `POST /admin/oem-dispatch/policy`
-    - `POST /admin/oem-dispatch/run`
-- Deployment hardening fixes:
-  - Added scheduler kill switch in `app/services/scheduler.py`.
-  - Docker packaging fixed to include required runtime files from `data/`:
-    - `predictive_model.pkl`
-    - OEM/search seed JSON files used at runtime.
-  - Predictive model regenerated for runtime compatibility.
-  - Audit logging hardened so missing `audit_logs` table does not break scheduler/background jobs.
-  - Postgres init order fixed: create `vector` extension before `create_all`.
-  - Pgvector DDL made opt-in via `PGVECTOR_DDL_ENABLED`.
-  - Auth fallback added for missing `users` table (auto-create + seed admin on auth access).
-  - `GET /auth/login` now redirects to `/login` to avoid user confusion.
-  - Removed duplicate OEM router wiring to avoid route shadowing and auth bypass paths.
-  - Replaced OEM recommendation preview/generate placeholder responses with DB-driven live signals.
-  - Hardened auth cookie security (`secure` now auto-detected from HTTPS/proxy or `COOKIE_SECURE` env).
-  - Added startup safety creation for `audit_logs` and stronger audit table auto-heal in `app/services/audit.py`.
-  - Cleared mock discovery seed from `data/warranty_sources.json` and blocked local test-data URLs unless explicitly enabled (`TERMS_ALLOW_LOCAL_DEV_SOURCES=true`).
-  - `app/services/llm.py` now supports `LLM_PROVIDER=mistral` for `/llm/generate` (non-tech markdown-friendly response style), while keeping Ollama connector fallback.
-- UI refinement baseline:
-  - Unauthenticated `/ui/*` routes now redirect to `/login?next=...` instead of returning raw `{"detail":"Missing token"}`.
-  - Added mobile-first welcome auth page with both sign-in and sign-up flow in `templates/login.html`.
-  - Added browser form endpoint `POST /auth/signup/form` for user-role self-signup (toggle: `PUBLIC_SIGNUP_ENABLED`, default on).
-  - Added persistent UI rules doc: `docs/ui_refinement_rules.md`.
-  - Refined `templates/neo_dashboard.html` for mobile-first spacing, typography, sticky navigation, and section-focused quick nav without backend logic changes.
-  - Second UI pass refined Neo card/form hierarchy with clearer sub-panels, field grouping, and step-level visual structure (UI-only).
+1. Preserve working routes and UI IDs unless the matching caller is changed in the same patch.
+2. Do not treat an optional AI/OCR/search integration as mandatory. SWH must keep working through deterministic fallbacks.
+3. Do not claim live production KPI impact from the evaluation artifacts. Most KPI files are synthetic, controlled 50-case runs.
+4. Do not commit `.env`, access tokens, cookies, SQLite files, uploads, generated runtime JSONL or virtual environments.
+5. Do not replace a safe deterministic workflow with an LLM-only workflow.
+6. Do not let an LLM directly execute a remote device command, send OEM communication or use unrestricted web scraping. Existing policy, consent, verified-domain and approval gates remain authoritative.
+7. Before fixing a bug, trace route → service → DB model → template/JS, then run the smallest relevant verification.
 
-## Operational Notes
-- For live web discovery, set `BRAVE_SEARCH_KEY`.
-- Without a search key, discovery uses `data/warranty_sources.json` only.
-- Headless scraping is optional and off by default.
-- Tests run with: `python -m pytest -q --ignore=scripts`
+---
 
-## Deployment Notes (Railway)
-- Set `DATABASE_URL` to Railway Postgres (recommended) or SQLite path (not ideal for prod).
-- Add env vars:
-  - `BRAVE_SEARCH_KEY`
-  - `TERMS_SEARCH_PROVIDER=brave`
-  - Optional limits: `TERMS_SEARCH_MAX_QUERIES`, `TERMS_SEARCH_MAX_RESULTS`, `TERMS_SEARCH_TIMEOUT_SEC`
-  - Optional: `HEADLESS_SCRAPE=1` (requires Playwright install)
-- Ensure `OEM_ISSUE_FEED_REFRESH_MINUTES` and `RISK_REFRESH_MINUTES` are set if you want scheduled updates.
+## 2. Current Git and repository facts
 
-## Architecture Notes (High Level)
-- Ingestion: `/artifacts` → OCR → parsed fields → warranty record.
-- Terms: discovery (offline + search) → scrape HTML/PDF → cache terms → update warranty.
-- Risk: behaviour + telemetry + regional rules + OEM issue signals → predictive score → notifications.
-- Scheduler: OEM fetch queue + OEM issue feed ingest + risk refresh.
+### Branches and remote (verified in this audit)
 
-## TODOs / Next Improvements
-- Add real OEM feed sources to `data/oem_issue_feeds.json`.
-- Add allow/deny list for OEM domains.
-- Add search retry/backoff + rate limit handling.
-- Add per‑OEM parsers for higher accuracy.
-- Add cron job to refresh summaries after risk changes.
+- Working branch: `master`.
+- `origin`: `https://github.com/gorky117-cell/smart-warranty-hub-mvp`.
+- Local `master` commit: `3e9ae738 Allow Chart.js/font CDNs in CSP so OEM dashboard charts load`.
+- `origin/master` resolves to the same commit: `3e9ae738e1e03a581c3d6748178394cf0e271bc0`.
+- `main` is an older/diverged branch (`ahead 2, behind 43` relative to `origin/main` at audit time). Do **not** assume `main` is the release branch; treat `master` as the active project branch unless the owner intentionally merges/restructures branches.
 
-## Working Rules (Execution Discipline)
-- Anti-regression first: one fix must not break previously working behavior.
-- Before each micro-fix, check related routes/services and ownership/security side effects.
-- After each fix, run the smallest relevant verification first, then broader checks when needed.
-- Keep changes scoped: avoid unrelated refactors while solving production issues.
-- Preserve previous successful fixes unless explicitly replaced by a safer/newer implementation.
-- Update this memory after meaningful discussion decisions and after each shipped code change.
-- Keep a clear stream of work: issue -> root cause -> fix -> verification -> deployment status.
+### Current documentation and hardening set
+
+The maintained handoff set is `MEMORY.md`, `docs/HANDOFF.md`, `docs/PROJECT_REFERENCE.md`, `docs/COMPLETE_ARCHITECTURE_AUDIT.md`, `docs/AI_IDE_HANDOFF_PROMPT.md`, `docs/GOLDEN_PATH_TEST.md`, and `docs/DOCS_INDEX.md`.
+
+Latest verified safeguards:
+
+- `app/services/ocr.py` normalizes `paddleocr`/`paddle` aliases, uses Paddle lazily when selected, and falls back to Tesseract when Paddle cannot run.
+- Health checks test Paddle package availability without importing/loading its model.
+- `/reviews/crawl` and `/reviews/stats` are registered once through `app/routes/reviews.py`, preventing route-order ambiguity.
+- `tests/test_ocr_and_review_routes.py` protects those two regressions.
+
+Before every commit, use `git status -sb` and stage only source, tests, and intended documentation. Do not stage caches, logs, database files, credentials, uploads, or local environment files.
+
+### Recent commit progression
+
+Recent active-branch commits show the current product direction:
+
+1. `3e9ae738` — allows Chart.js/font CDNs in CSP so OEM charts load.
+2. `6f4c5a5c` — OEM product selector and model-level filtering for a one-product demo.
+3. `dd130776`, `71cc1af9` — Railway/custom-domain HTTPS redirect-loop fixes.
+4. `31cc1af9` — email auth flows and password-change UI.
+5. `6ccac4c9` — role-based dashboard routing and logout.
+6. `eea7d822` — complete product/KPI documentation.
+7. Earlier commits added diagnostics, RAG health, KPI lifecycle, ingestion/search/NLP/predictive/nudge/OEM evaluation harnesses and UI refinements.
+
+### Railway status: what is and is not confirmed
+
+- The repository includes Railway-ready deployment support: `Dockerfile`, `run_app.py`, `PORT` handling and deployment documentation.
+- Historical notes previously stated that a Railway deployment had green health checks. That is **historical evidence**, not a live verification performed during this audit.
+- A coding assistant cannot confirm current Railway health from local repository files alone. Verify after every push with the actual Railway deployment URL, Railway logs and `/health/full`.
+- The current branch must be the branch Railway watches. Verify this in Railway Settings; do not assume it watches `master` merely because GitHub has that branch.
+
+---
+
+## 3. Product promise and user roles
+
+### Customer
+
+1. Upload a bill/invoice, use camera capture or load a known product/warranty ID.
+2. Receive a structured product/warranty record with coverage, exclusions, claim steps, expiry and source/confidence context.
+3. Receive care guidance, risk explanation, notifications, behaviour questions and recommendations.
+4. Log usage/health information and, when needed, start diagnostics or service support.
+
+### OEM / TPA
+
+1. View product/brand/model/region risk and issue signals.
+2. Publish targeted customer questions and recommendations.
+3. Review product-interest/demand signals.
+4. Run controlled communications and dispatch analysis with policy traces.
+
+### Admin
+
+1. Manage policy, review, dispatch and KPI operations.
+2. Inspect scheduler and operational health.
+3. Control sensitive role-gated workflows.
+
+---
+
+## 4. Main runtime architecture
+
+```text
+Jinja browser dashboards
+  ├─ Customer Care: /ui/neo-dashboard
+  ├─ OEM:           /ui/oem-dashboard
+  ├─ Console:       /ui/console
+  ├─ Admin:         /ui/admin-hub
+  └─ Scheduler:     /ui/scheduler
+          │
+          ▼
+FastAPI app: app/main.py
+  ├─ Auth/RBAC/ownership
+  ├─ Artifact upload + invoice job pipeline
+  ├─ Warranty + terms + summary
+  ├─ Behaviour + risk + predictive + recommendations
+  ├─ Notifications + service + diagnostics
+  ├─ OEM intelligence + communications + KPI APIs
+  └─ UI, health and export routes
+          │
+          ├─ SQLAlchemy: SQLite locally / PostgreSQL through DATABASE_URL
+          ├─ Runtime JSON/JSONL under data/ for selected fallbacks
+          ├─ Optional OCR, LLM, RAG, web search, OEM connectors
+          └─ Optional in-process scheduler
+```
+
+### Primary source files
+
+| File | Responsibility |
+|---|---|
+| `app/main.py` | Primary FastAPI app, request models, APIs, UI rendering, health routes, security headers and compatibility endpoints. |
+| `app/db.py` | SQLAlchemy connection selection: local SQLite by default, PostgreSQL when `DATABASE_URL` is set. |
+| `app/db_models.py` | Durable database schema for users, warranties, artifacts, pipeline jobs, parsed fields, summaries, behaviour, telemetry, notifications, OEM/KPI/diagnostic data. |
+| `app/deps.py` | Password hashing, JWT cookie/Bearer auth, role guards, ownership helpers, DB startup and admin seed logic. |
+| `app/models.py` | Pydantic/domain objects used in core warranty/risk/nudge/service logic. |
+| `app/storage.py` | Legacy/in-memory compatibility store and ID helper. |
+| `app/services/` | Domain logic. Treat service functions as the reusable tool layer. |
+| `app/routes/` | Modular routers for reviews, remote diagnostics, guided diagnostics and OEM studio variants. |
+| `app/scrapers/` | Example OEM-specific source adapters. |
+| `templates/` | Server-rendered UI only; preserve DOM IDs/hooks used by inline JavaScript. |
+| `scripts/` | Local migration, smoke tests, evaluations and operational helpers. |
+| `tests/` | Pytest unit/integration coverage. |
+
+---
+
+## 5. Customer Care Dashboard: real flow
+
+**Route:** `GET /ui/neo-dashboard`
+**Template:** `templates/neo_dashboard.html`
+
+### Flow
+
+1. Customer signs in through `/login` / `POST /auth/login`; browser receives `access_token` cookie.
+2. Customer loads a product/warranty ID using `GET /warranties/{id}`.
+3. Customer sees product label, expiry/coverage summary and risk status.
+4. **See full summary controls only Step 2 (Details & Care).** Step 3 receipt and Step 4 usage/health must stay outside that toggle.
+5. Step 2 shows customer-friendly coverage, exclusions, claim steps and formatted full text. Raw JSON is debug-only.
+6. Step 3 supports one receipt entry path with upload/camera/manual methods. It posts uploaded evidence to `/artifacts/upload`.
+7. Step 4 supports usage/health information and telemetry/behaviour context.
+8. Customer receives recommendations, advisories, behaviour questions, notifications and diagnostics handoff.
+
+### UI safety constraints
+
+- Keep `loadAll`, notification controls, upload handlers and existing element IDs stable.
+- Keep bill upload/camera/manual entry as progressive enhancement; explain degradation when OCR is unavailable.
+- Product label should be customer-facing (`Product/Brand Model (wty_id)`); raw warranty IDs remain technical suffixes, not the primary label.
+- Notification **Mark read** should remove/read the item and update the badge in one interaction.
+
+---
+
+## 6. Invoice → warranty intelligence pipeline
+
+### APIs
+
+- `POST /artifacts/upload` — authenticated multipart evidence upload.
+- `POST /artifacts/capture` — capture/evidence path where environment supports it.
+- `POST /warranties/{id}/process` — manually rerun processing.
+- `GET /jobs/{job_id}` — pipeline job status.
+- `GET /warranties/{id}` — canonical warranty data.
+- `GET /warranties/{id}/summary` — best available structured summary.
+- `POST /warranties/summary` — legacy summary compatibility route.
+- `POST /warranty/terms/refresh` — controlled terms refresh.
+
+### Pipeline stages
+
+```text
+uploaded
+→ extracting_text
+→ ocr_if_needed
+→ parsed_fields
+→ terms_lookup
+→ summarized
+→ done | failed
+```
+
+### Files and responsibilities
+
+| File | Role |
+|---|---|
+| `app/services/invoice_pipeline.py` | Creates/persists jobs, runs each stage, updates warranty, parsed fields, terms and summary. |
+| `app/services/ocr.py` | PDF text first; Paddle and Tesseract engine aliases are normalized, with Tesseract used as a safe fallback if Paddle is unavailable. Paddle remains optional/lazy and uses TTL-style resource handling where configured. |
+| `app/services/ingestion.py` | Deterministic invoice extraction: brand, product, category, model, serial/IMEI, invoice number, date and coverage where present. |
+| `app/services/canonical.py` | Converts evidence into a normalized warranty structure and computes coverage/expiry fields. |
+| `app/services/terms_lookup.py` | Existing-record/cache lookup, source discovery, parsing, regional policy and transparent default fallback. |
+| `app/services/warranty_discovery.py` | Bounded source discovery, official/verified domain preference, region/model ranking and preflight before search. |
+| `app/services/warranty_parser.py` | Deterministic terms/exclusion/claim-step parsing, optional Mistral JSON enrichment when confidence is low. |
+| `app/services/summary_engine.py` | Template fallback plus optional Mistral/Ollama/llama.cpp summaries. |
+| `scripts/sqlite_migrate.py` | Idempotent local SQLite schema safety helper. |
+
+### Important business truth
+
+Invoices generally prove a purchase but do not contain the full warranty agreement. They can miss the full terms, exclusions, claim process, region-specific coverage, serial number or model. SWH must present discovered/default terms as guidance with source/confidence context, not as an unqualified OEM guarantee.
+
+---
+
+## 7. OEM lookup, web search, DNS/domain preflight and scraping
+
+### What is already implemented
+
+1. Check existing internal warranty records first.
+2. Check the terms cache (`WarrantyTermsCacheDB`) next.
+3. Use configured official/verified OEM domains (`app/services/oem_domains.py`, `app/services/oem_domain_verify.py`).
+4. Run bounded domain/reachability preflight in `warranty_discovery.py`.
+5. Prefer official domains and use model/product/region matching.
+6. Run limited provider search only when configuration and preflight policy allow it.
+7. Parse warranty pages, HTML, PDFs and saved source text.
+8. Cache successful results; use category defaults if no reliable source is available.
+
+### Main controls
+
+- `TERMS_SCRAPE_ENABLED`
+- `TERMS_SCRAPE_MODE`
+- `TERMS_OFFICIAL_ONLY`
+- `TERMS_PREFLIGHT_STRICT`
+- `TERMS_PREFLIGHT_MAX_DOMAINS`
+- `TERMS_PREFLIGHT_TIMEOUT_SEC`
+- `TERMS_SEARCH_MAX_QUERIES`
+- `TERMS_SEARCH_MAX_RESULTS`
+- `TERMS_ALLOW_BROAD_FALLBACK`
+- Provider keys such as `BRAVE_SEARCH_KEY`, `SERPER_API_KEY`, `SERPAPI_KEY`, `GOOGLE_CSE_API_KEY` and `GOOGLE_CSE_CX`.
+
+### What “DNS/preflight” means here
+
+It is a lightweight application-level check: known/verified domain matching, reachability checks and official-domain preference before invoking paid search or parsing a source. It is **not** an OEM security certification and does not replace a contractual OEM API integration.
+
+### Scrapers
+
+- `app/scrapers/acmeco.py`
+- `app/scrapers/zenith.py`
+
+These are examples/adapters, not universal OEM coverage. Add one approved adapter or official API per OEM/product family during a real rollout.
+
+---
+
+## 8. Behaviour, RAG, predictive care and AI stack
+
+### Behaviour intelligence
+
+| File | Function |
+|---|---|
+| `app/services/behaviour.py` | Stores/uses customer behaviour events. |
+| `app/services/behaviour_questions.py` | Deterministic small customer question bank and answer persistence. |
+| `app/services/oem_question_service.py` | OEM-targeted questions filtered by product context; prevents repeats per user/warranty. |
+| `app/services/ollama_questions.py` | Optional Ollama question generation with deterministic fallback. |
+| `app/services/nudge.py`, `app/services/nudges.py`, `app/services/policy.py` | Care, expiry and risk nudges with policy/variant support. |
+
+Customer questions should be minimal and purposeful: serial/model confirmation, location/use, usage level, voltage, maintenance, environment or symptom context. Do not turn this into a long repetitive form.
+
+### Predictive/risk engine
+
+| File | Function |
+|---|---|
+| `app/services/risk.py` | Base rules-based risk. |
+| `app/services/predictive.py` | Feature vector, trained-model/heuristic scoring, explanations, behaviour delta, regional policy, issue/review/search/RAG context. |
+| `app/services/regional_policy.py` | Region/brand/model/product rules. |
+| `app/services/risk_refresh.py` | Snapshot/refresh support. |
+| `app/services/ev_battery.py` | EV battery-specific score/recommendations. |
+
+Inputs can include warranty age/coverage, telemetry, usage, failures, care/behaviour scores, region/climate/power policy, peer review signals, symptom search activity, OEM issue signals and optional RAG context. Outputs must stay explainable: label, score, base score, behaviour delta and reasons.
+
+### RAG and Mistral
+
+| File | Function |
+|---|---|
+| `app/services/rag.py` | Optional Mistral embedding retrieval over warranty summaries, behaviour, telemetry, OEM issues, reviews and diagnostic traces; supports metadata filters. |
+| `app/services/summary_engine.py` | Template summary by default; optional `mistral`, `ollama_remote` or `llamacpp` provider. |
+| `app/services/warranty_parser.py` | Uses Mistral only to enrich low-confidence structured terms parsing. |
+
+RAG is active only when `RAG_ENABLED=1` and `MISTRAL_API_KEY` exists. If disabled/unavailable, it returns no context and the normal deterministic warranty/risk flow continues. Never assume RAG is active merely because the module exists.
+
+### Customer and OEM recommendations
+
+| File | Function |
+|---|---|
+| `app/services/recommendation.py` | Care recommendation rules. |
+| `app/services/product_recommendations.py` | Product suggestions driven by product/risk/region. |
+| `app/services/oem_recommendation_service.py` | OEM publish/list/disable recommendation store. |
+| `POST /events/product-interest` | Captures interest signals for OEM demand insight. |
+
+---
+
+## 9. IoT and non-IoT diagnostics
+
+### Capability routing
+
+`app/services/diagnostics_capability.py` selects the safe support path.
+
+| Product type | Flow | Main files |
+|---|---|---|
+| Connected/IoT product | Remote diagnostics with session, command request, review, connector execution and trace. | `app/routes/remote_diagnostics.py`, `app/services/remote_diagnostics.py` |
+| Non-IoT product | Guided questions, evidence capture, probable issue, service-centre recommendation and optional ticket. | `app/routes/guided_diagnostics.py`, `app/services/guided_diagnostics.py` |
+
+### Safety boundary
+
+Remote diagnostics needs a real OEM connector configured in `data/connectors.json`/the connection registry, explicit consent, allowed command types and usually human review. It must never be made autonomous solely because an LLM requests a device action.
+
+---
+
+## 10. OEM, communications, scheduler and KPI operations
+
+### OEM dashboard and APIs
+
+**Dashboard:** `/ui/oem-dashboard` → `templates/oem_dashboard.html`
+
+Capabilities:
+
+- product/brand/model/region filters;
+- risk distribution, forecast and product-level analytics;
+- OEM issue signals;
+- Question Studio: generate/publish/list/disable customer questions;
+- Recommendation Studio: preview/generate/publish/list/disable recommendations;
+- product-interest/demand signals;
+- governed communications and trace retrieval;
+- domain verification and controlled OEM fetches.
+
+Both `/oem/...` and `/api/oem/...` compatibility paths are present for question/recommendation clients. `app/main.py` is currently the principal active route source; modular `app/routes/oem_questions.py` and `app/routes/oem_recommendations.py` also exist as reusable router implementations. Do not create new duplicate public paths without checking route registration and OpenAPI output.
+
+### Communication and dispatch
+
+| File | Function |
+|---|---|
+| `app/services/oem_communication.py` | Controls eligibility, importance, frequency and traceability of OEM messages. |
+| `app/services/oem_dispatch.py` | Policy-controlled dry-run/live dispatch. |
+| `app/services/oem_issue_signals.py`, `app/services/oem_issue_feeds.py` | Issue signal capture and periodic feed ingestion. |
+| `app/services/oem_domains.py`, `app/services/oem_domain_verify.py` | OEM official/verified domain store and verification helpers. |
+
+### Scheduler
+
+`app/services/scheduler.py` starts from the application lifespan when `SCHEDULER_ENABLED` permits it. It is appropriate for local/demo/single-instance workflows. Production should migrate recurring tasks to a durable queue/worker system before large-scale use.
+
+### KPI lifecycle
+
+| File | Function |
+|---|---|
+| `app/services/kpi_scorecard.py` | KPI report/scorecard. |
+| `app/services/kpi_watchdog.py` | Alert/healthy assessment. |
+| `app/services/kpi_remediation.py` | Remediation plan creation. |
+| `app/services/kpi_execution.py` | Task lifecycle/execution metrics. |
+
+---
+
+## 11. Health, tests and evidence
+
+### Health endpoints
+
+- `GET /health/full` — aggregate status; `degraded` is acceptable when optional OCR/LLM/RAG is unavailable.
+- `GET /health/ocr` — actual OCR engine readiness.
+- `GET /health/llm` — actual LLM provider readiness.
+- `GET /health/predictive` — predictive model/service readiness.
+- `GET /health/rag` — RAG configuration/data status.
+
+Do not call a deployment healthy just because the HTTP process responds. Check `/health/full` and its component checks.
+
+### Golden path
+
+Read and run `docs/GOLDEN_PATH_TEST.md` before a demo/deploy. It covers:
+
+1. cookie-based login;
+2. customer product load;
+3. Step 2 only summary toggle;
+4. upload/camera/manual receipt flow;
+5. Step 4 usage/health visibility;
+6. formatted warranty details and debug-only JSON;
+7. notifications/mark read;
+8. health/API checks and job polling.
+
+### Important tests/scripts
+
+- `tests/test_invoice_pipeline.py` — no-OCR/no-LLM and mocked OCR text pipeline paths.
+- `tests/test_warranty_discovery.py`, `tests/test_warranty_parser.py`, `tests/test_warranty_status.py`.
+- `tests/test_notifications.py`, `tests/test_oem_communication.py`, `tests/test_oem_dispatch.py`, `tests/test_rag_health.py`.
+- `scripts/smoke_test_behaviour_*.py`, `scripts/smoke_test_notifications.py`.
+- `scripts/smoke_test_oem_*.py`, `scripts/smoke_test_product_*.py`.
+- `scripts/test_upload.ps1` — Windows authenticated upload flow.
+- `scripts/sqlite_migrate.py` — idempotent local schema migration/safety step.
+
+### KPI evidence: synthetic benchmark only
+
+The project contains useful evaluation artifacts, mainly 50-case controlled/synthetic datasets under `data/`. They show that implementation paths were tested; they do **not** demonstrate live commercial outcomes.
+
+| Phase | Recorded evaluation result | Evidence boundary |
+|---|---|---|
+| 1C ingestion/OCR | 50 rows; OCR success 100%; brand F1 0.8889; model F1 0.6667; purchase-date F1 0.8889. | Controlled dataset; real invoice quality can differ. |
+| 2 preflight/scraping | Lookup/parse success 88%; official-source rate 100%; strict preflight accuracy 100%. | Controlled sources/scenarios; OEM websites change. |
+| 3 terms NLP | Duration exact match and section completeness recorded at 100%. | Synthetic/controlled terms cases; needs real-source evaluation. |
+| 4 predictive | Label accuracy/behaviour-delta direction recorded at 100%; P50/P95 4.64/8.93 ms. | Not live risk/outcome validation. |
+| 5 nudges | Bundle success/recall recorded at 100%; false positives 0% in dataset. | Not proof of real engagement or prevention impact. |
+| 6 service | Ticket creation/evidence flow recorded at 100%. | Workflow correctness, not service resolution KPI. |
+| 7 OEM dispatch | Send/rate-limit/dry-run traces pass. | Does not prove real recipient or OEM impact. |
+| 8–12 KPI lifecycle | Scorecard/watchdog/remediation/execution artifacts pass their scenario checks. | Operational simulation; live observation still required. |
+
+Use this exact external statement: **“SWH has implemented and test-validated MVP workflows with synthetic/controlled benchmark evidence. Live production business impact and model performance require a monitored pilot.”**
+
+---
+
+## 12. Production and pilot decision
+
+### Appropriate now
+
+- Internal demo.
+- Investor technical demonstration.
+- Controlled MVP pilot with limited users, supported product categories and clear terms-disclaimer language.
+- OEM discovery/connector proof of concept using approved sources.
+
+### Required before unrestricted production
+
+1. Use managed PostgreSQL and object storage; do not rely on local SQLite/JSONL/uploads across multiple instances.
+2. Add durable workers/queue for invoice jobs, scheduled tasks and retry/idempotency controls.
+3. Set production secrets; disable insecure defaults and seed credentials.
+4. Add backups, observability, error tracking, rate limits, retention and incident procedures.
+5. Measure OCR/parser/terms/predictive performance on real consented data.
+6. Use formal OEM APIs or approved adapters; do not rely on ungoverned scraping.
+7. Complete privacy, consent, security and regional legal review.
+8. Keep remote diagnostics review-gated until OEM/device validation is complete.
+9. Load-test application, uploads, exports, scheduler and database.
+
+---
+
+## 13. Optional Google ADK / agentic extension — not installed or active yet
+
+SWH already has a suitable **tool layer** for an agent. Google ADK should be added only as an optional orchestration layer, not as a replacement for deterministic core services.
+
+### Proposed controlled Warranty Resolution Agent
+
+```text
+Upload/customer request
+→ read parsed invoice data
+→ assess field confidence
+→ ask at most one useful question if essential data is missing
+→ call verified-domain terms lookup when needed
+→ retrieve authorized RAG context
+→ produce customer-friendly evidence-aware summary and next action
+```
+
+Potential controlled tools already exist:
+
+- read canonical warranty/parsed fields;
+- run terms cache/discovery/parser;
+- retrieve filtered RAG context;
+- get next behaviour/OEM question;
+- calculate predictive score/advisories;
+- choose diagnostics capability;
+- create a draft service workflow.
+
+### Non-negotiable agent rules
+
+- Feature flag default off: e.g. `AGENTIC_WORKFLOW_ENABLED=0`.
+- Do not run the agent for every page load or every invoice.
+- Call it only for low-confidence/missing warranty resolution, explicit customer AI-help request or an approved scheduled OEM report.
+- Use cache, token limits, per-user quotas, maximum tool calls and timeouts.
+- Search only approved/verified OEM sources and preserve citations/source URLs.
+- Do not write warranty data, contact users or execute remote commands without current validation/policy/approval layers.
+- Record agent decision, tool calls, source, cost/tokens, user/warranty scope and final status.
+- If Google/Gemini/ADK fails, continue through the normal SWH deterministic path.
+
+### Cost model
+
+Google ADK is a framework; model/search/OCR calls create the variable cost. The lowest-cost approach is: rules/cache/PDF text first → OCR only if needed → agent only for difficult cases → cache the outcome. Weekly OEM summaries should be aggregated by product/region and generated once per period, not once per customer.
+
+---
+
+## 14. Environment/config groups
+
+### Security/auth
+
+- `JWT_SECRET`, `JWT_SALT`, `JWT_EXPIRE_HOURS`
+- `ADMIN_USER`, `ADMIN_PASS`
+- `ALLOW_INSECURE_DEFAULTS`
+- `ALLOWED_HOSTS`
+- `COOKIE_SECURE`
+
+### OCR and LLM
+
+- `OCR_ENGINE`, `OCR_MIN_TEXT_CHARS`, `OCR_ENGINE_TTL_SEC`
+- `LLM_PROVIDER` (`none`, `mistral`, `ollama_remote`, `llamacpp`)
+- `MISTRAL_API_KEY`, `MISTRAL_API_URL`, `MISTRAL_MODEL`, `MISTRAL_EMBED_MODEL`
+- `OLLAMA_URL`, `OLLAMA_MODEL`, `LLM_MODEL_PATH`
+- `RAG_ENABLED`, `PGVECTOR_DDL_ENABLED`
+
+### Terms/search/OEM
+
+- `TERMS_*` controls listed in section 7.
+- Search provider keys and quotas.
+- `OEM_CONTACT_*`, `OEM_ANALYSIS_*`, `OEM_AUTO_DISPATCH_*`, `OEM_DISPATCH_POLICY_FILE`.
+
+### Scheduler/operations
+
+- `SCHEDULER_ENABLED`
+- `OEM_REFRESH_MINUTES`, `OEM_ISSUE_FEED_REFRESH_MINUTES`, `RISK_REFRESH_MINUTES`
+- `REVIEW_CRAWL_*`, `EXPIRY_REMINDER_*`
+- retention/alert/object-storage environment variables.
+
+### Diagnostics
+
+- `REMOTE_DIAGNOSTICS_ALLOWED_COMMANDS`
+- `REMOTE_DIAGNOSTICS_CONNECTOR`
+- `REMOTE_DIAGNOSTICS_TIMEOUT_SEC`
+- `REMOTE_DIAGNOSTICS_AUTO_EXECUTE`
+- `REMOTE_DIAGNOSTICS_POLL_MINUTES`, `REMOTE_DIAGNOSTICS_BATCH_SIZE`
+
+Never put values/secrets into this file; put names only.
+
+---
+
+## 15. New assistant / Kiro / Antigravity prompt
+
+Copy this into a new assistant:
+
+> You are continuing work on Smart Warranty Hub (SWH), a FastAPI + Jinja + SQLAlchemy warranty intelligence MVP. First read `MEMORY.md`, `docs/PROJECT_REFERENCE.md`, `docs/HANDOFF.md`, and `docs/GOLDEN_PATH_TEST.md`. Active Git branch is `master`; do not use the older diverged `main` branch. Preserve existing endpoints, authentication, UI IDs and fallback behavior. The system is pilot-ready, not unrestricted-production-ready. OCR, Mistral/RAG, web search, OEM scraping and diagnostics integrations are optional and must degrade safely. KPI results are synthetic/controlled benchmark evidence, not live commercial claims. Before editing, trace route → service → database → template. After editing, run focused tests and do not commit secrets, SQLite DBs, uploads, JSONL runtime stores, caches or venv files.
+
+---
+
+## 16. Useful commands
+
+```powershell
+# Local start
+.\.venv\Scripts\Activate.ps1
+python scripts\sqlite_migrate.py
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+
+# Test
+python -m pytest tests -q
+python -m py_compile app\main.py
+
+# Local health
+curl.exe http://127.0.0.1:8000/health/full
+curl.exe http://127.0.0.1:8000/health/ocr
+curl.exe http://127.0.0.1:8000/health/llm
+curl.exe http://127.0.0.1:8000/health/predictive
+
+# Git audit
+git status -sb
+git log -5 --oneline
+git branch -vv
+git ls-remote --heads origin
+```
+
+---
+
+## 17. Related docs
+
+- `docs/COMPLETE_ARCHITECTURE_AUDIT.md` — verified architecture audit, route/model/service inventory and known maintenance findings.
+- `docs/PROJECT_REFERENCE.md` — full architecture/file map/AI and production plan.
+- `docs/HANDOFF.md` — concise engineering handoff.
+- `docs/GOLDEN_PATH_TEST.md` — executable customer/API test journey.
+- `docs/complete_product_specification_and_kpi.md` — stakeholder/KPI product overview.
+- `docs/kpi_master_scorecard.md` — synthetic evaluation details.
+- `docs/oem_dashboard_and_integration_manual.md` — OEM/IoT/non-IoT integration manual.
+- `docs/deployment_config_reference.md` — Railway/env/operations reference.
+- `docs/DOCS_INDEX.md` — documentation navigation.
