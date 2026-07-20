@@ -17,6 +17,7 @@ _OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
 _MISTRAL_API = os.getenv("MISTRAL_API_URL", "https://api.mistral.ai/v1")
 _MISTRAL_MODEL = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
 _MISTRAL_KEY = os.getenv("MISTRAL_API_KEY")
+_OPENAI_FALLBACK_PROVIDER = os.getenv("OPENAI_FALLBACK_PROVIDER", "template").lower()
 _RAG_ENABLED = os.getenv("RAG_ENABLED", "0").strip().lower() in ("1", "true", "yes")
 
 _llama_instance = None
@@ -122,6 +123,30 @@ def _summarize_with_mistral(prompt: str) -> Tuple[Optional[str], Optional[str]]:
     return (text.strip() if text else None), None
 
 
+def _summarize_with_openai(prompt: str) -> Tuple[Optional[str], Optional[str]]:
+    try:
+        from .openai_intelligence import summarize_warranty as openai_summarize
+    except Exception as exc:
+        return None, f"OpenAI helper unavailable: {exc}"
+    return openai_summarize(prompt)
+
+
+def _fallback_summary(prompt: str, warranty: CanonicalWarranty) -> Tuple[str, str]:
+    if _OPENAI_FALLBACK_PROVIDER == "mistral":
+        text, _ = _summarize_with_mistral(prompt)
+        if text:
+            return text, "mistral"
+    if _OPENAI_FALLBACK_PROVIDER == "ollama_remote":
+        text, _ = _summarize_with_ollama(prompt)
+        if text:
+            return text, "ollama"
+    if _OPENAI_FALLBACK_PROVIDER == "llamacpp":
+        text, _ = _summarize_with_llamacpp(prompt)
+        if text:
+            return text, "llamacpp"
+    return _template_summary(warranty), "template"
+
+
 def summarize_warranty(warranty: CanonicalWarranty) -> Tuple[str, str]:
     """
     Returns (summary_text, source).
@@ -151,6 +176,11 @@ def summarize_warranty(warranty: CanonicalWarranty) -> Tuple[str, str]:
     if _LLM_PROVIDER == "mistral":
         text, err = _summarize_with_mistral(prompt)
         return (text or _template_summary(warranty)), "mistral" if text else "template"
+    if _LLM_PROVIDER == "openai":
+        text, err = _summarize_with_openai(prompt)
+        if text:
+            return text, "openai"
+        return _fallback_summary(prompt, warranty)
     if _LLM_PROVIDER == "ollama_remote":
         text, err = _summarize_with_ollama(prompt)
         return (text or _template_summary(warranty)), "ollama" if text else "template"
@@ -261,6 +291,12 @@ def health() -> Tuple[bool, str, Optional[str]]:
         if not _MISTRAL_KEY:
             return False, "MISTRAL_API_KEY not set", _MISTRAL_MODEL
         return True, "Mistral configured", _MISTRAL_MODEL
+    if _LLM_PROVIDER == "openai":
+        try:
+            from .openai_intelligence import health as openai_health
+        except Exception as exc:
+            return False, f"OpenAI helper unavailable: {exc}", None
+        return openai_health()
     if _LLM_PROVIDER == "llamacpp":
         if not _LLAMA_MODEL_PATH:
             return False, "LLM_MODEL_PATH not set", "llamacpp"

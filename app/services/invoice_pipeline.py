@@ -23,6 +23,7 @@ from .oem_domain_verify import verify_or_suggest
 from .notifications import create_oem_notification
 from .review_crawler import crawl_reviews_for_product
 from .summary_engine import summarize_warranty, build_structured_summary
+from .openai_intelligence import enrich_invoice_fields, merge_invoice_enrichment
 
 
 def _set_job_status(db: Session, job: PipelineJobDB, status: str, detail: str | None = None, error: str | None = None) -> None:
@@ -140,6 +141,11 @@ def run_job(job_id: str) -> None:
 
             _set_job_status(db, job, "parsed_fields")
             fields, confidence, alternatives = extract_product_fields(text)
+            enrichment = enrich_invoice_fields(text, fields, confidence)
+            fields, confidence, openai_meta = merge_invoice_enrichment(fields, confidence, enrichment)
+            if openai_meta:
+                alternatives = dict(alternatives or {})
+                alternatives["openai_invoice_enrichment"] = openai_meta
             parsed_date = None
             if fields.get("purchase_date"):
                 try:

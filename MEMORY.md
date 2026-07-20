@@ -29,6 +29,15 @@
 - Customer camera capture is permitted for the same origin through `Permissions-Policy: camera=(self)`; geolocation and microphone remain disabled.
 - Focused invoice pipeline verification: **5 passed**.
 
+### Phase 2 - optional OpenAI intelligence lane completed on 2026-07-20
+
+- OpenAI is now an optional, feature-flagged intelligence provider through `app/services/openai_intelligence.py`; the SDK is lazy-loaded and no OpenAI call runs unless explicitly enabled.
+- Summary generation accepts `LLM_PROVIDER=openai` and falls back through `OPENAI_FALLBACK_PROVIDER` (`mistral`, `ollama_remote`, `llamacpp`, or `template`) if OpenAI is unavailable.
+- Invoice parsing can optionally enrich low-confidence extracted fields with strict JSON output by setting `OPENAI_ENABLED=1`, `OPENAI_INVOICE_ENRICHMENT=1`, and `OPENAI_API_KEY`.
+- OpenAI enrichment is limited to invoice/product facts (`brand`, `product_name`, `model_code`, `serial_no`, `invoice_no`, `purchase_date`, `product_category`) and does not generate warranty coverage or legal terms.
+- Deterministic high-confidence fields are not overwritten by OpenAI output; enrichment provenance is stored under warranty alternatives for traceability.
+- No secret values are stored in the repo; only environment variable names are documented here.
+
 Do not commit generated `data/kpi_*.json` files or `.tmp/`; both are local runtime/test artifacts.
 
 ---
@@ -507,7 +516,8 @@ Google ADK is a framework; model/search/OCR calls create the variable cost. The 
 ### OCR and LLM
 
 - `OCR_ENGINE`, `OCR_MIN_TEXT_CHARS`, `OCR_ENGINE_TTL_SEC`
-- `LLM_PROVIDER` (`none`, `mistral`, `ollama_remote`, `llamacpp`)
+- `LLM_PROVIDER` (`none`, `mistral`, `openai`, `ollama_remote`, `llamacpp`)
+- `OPENAI_ENABLED`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_TIMEOUT_SEC`, `OPENAI_MAX_INPUT_CHARS`, `OPENAI_INVOICE_ENRICHMENT`, `OPENAI_FALLBACK_PROVIDER`
 - `MISTRAL_API_KEY`, `MISTRAL_API_URL`, `MISTRAL_MODEL`, `MISTRAL_EMBED_MODEL`
 - `OLLAMA_URL`, `OLLAMA_MODEL`, `LLM_MODEL_PATH`
 - `RAG_ENABLED`, `PGVECTOR_DDL_ENABLED`

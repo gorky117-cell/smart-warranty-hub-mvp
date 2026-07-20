@@ -8,6 +8,7 @@ from app.main import app
 from app.db import SessionLocal
 from app.db_models import PipelineJobDB, WarrantySummaryDB, ParsedFieldDB
 from app.services import invoice_pipeline, summary_engine
+from app.services.openai_intelligence import merge_invoice_enrichment
 from app.services.ingestion import ingest_artifact
 from app.services.canonical import canonicalize_artifact
 from app.models import ArtifactType, CanonicalWarranty
@@ -145,6 +146,39 @@ def test_summary_template_when_llm_disabled():
         terms=["Coverage applies under normal usage."],
         exclusions=["Physical damage excluded."],
         claim_steps=["Keep invoice ready."],
+    )
+    text, source = summary_engine.summarize_warranty(warranty)
+    assert source == "template"
+    assert "Coverage" in text
+
+
+def test_openai_invoice_enrichment_does_not_override_high_confidence_fields():
+    fields = {"brand": "Acmeco", "model_code": "ZX-100"}
+    confidence = {"brand": 0.9, "model_code": 0.8}
+    enrichment = {
+        "fields": {"brand": "WrongCo", "product_category": "Microwave"},
+        "confidence": {"brand": 0.85, "product_category": 0.7},
+        "model": "gpt-test",
+        "reasoning": "visible in invoice",
+    }
+    merged_fields, merged_confidence, meta = merge_invoice_enrichment(fields, confidence, enrichment)
+    assert merged_fields["brand"] == "Acmeco"
+    assert merged_fields["product_category"] == "Microwave"
+    assert merged_confidence["brand"] == 0.9
+    assert "product_category" in meta["fields"]
+    assert "brand" not in meta["fields"]
+
+
+def test_openai_summary_provider_falls_back_without_text(monkeypatch):
+    monkeypatch.setattr(summary_engine, "_LLM_PROVIDER", "openai")
+    monkeypatch.setattr(summary_engine, "_OPENAI_FALLBACK_PROVIDER", "template")
+    monkeypatch.setattr(summary_engine, "_summarize_with_openai", lambda prompt: (None, "disabled"))
+    warranty = CanonicalWarranty(
+        id="wty_test_openai",
+        brand="Acmeco",
+        model_code="ZX-100",
+        coverage_months=12,
+        terms=["Coverage applies under normal usage."],
     )
     text, source = summary_engine.summarize_warranty(warranty)
     assert source == "template"
