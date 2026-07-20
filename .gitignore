@@ -30,8 +30,12 @@ data/demo_output.json
 data/search_quota.json
 data/google_cse_seed_domains_verify_report.txt
 data/uploads/
+data/kpi_history.json
+data/kpi_remediation_latest.json
+data/kpi_task_board.json
 cookies.txt
 data/*.jsonl
+.tmp/
 .env
 .env.*
 .continue/

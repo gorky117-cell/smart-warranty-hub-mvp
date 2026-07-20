@@ -44,6 +44,14 @@ def test_upload_creates_job(tmp_path):
     assert resp.status_code == 200
     payload = resp.json()
     assert payload.get("job_id")
+    assert payload.get("warranty_id")
+    assert not str(payload.get("saved_path", "")).startswith(("C:", "D:", "/"))
+    job_response = client.get(
+        f"/jobs/{payload['job_id']}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert job_response.status_code == 200
+    assert job_response.json()["warranty_id"] == payload["warranty_id"]
     with SessionLocal() as db:
         job = db.query(PipelineJobDB).filter_by(id=payload["job_id"]).first()
         assert job is not None

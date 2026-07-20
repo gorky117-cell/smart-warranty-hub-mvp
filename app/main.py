@@ -68,6 +68,12 @@ from .services import emailer as emailer_service
 from .services.warranty_status import compute_warranty_status
 from .services.notifications import run_initial_analysis_and_notifications
 logger = logging.getLogger(__name__)
+
+# Uploads are evidence files, not arbitrary server files. Keep the allowance
+# deliberately small and compatible with the existing invoice/bill UI.
+_UPLOAD_MAX_BYTES = int(os.getenv("UPLOAD_MAX_BYTES", str(10 * 1024 * 1024)))
+_UPLOAD_SUFFIXES = {".pdf", ".png", ".jpg", ".jpeg", ".webp", ".txt", ".docx"}
+_UPLOAD_CHUNK_BYTES = 1024 * 1024
 from .deps import (
     rbac_dependency,
     require_user,
@@ -424,7 +430,9 @@ async def cache_dashboard(request: Request, call_next):
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-    response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+    # The customer receipt flow supports browser camera capture. Restrict it to
+    # this origin rather than disabling it globally.
+    response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=(self)")
     response.headers.setdefault(
         "Content-Security-Policy",
         "default-src 'self'; img-src 'self' data: https:; "
@@ -1381,12 +1389,31 @@ async def upload_artifact(
     current=Depends(require_user),
     background_tasks: BackgroundTasks = None,
 ):
-    # Save uploaded file to data/uploads
+    # Save uploaded evidence under a server-generated filename. The original
+    # browser filename is never used as a path, preventing traversal/overwrite.
+    original_filename = Path(file.filename or "upload").name
+    suffix = Path(original_filename).suffix.lower()
+    if suffix not in _UPLOAD_SUFFIXES:
+        raise HTTPException(
+            status_code=415,
+            detail="Unsupported file type. Upload a PDF, image, text file, or DOCX receipt.",
+        )
     uploads_dir = Path(__file__).resolve().parents[1] / "data" / "uploads"
     uploads_dir.mkdir(parents=True, exist_ok=True)
-    dest = uploads_dir / file.filename
+    dest = uploads_dir / f"{generate_id('upload')}{suffix}"
+    written = 0
     with dest.open("wb") as f:
-        f.write(await file.read())
+        while chunk := await file.read(_UPLOAD_CHUNK_BYTES):
+            written += len(chunk)
+            if written > _UPLOAD_MAX_BYTES:
+                f.close()
+                dest.unlink(missing_ok=True)
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File is too large. Maximum upload size is {_UPLOAD_MAX_BYTES // (1024 * 1024)} MB.",
+                )
+            f.write(chunk)
+    await file.close()
     artifact = ingest_artifact(type, file_path=str(dest), use_ocr=True)
 
     guardrail = {"decision": "clear", "message": None}
@@ -1395,7 +1422,9 @@ async def upload_artifact(
     if guardrail.get("decision") == "needs_review" and not force_process:
         return {
             "artifact": artifact,
-            "saved_path": str(dest),
+            # Keep the legacy key but never expose an absolute server path.
+            "saved_path": f"uploads/{dest.name}",
+            "original_filename": original_filename,
             "status": "needs_review",
             "guardrail": guardrail,
         }
@@ -1451,7 +1480,9 @@ async def upload_artifact(
     return {
         "artifact": artifact,
         "warranty_id": warranty.id,
-        "saved_path": str(dest),
+        # Backward-compatible key with a safe, non-sensitive value.
+        "saved_path": f"uploads/{dest.name}",
+        "original_filename": original_filename,
         "job_id": job.id,
         "status": job.status,
         "job_error": job_error,
@@ -1639,10 +1670,11 @@ def process_warranty(
 
 
 @app.get("/jobs/{job_id}", dependencies=[Depends(rbac_dependency)])
-def get_job(job_id: str, db=Depends(get_db)):
+def get_job(job_id: str, db=Depends(get_db), current: UserDB = Depends(require_user)):
     job = invoice_pipeline.get_job(db, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+    _require_warranty_access(db, user=current, warranty_id=job["warranty_id"])
     return job
 
 

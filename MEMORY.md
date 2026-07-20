@@ -2,10 +2,34 @@
 
 **Purpose:** This is the first file a new coding assistant, engineer, Kiro, Antigravity/Gemini, or technical reviewer should read before changing Smart Warranty Hub (SWH). It records the verified architecture, feature wiring, deployment/Git facts, evidence limits and safe next steps.
 
-**Last repository audit:** 2026-07-10
+**Last repository audit / baseline:** 2026-07-20
 **Project type:** FastAPI + Jinja templates + SQLAlchemy.
 **Product:** AI-assisted warranty intelligence for customers, OEMs/TPAs and administrators.
-**Latest verified hardening:** OCR connector aliases are normalized with a Tesseract fallback; review crawl/stat routes have one active handler each.
+**Latest verified hardening:** OCR connector aliases are normalized with a Tesseract fallback; review crawl/stat routes have one active handler each. Phase 1 upload safety now uses server-generated upload filenames, bounded file sizes/types, safe response paths, and same-origin camera permission.
+
+---
+
+## 0. Current phased delivery status
+
+### Phase 0 â€” baseline completed on 2026-07-20
+
+- Active branch was clean and synchronized: `master...origin/master` at `7504fe98` before Phase 1 work.
+- Local dependencies were restored from `requirements.txt`.
+- The full test suite collected 42 tests and passed: **42 passed**.
+- Local FastAPI server started successfully on `127.0.0.1:8000`.
+- `GET /ui/neo-dashboard`, `/ui/console`, `/ui/oem-dashboard`, `/health/ocr`, `/health/llm`, and `/health/predictive` returned HTTP 200.
+- `/health/full` returned `degraded` only because optional LLM/RAG configuration was disabled; OCR and predictive checks were healthy.
+
+### Phase 1 â€” invoice safety slice completed on 2026-07-20
+
+- `POST /artifacts/upload` preserves its existing response fields and pipeline flow, but now stores evidence using a server-generated filename rather than a browser-controlled path.
+- Receipt uploads accept only the existing supported evidence types: PDF, common image formats, TXT, and DOCX; default maximum is 10 MB through `UPLOAD_MAX_BYTES`.
+- `saved_path` remains backward compatible but now returns a safe relative logical path rather than an absolute server filesystem path.
+- `GET /jobs/{job_id}` now verifies access to the job's warranty before returning job information.
+- Customer camera capture is permitted for the same origin through `Permissions-Policy: camera=(self)`; geolocation and microphone remain disabled.
+- Focused invoice pipeline verification: **5 passed**.
+
+Do not commit generated `data/kpi_*.json` files or `.tmp/`; both are local runtime/test artifacts.
 
 ---
 
@@ -27,8 +51,8 @@
 
 - Working branch: `master`.
 - `origin`: `https://github.com/gorky117-cell/smart-warranty-hub-mvp`.
-- Local `master` commit: `3e9ae738 Allow Chart.js/font CDNs in CSP so OEM dashboard charts load`.
-- `origin/master` resolves to the same commit: `3e9ae738e1e03a581c3d6748178394cf0e271bc0`.
+- Baseline `master` commit before the 2026-07-20 Phase 1 safety work: `7504fe98 Docs: refresh handoff and harden OCR review routing`.
+- `origin/master` resolved to the same baseline commit before Phase 1 changes.
 - `main` is an older/diverged branch (`ahead 2, behind 43` relative to `origin/main` at audit time). Do **not** assume `main` is the release branch; treat `master` as the active project branch unless the owner intentionally merges/restructures branches.
 
 ### Current documentation and hardening set
