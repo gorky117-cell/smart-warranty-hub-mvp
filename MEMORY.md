@@ -746,3 +746,11 @@ git ls-remote --heads origin
 - When enabled, the agent returns draft explanation/checklist output only, including evidence status, warranty status, risk/care context, missing/uncertain fields and a tool-call trace.
 - Existing invoice pipeline, terms lookup/cache, Phase 7 controlled OEM source policy, OCR, OpenAI/LLM, RAG, telemetry, behaviour, diagnostics gates, Question Studio and Recommendation Studio were preserved.
 - Focused verification: `19 passed` across Phase 8 agent, warranty status, Phase 5 behaviour/predictive, source trust and evidence tests; edited Python files compile.
+
+## 34. Latest Phase 8B Neo dashboard agent checklist UI update
+
+- `templates/neo_dashboard.html` now includes a collapsed **Resolution checklist** panel under Step 4 usage/health.
+- The panel calls protected `POST /agent/warranty-resolution` after a product is loaded.
+- The panel shows draft-only checklist output, missing/uncertain fields and the agent safety note; if the feature flag is off, it shows the disabled state instead.
+- Existing Step 2 summary control, bill upload/camera/manual flow, telemetry, diagnostics, behaviour questions, recommendations, EV battery card and notifications were preserved.
+- Focused verification: `18 passed` across Phase 8B UI, Phase 8 agent, warranty status, Phase 5 behaviour/predictive and invoice pipeline tests; edited Python files compile.

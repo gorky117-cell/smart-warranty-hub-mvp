@@ -1111,6 +1111,14 @@
           <div id="recList" class="placeholder">Loading suggestions...</div>
         </div>
       </details>
+      <details id="agentCard" style="padding:0; margin-top:10px; display:none;">
+        <summary class="card-title" style="cursor:pointer;">Resolution checklist <span class="helper"
+            style="display:inline; font-weight:400;">(draft only)</span></summary>
+        <div class="subtle-panel" style="margin-top:10px;">
+          <div id="agentStatus" class="placeholder">Loading checklist...</div>
+          <div id="agentChecklist" class="helper" style="margin-top:8px;"></div>
+        </div>
+      </details>
       <div class="subtle-panel" id="evCard" style="margin-top:10px; display:none;">
         <div class="card-title">EV battery health</div>
         <div class="helper">Enter a few details and we'll estimate battery health.</div>
@@ -1611,6 +1619,12 @@
         const recCard = document.getElementById('recCard'); const recList = document.getElementById('recList');
         if (recCard) recCard.style.display = 'none';
         if (recList) recList.textContent = 'No suggestions right now.';
+        const agentCard = document.getElementById('agentCard');
+        const agentStatus = document.getElementById('agentStatus');
+        const agentChecklist = document.getElementById('agentChecklist');
+        if (agentCard) agentCard.style.display = 'none';
+        if (agentStatus) agentStatus.textContent = 'Load your product to create a draft checklist.';
+        if (agentChecklist) agentChecklist.innerHTML = '';
         const evCard = document.getElementById('evCard');
         if (evCard) evCard.style.display = 'none';
         const diagCard = document.getElementById('diagCard');
@@ -2046,6 +2060,39 @@
         }
       }
 
+      async function fetchResolutionChecklist() {
+        const warrantyId = document.getElementById('warrantyId').value.trim();
+        const card = document.getElementById('agentCard');
+        const status = document.getElementById('agentStatus');
+        const list = document.getElementById('agentChecklist');
+        if (!card || !status || !list || !warrantyId) return;
+        card.style.display = 'block';
+        status.textContent = 'Loading draft checklist...';
+        list.innerHTML = '';
+        try {
+          const data = await fetchJsonSafe('/agent/warranty-resolution', {
+            method: 'POST',
+            headers: h({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ warranty_id: warrantyId, question: 'Create a draft claim checklist.' })
+          }, 'resolution checklist');
+          if (data.status === 'disabled') {
+            status.textContent = 'Resolution checklist is not enabled for this deployment.';
+            list.innerHTML = `<div class="helper">${escapeHtml(data.message || 'Controlled agent is disabled.')}</div>`;
+            return;
+          }
+          const items = Array.isArray(data.draft_claim_checklist) ? data.draft_claim_checklist : [];
+          const missing = Array.isArray(data.missing_or_uncertain) ? data.missing_or_uncertain : [];
+          status.textContent = data.answer || 'Draft checklist ready.';
+          list.innerHTML = `
+            ${missing.length ? `<div><strong>Needs attention:</strong> ${missing.map(escapeHtml).join(', ')}</div>` : ''}
+            <ol>${items.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ol>
+            <div class="helper">${escapeHtml(data.safety_note || 'Draft guidance only.')}</div>
+          `;
+        } catch (e) {
+          status.textContent = `Resolution checklist not available: ${e}`;
+        }
+      }
+
 
       function renderDiagnosticsCapability(cap) {
         diagnosticsCapability = cap || null;
@@ -2297,6 +2344,7 @@
           loadBehaviourQuestion();
           console.info('neo-dashboard: fetch recommendations', { warrantyId, userId });
           fetchRecommendations();
+          fetchResolutionChecklist();
           if (isEV) { fetchEvScore(); }
           console.info('neo-dashboard: fetch notifications', { userId });
           fetchNotifications(true);
@@ -2314,6 +2362,7 @@
       window.sendTelemetry = sendTelemetry;
       window.requestRemoteDiag = requestRemoteDiag;
       window.startGuidedDiagFlow = startGuidedDiagFlow;
+      window.fetchResolutionChecklist = fetchResolutionChecklist;
       window.toggleTip = toggleTip;
       window.toggleKey = toggleKey;
       window.openModal = openModal;
