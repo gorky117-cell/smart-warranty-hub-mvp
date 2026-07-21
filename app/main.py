@@ -65,6 +65,7 @@ from .services import terms_lookup
 from .services import oem_source_policy
 from .services import oem_adapters
 from .services import rag as rag_service
+from .services import warranty_resolution_agent
 from .services import remote_diagnostics as remote_diag_service
 from .services import diagnostics_capability as diag_cap_service
 from .services import emailer as emailer_service
@@ -218,6 +219,11 @@ class TermsRefreshRequest(BaseModel):
     warranty_id: str
     force: bool = False
     url_override: str | None = None
+
+
+class WarrantyAgentRequest(BaseModel):
+    warranty_id: str
+    question: str | None = None
 
 
 class RegionRuleRequest(BaseModel):
@@ -1897,6 +1903,21 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db), current: UserDB =
         "terms_source_type": terms_source_type,
         "warranty_status_info": status_info,
     }
+
+
+@app.post("/agent/warranty-resolution", dependencies=[Depends(rbac_dependency)])
+def warranty_resolution_agent_run(
+    payload: WarrantyAgentRequest,
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    _require_warranty_access(db, user=current, warranty_id=payload.warranty_id)
+    return warranty_resolution_agent.resolve_warranty(
+        db,
+        user_id=current.username,
+        warranty_id=payload.warranty_id,
+        question=payload.question,
+    )
 
 
 @app.post("/behaviour-events", dependencies=[Depends(rbac_dependency)])

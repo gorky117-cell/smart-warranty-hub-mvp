@@ -735,3 +735,14 @@ git ls-remote --heads origin
 - OEM/admin users can see production/preflight/official-only/broad-search/local-fixture policy status and the enabled controlled adapter domains.
 - Existing OEM dashboard sections were preserved: risk distribution, aggregate insight, forecast, behaviour chart, telemetry, Question Studio, Recommendation Studio, top issues, EV overview and product interest.
 - Focused verification: `28 passed` across Phase 7E UI, Phase 7D preflight, Phase 7 adapter, discovery, parser, source trust and evidence tests; edited Python files compile.
+
+## 33. Latest Phase 8A controlled Warranty Resolution Agent update
+
+- Added `app/services/warranty_resolution_agent.py` as a deterministic, controlled agent service.
+- Added protected `POST /agent/warranty-resolution`; it checks warranty ownership before running.
+- The agent is feature-flagged off by default with `AGENTIC_WORKFLOW_ENABLED=0`.
+- Allowed tools are explicitly limited to reading warranty record, invoice evidence, terms source, risk/care context and creating a draft claim checklist.
+- Not allowed actions are explicitly listed and not implemented: send OEM emails, change warranty status, submit claims, browse arbitrary websites, execute remote diagnostics or access another customer's data.
+- When enabled, the agent returns draft explanation/checklist output only, including evidence status, warranty status, risk/care context, missing/uncertain fields and a tool-call trace.
+- Existing invoice pipeline, terms lookup/cache, Phase 7 controlled OEM source policy, OCR, OpenAI/LLM, RAG, telemetry, behaviour, diagnostics gates, Question Studio and Recommendation Studio were preserved.
+- Focused verification: `19 passed` across Phase 8 agent, warranty status, Phase 5 behaviour/predictive, source trust and evidence tests; edited Python files compile.
