@@ -1253,11 +1253,21 @@
       let toastTimer = null;
       let lastWarrantyPlainText = '';
       let lastEvidenceStatus = null;
+      function cookieValue(name) {
+        return document.cookie
+          .split('; ')
+          .find(row => row.startsWith(name + '='))
+          ?.split('=')
+          .slice(1)
+          .join('=') || '';
+      }
       function h(extra = {}) {
         const headers = { ...extra };
         const keyField = document.getElementById('apiKey');
         const key = keyField ? keyField.value.trim() : '';
         if (key) headers['X-API-Key'] = key;
+        const csrf = cookieValue('csrf_token');
+        if (csrf) headers['X-CSRF-Token'] = decodeURIComponent(csrf);
         return headers;
       }
       function setStatus(msg) { document.getElementById('status').textContent = msg; }
@@ -1518,7 +1528,7 @@
 
       async function logoutAndGoLogin() {
         try {
-          await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' });
+          await fetch('/auth/logout', { method: 'POST', headers: h(), credentials: 'same-origin' });
         } catch (e) {
           console.warn('logout failed', e);
         }

@@ -169,7 +169,25 @@
       const base = (window.API_BASE || "").replace(/\/$/, "");
       return `${base}${path}`;
     }
+    function cookieValue(name) {
+      return document.cookie
+        .split('; ')
+        .find(row => row.startsWith(name + '='))
+        ?.split('=')
+        .slice(1)
+        .join('=') || '';
+    }
+    function csrfHeaders(extra = {}) {
+      const headers = { ...extra };
+      const csrf = cookieValue('csrf_token');
+      if (csrf) headers['X-CSRF-Token'] = decodeURIComponent(csrf);
+      return headers;
+    }
     async function fetchApiJson(path, options = {}, label = "request") {
+      const method = String(options.method || "GET").toUpperCase();
+      if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
+        options = { ...options, headers: csrfHeaders(options.headers || {}) };
+      }
       const primary = api(path);
       let res = await fetch(primary, options);
       if (res.status === 404 && !path.startsWith("/api/")) {
@@ -1268,7 +1286,7 @@
 
     async function logoutAndGoLogin() {
       try {
-        await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' });
+        await fetch('/auth/logout', { method: 'POST', headers: csrfHeaders(), credentials: 'same-origin' });
       } catch (e) {
         console.warn('logout failed', e);
       }
@@ -1287,7 +1305,7 @@
       }
       const res = await fetch('/auth/password/change', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: csrfHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
         credentials: 'same-origin',
       });

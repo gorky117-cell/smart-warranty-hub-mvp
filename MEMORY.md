@@ -790,3 +790,13 @@ git ls-remote --heads origin
 - Limits are environment-configurable per scope: `RATE_LIMIT_LOGIN_*`, `RATE_LIMIT_UPLOAD_*`, `RATE_LIMIT_AI_*` and `RATE_LIMIT_AGENT_*`.
 - The limiter keys authenticated routes by user and unauthenticated login attempts by client IP / forwarded IP.
 - Added focused tests for threshold blocking, authenticated-user separation, forwarded-IP login limiting and the local off switch.
+
+## 39. Latest Phase 9C CSRF protection update
+
+- Added `app/services/csrf.py` for double-submit CSRF token generation and validation.
+- Login now issues a readable `csrf_token` cookie alongside the HTTP-only `access_token` cookie.
+- Unsafe cookie-authenticated requests (`POST`, `PUT`, `PATCH`, `DELETE`) now require a matching `X-CSRF-Token` header; Bearer-token API calls remain compatible.
+- Logout clears both the auth cookie and CSRF cookie.
+- Neo, OEM, admin, console, React, simple upload and warranty-tab UI helpers now attach the CSRF token for browser write actions.
+- Scheduler form posts include the CSRF token in the form action for the existing non-JavaScript form path.
+- Added focused tests for CSRF cookie issuance, rejection without token, acceptance with token and Bearer-token compatibility.

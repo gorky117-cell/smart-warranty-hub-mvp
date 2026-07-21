@@ -243,10 +243,20 @@
   </div>
   <script>
     const DEV_MODE = Boolean(window.__DEV_MODE__) || (new URLSearchParams(window.location.search).get('dev') === '1');
+    function cookieValue(name) {
+      return document.cookie
+        .split('; ')
+        .find(row => row.startsWith(name + '='))
+        ?.split('=')
+        .slice(1)
+        .join('=') || '';
+    }
     function headers(extra = {}) {
       const h = { ...extra };
       const key = document.getElementById('apiKey').value.trim();
       if (key) h['X-API-Key'] = key;
+      const csrf = cookieValue('csrf_token');
+      if (csrf) h['X-CSRF-Token'] = decodeURIComponent(csrf);
       return h;
     }
     function renderMarkdown(src) {

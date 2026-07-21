@@ -323,6 +323,15 @@
             }
         }
 
+        function cookieValue(name) {
+            return document.cookie
+                .split('; ')
+                .find(row => row.startsWith(name + '='))
+                ?.split('=')
+                .slice(1)
+                .join('=') || '';
+        }
+
         async function uploadInvoice() {
             const fileInput = document.getElementById('fileInput');
             const status = document.getElementById('uploadStatus');
@@ -343,7 +352,9 @@
                 fd.append('file', fileInput.files[0]);
                 fd.append('type', 'invoice');
 
-                const res = await fetch('/artifacts/upload', { method: 'POST', body: fd });
+                const csrf = cookieValue('csrf_token');
+                const headers = csrf ? { 'X-CSRF-Token': decodeURIComponent(csrf) } : {};
+                const res = await fetch('/artifacts/upload', { method: 'POST', headers, body: fd });
                 const data = await res.json();
 
                 if (res.ok) {

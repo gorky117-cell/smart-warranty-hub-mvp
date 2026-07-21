@@ -137,12 +137,26 @@
   </div>
   <script>
     (function () {
+      function cookieValue(name) {
+        return document.cookie
+          .split("; ")
+          .find(row => row.startsWith(name + "="))
+          ?.split("=")
+          .slice(1)
+          .join("=") || "";
+      }
+      function csrfHeaders(extra = {}) {
+        const headers = { ...extra };
+        const csrf = cookieValue("csrf_token");
+        if (csrf) headers["X-CSRF-Token"] = decodeURIComponent(csrf);
+        return headers;
+      }
       const btn = document.getElementById("logoutBtn");
       const changeBtn = document.getElementById("changePasswordBtn");
       if (!btn) return;
       btn.addEventListener("click", async function () {
         try {
-          await fetch("/auth/logout", { method: "POST", credentials: "same-origin" });
+          await fetch("/auth/logout", { method: "POST", headers: csrfHeaders(), credentials: "same-origin" });
         } catch (e) {}
         window.location.href = "/login";
       });
@@ -159,7 +173,7 @@
           }
           const res = await fetch("/auth/password/change", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: csrfHeaders({ "Content-Type": "application/json" }),
             body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
             credentials: "same-origin",
           });

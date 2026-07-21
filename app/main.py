@@ -71,6 +71,7 @@ from .services import diagnostics_capability as diag_cap_service
 from .services import emailer as emailer_service
 from .services import telemetry_intelligence
 from .services import oem_aggregate as oem_aggregate_service
+from .services.csrf import CSRF_COOKIE_NAME, new_csrf_token, validate_csrf
 from .services.rate_limiter import check_rate_limit
 from .services.warranty_status import compute_warranty_status
 from .services.notifications import run_initial_analysis_and_notifications
@@ -443,6 +444,14 @@ def dashboard_dev():
 
 @app.middleware("http")
 async def cache_dashboard(request: Request, call_next):
+    try:
+        validate_csrf(request)
+    except HTTPException as exc:
+        return Response(
+            content=f'{{"detail":"{exc.detail}"}}',
+            status_code=exc.status_code,
+            media_type="application/json",
+        )
     response = await call_next(request)
     path = request.url.path
     if path.startswith("/dashboard"):
@@ -1365,6 +1374,17 @@ def login(
         max_age=ACCESS_TOKEN_EXPIRE_HOURS * 3600,
         **cookie_opts,
     )
+    csrf_token = new_csrf_token()
+    response.set_cookie(
+        key=CSRF_COOKIE_NAME,
+        value=csrf_token,
+        max_age=ACCESS_TOKEN_EXPIRE_HOURS * 3600,
+        httponly=False,
+        samesite=cookie_opts["samesite"],
+        secure=cookie_opts["secure"],
+        path=cookie_opts["path"],
+        domain=cookie_opts["domain"],
+    )
     target = next_url or (
         "/ui/admin-hub"
         if user.role == "admin"
@@ -1384,6 +1404,16 @@ def login(
         max_age=ACCESS_TOKEN_EXPIRE_HOURS * 3600,
         **cookie_opts,
     )
+    resp.set_cookie(
+        key=CSRF_COOKIE_NAME,
+        value=csrf_token,
+        max_age=ACCESS_TOKEN_EXPIRE_HOURS * 3600,
+        httponly=False,
+        samesite=cookie_opts["samesite"],
+        secure=cookie_opts["secure"],
+        path=cookie_opts["path"],
+        domain=cookie_opts["domain"],
+    )
     return resp
 
 
@@ -1397,6 +1427,11 @@ def logout(response: Response, request: Request):
     cookie_opts = _cookie_options(request)
     response.delete_cookie(
         "access_token",
+        path=cookie_opts.get("path") or "/",
+        domain=cookie_opts.get("domain"),
+    )
+    response.delete_cookie(
+        CSRF_COOKIE_NAME,
         path=cookie_opts.get("path") or "/",
         domain=cookie_opts.get("domain"),
     )
@@ -2200,6 +2235,7 @@ def scheduler_ui(request: Request, current: Optional[UserDB] = Depends(get_curre
             "request": request,
             "queue": queue,
             "review_required": os.getenv("OEM_REVIEW_REQUIRED", "true").lower() == "true",
+            "csrf_token": request.cookies.get(CSRF_COOKIE_NAME, ""),
         },
     )
 
