@@ -698,3 +698,12 @@ git ls-remote --heads origin
 - Added protected `/oem/source-policy` so OEM/admin users can audit current source policy state for a brand/URL.
 - Existing internal warranty lookup, terms cache, official-domain discovery, manual URL support in non-production, scraping adapters, parser/NLP enrichment, RAG, OCR, telemetry, behaviour, OEM question and recommendation features were preserved.
 - Focused verification: `19 passed` across warranty discovery, warranty parser, evidence status and source trust tests; edited Python files compile.
+
+## 29. Latest Phase 7B first controlled OEM adapter update
+
+- Added `app/services/oem_adapters.py` with a first controlled Samsung adapter.
+- The Samsung adapter only fetches URLs under approved Samsung domains and returns parsed evidence as `approved_oem_adapter`.
+- `fetch_oem_page` now uses the adapter registry when a brand adapter exists; non-adapter brands still go through the Phase 7A source policy before fetching.
+- Added protected `/oem/adapters` so OEM/admin users can audit currently enabled controlled adapters.
+- Existing OEM fetch review queue, scheduler path, OEM parsers, terms lookup, discovery, cache, RAG, OCR, telemetry, behaviour, Question Studio and Recommendation Studio were preserved.
+- Focused verification: `22 passed` across Phase 7 adapter, warranty discovery, warranty parser, source trust and evidence status tests; edited Python files compile.

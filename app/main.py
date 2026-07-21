@@ -63,6 +63,7 @@ from .services import invoice_pipeline
 from .services import summary_engine
 from .services import terms_lookup
 from .services import oem_source_policy
+from .services import oem_adapters
 from .services import rag as rag_service
 from .services import remote_diagnostics as remote_diag_service
 from .services import diagnostics_capability as diag_cap_service
@@ -2344,6 +2345,11 @@ def verify_domain(payload: OemVerifyRequest):
 @app.get("/oem/source-policy", dependencies=[Depends(require_oem_or_admin)])
 def oem_source_policy_status(brand: str | None = None, url: str | None = None):
     return {"ok": True, "policy": oem_source_policy.policy_snapshot(brand=brand, url=url)}
+
+
+@app.get("/oem/adapters", dependencies=[Depends(require_oem_or_admin)])
+def oem_adapter_status():
+    return {"ok": True, "adapters": oem_adapters.list_adapters()}
 
 
 @app.post("/predictive/score", dependencies=[Depends(rbac_dependency)])
