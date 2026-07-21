@@ -640,3 +640,14 @@ git ls-remote --heads origin
 - Existing OEM dashboard sections were preserved: risk distribution, reviews, forecast, behaviour snapshot, Question Studio, Recommendation Studio, top issues, EV battery overview and product interest.
 - Focused verification after the UI change: `23 passed` across telemetry intelligence, OEM dispatch, invoice/OpenAI pipeline, RAG health, warranty discovery and OCR/review route tests.
 - Live Railway checks after Phase 3E confirmed `/health/full` was `ok`, `/oem/telemetry-stats` exists, and unauthenticated access returns `401 Missing token`; logged-in OEM/admin access showed expected suppression for cohort size `1` and minimum cohort `10`.
+
+## 23. Latest Phase 5A behaviour + predictive care update
+
+- Behaviour questions now use `get_next_useful_question` so the app asks at most one question only when useful.
+- Useful-question triggers include missing serial number, missing country/region, voltage issue telemetry, high usage, overheating/shutdown signals, missing usage context and missing environment context.
+- Existing OEM-published questions remain first in the customer question flow; the deterministic useful-question bank is the fallback.
+- Predictive output now explicitly keeps legal warranty status separate from care-risk scoring through `legal_warranty_separate`.
+- Predictive responses now include an explainable `risk_reason_breakdown` for base warranty age/expiry, behaviour delta and usage/environment factors.
+- Predictive responses now include the disclaimer: `Care signal, not a guaranteed product failure prediction.`
+- EV battery logic remains a product-specific extension and was not changed.
+- Focused verification: `26 passed` across Phase 5 behaviour/predictive tests plus telemetry, notifications, OEM dispatch, invoice/OpenAI pipeline, RAG health and warranty status tests.

@@ -537,6 +537,12 @@ def score_warranty(user_id: str, warranty_id: str, product_type: Optional[str] =
 
     # Final label based on adjusted score
     risk_label = "HIGH" if risk_score > 0.66 else "MEDIUM" if risk_score >= 0.33 else "LOW"
+    expiry_reasons = [r for r in reasons if "expiry" in str(r).lower() or "warranty is" in str(r).lower()]
+    behaviour_reason_set = list(behaviour_reasons[:4]) if behaviour_reasons else []
+    usage_environment_reasons = [
+        r for r in reasons
+        if any(k in str(r).lower() for k in ["usage", "maintenance", "care", "temperature", "voltage", "region", "climate"])
+    ][:4]
 
     logger.info(
         "predictive_behaviour_adjust",
@@ -558,6 +564,14 @@ def score_warranty(user_id: str, warranty_id: str, product_type: Optional[str] =
         "base_risk_score": round(float(base_risk_score), 3),
         "behaviour_delta": round(float(behaviour_delta), 3),
         "behaviour_reasons": behaviour_reasons[:4] if behaviour_reasons else [],
+        "risk_reason_breakdown": {
+            "base_warranty_age": expiry_reasons[:4],
+            "behaviour_delta": behaviour_reason_set,
+            "expiry_proximity": expiry_reasons[:4],
+            "usage_environment_factors": usage_environment_reasons,
+        },
+        "legal_warranty_separate": True,
+        "disclaimer": "Care signal, not a guaranteed product failure prediction.",
     }
 
 

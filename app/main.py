@@ -749,18 +749,29 @@ def behaviour_next_question(
                 "options": oem_q.get("options") or [],
                 "source": "oem",
             }
-        q, done = behaviour_questions.get_next_question(user_id=user_id, warranty_id=warranty_id or "")
+        warranty = None
+        try:
+            warranty = store.get_warranty_db(warranty_id)
+        except Exception:
+            warranty = None
+        telemetry_events = store.get_telemetry(user_id, warranty_id)
+        q, done, reason = behaviour_questions.get_next_useful_question(
+            user_id=user_id,
+            warranty_id=warranty_id or "",
+            warranty=warranty,
+            telemetry_events=telemetry_events,
+        )
         if not q:
             return {
                 "ok": True,
                 "question": None,
                 "done": True,
-                "reason": "no_question_available",
+                "reason": reason,
             }
         return {
             "ok": True,
             "done": done,
-            "reason": "question_available",
+            "reason": reason,
             "question": q,
             # backward-compatibility fields for existing JS
             "question_id": q.get("id"),
@@ -2330,6 +2341,9 @@ def predictive_score(payload: PredictiveRequest, db=Depends(get_db)):
             "base_risk_score": data.get("base_risk_score"),
             "behaviour_delta": data.get("behaviour_delta"),
             "behaviour_reasons": data.get("behaviour_reasons", []),
+            "risk_reason_breakdown": data.get("risk_reason_breakdown", {}),
+            "legal_warranty_separate": data.get("legal_warranty_separate", True),
+            "disclaimer": data.get("disclaimer"),
         }
     return {
         "risk_label": data.get("risk_label", "LOW"),
@@ -2339,6 +2353,9 @@ def predictive_score(payload: PredictiveRequest, db=Depends(get_db)):
         "base_risk_score": data.get("base_risk_score"),
         "behaviour_delta": data.get("behaviour_delta"),
         "behaviour_reasons": data.get("behaviour_reasons", []),
+        "risk_reason_breakdown": data.get("risk_reason_breakdown", {}),
+        "legal_warranty_separate": data.get("legal_warranty_separate", True),
+        "disclaimer": data.get("disclaimer"),
     }
 
 
