@@ -29,13 +29,34 @@ def test_default_rules_are_estimated_not_confirmed():
     assert "not confirmed" in layman["overview"].lower()
 
 
-def test_scraped_source_is_confirmed_with_source_metadata():
+def test_official_scraped_source_is_confirmed_with_source_metadata():
+    evidence = summary_engine.build_evidence_summary(
+        CanonicalWarranty(
+            id="w_hp",
+            brand="HP",
+            model_code="PROBOOK",
+            coverage_months=12,
+            terms=["Base parts covered."],
+            alternatives={
+                "terms_source_type": "scraped",
+                "terms_source_url": "https://support.hp.com/warranty",
+            },
+        )
+    )
+
+    assert evidence["status"] == "confirmed"
+    assert evidence["sources"][0]["official"] is True
+    assert evidence["sources"][0]["url"] == "https://support.hp.com/warranty"
+
+
+def test_unverified_scraped_source_is_not_confirmed():
     evidence = summary_engine.build_evidence_summary(
         _warranty("scraped", "https://example.com/warranty")
     )
 
-    assert evidence["status"] == "confirmed"
-    assert evidence["sources"][0]["url"] == "https://example.com/warranty"
+    assert evidence["status"] == "not_confirmed"
+    assert evidence["requires_oem_verification"] is True
+    assert evidence["sources"][0]["official"] is False
 
 
 def test_template_summary_includes_evidence_note(monkeypatch):

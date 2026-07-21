@@ -602,3 +602,12 @@ git ls-remote --heads origin
 - Existing summary responses now expose `evidence_status` with labels for `confirmed`, `confirmed_internal`, `cached`, `estimated`, and `not_confirmed`.
 - Customer summaries now explicitly say terms are not confirmed when source evidence is invoice-only, missing, or default-rule based.
 - Neo dashboard summary metadata displays the evidence label/note without changing routes or existing fields.
+
+---
+
+## 19. Latest Phase 3B update
+
+- Added `app/services/source_trust.py` to classify warranty term sources without changing scraping or summary contracts.
+- Evidence now distinguishes known OEM domains from unverified external scraped URLs.
+- Unverified scraped warranty terms are labeled not confirmed and require OEM verification; official-domain sources can still be shown as confirmed with source metadata.
+- Added focused tests for source trust and evidence status behavior.

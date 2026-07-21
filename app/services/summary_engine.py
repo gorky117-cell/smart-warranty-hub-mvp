@@ -8,6 +8,7 @@ from typing import Optional, Tuple, Dict, Any
 import requests
 
 from ..models import CanonicalWarranty
+from .source_trust import classify_terms_source
 
 _LLM_PROVIDER = os.getenv("LLM_PROVIDER", "none").lower()
 _LLM_TTL_SEC = int(os.getenv("LLM_ENGINE_TTL_SEC", "900"))
@@ -63,11 +64,20 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
     source_url = alt.get("terms_source_url")
     refreshed_at = alt.get("terms_last_refreshed_at")
 
+    source_trust = classify_terms_source(
+        brand=getattr(warranty, "brand", None),
+        source_url=source_url,
+        source_type=source_type,
+    )
+
     if source_type == "scraped" and source_url:
-        status = "confirmed"
-        label = "Confirmed from source"
-        note = "Warranty terms were extracted from an external source URL. Verify the source before claim submission."
-        confidence = 0.85
+        if source_trust.get("verified") or source_trust.get("official"):
+            status = "confirmed"
+        else:
+            status = "not_confirmed"
+        label = source_trust["label"]
+        note = source_trust["note"]
+        confidence = source_trust["confidence"]
     elif source_type == "internal_warranty_db":
         status = "confirmed_internal"
         label = "Confirmed from saved warranty record"
@@ -101,6 +111,10 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
                 "title": "Warranty terms source",
                 "url": source_url,
                 "source_type": source_type,
+                "trust_status": source_trust.get("status"),
+                "official": source_trust.get("official", False),
+                "verified": source_trust.get("verified", False),
+                "host": source_trust.get("host"),
                 "fetched_at": refreshed_at,
                 "confidence": confidence,
             }
@@ -112,9 +126,11 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
         "source_url": source_url,
         "last_refreshed_at": refreshed_at,
         "confidence": confidence,
-        "requires_oem_verification": status in {"estimated", "not_confirmed", "cached"},
+        "requires_oem_verification": bool(source_trust.get("requires_oem_verification"))
+        or status in {"estimated", "not_confirmed", "cached"},
         "note": note,
         "sources": sources,
+        "source_trust": source_trust,
     }
 
 
