@@ -651,3 +651,12 @@ git ls-remote --heads origin
 - Predictive responses now include the disclaimer: `Care signal, not a guaranteed product failure prediction.`
 - EV battery logic remains a product-specific extension and was not changed.
 - Focused verification: `26 passed` across Phase 5 behaviour/predictive tests plus telemetry, notifications, OEM dispatch, invoice/OpenAI pipeline, RAG health and warranty status tests.
+
+## 24. Latest Phase 6A OEM aggregate intelligence update
+
+- Added `app/services/oem_aggregate.py` as an additive privacy-safe OEM aggregate layer; existing OEM dashboard, risk, question, recommendation, telemetry and dispatch APIs were not removed.
+- Added `/oem/aggregate-insights` for product type, brand, model, region and date-range filtered aggregate insight.
+- Aggregate output includes registered product count, risk distribution, top care issues, behaviour trends, expiry cohorts, product interest, service demand and recommendation opportunities.
+- The endpoint suppresses results below `OEM_AGGREGATE_MIN_COHORT` (default follows `OEM_TELEMETRY_MIN_COHORT`, otherwise 10) and returns only cohort-level metrics.
+- OEM Question Studio and Recommendation Studio remain active; this endpoint gives them safer aggregate context rather than exposing individual customer data.
+- Focused verification: `23 passed` across Phase 6 aggregate tests plus Phase 5 behaviour/predictive, telemetry, OEM dispatch/communication, invoice/OpenAI pipeline and RAG health tests.

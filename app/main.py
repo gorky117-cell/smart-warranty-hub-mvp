@@ -67,6 +67,7 @@ from .services import remote_diagnostics as remote_diag_service
 from .services import diagnostics_capability as diag_cap_service
 from .services import emailer as emailer_service
 from .services import telemetry_intelligence
+from .services import oem_aggregate as oem_aggregate_service
 from .services.warranty_status import compute_warranty_status
 from .services.notifications import run_initial_analysis_and_notifications
 logger = logging.getLogger(__name__)
@@ -2975,6 +2976,28 @@ def oem_telemetry_stats(
         product_type=product_type,
         region=region,
         days=days,
+    )
+
+
+@app.get("/oem/aggregate-insights", dependencies=[Depends(require_oem_or_admin)])
+def oem_aggregate_insights(
+    product_type: str | None = None,
+    brand: str | None = None,
+    model: str | None = None,
+    region: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    current=Depends(require_oem_or_admin),
+    db=Depends(get_db),
+):
+    return oem_aggregate_service.build_privacy_safe_oem_aggregate(
+        db,
+        product_type=product_type,
+        brand=brand,
+        model=model,
+        region=region,
+        date_from=date_from,
+        date_to=date_to,
     )
 
 
