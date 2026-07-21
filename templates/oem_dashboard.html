@@ -265,6 +265,12 @@
       <canvas id="behChart" height="120"></canvas>
     </div>
 
+    <div class="card" id="telemetry-card">
+      <h3>Privacy-safe telemetry</h3>
+      <div class="helper">Aggregate telemetry is hidden until the cohort reaches the privacy threshold.</div>
+      <div id="telemetryStats" class="placeholder" style="margin-top:10px;">Loading...</div>
+    </div>
+
     <div class="card" id="customer-qs">
       <h3>Customer Question Studio</h3>
       <div class="row">
@@ -505,6 +511,7 @@
         renderIssues(data.peer_review, data.symptoms);
         renderBehaviour(data.behaviour_snapshot || {});
         renderBehaviourChart(data.behaviour_snapshot || {});
+        renderTelemetry(data.telemetry || {});
         renderEv(data.ev_battery);
         renderProductInterest(data.product_interest || []);
         fetchForecast({ brand, model, product_type: ptype, region });
@@ -513,6 +520,8 @@
         document.getElementById('risk-content').innerHTML = `<p style="color:red;">${err}</p>`;
         document.getElementById('issues').innerHTML = '';
         document.getElementById('behaviour').innerHTML = '';
+        const tel = document.getElementById('telemetryStats');
+        if (tel) tel.textContent = '';
         document.getElementById('evStats').innerHTML = '';
         const pi = document.getElementById('productInterest');
         if (pi) pi.textContent = '';
@@ -770,6 +779,43 @@
           }
         }
       });
+    }
+
+    function renderTelemetry(data) {
+      const el = document.getElementById('telemetryStats');
+      if (!el) return;
+      if (!data || !Object.keys(data).length) {
+        el.textContent = 'No telemetry aggregate available yet.';
+        return;
+      }
+      if (data.status === 'suppressed') {
+        el.innerHTML = `
+          <p class="pill">Suppressed for privacy</p>
+          <p class="pill">Cohort: ${data.cohort_size || 0}</p>
+          <p class="pill">Minimum: ${data.min_cohort || 10}</p>
+          <div class="helper">${data.reason || 'Minimum cohort threshold not met.'}</div>
+        `;
+        return;
+      }
+      const signals = data.signals || {};
+      const eventTypes = data.event_types || {};
+      const signalRows = Object.keys(signals)
+        .sort()
+        .map(k => `<p class="pill">${k}: ${signals[k] || 0}</p>`)
+        .join('');
+      const eventRows = Object.keys(eventTypes)
+        .sort()
+        .map(k => `<li>${k}: ${eventTypes[k] || 0}</li>`)
+        .join('');
+      el.innerHTML = `
+        <p class="pill">Active aggregate</p>
+        <p class="pill">Cohort: ${data.cohort_size || 0}</p>
+        <p class="pill">Events: ${data.event_count || 0}</p>
+        <p class="pill">Risk points: ${data.risk_points || 0}</p>
+        <p class="pill">Care points: ${data.care_points || 0}</p>
+        <div style="margin-top:8px;">${signalRows || '<p class="pill">No signals</p>'}</div>
+        <div class="helper" style="margin-top:8px;"><strong>Event mix</strong><ul>${eventRows || '<li>No events</li>'}</ul></div>
+      `;
     }
 
     function renderEv(evData) {
