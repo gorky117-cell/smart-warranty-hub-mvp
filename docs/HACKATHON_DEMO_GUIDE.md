@@ -1,5 +1,7 @@
 # Smart Warranty Hub Hackathon Demo Guide
 
+Downloadable Word version: `docs/Smart_Warranty_Hub_Hackathon_Demo_Guide.docx`
+
 ## One-line pitch
 
 Smart Warranty Hub turns a customer's invoice into clear warranty guidance, proactive care and risk support, while giving OEM and TPA teams privacy-safe signals to act earlier.

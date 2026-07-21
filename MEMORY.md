@@ -848,4 +848,4 @@ git ls-remote --heads origin
 - Do not present the synthetic 50-case KPI evaluations as live customer outcomes. Describe them as controlled test evidence.
 - Remaining non-blocking hackathon risks: GitHub's default branch is still the older `main` while active work is on `master` (112 commits ahead); no GitHub Actions or branch protection; rate limiting, AI quota and direct-consent persistence are local/process-bound for the pilot; the local environment reports dependency conflicts and three scikit-learn model-version warnings.
 - Recommended immediate presentation action: set GitHub's default branch to `master` before judges review the repository. Production hardening is intentionally out of scope for the hackathon.
-- Judge-facing presentation script: `docs/HACKATHON_DEMO_GUIDE.md`.
+- Judge-facing presentation script: `docs/HACKATHON_DEMO_GUIDE.md`, with a downloadable Word handout at `docs/Smart_Warranty_Hub_Hackathon_Demo_Guide.docx`.
