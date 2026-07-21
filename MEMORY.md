@@ -763,3 +763,12 @@ git ls-remote --heads origin
 - The trace intentionally avoids storing secrets, raw invoice text, full prompt content or any mutation/action side effects.
 - Existing feature-flag behavior, draft-only output, ownership checks, Neo dashboard checklist, OCR, OpenAI/LLM, RAG, telemetry, diagnostics gates and Phase 7 source policy were preserved.
 - Focused verification: `13 passed` across Phase 8 agent trace/UI, warranty status and Phase 5 behaviour/predictive tests; edited Python files compile.
+
+## 36. Latest Phase 8D agent trace viewer update
+
+- Added `warranty_resolution_agent.list_traces` for read-only JSONL audit trace retrieval.
+- Added protected `GET /agent/warranty-resolution/traces` for OEM/admin users.
+- Trace viewer supports `user_id`, `warranty_id`, `status` and `limit` filters, returning newest traces first.
+- The endpoint only reads audit records; it cannot run the agent, mutate warranty data, submit claims, contact OEMs, browse websites or execute diagnostics.
+- Existing Phase 8 feature flag, draft-only agent output, Neo dashboard checklist, trace recording, OCR, OpenAI/LLM, RAG, telemetry, diagnostics gates and Phase 7 source policy were preserved.
+- Focused verification: `14 passed` across Phase 8 agent trace/viewer/UI, warranty status and Phase 5 behaviour/predictive tests; edited Python files compile.

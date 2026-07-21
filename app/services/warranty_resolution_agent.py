@@ -81,6 +81,39 @@ def _record_run(
     )
 
 
+def list_traces(
+    *,
+    user_id: Optional[str] = None,
+    warranty_id: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 100,
+) -> List[Dict[str, object]]:
+    if not TRACE_PATH.exists():
+        return []
+    rows: List[Dict[str, object]] = []
+    try:
+        lines = TRACE_PATH.read_text(encoding="utf-8").splitlines()
+    except Exception:
+        return []
+    for line in reversed(lines):
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:
+            continue
+        if user_id and rec.get("user_id") != user_id:
+            continue
+        if warranty_id and rec.get("warranty_id") != warranty_id:
+            continue
+        if status and rec.get("status") != status:
+            continue
+        rows.append(rec)
+        if len(rows) >= max(1, min(int(limit or 100), 500)):
+            break
+    return rows
+
+
 @dataclass
 class AgentTrace:
     tool_calls: List[Dict[str, object]] = field(default_factory=list)

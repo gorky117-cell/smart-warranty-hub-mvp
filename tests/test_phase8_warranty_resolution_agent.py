@@ -127,3 +127,25 @@ def test_warranty_resolution_agent_records_tool_trace_for_draft_run(tmp_path, mo
         "get_risk_care_context",
         "create_draft_claim_checklist",
     ]
+
+
+def test_warranty_resolution_agent_lists_traces_with_filters(tmp_path, monkeypatch):
+    trace_path = tmp_path / "agentic_traces.jsonl"
+    monkeypatch.setattr(warranty_resolution_agent, "TRACE_PATH", trace_path)
+    trace_path.write_text(
+        "\n".join(
+            [
+                json.dumps({"id": "agt_old", "user_id": "u1", "warranty_id": "w1", "status": "disabled"}),
+                json.dumps({"id": "agt_mid", "user_id": "u2", "warranty_id": "w2", "status": "draft"}),
+                json.dumps({"id": "agt_new", "user_id": "u1", "warranty_id": "w1", "status": "draft"}),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    latest = warranty_resolution_agent.list_traces(limit=2)
+    assert [row["id"] for row in latest] == ["agt_new", "agt_mid"]
+
+    filtered = warranty_resolution_agent.list_traces(user_id="u1", warranty_id="w1", status="draft")
+    assert [row["id"] for row in filtered] == ["agt_new"]

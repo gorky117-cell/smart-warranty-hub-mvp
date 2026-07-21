@@ -1920,6 +1920,24 @@ def warranty_resolution_agent_run(
     )
 
 
+@app.get("/agent/warranty-resolution/traces", dependencies=[Depends(require_oem_or_admin)])
+def warranty_resolution_agent_traces(
+    user_id: str | None = None,
+    warranty_id: str | None = None,
+    status: str | None = None,
+    limit: int = 100,
+):
+    return {
+        "ok": True,
+        "items": warranty_resolution_agent.list_traces(
+            user_id=user_id,
+            warranty_id=warranty_id,
+            status=status,
+            limit=limit,
+        ),
+    }
+
+
 @app.post("/behaviour-events", dependencies=[Depends(rbac_dependency)])
 def push_behaviour_event(payload: BehaviourEventRequest):
     if payload.warranty_id not in store.warranties:
