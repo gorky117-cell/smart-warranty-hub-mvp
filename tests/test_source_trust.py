@@ -24,3 +24,15 @@ def test_unverified_external_source_requires_verification():
     assert trust["verified"] is False
     assert trust["requires_oem_verification"] is True
 
+
+def test_synthetic_approved_source_is_test_only():
+    trust = classify_terms_source(
+        brand="Acmeco",
+        source_url="test_data/synthetic_acmeco_zx100_warranty.html",
+        source_type="synthetic_approved",
+    )
+
+    assert trust["status"] == "synthetic_test_source"
+    assert trust["official"] is False
+    assert trust["verified"] is False
+    assert trust["requires_oem_verification"] is True

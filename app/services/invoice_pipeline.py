@@ -230,6 +230,8 @@ def run_job(job_id: str) -> None:
                 source_type = "internal"
                 if source_url.startswith(("http://", "https://")):
                     source_type = "scraped"
+                elif source_url.startswith(("test_data/", "file://")):
+                    source_type = "synthetic_approved"
                 elif source_url.endswith("default_rules"):
                     source_type = "default_rules"
                 elif source_url.endswith("warranty_db"):

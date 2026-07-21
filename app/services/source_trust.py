@@ -137,6 +137,19 @@ def classify_terms_source(
             "requires_oem_verification": True,
         }
 
+    if src_type == "synthetic_approved":
+        return {
+            "status": "synthetic_test_source",
+            "label": "Synthetic approved test source",
+            "note": "Terms came from a synthetic source fixture for testing only. Verify with OEM before relying on it for a claim.",
+            "confidence": 0.6,
+            "source_url": src_url,
+            "host": host,
+            "official": False,
+            "verified": False,
+            "requires_oem_verification": True,
+        }
+
     return {
         "status": "missing",
         "label": "No approved source",

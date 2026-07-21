@@ -98,6 +98,11 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
         label = "Not confirmed"
         note = "Invoice data was found, but official warranty terms have not been confirmed."
         confidence = 0.35
+    elif source_type == "synthetic_approved":
+        status = "not_confirmed"
+        label = "Synthetic test source"
+        note = "Warranty terms came from a synthetic test fixture, not an official OEM source. Verify with OEM before relying on this for a claim."
+        confidence = 0.6
     else:
         status = "not_confirmed"
         label = "Not confirmed"

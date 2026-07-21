@@ -1714,6 +1714,8 @@ def refresh_warranty_terms(payload: TermsRefreshRequest, db=Depends(get_db)):
     src_type = "internal"
     if src.startswith(("http://", "https://")):
         src_type = "scraped"
+    elif src.startswith(("test_data/", "file://")):
+        src_type = "synthetic_approved"
     elif src.endswith("default_rules"):
         src_type = "default_rules"
     elif src.endswith("warranty_db"):

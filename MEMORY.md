@@ -611,3 +611,13 @@ git ls-remote --heads origin
 - Evidence now distinguishes known OEM domains from unverified external scraped URLs.
 - Unverified scraped warranty terms are labeled not confirmed and require OEM verification; official-domain sources can still be shown as confirmed with source metadata.
 - Added focused tests for source trust and evidence status behavior.
+
+---
+
+## 20. Latest Phase 3D update
+
+- Added synthetic approved-source fixtures for testing the warranty evidence/RAG path without pretending they are real OEM proof.
+- `data/warranty_sources.json` now includes clearly labeled synthetic Acmeco ZX-100 and Quickfix PROBOOK source records.
+- The synthetic source HTML lives under `test_data/` and is ignored by discovery unless `TERMS_ALLOW_LOCAL_DEV_SOURCES=1` is enabled.
+- Synthetic source evidence is classified as `synthetic_test_source` and remains customer-facing **not confirmed**; OEM verification is still required.
+- Added focused tests so local dev sources stay hidden by default and can be explicitly enabled for test runs.

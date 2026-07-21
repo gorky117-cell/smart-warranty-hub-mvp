@@ -219,7 +219,13 @@ def discover_sources(
             continue
         url = str(entry.get("url") or "")
         lower_url = url.lower()
-        if (lower_url.startswith("test_data/") or lower_url.startswith("file://")) and not _ALLOW_LOCAL_DEV_SOURCES:
+        is_local_source = lower_url.startswith("test_data/") or lower_url.startswith("file://")
+        if not is_local_source:
+            try:
+                is_local_source = Path(url).exists()
+            except Exception:
+                is_local_source = False
+        if is_local_source and not _ALLOW_LOCAL_DEV_SOURCES:
             continue
         host = _host(url)
         entry_official_domains = _domains_for_brand(oem_domains, entry.get("brand") or "")

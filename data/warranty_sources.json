@@ -1,1 +1,30 @@
-[]
+[
+  {
+    "id": "synthetic_acmeco_zx100_in",
+    "title": "Synthetic Acmeco ZX-100 Warranty Terms",
+    "brand": "Acmeco",
+    "model_code": "ZX-100",
+    "product_name": "Microwave Oven",
+    "product_type": "appliance",
+    "region": "IN",
+    "source_type": "oem_warranty",
+    "url": "test_data/synthetic_acmeco_zx100_warranty.html",
+    "official": false,
+    "synthetic": true,
+    "notes": "Synthetic dev/test source only. Not an official OEM warranty document."
+  },
+  {
+    "id": "synthetic_quickfix_probook_in",
+    "title": "Synthetic Quickfix PROBOOK Warranty Terms",
+    "brand": "Quickfix Authorized Service Center",
+    "model_code": "PROBOOK",
+    "product_name": "Laptop",
+    "product_type": "electronics",
+    "region": "IN",
+    "source_type": "oem_warranty",
+    "url": "test_data/synthetic_quickfix_probook_warranty.html",
+    "official": false,
+    "synthetic": true,
+    "notes": "Synthetic dev/test source only. Not an official OEM warranty document."
+  }
+]
