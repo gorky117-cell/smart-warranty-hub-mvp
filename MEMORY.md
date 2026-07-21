@@ -809,3 +809,12 @@ git ls-remote --heads origin
 - CSRF failures and unhandled exceptions use the same request ID path so Railway logs can be correlated with browser/API responses.
 - Unhandled exceptions return a generic JSON 500 response rather than leaking internal exception details.
 - Added focused tests for generated request IDs, supplied request ID reuse, CSRF rejection headers and sensitive-header redaction.
+
+## 41. Latest Phase 9E per-user AI quota update
+
+- Added `app/services/ai_quota.py` as a lightweight per-user daily AI usage quota store.
+- AI quota enforcement is enabled by default and configurable through `AI_QUOTA_ENABLED`, `AI_DAILY_QUOTA_PER_USER` and `AI_QUOTA_FILE`.
+- Quota gates now protect direct LLM generation, warranty summary generation, OEM question generation, OEM recommendation generation and the draft warranty-resolution agent.
+- Added protected `GET /ai/usage` so a signed-in user can inspect their current daily AI quota usage.
+- Quota records are aggregate counts by user/day/feature and do not store prompts, invoices, tokens, model responses or raw customer payloads.
+- Added focused tests for consumption, blocking, disable switch, route-level enforcement and usage reporting.

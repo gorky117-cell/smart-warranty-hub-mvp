@@ -74,6 +74,7 @@ from .services import telemetry_intelligence
 from .services import oem_aggregate as oem_aggregate_service
 from .services.csrf import CSRF_COOKIE_NAME, new_csrf_token, validate_csrf
 from .services.rate_limiter import check_rate_limit
+from .services.ai_quota import check_and_consume as consume_ai_quota, usage_for as ai_usage_for
 from .services.request_context import (
     REQUEST_ID_HEADER,
     elapsed_ms_since,
@@ -947,6 +948,7 @@ def oem_questions_generate(
     current: UserDB = Depends(require_oem_or_admin),
 ):
     check_rate_limit("ai", request, current.username)
+    consume_ai_quota(current.username, feature="oem_questions_generate")
     try:
         payload = payload or {}
         ctx = {
@@ -1189,6 +1191,7 @@ def oem_recommendations_generate(
     current: UserDB = Depends(require_oem_or_admin),
 ):
     check_rate_limit("ai", request, current.username)
+    consume_ai_quota(current.username, feature="oem_recommendations_generate")
     try:
         payload = payload or {}
         preview = oem_recommendations_preview(
@@ -2015,6 +2018,7 @@ def warranty_resolution_agent_run(
     current: UserDB = Depends(require_user),
 ):
     check_rate_limit("agent", request, current.username)
+    consume_ai_quota(current.username, feature="warranty_resolution_agent")
     _require_warranty_access(db, user=current, warranty_id=payload.warranty_id)
     return warranty_resolution_agent.resolve_warranty(
         db,
@@ -2139,6 +2143,7 @@ def llm_generate(
     current: UserDB = Depends(require_user),
 ):
     check_rate_limit("ai", request, current.username)
+    consume_ai_quota(current.username, feature="llm_generate")
     text, err = generate_text(payload.prompt, payload.model)
     if err:
         raise HTTPException(status_code=500, detail=err)
@@ -3431,7 +3436,13 @@ def warranty_summary(
     current: UserDB = Depends(require_user),
 ):
     check_rate_limit("ai", request, current.username)
+    consume_ai_quota(current.username, feature="warranty_summary")
     return _build_warranty_summary_response(payload, db, current)
+
+
+@app.get("/ai/usage", dependencies=[Depends(require_user)])
+def ai_usage(current: UserDB = Depends(require_user)):
+    return ai_usage_for(current.username)
 
 
 @app.get("/warranties/{warranty_id}/export", dependencies=[Depends(rbac_dependency)])
