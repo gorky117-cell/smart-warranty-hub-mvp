@@ -1,4 +1,5 @@
 from app.services.source_trust import classify_terms_source
+from app.services.terms_lookup import classify_terms_source_url
 
 
 def test_known_oem_domain_is_official():
@@ -36,3 +37,23 @@ def test_synthetic_approved_source_is_test_only():
     assert trust["official"] is False
     assert trust["verified"] is False
     assert trust["requires_oem_verification"] is True
+
+
+def test_approved_oem_source_has_distinct_trust_label():
+    source_type = classify_terms_source_url("https://www.samsung.com/in/support/warranty/", "Samsung")
+    trust = classify_terms_source(
+        brand="Samsung",
+        source_url="https://www.samsung.com/in/support/warranty/",
+        source_type=source_type,
+    )
+
+    assert source_type == "approved_oem_source"
+    assert trust["status"] == "approved_oem_source"
+    assert trust["official"] is True
+    assert trust["requires_oem_verification"] is True
+
+
+def test_unapproved_http_source_remains_scraped():
+    source_type = classify_terms_source_url("https://example.com/warranty", "Samsung")
+
+    assert source_type == "scraped"

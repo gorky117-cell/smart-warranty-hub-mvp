@@ -97,6 +97,25 @@ def _to_terms_result(parsed: ParsedTerms, source_url: Optional[str]) -> TermsRes
     )
 
 
+def classify_terms_source_url(source_url: Optional[str], brand: Optional[str] = None) -> str:
+    src = source_url or ""
+    if src.startswith(("http://", "https://")):
+        if oem_source_policy.is_approved_oem_url(src, brand):
+            return "approved_oem_source"
+        return "scraped"
+    if src.startswith(("test_data/", "file://")):
+        return "synthetic_approved"
+    if src.endswith("manual_url_blocked_by_oem_policy"):
+        return "blocked_by_oem_policy"
+    if src.endswith("default_rules"):
+        return "default_rules"
+    if src.endswith("warranty_db"):
+        return "internal_warranty_db"
+    if src.endswith("terms_cache"):
+        return "internal_terms_cache"
+    return "internal"
+
+
 def _apply_region_policy(
     db: Session,
     result: TermsResult,

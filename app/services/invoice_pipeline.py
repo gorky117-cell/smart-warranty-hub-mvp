@@ -227,17 +227,7 @@ def run_job(job_id: str) -> None:
             meta = dict(warranty.alternatives or {})
             if terms_result:
                 source_url = terms_result.source_url or ""
-                source_type = "internal"
-                if source_url.startswith(("http://", "https://")):
-                    source_type = "scraped"
-                elif source_url.startswith(("test_data/", "file://")):
-                    source_type = "synthetic_approved"
-                elif source_url.endswith("default_rules"):
-                    source_type = "default_rules"
-                elif source_url.endswith("warranty_db"):
-                    source_type = "internal_warranty_db"
-                elif source_url.endswith("terms_cache"):
-                    source_type = "internal_terms_cache"
+                source_type = terms_lookup.classify_terms_source_url(source_url, warranty.brand)
                 meta["terms_source_url"] = source_url or None
                 meta["terms_source_type"] = source_type
                 meta["terms_last_refreshed_at"] = datetime.utcnow().isoformat()

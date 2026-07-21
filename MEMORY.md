@@ -707,3 +707,12 @@ git ls-remote --heads origin
 - Added protected `/oem/adapters` so OEM/admin users can audit currently enabled controlled adapters.
 - Existing OEM fetch review queue, scheduler path, OEM parsers, terms lookup, discovery, cache, RAG, OCR, telemetry, behaviour, Question Studio and Recommendation Studio were preserved.
 - Focused verification: `22 passed` across Phase 7 adapter, warranty discovery, warranty parser, source trust and evidence status tests; edited Python files compile.
+
+## 30. Latest Phase 7C approved-source cache/evidence update
+
+- Added shared terms-source classification through `terms_lookup.classify_terms_source_url`.
+- Invoice pipeline and manual terms refresh now use the same source classifier instead of duplicating source-type rules.
+- Successful terms lookups from approved OEM domains are labeled `approved_oem_source` for evidence/audit clarity; unapproved HTTP sources remain `scraped`.
+- Source trust now gives approved OEM source evidence a distinct label while still requiring OEM verification for claim certainty unless the domain is explicitly verified.
+- Existing terms cache behavior, internal warranty lookup, default fallbacks, scraping/adapters, OCR, OpenAI/LLM, RAG, telemetry, behaviour and OEM dashboard features were preserved.
+- Focused verification: `31 passed` across source trust, evidence status, warranty parser/discovery, invoice pipeline and Phase 7 adapter tests; edited Python files compile.

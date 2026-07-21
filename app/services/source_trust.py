@@ -53,12 +53,17 @@ def classify_terms_source(
     src_url = source_url or None
     host = _host(src_url)
 
-    if src_type == "scraped" and src_url:
+    if src_type in ("scraped", "approved_oem_source") and src_url:
         official_domains = _domains_for_brand(load_oem_domains(), brand)
         verified_domains = _domains_for_brand(load_verified_domains(), brand)
         verified = _matches_domain(host, verified_domains)
         official = verified or _matches_domain(host, official_domains)
-        if verified:
+        if src_type == "approved_oem_source" and official:
+            status = "approved_oem_source"
+            label = "Approved OEM source"
+            note = "Terms came from an approved OEM source path."
+            confidence = 0.88
+        elif verified:
             status = "verified_official"
             label = "Verified official source"
             note = "Terms came from a verified OEM domain."

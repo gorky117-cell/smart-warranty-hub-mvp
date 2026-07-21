@@ -1772,17 +1772,7 @@ def refresh_warranty_terms(payload: TermsRefreshRequest, db=Depends(get_db)):
     # Persist terms source hints for UI transparency.
     alt = dict(getattr(warranty, "alternatives", None) or {})
     src = result.source_url or ""
-    src_type = "internal"
-    if src.startswith(("http://", "https://")):
-        src_type = "scraped"
-    elif src.startswith(("test_data/", "file://")):
-        src_type = "synthetic_approved"
-    elif src.endswith("default_rules"):
-        src_type = "default_rules"
-    elif src.endswith("warranty_db"):
-        src_type = "internal_warranty_db"
-    elif src.endswith("terms_cache"):
-        src_type = "internal_terms_cache"
+    src_type = terms_lookup.classify_terms_source_url(src, warranty.brand)
     alt["terms_source_url"] = src or None
     alt["terms_source_type"] = src_type
     alt["terms_last_refreshed_at"] = datetime.utcnow().isoformat()
