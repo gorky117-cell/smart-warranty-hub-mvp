@@ -630,3 +630,13 @@ git ls-remote --heads origin
 - OEM analytics now includes a privacy-safe telemetry aggregate, and `/oem/telemetry-stats` exposes aggregate-only counts.
 - OEM telemetry aggregates are suppressed until the minimum cohort threshold is met (`OEM_TELEMETRY_MIN_COHORT`, default 10).
 - Added focused tests for telemetry sanitization/classification and cohort suppression.
+
+## 22. Latest Phase 4A OEM telemetry UI update
+
+- Commit `f2b15c57` (`Phase 4A: show OEM telemetry privacy status`) was pushed to `origin/master`.
+- `templates/oem_dashboard.html` now shows a **Privacy-safe telemetry** card using the existing `/oem/risk-stats` telemetry aggregate.
+- The OEM UI displays privacy suppression status, cohort size and minimum threshold when the cohort is below `OEM_TELEMETRY_MIN_COHORT`.
+- When the threshold is met, the same card shows aggregate-only telemetry signals, event counts, risk points and care points.
+- Existing OEM dashboard sections were preserved: risk distribution, reviews, forecast, behaviour snapshot, Question Studio, Recommendation Studio, top issues, EV battery overview and product interest.
+- Focused verification after the UI change: `23 passed` across telemetry intelligence, OEM dispatch, invoice/OpenAI pipeline, RAG health, warranty discovery and OCR/review route tests.
+- Live Railway checks after Phase 3E confirmed `/health/full` was `ok`, `/oem/telemetry-stats` exists, and unauthenticated access returns `401 Missing token`; logged-in OEM/admin access showed expected suppression for cohort size `1` and minimum cohort `10`.
