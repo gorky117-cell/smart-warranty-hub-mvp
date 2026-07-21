@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+import json
 
 from app.db import SessionLocal
 from app.db_models import ParsedFieldDB
@@ -77,3 +78,52 @@ def test_warranty_resolution_agent_returns_draft_only_when_enabled(monkeypatch):
     assert "submit_claims" in out["not_allowed"]
     assert all(call["tool"] in warranty_resolution_agent.ALLOWED_TOOLS for call in out["tool_calls"])
     assert "cannot change warranty status" in out["safety_note"]
+
+
+def test_warranty_resolution_agent_records_trace_for_disabled_run(tmp_path, monkeypatch):
+    trace_path = tmp_path / "agentic_traces.jsonl"
+    monkeypatch.setattr(warranty_resolution_agent, "TRACE_PATH", trace_path)
+    monkeypatch.delenv("AGENTIC_WORKFLOW_ENABLED", raising=False)
+
+    with SessionLocal() as db:
+        out = warranty_resolution_agent.resolve_warranty(
+            db,
+            user_id="trace_user",
+            warranty_id="trace_warranty",
+            question="Help",
+        )
+
+    rows = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()]
+    assert out["trace_id"] == rows[0]["id"]
+    assert rows[0]["status"] == "disabled"
+    assert rows[0]["question_present"] is True
+    assert "submit_claims" in rows[0]["not_allowed"]
+    assert rows[0]["tool_calls"] == []
+
+
+def test_warranty_resolution_agent_records_tool_trace_for_draft_run(tmp_path, monkeypatch):
+    warranty_id = "w_phase8_agent_trace"
+    _seed_warranty(warranty_id)
+    trace_path = tmp_path / "agentic_traces.jsonl"
+    monkeypatch.setattr(warranty_resolution_agent, "TRACE_PATH", trace_path)
+    monkeypatch.setenv("AGENTIC_WORKFLOW_ENABLED", "1")
+
+    with SessionLocal() as db:
+        out = warranty_resolution_agent.resolve_warranty(
+            db,
+            user_id="trace_user_enabled",
+            warranty_id=warranty_id,
+            question=None,
+        )
+
+    rows = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()]
+    assert out["trace_id"] == rows[0]["id"]
+    assert rows[0]["status"] == "draft"
+    assert rows[0]["question_present"] is False
+    assert [call["tool"] for call in rows[0]["tool_calls"]] == [
+        "get_warranty_record",
+        "get_invoice_evidence",
+        "retrieve_terms_source",
+        "get_risk_care_context",
+        "create_draft_claim_checklist",
+    ]

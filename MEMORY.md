@@ -754,3 +754,12 @@ git ls-remote --heads origin
 - The panel shows draft-only checklist output, missing/uncertain fields and the agent safety note; if the feature flag is off, it shows the disabled state instead.
 - Existing Step 2 summary control, bill upload/camera/manual flow, telemetry, diagnostics, behaviour questions, recommendations, EV battery card and notifications were preserved.
 - Focused verification: `18 passed` across Phase 8B UI, Phase 8 agent, warranty status, Phase 5 behaviour/predictive and invoice pipeline tests; edited Python files compile.
+
+## 35. Latest Phase 8C agent audit trace update
+
+- Warranty Resolution Agent runs now record a JSONL audit trace under `AGENTIC_TRACE_FILE` (default `data/agentic_traces.jsonl`).
+- Disabled, not-found and draft runs all return a `trace_id`.
+- Trace records include agent name, user/warranty scope, status, whether a question was present, allowed tools, blocked actions and allowed tool-call metadata.
+- The trace intentionally avoids storing secrets, raw invoice text, full prompt content or any mutation/action side effects.
+- Existing feature-flag behavior, draft-only output, ownership checks, Neo dashboard checklist, OCR, OpenAI/LLM, RAG, telemetry, diagnostics gates and Phase 7 source policy were preserved.
+- Focused verification: `13 passed` across Phase 8 agent trace/UI, warranty status and Phase 5 behaviour/predictive tests; edited Python files compile.
