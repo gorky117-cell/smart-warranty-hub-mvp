@@ -62,6 +62,7 @@ from .services import kpi_execution as kpi_execution_service
 from .services import invoice_pipeline
 from .services import summary_engine
 from .services import terms_lookup
+from .services import oem_source_policy
 from .services import rag as rag_service
 from .services import remote_diagnostics as remote_diag_service
 from .services import diagnostics_capability as diag_cap_service
@@ -2338,6 +2339,11 @@ def add_verified_domain(payload: OemVerifyRequest):
 @app.post("/oem/domains/verify", dependencies=[Depends(require_oem_or_admin)])
 def verify_domain(payload: OemVerifyRequest):
     return verify_or_suggest(brand=payload.brand, domain=payload.domain, region=payload.region)
+
+
+@app.get("/oem/source-policy", dependencies=[Depends(require_oem_or_admin)])
+def oem_source_policy_status(brand: str | None = None, url: str | None = None):
+    return {"ok": True, "policy": oem_source_policy.policy_snapshot(brand=brand, url=url)}
 
 
 @app.post("/predictive/score", dependencies=[Depends(rbac_dependency)])

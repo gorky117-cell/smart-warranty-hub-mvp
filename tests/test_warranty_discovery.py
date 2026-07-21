@@ -143,7 +143,7 @@ def test_non_strict_can_broad_fallback_when_site_queries_fail(monkeypatch, tmp_p
 
 
 def test_local_dev_sources_are_hidden_unless_enabled(monkeypatch, tmp_path: Path):
-    monkeypatch.setattr(wd, "_ALLOW_LOCAL_DEV_SOURCES", False)
+    monkeypatch.delenv("TERMS_ALLOW_LOCAL_DEV_SOURCES", raising=False)
     monkeypatch.setattr(wd, "_SEARCH_MAX_QUERIES", 0)
 
     results = wd.discover_sources(
@@ -158,7 +158,7 @@ def test_local_dev_sources_are_hidden_unless_enabled(monkeypatch, tmp_path: Path
 
 
 def test_local_dev_sources_can_be_enabled_for_testing(monkeypatch, tmp_path: Path):
-    monkeypatch.setattr(wd, "_ALLOW_LOCAL_DEV_SOURCES", True)
+    monkeypatch.setenv("TERMS_ALLOW_LOCAL_DEV_SOURCES", "1")
     monkeypatch.setattr(wd, "_SEARCH_MAX_QUERIES", 0)
 
     results = wd.discover_sources(
@@ -172,3 +172,33 @@ def test_local_dev_sources_can_be_enabled_for_testing(monkeypatch, tmp_path: Pat
     assert results
     assert results[0].source_type == "oem_warranty"
     assert results[0].official is False
+
+
+def test_production_blocks_broad_search_without_explicit_override(monkeypatch, tmp_path: Path):
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("TERMS_ALLOW_BROAD_FALLBACK", "1")
+    monkeypatch.delenv("TERMS_ALLOW_PRODUCTION_BROAD_SEARCH", raising=False)
+    monkeypatch.setattr(wd, "_SEARCH_MAX_QUERIES", 1)
+    monkeypatch.setattr(wd, "_SEARCH_MAX_RESULTS", 3)
+    monkeypatch.setattr(wd, "load_oem_domains", lambda: {"Samsung": ["samsung.com"]})
+    monkeypatch.setattr(wd, "load_verified_domains", lambda: {"Samsung": ["samsung.com"]})
+    monkeypatch.setattr(wd, "_domain_alive", lambda _domain, timeout: False)
+
+    calls = []
+
+    def _fake_search(query: str, count: int = 5, timeout: int = 6):
+        calls.append(query)
+        return [{"url": "https://example.com/warranty"}]
+
+    monkeypatch.setattr(wd, "search_web", _fake_search)
+
+    results = wd.discover_sources(
+        brand="Samsung",
+        model_code="ABC-100",
+        product_name="TV",
+        region="IN",
+        data_path=_empty_sources(tmp_path),
+    )
+
+    assert results == []
+    assert calls == []

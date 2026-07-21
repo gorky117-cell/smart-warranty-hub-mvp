@@ -688,3 +688,13 @@ git ls-remote --heads origin
 - `templates/oem_dashboard.html` now shows **Aggregate demand** under Recommendation Studio, with suppression state or aggregate product demand/action counts.
 - Existing customer recommendations, product recommendations, product-interest events, Question Studio and Recommendation Studio generation/publish flows were preserved.
 - Focused verification: `28 passed` across Phase 6D recommendation loop, Phase 6C question loop, Phase 6 aggregate, Phase 5 behaviour/predictive, telemetry, OEM dispatch/communication, invoice/OpenAI pipeline and RAG health tests.
+
+## 28. Latest Phase 7A controlled OEM source policy update
+
+- Added `app/services/oem_source_policy.py` as the central policy helper for controlled OEM source verification.
+- Discovery now reuses the same approved-host matching logic for configured OEM domains and verified domains.
+- Broad fallback web search remains disabled by default and is additionally blocked in production unless `TERMS_ALLOW_PRODUCTION_BROAD_SEARCH=1` is set together with the existing broad-fallback control.
+- Production manual URL terms refresh is blocked unless the URL belongs to an approved/verified OEM domain or `TERMS_ALLOW_PRODUCTION_MANUAL_URL=1` is explicitly set.
+- Added protected `/oem/source-policy` so OEM/admin users can audit current source policy state for a brand/URL.
+- Existing internal warranty lookup, terms cache, official-domain discovery, manual URL support in non-production, scraping adapters, parser/NLP enrichment, RAG, OCR, telemetry, behaviour, OEM question and recommendation features were preserved.
+- Focused verification: `19 passed` across warranty discovery, warranty parser, evidence status and source trust tests; edited Python files compile.

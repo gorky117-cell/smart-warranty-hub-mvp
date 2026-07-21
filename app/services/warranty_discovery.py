@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 import requests
 
 from .web_search import search_web
+from . import oem_source_policy
 
 @dataclass
 class DiscoverySource:
@@ -66,31 +67,11 @@ def _region_score(region: Optional[str], url: str) -> int:
 
 
 def _domains_for_brand(domain_map: Dict[str, List[str]], brand: Optional[str]) -> List[str]:
-    if not brand:
-        return []
-    b = _normalize(brand)
-    for k, values in domain_map.items():
-        if _normalize(k) == b:
-            out: List[str] = []
-            for d in values or []:
-                val = _normalize(d)
-                if val and val not in out:
-                    out.append(val)
-            return out
-    return []
+    return oem_source_policy.domains_for_brand(domain_map, brand)
 
 
 def _host_matches_any(host: str, domains: List[str]) -> bool:
-    if not host:
-        return False
-    h = _normalize(host)
-    for d in domains:
-        dom = _normalize(d)
-        if not dom:
-            continue
-        if h == dom or h.endswith(f".{dom}"):
-            return True
-    return False
+    return oem_source_policy.host_matches_any(host, domains)
 
 
 def _domain_alive(domain: str, timeout: int) -> bool:
@@ -218,14 +199,8 @@ def discover_sources(
         if not allow_retail and entry.get("source_type") == "retail":
             continue
         url = str(entry.get("url") or "")
-        lower_url = url.lower()
-        is_local_source = lower_url.startswith("test_data/") or lower_url.startswith("file://")
-        if not is_local_source:
-            try:
-                is_local_source = Path(url).exists()
-            except Exception:
-                is_local_source = False
-        if is_local_source and not _ALLOW_LOCAL_DEV_SOURCES:
+        is_local_source = oem_source_policy.is_local_source(url)
+        if is_local_source and not oem_source_policy.local_dev_sources_allowed():
             continue
         host = _host(url)
         entry_official_domains = _domains_for_brand(oem_domains, entry.get("brand") or "")
@@ -317,13 +292,13 @@ def discover_sources(
                 for domain in preflight_alive_domains:
                     site_query_hits += _append_search_items(f"site:{domain} {q}")
 
-        # If brand is unknown, run bounded broad search (we cannot preflight unknown OEM domains).
-        if not brand:
-            should_run_broad = True
-        elif preflight_alive_domains:
-            should_run_broad = _ALLOW_BROAD_FALLBACK and site_query_hits == 0
-        else:
-            should_run_broad = (not _PREFLIGHT_STRICT) or _ALLOW_BROAD_FALLBACK
+        should_run_broad = oem_source_policy.broad_search_allowed(
+            brand=brand,
+            site_query_hits=site_query_hits,
+            preflight_alive=bool(preflight_alive_domains),
+            allow_broad_fallback=_ALLOW_BROAD_FALLBACK,
+            preflight_strict=_PREFLIGHT_STRICT,
+        )
         if should_run_broad:
             for q in queries:
                 _append_search_items(q)

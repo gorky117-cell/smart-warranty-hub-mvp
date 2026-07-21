@@ -13,6 +13,7 @@ from ..db_models import WarrantyTermsCacheDB, WarrantyDB
 from .warranty_discovery import discover_sources
 from .warranty_parser import parse_terms_from_url, ParsedTerms
 from . import regional_policy as regional_policy_service
+from . import oem_source_policy
 
 
 
@@ -203,6 +204,17 @@ def lookup_terms(
     if _SCRAPE_ENABLED:
         # Manual URL override path
         if url_override and _mode_allows_manual(_SCRAPE_MODE):
+            if not oem_source_policy.manual_url_allowed(url_override, brand):
+                result = _default_terms(DEFAULT_RULES.get(norm_category, 12))
+                result.source_url = "internal://manual_url_blocked_by_oem_policy"
+                return _apply_region_policy(
+                    db,
+                    result,
+                    region=region,
+                    brand=brand,
+                    model_code=model_code,
+                    product_type=category,
+                )
             parsed, err = parse_terms_from_url(url_override)
             if parsed and not err:
                 result = _to_terms_result(parsed, url_override)

@@ -62,6 +62,29 @@ def test_lookup_terms_with_url_override(tmp_path: Path):
     assert result.duration_months == 18
 
 
+def test_lookup_terms_blocks_unapproved_manual_url_in_production(tmp_path: Path, monkeypatch):
+    html = "<html><body><p>Warranty coverage is 36 months.</p></body></html>"
+    path = tmp_path / "unapproved_terms.html"
+    path.write_text(html, encoding="utf-8")
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.delenv("TERMS_ALLOW_PRODUCTION_MANUAL_URL", raising=False)
+
+    with SessionLocal() as db:
+        result = lookup_terms(
+            db,
+            brand="Acmeco",
+            category="appliance",
+            region=None,
+            model_code="ZX-100",
+            product_name="Washer",
+            url_override=str(path),
+            force_refresh=True,
+        )
+
+    assert result.duration_months == 24
+    assert result.source_url == "internal://manual_url_blocked_by_oem_policy"
+
+
 def test_parse_terms_low_confidence_uses_nlp_enrichment(tmp_path: Path, monkeypatch):
     html = "<html><body><p>Warranty details available from support team.</p></body></html>"
     path = tmp_path / "low_conf.html"
