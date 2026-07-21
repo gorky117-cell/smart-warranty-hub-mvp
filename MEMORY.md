@@ -781,3 +781,12 @@ git ls-remote --heads origin
 - Admin seeding now skips default `admin/admin123` when insecure defaults are not allowed; set `ADMIN_USER` and `ADMIN_PASS` for production admin bootstrap.
 - The optional in-process scheduler is still available for local/demo/single-instance workflows, but defaults off in detected multi-instance runtimes unless `SCHEDULER_ENABLED=1` is explicitly set.
 - Existing OCR, OpenAI/LLM, RAG, OEM source policy/adapters, telemetry, behaviour, predictive care, diagnostics gates, Question Studio, Recommendation Studio and controlled agent features were preserved.
+
+## 38. Latest Phase 9B rate-limit safety update
+
+- Added `app/services/rate_limiter.py` as a lightweight in-process pilot limiter.
+- Rate limiting is enabled by default and can be disabled only with `RATE_LIMIT_ENABLED=0` for controlled local runs.
+- Protected high-risk/high-cost boundaries now include login, artifact upload, direct LLM generation, warranty summary generation, OEM question/recommendation generation and the draft warranty-resolution agent.
+- Limits are environment-configurable per scope: `RATE_LIMIT_LOGIN_*`, `RATE_LIMIT_UPLOAD_*`, `RATE_LIMIT_AI_*` and `RATE_LIMIT_AGENT_*`.
+- The limiter keys authenticated routes by user and unauthenticated login attempts by client IP / forwarded IP.
+- Added focused tests for threshold blocking, authenticated-user separation, forwarded-IP login limiting and the local off switch.

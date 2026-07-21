@@ -71,6 +71,7 @@ from .services import diagnostics_capability as diag_cap_service
 from .services import emailer as emailer_service
 from .services import telemetry_intelligence
 from .services import oem_aggregate as oem_aggregate_service
+from .services.rate_limiter import check_rate_limit
 from .services.warranty_status import compute_warranty_status
 from .services.notifications import run_initial_analysis_and_notifications
 logger = logging.getLogger(__name__)
@@ -883,7 +884,12 @@ def oem_llm_status():
 
 
 @app.post("/oem/questions/generate", dependencies=[Depends(require_oem_or_admin)])
-def oem_questions_generate(payload: Dict = Body(None)):
+def oem_questions_generate(
+    request: Request,
+    payload: Dict = Body(None),
+    current: UserDB = Depends(require_oem_or_admin),
+):
+    check_rate_limit("ai", request, current.username)
     try:
         payload = payload or {}
         ctx = {
@@ -901,8 +907,12 @@ def oem_questions_generate(payload: Dict = Body(None)):
 
 
 @app.post("/api/oem/questions/generate")
-def oem_questions_generate_alias(payload: Dict = Body(None), current=Depends(require_oem_or_admin)):
-    return oem_questions_generate(payload)
+def oem_questions_generate_alias(
+    request: Request,
+    payload: Dict = Body(None),
+    current: UserDB = Depends(require_oem_or_admin),
+):
+    return oem_questions_generate(request, payload, current)
 
 
 @app.post("/oem/questions/publish", dependencies=[Depends(require_oem_or_admin)])
@@ -1115,7 +1125,13 @@ def oem_recommendations_preview(
 
 @app.post("/oem/recommendations/generate", dependencies=[Depends(require_oem_or_admin)])
 @app.post("/api/oem/recommendations/generate", dependencies=[Depends(require_oem_or_admin)])
-def oem_recommendations_generate(payload: Dict = Body(None), db=Depends(get_db)):
+def oem_recommendations_generate(
+    request: Request,
+    payload: Dict = Body(None),
+    db=Depends(get_db),
+    current: UserDB = Depends(require_oem_or_admin),
+):
+    check_rate_limit("ai", request, current.username)
     try:
         payload = payload or {}
         preview = oem_recommendations_preview(
@@ -1321,6 +1337,7 @@ def login(
     db=Depends(get_db),
     next_url: str | None = Form(None),
 ):
+    check_rate_limit("login", request)
     login_id = (username or "").strip()
     accepts_json = "application/json" in (request.headers.get("accept") or "")
     cookie_opts = _cookie_options(request)
@@ -1448,6 +1465,7 @@ def create_artifact(payload: ArtifactRequest):
 
 @app.post("/artifacts/upload", dependencies=[Depends(rbac_dependency)])
 async def upload_artifact(
+    request: Request,
     file: UploadFile = File(...),
     type: ArtifactType = ArtifactType.invoice,
     warranty_id: Optional[str] = Form(default=None),  # NEW: Optional existing warranty ID
@@ -1456,6 +1474,7 @@ async def upload_artifact(
     current=Depends(require_user),
     background_tasks: BackgroundTasks = None,
 ):
+    check_rate_limit("upload", request, current.username)
     # Save uploaded evidence under a server-generated filename. The original
     # browser filename is never used as a path, preventing traversal/overwrite.
     original_filename = Path(file.filename or "upload").name
@@ -1907,10 +1926,12 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db), current: UserDB =
 
 @app.post("/agent/warranty-resolution", dependencies=[Depends(rbac_dependency)])
 def warranty_resolution_agent_run(
+    request: Request,
     payload: WarrantyAgentRequest,
     db=Depends(get_db),
     current: UserDB = Depends(require_user),
 ):
+    check_rate_limit("agent", request, current.username)
     _require_warranty_access(db, user=current, warranty_id=payload.warranty_id)
     return warranty_resolution_agent.resolve_warranty(
         db,
@@ -2029,7 +2050,12 @@ def list_tickets(warranty_id: str):
 
 
 @app.post("/llm/generate", dependencies=[Depends(rbac_dependency)])
-def llm_generate(payload: LLMRequest):
+def llm_generate(
+    request: Request,
+    payload: LLMRequest,
+    current: UserDB = Depends(require_user),
+):
+    check_rate_limit("ai", request, current.username)
     text, err = generate_text(payload.prompt, payload.model)
     if err:
         raise HTTPException(status_code=500, detail=err)
@@ -2127,7 +2153,8 @@ def warranty_ui(
     if not warranty:
         raise HTTPException(status_code=404, detail="Warranty not found")
     # Summary
-    summary_resp = warranty_summary(SummaryRequest(warranty_id=warranty_id))
+    with SessionLocal() as db:
+        summary_resp = _build_warranty_summary_response(SummaryRequest(warranty_id=warranty_id), db, current)
     summary_text = summary_resp.get("summary", "")
     # Risk & advisories
     adv = advisories(warranty_id, user_id)
@@ -3270,8 +3297,7 @@ def oem_fetch_form(
     return oem_fetch(req)
 
 
-@app.post("/warranties/summary", dependencies=[Depends(rbac_dependency)])
-def warranty_summary(payload: SummaryRequest, db=Depends(get_db), current: UserDB = Depends(require_user)):
+def _build_warranty_summary_response(payload: SummaryRequest, db, current: UserDB):
     _require_warranty_access(db, user=current, warranty_id=payload.warranty_id)
     warranty = store.get_warranty_db(payload.warranty_id)
     if not warranty:
@@ -3313,13 +3339,24 @@ def warranty_summary(payload: SummaryRequest, db=Depends(get_db), current: UserD
     }
 
 
+@app.post("/warranties/summary", dependencies=[Depends(rbac_dependency)])
+def warranty_summary(
+    request: Request,
+    payload: SummaryRequest,
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    check_rate_limit("ai", request, current.username)
+    return _build_warranty_summary_response(payload, db, current)
+
+
 @app.get("/warranties/{warranty_id}/export", dependencies=[Depends(rbac_dependency)])
 def warranty_export(warranty_id: str, format: str = "txt", db=Depends(get_db), current: UserDB = Depends(require_user)):
     _require_warranty_access(db, user=current, warranty_id=warranty_id)
     warranty = store.get_warranty_db(warranty_id)
     if not warranty:
         raise HTTPException(status_code=404, detail="Warranty not found")
-    summary = warranty_summary(SummaryRequest(warranty_id=warranty_id), db=db, current=current).get("summary", "")
+    summary = _build_warranty_summary_response(SummaryRequest(warranty_id=warranty_id), db, current).get("summary", "")
     fname = f"warranty_{warranty_id}.{format}"
     if format == "txt":
         data = export_warranty_txt(summary)
