@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Warranty Hub - Hackathon Demo</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #18202a;
+      --muted: #52606f;
+      --line: #d9e0e7;
+      --panel: #ffffff;
+      --soft: #f5f7f9;
+      --blue: #0d66d0;
+      --green: #147d64;
+      --amber: #9a6500;
+      --red: #b42318;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--soft);
+      line-height: 1.45;
+    }
+
+    header {
+      background: #102033;
+      color: white;
+      padding: 28px clamp(18px, 4vw, 52px);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 46px);
+      letter-spacing: 0;
+    }
+
+    header p {
+      max-width: 900px;
+      margin: 12px 0 0;
+      color: #d9e7f7;
+      font-size: 18px;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 24px auto 48px;
+    }
+
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .topbar a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 38px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 650;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 18px 0 8px;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    ol,
+    ul {
+      padding-left: 22px;
+      margin: 10px 0 0;
+    }
+
+    li {
+      margin: 7px 0;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      background: #eef5ff;
+      color: #174a86;
+      border: 1px solid #c8ddf7;
+    }
+
+    .badge.green {
+      background: #ecf8f4;
+      color: var(--green);
+      border-color: #b9e4d8;
+    }
+
+    .badge.amber {
+      background: #fff6df;
+      color: var(--amber);
+      border-color: #f1d38a;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fbfcfd;
+      min-height: 92px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 26px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .flow {
+      counter-reset: demo-step;
+      list-style: none;
+      padding: 0;
+    }
+
+    .flow li {
+      counter-increment: demo-step;
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 12px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .flow li:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .flow li::before {
+      content: counter(demo-step);
+      display: inline-grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--blue);
+      color: white;
+      font-weight: 800;
+    }
+
+    code,
+    pre {
+      font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      background: #111827;
+      color: #e5e7eb;
+      border-radius: 8px;
+      padding: 14px;
+      overflow: auto;
+      margin: 10px 0 0;
+      font-size: 13px;
+    }
+
+    .callout {
+      border-left: 4px solid var(--blue);
+      background: #f0f6ff;
+      padding: 12px 14px;
+      border-radius: 6px;
+      margin-top: 12px;
+    }
+
+    .warning {
+      border-left-color: var(--amber);
+      background: #fff8e8;
+    }
+
+    .danger {
+      border-left-color: var(--red);
+      background: #fff1f0;
+    }
+
+    footer {
+      color: var(--muted);
+      font-size: 13px;
+      padding: 0 0 30px;
+    }
+
+    @media (max-width: 850px) {
+      .grid,
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+
+      header p {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Smart Warranty Hub</h1>
+    <p>Hackathon demo for a post-purchase warranty intelligence platform: invoice to coverage summary, care guidance, risk support, and privacy-safe OEM insight.</p>
+    <div class="badge-row" aria-label="readiness badges">
+      <span class="badge green">Controlled demo ready</span>
+      <span class="badge">122 automated tests passed</span>
+      <span class="badge amber">Pilot, not full production</span>
+    </div>
+  </header>
+
+  <main>
+    <nav class="topbar" aria-label="demo links">
+      <a href="HACKATHON_DEMO_GUIDE.md">Talk Track</a>
+      <a href="Smart_Warranty_Hub_Hackathon_Demo_Guide.docx">Download Guide</a>
+      <a href="GOLDEN_PATH_TEST.md">Golden Path</a>
+      <a href="../scripts/demo_mock_flow.py">Runnable Mock Flow</a>
+    </nav>
+
+    <div class="grid">
+      <section>
+        <h2>Two-Minute Live Flow</h2>
+        <ol class="flow">
+          <li><div><strong>Open the public site.</strong><br><span class="muted">Position it as a customer, OEM and TPA warranty operating layer.</span></div></li>
+          <li><div><strong>Sign in and open Neo dashboard.</strong><br><span class="muted">Use the prepared demo account and avoid live dependency surprises.</span></div></li>
+          <li><div><strong>Upload or select a sample invoice.</strong><br><span class="muted">Show product identity, purchase date, coverage and evidence context.</span></div></li>
+          <li><div><strong>Open the warranty summary.</strong><br><span class="muted">Highlight coverage, exclusions, claim steps, confidence and source traceability.</span></div></li>
+          <li><div><strong>Show care and risk guidance.</strong><br><span class="muted">Explain predictive and behaviour signals as support guidance, not automated claim decisions.</span></div></li>
+          <li><div><strong>Open the Resolution checklist.</strong><br><span class="muted">State clearly that the agent is draft-only and cannot submit claims or contact OEMs.</span></div></li>
+          <li><div><strong>Switch to OEM dashboard.</strong><br><span class="muted">Show aggregate insight, controlled source verification, question studio and recommendation studio.</span></div></li>
+          <li><div><strong>Close with privacy boundaries.</strong><br><span class="muted">Direct OEM sharing requires explicit consent; aggregate insight is cohort-suppressed.</span></div></li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>Judge-Safe Claims</h2>
+        <div class="metric-grid">
+          <div class="metric"><strong>122</strong><span class="muted">Local automated tests passed in audit.</span></div>
+          <div class="metric"><strong>50</strong><span class="muted">Controlled cases per KPI lane, not live outcomes.</span></div>
+          <div class="metric"><strong>9G</strong><span class="muted">Pilot safety hardening completed.</span></div>
+        </div>
+        <div class="callout">
+          Say: "The repo includes controlled 50-case evaluations for OCR, predictive, nudge, service, OEM dispatch, watchdog and remediation workflows. These are test metrics, not live customer results."
+        </div>
+        <div class="callout warning">
+          Do not claim real warranty-cost reduction, claim-time reduction, failure prevention or OEM business outcomes unless those are independently measured in live data.
+        </div>
+      </section>
+    </div>
+
+    <section>
+      <h2>Proof Points To Show</h2>
+      <ul>
+        <li>Invoice upload has size/type restrictions and server-generated filenames.</li>
+        <li>Warranty data access is protected by authenticated ownership checks.</li>
+        <li>OpenAI/LLM capability is optional and deterministic fallbacks keep the core flow usable.</li>
+        <li>Telemetry strips direct identifiers and OEM aggregate insight uses cohort suppression.</li>
+        <li>High-risk and high-cost routes have CSRF protection, rate limits, request IDs and per-user AI quota gates.</li>
+        <li>The warranty-resolution agent is draft-only and records an audit trace.</li>
+      </ul>
+    </section>
+
+    <div class="grid">
+      <section>
+        <h2>Backup Terminal Demo</h2>
+        <p class="muted">Use this if a browser, OCR provider or LLM provider is unavailable during judging.</p>
+        <pre>python scripts\demo_mock_flow.py</pre>
+        <p class="muted">Expected result: prints parsed invoice fields, coverage data, warranty summary and writes <code>data/demo_output.json</code>.</p>
+      </section>
+
+      <section>
+        <h2>Live Health Checks</h2>
+        <pre>python scripts\check_prod_health.py</pre>
+        <p class="muted">For local API proof, start the server and open <code>http://127.0.0.1:8000/health/full</code>.</p>
+      </section>
+    </div>
+
+    <section>
+      <h2>Q&A Answers</h2>
+      <h3>Is this production-ready?</h3>
+      <p>It is ready for a controlled hackathon demo and pilot. Full production rollout would move local/process-bound stores to managed Postgres, object storage and shared rate-limit/quota infrastructure.</p>
+      <h3>What does AI decide?</h3>
+      <p>AI enriches and explains information. Deterministic warranty data, policy checks, consent, ownership and human review boundaries remain authoritative.</p>
+      <h3>How is customer data protected?</h3>
+      <p>Users are isolated by ownership checks, telemetry is sanitized, aggregate OEM insight is cohort-suppressed and direct OEM communication requires explicit consent.</p>
+      <h3>What is the business value?</h3>
+      <p>Customers get clearer coverage and earlier care guidance. OEM and TPA teams get privacy-safe early signals for support, service and quality workflows.</p>
+    </section>
+
+    <section>
+      <h2>Presenter Checklist</h2>
+      <ul>
+        <li>Use the active <code>master</code> branch for code walkthroughs.</li>
+        <li>Have one sample invoice and one known login ready before the session starts.</li>
+        <li>Show the happy path first, then mention pilot limits only when asked or at close.</li>
+        <li>Keep OpenAI/OCR calls optional during the live presentation; rely on prepared deterministic flows when network providers are unstable.</li>
+      </ul>
+      <div class="callout danger">
+        Current repo note: GitHub's default branch may still be <code>main</code>. Judges should review <code>master</code> unless the default branch is changed before submission.
+      </div>
+    </section>
+
+    <footer>
+      Smart Warranty Hub hackathon demo artifact. Generated from repository documentation and audit notes.
+    </footer>
+  </main>
+</body>
+</html>

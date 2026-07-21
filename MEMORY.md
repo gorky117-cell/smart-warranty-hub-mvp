@@ -849,3 +849,10 @@ git ls-remote --heads origin
 - Remaining non-blocking hackathon risks: GitHub's default branch is still the older `main` while active work is on `master` (112 commits ahead); no GitHub Actions or branch protection; rate limiting, AI quota and direct-consent persistence are local/process-bound for the pilot; the local environment reports dependency conflicts and three scikit-learn model-version warnings.
 - Recommended immediate presentation action: set GitHub's default branch to `master` before judges review the repository. Production hardening is intentionally out of scope for the hackathon.
 - Judge-facing presentation script: `docs/HACKATHON_DEMO_GUIDE.md`, with a downloadable Word handout at `docs/Smart_Warranty_Hub_Hackathon_Demo_Guide.docx`.
+
+## 45. Hackathon demo artifact - 2026-07-22
+
+- Added a standalone browser demo page at `docs/HACKATHON_DEMO.html`.
+- The demo page is a real repo artifact that can be opened locally or downloaded from GitHub; it does not require Railway or a running server.
+- It includes the two-minute judge flow, safe claims wording, proof points, backup terminal demo commands, health-check commands, Q&A answers and presenter checklist.
+- Updated `docs/HACKATHON_DEMO_GUIDE.md` and `docs/DOCS_INDEX.md` to point to the HTML demo page.

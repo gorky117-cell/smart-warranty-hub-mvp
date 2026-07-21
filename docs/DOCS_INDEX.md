@@ -18,6 +18,7 @@ This index points to the complete section-wise documentation set for product, KP
 12. Deployment & Configuration Reference (Railway/env/operations): `docs/deployment_config_reference.md`
 13. Hackathon Demo Guide (judge flow, talk track and claims boundary): `docs/HACKATHON_DEMO_GUIDE.md`
 14. Downloadable Hackathon Demo Guide (Word): `docs/Smart_Warranty_Hub_Hackathon_Demo_Guide.docx`
+15. Browser Hackathon Demo Page (open/downloadable HTML): `docs/HACKATHON_DEMO.html`
 
 ## Existing Phase Runbooks (already in repo)
 
