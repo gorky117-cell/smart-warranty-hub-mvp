@@ -14,8 +14,8 @@
     "history_persist_ok": true,
     "latest_plan_task_count": 1,
     "remediation_notifications": 2,
-    "latency_p50_ms": 111.29,
-    "latency_p95_ms": 261.94,
+    "latency_p50_ms": 40.42,
+    "latency_p95_ms": 71.01,
     "decision_accuracy_pct": 100.0
   },
   "runs": {
@@ -33,7 +33,7 @@
         "recurring_failing_kpis": []
       },
       "snapshot": {
-        "timestamp": "2026-02-21T09:12:38.211945",
+        "timestamp": "2026-07-21T20:40:48.519607",
         "source": "eval",
         "decision": "alert",
         "pass_rate_pct": 72.0,
@@ -93,7 +93,7 @@
         ]
       },
       "snapshot": {
-        "timestamp": "2026-02-21T09:12:38.431725",
+        "timestamp": "2026-07-21T20:40:48.590039",
         "source": "eval",
         "decision": "alert",
         "pass_rate_pct": 74.0,
@@ -146,7 +146,7 @@
         ]
       },
       "snapshot": {
-        "timestamp": "2026-02-21T09:12:38.542919",
+        "timestamp": "2026-07-21T20:40:48.639332",
         "source": "eval",
         "decision": "healthy",
         "pass_rate_pct": 95.0,

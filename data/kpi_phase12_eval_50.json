@@ -12,8 +12,8 @@
     "run2_overdue_notify_count": 2,
     "task_lifecycle_integrity_ok": true,
     "overdue_alert_ok": true,
-    "latency_p50_ms": 77.55,
-    "latency_p95_ms": 83.54,
+    "latency_p50_ms": 46.28,
+    "latency_p95_ms": 55.54,
     "execution_success_pct": 100.0
   },
   "runs": {
@@ -31,7 +31,7 @@
         "recurring_failing_kpis": []
       },
       "snapshot": {
-        "timestamp": "2026-02-22T07:22:29.077261",
+        "timestamp": "2026-07-21T20:40:48.488778",
         "source": "eval_phase12",
         "decision": "alert",
         "pass_rate_pct": 73.0,

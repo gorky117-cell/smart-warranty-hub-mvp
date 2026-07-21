@@ -2,7 +2,7 @@
   "summary": {
     "dataset_rows": 50,
     "run1_decision": "completed",
-    "run1_send_rate_pct": 100.0,
+    "run1_send_rate_pct": 0.0,
     "run1_trace_integrity_ok": true,
     "run2_decision": "completed",
     "run2_rate_limit_block_pct": 100.0,
@@ -12,11 +12,11 @@
     "run4_decision": "insufficient_signal",
     "run4_oem_notified": 1,
     "run4_insufficient_signal_notify_ok": true,
-    "total_trace_sent": 50,
-    "total_trace_blocked": 50,
+    "total_trace_sent": 0,
+    "total_trace_blocked": 100,
     "total_oem_dispatch_notifications": 1,
-    "latency_p50_ms": 1037.0,
-    "latency_p95_ms": 16512.91
+    "latency_p50_ms": 304.43,
+    "latency_p95_ms": 582.67
   },
   "runs": {
     "run1_strong_signal": {
@@ -24,8 +24,8 @@
       "enabled": true,
       "targets": 50,
       "eligible": 50,
-      "sent": 50,
-      "blocked": 0,
+      "sent": 0,
+      "blocked": 50,
       "decision": "completed",
       "oem_notified": 1,
       "policy": {

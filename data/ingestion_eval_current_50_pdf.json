@@ -4,34 +4,10 @@
   "missing_file_rows": 0,
   "ocr_success_rate_pct": 100.0,
   "ocr_empty_rate_pct": 0.0,
-  "latency_p50_ms": 7.18,
-  "latency_p95_ms": 125.54,
+  "latency_p50_ms": 15.51,
+  "latency_p95_ms": 690.39,
   "field_metrics": {
     "brand": {
-      "tp": 40.0,
-      "fp": 10.0,
-      "fn": 0.0,
-      "precision": 0.8,
-      "recall": 1.0,
-      "f1": 0.8889
-    },
-    "model_code": {
-      "tp": 30.0,
-      "fp": 20.0,
-      "fn": 10.0,
-      "precision": 0.6,
-      "recall": 0.75,
-      "f1": 0.6667
-    },
-    "purchase_date": {
-      "tp": 40.0,
-      "fp": 10.0,
-      "fn": 0.0,
-      "precision": 0.8,
-      "recall": 1.0,
-      "f1": 0.8889
-    },
-    "serial_no": {
       "tp": 40.0,
       "fp": 0.0,
       "fn": 0.0,
@@ -39,13 +15,37 @@
       "recall": 1.0,
       "f1": 1.0
     },
+    "model_code": {
+      "tp": 40.0,
+      "fp": 0.0,
+      "fn": 0.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "purchase_date": {
+      "tp": 40.0,
+      "fp": 0.0,
+      "fn": 0.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "serial_no": {
+      "tp": 37.0,
+      "fp": 3.0,
+      "fn": 3.0,
+      "precision": 0.925,
+      "recall": 0.925,
+      "f1": 0.925
+    },
     "invoice_no": {
-      "tp": 30.0,
-      "fp": 10.0,
-      "fn": 10.0,
-      "precision": 0.75,
-      "recall": 0.75,
-      "f1": 0.75
+      "tp": 40.0,
+      "fp": 0.0,
+      "fn": 0.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
     },
     "coverage_months": {
       "tp": 40.0,
@@ -56,12 +56,12 @@
       "f1": 1.0
     },
     "product_category": {
-      "tp": 20.0,
-      "fp": 30.0,
-      "fn": 20.0,
-      "precision": 0.4,
-      "recall": 0.5,
-      "f1": 0.4444
+      "tp": 40.0,
+      "fp": 0.0,
+      "fn": 0.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
     }
   }
 }

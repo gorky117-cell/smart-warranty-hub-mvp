@@ -10,8 +10,8 @@
     "parser_failover_success_pct": 100.0,
     "parse_success_per_case_pct": 88.0,
     "parse_success_per_attempt_pct": 88.0,
-    "latency_p50_ms": 14.58,
-    "latency_p95_ms": 18.07
+    "latency_p50_ms": 8.78,
+    "latency_p95_ms": 10.06
   },
   "scenarios": {
     "alive_success": 32,
@@ -46,7 +46,7 @@
       "parse_attempts": [
         "https://samsung.com/support/warranty/swh-0001"
       ],
-      "latency_ms": 118.66
+      "latency_ms": 64.39
     },
     {
       "case_id": "C002",
@@ -70,7 +70,7 @@
       "parse_attempts": [
         "https://apple.com/support/warranty/swh-0002"
       ],
-      "latency_ms": 14.74
+      "latency_ms": 9.51
     },
     {
       "case_id": "C003",
@@ -94,7 +94,7 @@
       "parse_attempts": [
         "https://sony.com/support/warranty/swh-0003"
       ],
-      "latency_ms": 16.59
+      "latency_ms": 8.78
     },
     {
       "case_id": "C004",
@@ -118,7 +118,7 @@
       "parse_attempts": [
         "https://lg.com/support/warranty/swh-0004"
       ],
-      "latency_ms": 15.07
+      "latency_ms": 10.08
     },
     {
       "case_id": "C005",
@@ -142,7 +142,7 @@
       "parse_attempts": [
         "https://whirlpool.com/support/warranty/swh-0005"
       ],
-      "latency_ms": 11.73
+      "latency_ms": 7.93
     },
     {
       "case_id": "C006",
@@ -166,7 +166,7 @@
       "parse_attempts": [
         "https://bosch.com/support/warranty/swh-0006"
       ],
-      "latency_ms": 15.06
+      "latency_ms": 8.48
     },
     {
       "case_id": "C007",
@@ -190,7 +190,7 @@
       "parse_attempts": [
         "https://atherenergy.com/support/warranty/swh-0007"
       ],
-      "latency_ms": 16.4
+      "latency_ms": 8.43
     },
     {
       "case_id": "C008",
@@ -214,7 +214,7 @@
       "parse_attempts": [
         "https://tatamotors.com/support/warranty/swh-0008"
       ],
-      "latency_ms": 12.33
+      "latency_ms": 9.09
     },
     {
       "case_id": "C009",
@@ -238,7 +238,7 @@
       "parse_attempts": [
         "https://samsung.com/support/warranty/swh-0009"
       ],
-      "latency_ms": 12.51
+      "latency_ms": 7.93
     },
     {
       "case_id": "C010",
@@ -262,7 +262,7 @@
       "parse_attempts": [
         "https://apple.com/support/warranty/swh-0010"
       ],
-      "latency_ms": 17.46
+      "latency_ms": 8.69
     },
     {
       "case_id": "C011",
@@ -286,7 +286,7 @@
       "parse_attempts": [
         "https://sony.com/support/warranty/swh-0011"
       ],
-      "latency_ms": 14.94
+      "latency_ms": 8.72
     },
     {
       "case_id": "C012",
@@ -310,7 +310,7 @@
       "parse_attempts": [
         "https://lg.com/support/warranty/swh-0012"
       ],
-      "latency_ms": 17.57
+      "latency_ms": 10.03
     },
     {
       "case_id": "C013",
@@ -334,7 +334,7 @@
       "parse_attempts": [
         "https://whirlpool.com/support/warranty/swh-0013"
       ],
-      "latency_ms": 15.74
+      "latency_ms": 7.94
     },
     {
       "case_id": "C014",
@@ -358,7 +358,7 @@
       "parse_attempts": [
         "https://bosch.com/support/warranty/swh-0014"
       ],
-      "latency_ms": 17.0
+      "latency_ms": 9.24
     },
     {
       "case_id": "C015",
@@ -382,7 +382,7 @@
       "parse_attempts": [
         "https://atherenergy.com/support/warranty/swh-0015"
       ],
-      "latency_ms": 17.05
+      "latency_ms": 8.16
     },
     {
       "case_id": "C016",
@@ -406,7 +406,7 @@
       "parse_attempts": [
         "https://tatamotors.com/support/warranty/swh-0016"
       ],
-      "latency_ms": 18.18
+      "latency_ms": 8.99
     },
     {
       "case_id": "C017",
@@ -430,7 +430,7 @@
       "parse_attempts": [
         "https://samsung.com/support/warranty/swh-0017"
       ],
-      "latency_ms": 16.6
+      "latency_ms": 8.12
     },
     {
       "case_id": "C018",
@@ -454,7 +454,7 @@
       "parse_attempts": [
         "https://apple.com/support/warranty/swh-0018"
       ],
-      "latency_ms": 16.22
+      "latency_ms": 9.03
     },
     {
       "case_id": "C019",
@@ -478,7 +478,7 @@
       "parse_attempts": [
         "https://sony.com/support/warranty/swh-0019"
       ],
-      "latency_ms": 15.12
+      "latency_ms": 9.54
     },
     {
       "case_id": "C020",
@@ -502,7 +502,7 @@
       "parse_attempts": [
         "https://lg.com/support/warranty/swh-0020"
       ],
-      "latency_ms": 14.87
+      "latency_ms": 8.76
     },
     {
       "case_id": "C021",
@@ -526,7 +526,7 @@
       "parse_attempts": [
         "https://whirlpool.com/support/warranty/swh-0021"
       ],
-      "latency_ms": 11.74
+      "latency_ms": 9.96
     },
     {
       "case_id": "C022",
@@ -550,7 +550,7 @@
       "parse_attempts": [
         "https://bosch.com/support/warranty/swh-0022"
       ],
-      "latency_ms": 11.94
+      "latency_ms": 8.1
     },
     {
       "case_id": "C023",
@@ -574,7 +574,7 @@
       "parse_attempts": [
         "https://atherenergy.com/support/warranty/swh-0023"
       ],
-      "latency_ms": 13.06
+      "latency_ms": 9.04
     },
     {
       "case_id": "C024",
@@ -598,7 +598,7 @@
       "parse_attempts": [
         "https://tatamotors.com/support/warranty/swh-0024"
       ],
-      "latency_ms": 15.21
+      "latency_ms": 8.56
     },
     {
       "case_id": "C025",
@@ -622,7 +622,7 @@
       "parse_attempts": [
         "https://samsung.com/support/warranty/swh-0025"
       ],
-      "latency_ms": 15.73
+      "latency_ms": 9.55
     },
     {
       "case_id": "C026",
@@ -646,7 +646,7 @@
       "parse_attempts": [
         "https://apple.com/support/warranty/swh-0026"
       ],
-      "latency_ms": 15.34
+      "latency_ms": 7.81
     },
     {
       "case_id": "C027",
@@ -670,7 +670,7 @@
       "parse_attempts": [
         "https://sony.com/support/warranty/swh-0027"
       ],
-      "latency_ms": 12.86
+      "latency_ms": 10.08
     },
     {
       "case_id": "C028",
@@ -694,7 +694,7 @@
       "parse_attempts": [
         "https://lg.com/support/warranty/swh-0028"
       ],
-      "latency_ms": 12.43
+      "latency_ms": 9.55
     },
     {
       "case_id": "C029",
@@ -718,7 +718,7 @@
       "parse_attempts": [
         "https://whirlpool.com/support/warranty/swh-0029"
       ],
-      "latency_ms": 12.68
+      "latency_ms": 9.27
     },
     {
       "case_id": "C030",
@@ -742,7 +742,7 @@
       "parse_attempts": [
         "https://bosch.com/support/warranty/swh-0030"
       ],
-      "latency_ms": 14.11
+      "latency_ms": 8.92
     },
     {
       "case_id": "C031",
@@ -766,7 +766,7 @@
       "parse_attempts": [
         "https://atherenergy.com/support/warranty/swh-0031"
       ],
-      "latency_ms": 13.42
+      "latency_ms": 8.8
     },
     {
       "case_id": "C032",
@@ -790,7 +790,7 @@
       "parse_attempts": [
         "https://tatamotors.com/support/warranty/swh-0032"
       ],
-      "latency_ms": 8.3
+      "latency_ms": 9.29
     },
     {
       "case_id": "C033",
@@ -809,7 +809,7 @@
       "failover_ok": null,
       "search_queries": [],
       "parse_attempts": [],
-      "latency_ms": 11.65
+      "latency_ms": 7.57
     },
     {
       "case_id": "C034",
@@ -828,7 +828,7 @@
       "failover_ok": null,
       "search_queries": [],
       "parse_attempts": [],
-      "latency_ms": 13.72
+      "latency_ms": 8.34
     },
     {
       "case_id": "C035",
@@ -847,7 +847,7 @@
       "failover_ok": null,
       "search_queries": [],
       "parse_attempts": [],
-      "latency_ms": 18.55
+      "latency_ms": 8.08
     },
     {
       "case_id": "C036",
@@ -866,7 +866,7 @@
       "failover_ok": null,
       "search_queries": [],
       "parse_attempts": [],
-      "latency_ms": 14.29
+      "latency_ms": 9.25
     },
     {
       "case_id": "C037",
@@ -885,7 +885,7 @@
       "failover_ok": null,
       "search_queries": [],
       "parse_attempts": [],
-      "latency_ms": 17.18
+      "latency_ms": 7.79
     },
     {
       "case_id": "C038",
@@ -904,7 +904,7 @@
       "failover_ok": null,
       "search_queries": [],
       "parse_attempts": [],
-      "latency_ms": 14.34
+      "latency_ms": 8.49
     },
     {
       "case_id": "C039",
@@ -928,7 +928,7 @@
       "parse_attempts": [
         "https://docs.example.net/warranty/swh-0039"
       ],
-      "latency_ms": 12.63
+      "latency_ms": 8.43
     },
     {
       "case_id": "C040",
@@ -952,7 +952,7 @@
       "parse_attempts": [
         "https://docs.example.net/warranty/swh-0040"
       ],
-      "latency_ms": 14.38
+      "latency_ms": 8.82
     },
     {
       "case_id": "C041",
@@ -976,7 +976,7 @@
       "parse_attempts": [
         "https://docs.example.net/warranty/swh-0041"
       ],
-      "latency_ms": 17.94
+      "latency_ms": 7.94
     },
     {
       "case_id": "C042",
@@ -1000,7 +1000,7 @@
       "parse_attempts": [
         "https://docs.example.net/warranty/swh-0042"
       ],
-      "latency_ms": 14.43
+      "latency_ms": 8.67
     },
     {
       "case_id": "C043",
@@ -1024,7 +1024,7 @@
       "parse_attempts": [
         "https://docs.example.net/warranty/swh-0043"
       ],
-      "latency_ms": 14.24
+      "latency_ms": 7.49
     },
     {
       "case_id": "C044",
@@ -1048,7 +1048,7 @@
       "parse_attempts": [
         "https://docs.example.net/warranty/swh-0044"
       ],
-      "latency_ms": 15.74
+      "latency_ms": 9.78
     },
     {
       "case_id": "C045",
@@ -1073,7 +1073,7 @@
         "https://whirlpool.com/support/warranty/swh-0045",
         "https://whirlpool.com/support/warranty/backup/swh-0045"
       ],
-      "latency_ms": 15.75
+      "latency_ms": 7.89
     },
     {
       "case_id": "C046",
@@ -1098,7 +1098,7 @@
         "https://bosch.com/support/warranty/swh-0046",
         "https://bosch.com/support/warranty/backup/swh-0046"
       ],
-      "latency_ms": 14.33
+      "latency_ms": 8.77
     },
     {
       "case_id": "C047",
@@ -1123,7 +1123,7 @@
         "https://atherenergy.com/support/warranty/swh-0047",
         "https://atherenergy.com/support/warranty/backup/swh-0047"
       ],
-      "latency_ms": 13.94
+      "latency_ms": 7.52
     },
     {
       "case_id": "C048",
@@ -1148,7 +1148,7 @@
         "https://tatamotors.com/support/warranty/swh-0048",
         "https://tatamotors.com/support/warranty/backup/swh-0048"
       ],
-      "latency_ms": 10.5
+      "latency_ms": 9.45
     },
     {
       "case_id": "C049",
@@ -1173,7 +1173,7 @@
         "https://samsung.com/support/warranty/swh-0049",
         "https://samsung.com/support/warranty/backup/swh-0049"
       ],
-      "latency_ms": 13.72
+      "latency_ms": 9.02
     },
     {
       "case_id": "C050",
@@ -1198,7 +1198,7 @@
         "https://apple.com/support/warranty/swh-0050",
         "https://apple.com/support/warranty/backup/swh-0050"
       ],
-      "latency_ms": 13.65
+      "latency_ms": 9.06
     }
   ]
 }

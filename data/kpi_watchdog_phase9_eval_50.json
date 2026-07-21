@@ -8,8 +8,8 @@
     "run2_healthy_ok": true,
     "run2_notified": 2,
     "total_watchdog_notifications": 4,
-    "latency_p50_ms": 68.8,
-    "latency_p95_ms": 83.62,
+    "latency_p50_ms": 119.21,
+    "latency_p95_ms": 154.42,
     "decision_accuracy_pct": 100.0
   },
   "runs": {

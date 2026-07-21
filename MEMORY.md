@@ -856,3 +856,14 @@ git ls-remote --heads origin
 - The demo page is a real repo artifact that can be opened locally or downloaded from GitHub; it does not require Railway or a running server.
 - It includes the two-minute judge flow, safe claims wording, proof points, backup terminal demo commands, health-check commands, Q&A answers and presenter checklist.
 - Updated `docs/HACKATHON_DEMO_GUIDE.md` and `docs/DOCS_INDEX.md` to point to the HTML demo page.
+
+## 46. Investor/demo synthetic KPI retest - 2026-07-22
+
+- Direction changed from hackathon submission to investor/demo repository sharing.
+- Pulled `origin/master`; repo was already up to date.
+- Full regression passed: `122 passed`, with one local Paddle `ccache` warning.
+- Refreshed the synthetic KPI evaluators for ingestion/OCR PDF, preflight scraping, terms NLP, predictive risk, NIP advisories, service ticketing, OEM dispatch, KPI automation, watchdog, remediation and execution tracking.
+- Current synthetic baseline is documented at `docs/INVESTOR_DEMO_KPI_BASELINE.md`.
+- Key strong points: 100.0% OCR success on 50 PDF samples, 100.0% pass on the 10 instrumented Phase 8 KPIs, 100.0% decision accuracy for watchdog/remediation, and 100.0% execution success for Phase 12 lifecycle tracking.
+- Current refinement targets: OCR serial-number F1 is 0.925, preflight lookup/parse success is 88.0%, and TPA claim TAT / retailer escalations / supplier stockout KPIs are not yet instrumented.
+- Investor-safe claim boundary remains: these are controlled synthetic test results, not live production customer outcomes.

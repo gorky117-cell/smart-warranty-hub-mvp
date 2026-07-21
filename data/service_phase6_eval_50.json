@@ -7,8 +7,8 @@
     "evidence_passthrough_pct": 100.0,
     "draft_status_consistency_pct": 100.0,
     "ticket_retrieval_completeness_pct": 100.0,
-    "latency_p50_ms": 0.01,
-    "latency_p95_ms": 0.03
+    "latency_p50_ms": 0.03,
+    "latency_p95_ms": 0.07
   },
   "symptom_mapping": {
     "no_cooling": [
@@ -44,7 +44,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.06
+      "latency_ms": 0.12
     },
     {
       "case_id": "SV002",
@@ -62,7 +62,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.17
+      "latency_ms": 0.05
     },
     {
       "case_id": "SV003",
@@ -78,7 +78,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.02
+      "latency_ms": 0.08
     },
     {
       "case_id": "SV004",
@@ -96,7 +96,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.03
+      "latency_ms": 0.06
     },
     {
       "case_id": "SV005",
@@ -114,7 +114,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.02
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV006",
@@ -130,7 +130,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.04
     },
     {
       "case_id": "SV007",
@@ -148,7 +148,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV008",
@@ -166,7 +166,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.02
+      "latency_ms": 0.07
     },
     {
       "case_id": "SV009",
@@ -182,7 +182,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV010",
@@ -200,7 +200,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV011",
@@ -218,7 +218,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV012",
@@ -234,7 +234,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV013",
@@ -252,7 +252,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.02
     },
     {
       "case_id": "SV014",
@@ -270,7 +270,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV015",
@@ -286,7 +286,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV016",
@@ -304,7 +304,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV017",
@@ -322,7 +322,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV018",
@@ -338,7 +338,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.07
     },
     {
       "case_id": "SV019",
@@ -356,7 +356,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV020",
@@ -374,7 +374,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV021",
@@ -390,7 +390,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV022",
@@ -408,7 +408,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV023",
@@ -426,7 +426,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV024",
@@ -442,7 +442,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.04
     },
     {
       "case_id": "SV025",
@@ -460,7 +460,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.02
+      "latency_ms": 0.04
     },
     {
       "case_id": "SV026",
@@ -478,7 +478,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV027",
@@ -494,7 +494,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV028",
@@ -512,7 +512,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV029",
@@ -530,7 +530,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV030",
@@ -546,7 +546,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV031",
@@ -564,7 +564,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV032",
@@ -598,7 +598,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.04
     },
     {
       "case_id": "SV034",
@@ -616,7 +616,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.04
     },
     {
       "case_id": "SV035",
@@ -634,7 +634,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV036",
@@ -650,7 +650,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.04
     },
     {
       "case_id": "SV037",
@@ -662,7 +662,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV038",
@@ -674,7 +674,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV039",
@@ -686,7 +686,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV040",
@@ -698,7 +698,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV041",
@@ -710,7 +710,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.01
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV042",
@@ -722,7 +722,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.02
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV043",
@@ -734,7 +734,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.02
+      "latency_ms": 0.04
     },
     {
       "case_id": "SV044",
@@ -746,7 +746,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.02
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV045",
@@ -758,7 +758,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.02
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV046",
@@ -770,7 +770,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.02
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV047",
@@ -782,7 +782,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.02
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV048",
@@ -794,7 +794,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.02
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV049",
@@ -806,7 +806,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.02
+      "latency_ms": 0.03
     },
     {
       "case_id": "SV050",
@@ -818,7 +818,7 @@
       "evidence_ok": true,
       "status_ok": true,
       "retrieval_ok": true,
-      "latency_ms": 0.02
+      "latency_ms": 0.03
     }
   ]
 }

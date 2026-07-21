@@ -19,6 +19,7 @@ This index points to the complete section-wise documentation set for product, KP
 13. Hackathon Demo Guide (judge flow, talk track and claims boundary): `docs/HACKATHON_DEMO_GUIDE.md`
 14. Downloadable Hackathon Demo Guide (Word): `docs/Smart_Warranty_Hub_Hackathon_Demo_Guide.docx`
 15. Browser Hackathon Demo Page (open/downloadable HTML): `docs/HACKATHON_DEMO.html`
+16. Investor Demo KPI Baseline (synthetic KPI results and caveats): `docs/INVESTOR_DEMO_KPI_BASELINE.md`
 
 ## Existing Phase Runbooks (already in repo)
 

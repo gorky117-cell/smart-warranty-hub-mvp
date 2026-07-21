@@ -8,12 +8,12 @@
     "expiry_nudge_recall_pct": 100.0,
     "expiry_nudge_false_positive_pct": 0.0,
     "variant_stability_pct": 100.0,
-    "variant_a_count": 32,
-    "variant_b_count": 18,
-    "variant_balance_pct": 56.25,
+    "variant_a_count": 25,
+    "variant_b_count": 25,
+    "variant_balance_pct": 100.0,
     "nudge_event_integrity_pct": 100.0,
-    "latency_p50_ms": 11.23,
-    "latency_p95_ms": 17.03
+    "latency_p50_ms": 9.87,
+    "latency_p95_ms": 12.07
   },
   "scenarios": {
     "low_stable": 20,
@@ -34,8 +34,8 @@
       "expected_risk_band": "low",
       "actual_risk_band": "low",
       "risk_value": 0.24,
-      "variant_first": "A",
-      "variant_second": "A",
+      "variant_first": "B",
+      "variant_second": "B",
       "variant_stable": true,
       "nudge_count": 2,
       "nudge_types": [
@@ -45,7 +45,7 @@
       "care_present": false,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 33.22
+      "latency_ms": 73.89
     },
     {
       "case_id": "NIP002",
@@ -65,7 +65,7 @@
       "care_present": false,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 12.03
+      "latency_ms": 13.01
     },
     {
       "case_id": "NIP003",
@@ -85,7 +85,7 @@
       "care_present": false,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 11.09
+      "latency_ms": 10.41
     },
     {
       "case_id": "NIP004",
@@ -105,7 +105,7 @@
       "care_present": false,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 10.91
+      "latency_ms": 12.09
     },
     {
       "case_id": "NIP005",
@@ -125,7 +125,7 @@
       "care_present": false,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 12.05
+      "latency_ms": 9.58
     },
     {
       "case_id": "NIP006",
@@ -134,8 +134,8 @@
       "expected_risk_band": "low",
       "actual_risk_band": "low",
       "risk_value": 0.24,
-      "variant_first": "A",
-      "variant_second": "A",
+      "variant_first": "B",
+      "variant_second": "B",
       "variant_stable": true,
       "nudge_count": 2,
       "nudge_types": [
@@ -145,7 +145,7 @@
       "care_present": false,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 10.7
+      "latency_ms": 10.71
     },
     {
       "case_id": "NIP007",
@@ -165,7 +165,7 @@
       "care_present": false,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 10.92
+      "latency_ms": 9.44
     },
     {
       "case_id": "NIP008",
@@ -174,8 +174,8 @@
       "expected_risk_band": "low",
       "actual_risk_band": "low",
       "risk_value": 0.24,
-      "variant_first": "A",
-      "variant_second": "A",
+      "variant_first": "B",
+      "variant_second": "B",
       "variant_stable": true,
       "nudge_count": 2,
       "nudge_types": [
@@ -185,10 +185,29 @@
       "care_present": false,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 11.75
+      "latency_ms": 10.31
     },
     {
       "case_id": "NIP009",
+      "profile": "low_stable",
+      "expiry_bucket": "far",
+      "expected_risk_band": "low",
+      "actual_risk_band": "low",
+      "risk_value": 0.24,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 1,
+      "nudge_types": [
+        "snapshot"
+      ],
+      "care_present": false,
+      "expiry_present": false,
+      "event_integrity_ok": true,
+      "latency_ms": 9.93
+    },
+    {
+      "case_id": "NIP010",
       "profile": "low_stable",
       "expiry_bucket": "far",
       "expected_risk_band": "low",
@@ -204,26 +223,7 @@
       "care_present": false,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 10.9
-    },
-    {
-      "case_id": "NIP010",
-      "profile": "low_stable",
-      "expiry_bucket": "far",
-      "expected_risk_band": "low",
-      "actual_risk_band": "low",
-      "risk_value": 0.24,
-      "variant_first": "A",
-      "variant_second": "A",
-      "variant_stable": true,
-      "nudge_count": 1,
-      "nudge_types": [
-        "snapshot"
-      ],
-      "care_present": false,
-      "expiry_present": false,
-      "event_integrity_ok": true,
-      "latency_ms": 12.1
+      "latency_ms": 9.03
     },
     {
       "case_id": "NIP011",
@@ -242,7 +242,7 @@
       "care_present": false,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 11.22
+      "latency_ms": 10.19
     },
     {
       "case_id": "NIP012",
@@ -251,8 +251,8 @@
       "expected_risk_band": "low",
       "actual_risk_band": "low",
       "risk_value": 0.24,
-      "variant_first": "A",
-      "variant_second": "A",
+      "variant_first": "B",
+      "variant_second": "B",
       "variant_stable": true,
       "nudge_count": 1,
       "nudge_types": [
@@ -261,7 +261,7 @@
       "care_present": false,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 11.94
+      "latency_ms": 9.08
     },
     {
       "case_id": "NIP013",
@@ -270,8 +270,8 @@
       "expected_risk_band": "low",
       "actual_risk_band": "low",
       "risk_value": 0.24,
-      "variant_first": "A",
-      "variant_second": "A",
+      "variant_first": "B",
+      "variant_second": "B",
       "variant_stable": true,
       "nudge_count": 1,
       "nudge_types": [
@@ -280,7 +280,7 @@
       "care_present": false,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 13.33
+      "latency_ms": 11.27
     },
     {
       "case_id": "NIP014",
@@ -299,7 +299,7 @@
       "care_present": false,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 12.64
+      "latency_ms": 9.22
     },
     {
       "case_id": "NIP015",
@@ -318,7 +318,7 @@
       "care_present": false,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 12.39
+      "latency_ms": 10.18
     },
     {
       "case_id": "NIP016",
@@ -327,8 +327,8 @@
       "expected_risk_band": "low",
       "actual_risk_band": "low",
       "risk_value": 0.24,
-      "variant_first": "A",
-      "variant_second": "A",
+      "variant_first": "B",
+      "variant_second": "B",
       "variant_stable": true,
       "nudge_count": 1,
       "nudge_types": [
@@ -337,7 +337,7 @@
       "care_present": false,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 10.44
+      "latency_ms": 9.89
     },
     {
       "case_id": "NIP017",
@@ -356,7 +356,7 @@
       "care_present": false,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 10.24
+      "latency_ms": 9.98
     },
     {
       "case_id": "NIP018",
@@ -375,7 +375,7 @@
       "care_present": false,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 11.34
+      "latency_ms": 9.0
     },
     {
       "case_id": "NIP019",
@@ -384,8 +384,8 @@
       "expected_risk_band": "low",
       "actual_risk_band": "low",
       "risk_value": 0.24,
-      "variant_first": "B",
-      "variant_second": "B",
+      "variant_first": "A",
+      "variant_second": "A",
       "variant_stable": true,
       "nudge_count": 1,
       "nudge_types": [
@@ -394,7 +394,7 @@
       "care_present": false,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 10.69
+      "latency_ms": 9.51
     },
     {
       "case_id": "NIP020",
@@ -413,7 +413,7 @@
       "care_present": false,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 11.39
+      "latency_ms": 8.05
     },
     {
       "case_id": "NIP021",
@@ -434,7 +434,7 @@
       "care_present": true,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 10.89
+      "latency_ms": 8.48
     },
     {
       "case_id": "NIP022",
@@ -443,8 +443,8 @@
       "expected_risk_band": "medium",
       "actual_risk_band": "medium",
       "risk_value": 0.52,
-      "variant_first": "A",
-      "variant_second": "A",
+      "variant_first": "B",
+      "variant_second": "B",
       "variant_stable": true,
       "nudge_count": 3,
       "nudge_types": [
@@ -455,7 +455,7 @@
       "care_present": true,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 10.48
+      "latency_ms": 9.0
     },
     {
       "case_id": "NIP023",
@@ -476,52 +476,10 @@
       "care_present": true,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 11.25
+      "latency_ms": 8.15
     },
     {
       "case_id": "NIP024",
-      "profile": "medium_attention",
-      "expiry_bucket": "near",
-      "expected_risk_band": "medium",
-      "actual_risk_band": "medium",
-      "risk_value": 0.52,
-      "variant_first": "B",
-      "variant_second": "B",
-      "variant_stable": true,
-      "nudge_count": 3,
-      "nudge_types": [
-        "snapshot",
-        "care",
-        "expiry"
-      ],
-      "care_present": true,
-      "expiry_present": true,
-      "event_integrity_ok": true,
-      "latency_ms": 11.4
-    },
-    {
-      "case_id": "NIP025",
-      "profile": "medium_attention",
-      "expiry_bucket": "near",
-      "expected_risk_band": "medium",
-      "actual_risk_band": "medium",
-      "risk_value": 0.52,
-      "variant_first": "B",
-      "variant_second": "B",
-      "variant_stable": true,
-      "nudge_count": 3,
-      "nudge_types": [
-        "snapshot",
-        "care",
-        "expiry"
-      ],
-      "care_present": true,
-      "expiry_present": true,
-      "event_integrity_ok": true,
-      "latency_ms": 11.2
-    },
-    {
-      "case_id": "NIP026",
       "profile": "medium_attention",
       "expiry_bucket": "near",
       "expected_risk_band": "medium",
@@ -539,7 +497,49 @@
       "care_present": true,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 10.85
+      "latency_ms": 9.13
+    },
+    {
+      "case_id": "NIP025",
+      "profile": "medium_attention",
+      "expiry_bucket": "near",
+      "expected_risk_band": "medium",
+      "actual_risk_band": "medium",
+      "risk_value": 0.52,
+      "variant_first": "A",
+      "variant_second": "A",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 9.95
+    },
+    {
+      "case_id": "NIP026",
+      "profile": "medium_attention",
+      "expiry_bucket": "near",
+      "expected_risk_band": "medium",
+      "actual_risk_band": "medium",
+      "risk_value": 0.52,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 7.98
     },
     {
       "case_id": "NIP027",
@@ -560,7 +560,7 @@
       "care_present": true,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 11.01
+      "latency_ms": 10.19
     },
     {
       "case_id": "NIP028",
@@ -581,7 +581,7 @@
       "care_present": true,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 14.71
+      "latency_ms": 7.93
     },
     {
       "case_id": "NIP029",
@@ -590,8 +590,8 @@
       "expected_risk_band": "medium",
       "actual_risk_band": "medium",
       "risk_value": 0.52,
-      "variant_first": "A",
-      "variant_second": "A",
+      "variant_first": "B",
+      "variant_second": "B",
       "variant_stable": true,
       "nudge_count": 2,
       "nudge_types": [
@@ -601,7 +601,7 @@
       "care_present": true,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 12.06
+      "latency_ms": 9.34
     },
     {
       "case_id": "NIP030",
@@ -621,7 +621,7 @@
       "care_present": true,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 18.53
+      "latency_ms": 10.32
     },
     {
       "case_id": "NIP031",
@@ -641,7 +641,7 @@
       "care_present": true,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 15.2
+      "latency_ms": 9.64
     },
     {
       "case_id": "NIP032",
@@ -661,7 +661,7 @@
       "care_present": true,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 10.53
+      "latency_ms": 10.11
     },
     {
       "case_id": "NIP033",
@@ -670,8 +670,8 @@
       "expected_risk_band": "medium",
       "actual_risk_band": "medium",
       "risk_value": 0.52,
-      "variant_first": "B",
-      "variant_second": "B",
+      "variant_first": "A",
+      "variant_second": "A",
       "variant_stable": true,
       "nudge_count": 2,
       "nudge_types": [
@@ -681,7 +681,7 @@
       "care_present": true,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 11.47
+      "latency_ms": 8.2
     },
     {
       "case_id": "NIP034",
@@ -701,7 +701,7 @@
       "care_present": true,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 11.16
+      "latency_ms": 9.35
     },
     {
       "case_id": "NIP035",
@@ -721,7 +721,7 @@
       "care_present": true,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 10.67
+      "latency_ms": 8.48
     },
     {
       "case_id": "NIP036",
@@ -742,31 +742,10 @@
       "care_present": true,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 11.17
+      "latency_ms": 10.3
     },
     {
       "case_id": "NIP037",
-      "profile": "high_urgent",
-      "expiry_bucket": "near",
-      "expected_risk_band": "high",
-      "actual_risk_band": "high",
-      "risk_value": 0.85,
-      "variant_first": "B",
-      "variant_second": "B",
-      "variant_stable": true,
-      "nudge_count": 3,
-      "nudge_types": [
-        "snapshot",
-        "care",
-        "expiry"
-      ],
-      "care_present": true,
-      "expiry_present": true,
-      "event_integrity_ok": true,
-      "latency_ms": 10.98
-    },
-    {
-      "case_id": "NIP038",
       "profile": "high_urgent",
       "expiry_bucket": "near",
       "expected_risk_band": "high",
@@ -784,7 +763,28 @@
       "care_present": true,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 13.7
+      "latency_ms": 12.04
+    },
+    {
+      "case_id": "NIP038",
+      "profile": "high_urgent",
+      "expiry_bucket": "near",
+      "expected_risk_band": "high",
+      "actual_risk_band": "high",
+      "risk_value": 0.85,
+      "variant_first": "B",
+      "variant_second": "B",
+      "variant_stable": true,
+      "nudge_count": 3,
+      "nudge_types": [
+        "snapshot",
+        "care",
+        "expiry"
+      ],
+      "care_present": true,
+      "expiry_present": true,
+      "event_integrity_ok": true,
+      "latency_ms": 11.61
     },
     {
       "case_id": "NIP039",
@@ -805,7 +805,7 @@
       "care_present": true,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 10.96
+      "latency_ms": 9.41
     },
     {
       "case_id": "NIP040",
@@ -826,7 +826,7 @@
       "care_present": true,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 12.7
+      "latency_ms": 8.15
     },
     {
       "case_id": "NIP041",
@@ -835,8 +835,8 @@
       "expected_risk_band": "high",
       "actual_risk_band": "high",
       "risk_value": 0.85,
-      "variant_first": "B",
-      "variant_second": "B",
+      "variant_first": "A",
+      "variant_second": "A",
       "variant_stable": true,
       "nudge_count": 3,
       "nudge_types": [
@@ -847,7 +847,7 @@
       "care_present": true,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 10.9
+      "latency_ms": 8.61
     },
     {
       "case_id": "NIP042",
@@ -868,7 +868,7 @@
       "care_present": true,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 11.76
+      "latency_ms": 10.71
     },
     {
       "case_id": "NIP043",
@@ -877,8 +877,8 @@
       "expected_risk_band": "high",
       "actual_risk_band": "high",
       "risk_value": 0.85,
-      "variant_first": "A",
-      "variant_second": "A",
+      "variant_first": "B",
+      "variant_second": "B",
       "variant_stable": true,
       "nudge_count": 3,
       "nudge_types": [
@@ -889,7 +889,7 @@
       "care_present": true,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 11.0
+      "latency_ms": 9.16
     },
     {
       "case_id": "NIP044",
@@ -910,7 +910,7 @@
       "care_present": true,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 10.99
+      "latency_ms": 10.51
     },
     {
       "case_id": "NIP045",
@@ -919,8 +919,8 @@
       "expected_risk_band": "high",
       "actual_risk_band": "high",
       "risk_value": 0.85,
-      "variant_first": "A",
-      "variant_second": "A",
+      "variant_first": "B",
+      "variant_second": "B",
       "variant_stable": true,
       "nudge_count": 3,
       "nudge_types": [
@@ -931,7 +931,7 @@
       "care_present": true,
       "expiry_present": true,
       "event_integrity_ok": true,
-      "latency_ms": 21.57
+      "latency_ms": 10.46
     },
     {
       "case_id": "NIP046",
@@ -951,7 +951,7 @@
       "care_present": true,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 11.96
+      "latency_ms": 9.2
     },
     {
       "case_id": "NIP047",
@@ -971,7 +971,7 @@
       "care_present": true,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 11.95
+      "latency_ms": 11.38
     },
     {
       "case_id": "NIP048",
@@ -991,7 +991,7 @@
       "care_present": true,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 12.47
+      "latency_ms": 11.33
     },
     {
       "case_id": "NIP049",
@@ -1011,7 +1011,7 @@
       "care_present": true,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 9.18
+      "latency_ms": 9.84
     },
     {
       "case_id": "NIP050",
@@ -1020,8 +1020,8 @@
       "expected_risk_band": "high",
       "actual_risk_band": "high",
       "risk_value": 0.85,
-      "variant_first": "A",
-      "variant_second": "A",
+      "variant_first": "B",
+      "variant_second": "B",
       "variant_stable": true,
       "nudge_count": 2,
       "nudge_types": [
@@ -1031,7 +1031,7 @@
       "care_present": true,
       "expiry_present": false,
       "event_integrity_ok": true,
-      "latency_ms": 11.02
+      "latency_ms": 10.78
     }
   ]
 }

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-02-22T07:22:29.103639",
+  "generated_at": "2026-07-21T20:40:48.511582",
   "decision": "alert",
   "summary": "KPI trend=improving, pass_rate=73.0%, failing=3, alert_streak=1.",
   "trend": {

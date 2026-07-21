@@ -42,7 +42,7 @@
     "supporting_event": true,
     "telemetry_lag_hours": 15,
     "alert_date": null,
-    "failure_date": "2026-03-17T08:54:40.493438"
+    "failure_date": "2026-08-14T20:40:20.926735"
   },
   {
     "case_id": "P8006",
@@ -72,7 +72,7 @@
     "supporting_event": true,
     "telemetry_lag_hours": 20,
     "alert_date": null,
-    "failure_date": "2026-03-07T08:54:40.493438"
+    "failure_date": "2026-08-04T20:40:20.926735"
   },
   {
     "case_id": "P8003",
@@ -101,8 +101,8 @@
     "actual_failure_30d": true,
     "supporting_event": true,
     "telemetry_lag_hours": 7,
-    "alert_date": "2026-02-21T08:54:40.493438",
-    "failure_date": "2026-03-22T08:54:40.493438"
+    "alert_date": "2026-07-21T20:40:20.926735",
+    "failure_date": "2026-08-19T20:40:20.926735"
   },
   {
     "case_id": "P8012",
@@ -146,8 +146,8 @@
     "actual_failure_30d": true,
     "supporting_event": true,
     "telemetry_lag_hours": 8,
-    "alert_date": "2026-02-21T08:54:40.493438",
-    "failure_date": "2026-03-13T08:54:40.493438"
+    "alert_date": "2026-07-21T20:40:20.926735",
+    "failure_date": "2026-08-10T20:40:20.926735"
   },
   {
     "case_id": "P8002",
@@ -176,7 +176,7 @@
     "actual_failure_30d": false,
     "supporting_event": true,
     "telemetry_lag_hours": 11,
-    "alert_date": "2026-02-21T08:54:40.493438",
+    "alert_date": "2026-07-21T20:40:20.926735",
     "failure_date": null
   },
   {
@@ -191,8 +191,8 @@
     "actual_failure_30d": true,
     "supporting_event": true,
     "telemetry_lag_hours": 2,
-    "alert_date": "2026-02-21T08:54:40.493438",
-    "failure_date": "2026-03-24T08:54:40.493438"
+    "alert_date": "2026-07-21T20:40:20.926735",
+    "failure_date": "2026-08-21T20:40:20.926735"
   },
   {
     "case_id": "P8008",
@@ -221,7 +221,7 @@
     "actual_failure_30d": false,
     "supporting_event": true,
     "telemetry_lag_hours": 15,
-    "alert_date": "2026-02-21T08:54:40.493438",
+    "alert_date": "2026-07-21T20:40:20.926735",
     "failure_date": null
   },
   {
@@ -251,8 +251,8 @@
     "actual_failure_30d": true,
     "supporting_event": true,
     "telemetry_lag_hours": 3,
-    "alert_date": "2026-02-21T08:54:40.493438",
-    "failure_date": "2026-03-25T08:54:40.493438"
+    "alert_date": "2026-07-21T20:40:20.926735",
+    "failure_date": "2026-08-22T20:40:20.926735"
   },
   {
     "case_id": "P8039",
@@ -266,7 +266,7 @@
     "actual_failure_30d": false,
     "supporting_event": true,
     "telemetry_lag_hours": 18,
-    "alert_date": "2026-02-21T08:54:40.493438",
+    "alert_date": "2026-07-21T20:40:20.926735",
     "failure_date": null
   },
   {
@@ -296,8 +296,8 @@
     "actual_failure_30d": true,
     "supporting_event": true,
     "telemetry_lag_hours": 20,
-    "alert_date": "2026-02-21T08:54:40.493438",
-    "failure_date": "2026-03-03T08:54:40.493438"
+    "alert_date": "2026-07-21T20:40:20.926735",
+    "failure_date": "2026-07-31T20:40:20.926735"
   },
   {
     "case_id": "P8010",
@@ -312,7 +312,7 @@
     "supporting_event": true,
     "telemetry_lag_hours": 10,
     "alert_date": null,
-    "failure_date": "2026-03-03T08:54:40.493438"
+    "failure_date": "2026-07-31T20:40:20.926735"
   },
   {
     "case_id": "P8028",
@@ -371,8 +371,8 @@
     "actual_failure_30d": true,
     "supporting_event": true,
     "telemetry_lag_hours": 13,
-    "alert_date": "2026-02-21T08:54:40.493438",
-    "failure_date": "2026-03-02T08:54:40.493438"
+    "alert_date": "2026-07-21T20:40:20.926735",
+    "failure_date": "2026-07-30T20:40:20.926735"
   },
   {
     "case_id": "P8027",
@@ -387,7 +387,7 @@
     "supporting_event": true,
     "telemetry_lag_hours": 10,
     "alert_date": null,
-    "failure_date": "2026-03-08T08:54:40.493438"
+    "failure_date": "2026-08-05T20:40:20.926735"
   },
   {
     "case_id": "P8004",
@@ -416,7 +416,7 @@
     "actual_failure_30d": false,
     "supporting_event": false,
     "telemetry_lag_hours": 2,
-    "alert_date": "2026-02-21T08:54:40.493438",
+    "alert_date": "2026-07-21T20:40:20.926735",
     "failure_date": null
   },
   {
@@ -431,7 +431,7 @@
     "actual_failure_30d": false,
     "supporting_event": true,
     "telemetry_lag_hours": 5,
-    "alert_date": "2026-02-21T08:54:40.493438",
+    "alert_date": "2026-07-21T20:40:20.926735",
     "failure_date": null
   },
   {
@@ -446,8 +446,8 @@
     "actual_failure_30d": true,
     "supporting_event": true,
     "telemetry_lag_hours": 5,
-    "alert_date": "2026-02-21T08:54:40.493438",
-    "failure_date": "2026-03-14T08:54:40.493438"
+    "alert_date": "2026-07-21T20:40:20.926735",
+    "failure_date": "2026-08-11T20:40:20.926735"
   },
   {
     "case_id": "P8031",
@@ -491,7 +491,7 @@
     "actual_failure_30d": false,
     "supporting_event": true,
     "telemetry_lag_hours": 15,
-    "alert_date": "2026-02-21T08:54:40.493438",
+    "alert_date": "2026-07-21T20:40:20.926735",
     "failure_date": null
   },
   {
@@ -507,7 +507,7 @@
     "supporting_event": true,
     "telemetry_lag_hours": 8,
     "alert_date": null,
-    "failure_date": "2026-03-05T08:54:40.493438"
+    "failure_date": "2026-08-02T20:40:20.926735"
   },
   {
     "case_id": "P8034",
@@ -522,7 +522,7 @@
     "supporting_event": true,
     "telemetry_lag_hours": 18,
     "alert_date": null,
-    "failure_date": "2026-03-05T08:54:40.493438"
+    "failure_date": "2026-08-02T20:40:20.926735"
   },
   {
     "case_id": "P8020",
@@ -551,8 +551,8 @@
     "actual_failure_30d": true,
     "supporting_event": true,
     "telemetry_lag_hours": 10,
-    "alert_date": "2026-02-21T08:54:40.493438",
-    "failure_date": "2026-03-15T08:54:40.493438"
+    "alert_date": "2026-07-21T20:40:20.926735",
+    "failure_date": "2026-08-12T20:40:20.926735"
   },
   {
     "case_id": "P8029",
@@ -567,7 +567,7 @@
     "supporting_event": true,
     "telemetry_lag_hours": 18,
     "alert_date": null,
-    "failure_date": "2026-03-06T08:54:40.493438"
+    "failure_date": "2026-08-03T20:40:20.926735"
   },
   {
     "case_id": "P8011",
@@ -627,7 +627,7 @@
     "supporting_event": true,
     "telemetry_lag_hours": 19,
     "alert_date": null,
-    "failure_date": "2026-03-23T08:54:40.493438"
+    "failure_date": "2026-08-20T20:40:20.926735"
   },
   {
     "case_id": "P8050",
@@ -641,8 +641,8 @@
     "actual_failure_30d": true,
     "supporting_event": true,
     "telemetry_lag_hours": 19,
-    "alert_date": "2026-02-21T08:54:40.493438",
-    "failure_date": "2026-03-04T08:54:40.493438"
+    "alert_date": "2026-07-21T20:40:20.926735",
+    "failure_date": "2026-08-01T20:40:20.926735"
   },
   {
     "case_id": "P8023",
@@ -657,7 +657,7 @@
     "supporting_event": true,
     "telemetry_lag_hours": 6,
     "alert_date": null,
-    "failure_date": "2026-03-15T08:54:40.493438"
+    "failure_date": "2026-08-12T20:40:20.926735"
   },
   {
     "case_id": "P8009",
@@ -702,7 +702,7 @@
     "supporting_event": true,
     "telemetry_lag_hours": 2,
     "alert_date": null,
-    "failure_date": "2026-03-28T08:54:40.493438"
+    "failure_date": "2026-08-25T20:40:20.926735"
   },
   {
     "case_id": "P8014",
