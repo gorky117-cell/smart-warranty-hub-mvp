@@ -66,6 +66,7 @@ from .services import rag as rag_service
 from .services import remote_diagnostics as remote_diag_service
 from .services import diagnostics_capability as diag_cap_service
 from .services import emailer as emailer_service
+from .services import telemetry_intelligence
 from .services.warranty_status import compute_warranty_status
 from .services.notifications import run_initial_analysis_and_notifications
 logger = logging.getLogger(__name__)
@@ -2178,6 +2179,7 @@ def push_telemetry(payload: TelemetryRequest):
     if payload.warranty_id not in store.warranties:
         raise HTTPException(status_code=404, detail="Warranty not found")
     _require_consent(payload.user_id)
+    safe_payload = telemetry_intelligence.prepare_event_payload(payload.event_type, payload.payload)
     event = TelemetryEvent(
         id=generate_id("tel"),
         warranty_id=payload.warranty_id,
@@ -2186,7 +2188,7 @@ def push_telemetry(payload: TelemetryRequest):
         region=payload.region,
         timezone=payload.timezone,
         event_type=payload.event_type,
-        payload=payload.payload or {},
+        payload=safe_payload,
     )
     return store.add_telemetry(event)
 
@@ -2899,6 +2901,13 @@ def oem_risk_stats(
     peer_stats = peer_review_service.get_issue_stats(product_type, brand, model, region)
     symptom_trends = search_log_service.get_symptom_trends(product_type, brand, model, region)
     product_interest = prod_recs_service.aggregate_product_interest(region=region)
+    telemetry_aggregate = telemetry_intelligence.build_oem_telemetry_aggregate(
+        db,
+        brand=brand,
+        model=model,
+        product_type=product_type,
+        region=region,
+    )
     stats = {
         "risk_distribution": risk_counts,
         "behaviour_snapshot": avg_behaviour,
@@ -2906,6 +2915,7 @@ def oem_risk_stats(
         "symptoms": symptom_trends,
         "ev_battery": {"risk_distribution": ev_counts},
         "product_interest": product_interest,
+        "telemetry": telemetry_aggregate,
     }
     # OEM notification for high-risk clusters
     total = sum(risk_counts.values())
@@ -2929,6 +2939,26 @@ def oem_risk_stats(
     except Exception:
         pass
     return stats
+
+
+@app.get("/oem/telemetry-stats", dependencies=[Depends(require_oem_or_admin)])
+def oem_telemetry_stats(
+    brand: str | None = None,
+    model: str | None = None,
+    product_type: str | None = None,
+    region: str | None = None,
+    days: int = 90,
+    current=Depends(require_oem_or_admin),
+    db=Depends(get_db),
+):
+    return telemetry_intelligence.build_oem_telemetry_aggregate(
+        db,
+        brand=brand,
+        model=model,
+        product_type=product_type,
+        region=region,
+        days=days,
+    )
 
 
 @app.get("/oem/forecast", dependencies=[Depends(require_oem_or_admin)])

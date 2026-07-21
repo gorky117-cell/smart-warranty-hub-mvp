@@ -621,3 +621,12 @@ git ls-remote --heads origin
 - The synthetic source HTML lives under `test_data/` and is ignored by discovery unless `TERMS_ALLOW_LOCAL_DEV_SOURCES=1` is enabled.
 - Synthetic source evidence is classified as `synthetic_test_source` and remains customer-facing **not confirmed**; OEM verification is still required.
 - Added focused tests so local dev sources stay hidden by default and can be explicitly enabled for test runs.
+
+## 21. Latest Phase 3E telemetry privacy/intelligence update
+
+- Added `app/services/telemetry_intelligence.py` for sanitized telemetry handling and explainable signal classification.
+- `/telemetry` now strips direct identifiers such as serial number, IMEI, invoice number and location-like fields before storing payload data or indexing RAG context.
+- Telemetry payloads now include `_telemetry_intelligence` with `signal`, `risk_points`, `care_points` and short reasons, keeping downstream risk/OEM logic explainable.
+- OEM analytics now includes a privacy-safe telemetry aggregate, and `/oem/telemetry-stats` exposes aggregate-only counts.
+- OEM telemetry aggregates are suppressed until the minimum cohort threshold is met (`OEM_TELEMETRY_MIN_COHORT`, default 10).
+- Added focused tests for telemetry sanitization/classification and cohort suppression.
