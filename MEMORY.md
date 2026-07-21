@@ -772,3 +772,12 @@ git ls-remote --heads origin
 - The endpoint only reads audit records; it cannot run the agent, mutate warranty data, submit claims, contact OEMs, browse websites or execute diagnostics.
 - Existing Phase 8 feature flag, draft-only agent output, Neo dashboard checklist, trace recording, OCR, OpenAI/LLM, RAG, telemetry, diagnostics gates and Phase 7 source policy were preserved.
 - Focused verification: `14 passed` across Phase 8 agent trace/viewer/UI, warranty status and Phase 5 behaviour/predictive tests; edited Python files compile.
+
+## 37. Latest Phase 9A runtime safety defaults update
+
+- Added `app/services/runtime_safety.py` for shared production/runtime checks.
+- Insecure JWT/admin seed defaults are now allowed by default only outside production; production requires explicit `ALLOW_INSECURE_DEFAULTS=1` to keep compatibility behavior.
+- If `JWT_SECRET`/`JWT_SALT` are missing and insecure defaults are not allowed, the runtime uses generated/derived values instead of fixed public defaults.
+- Admin seeding now skips default `admin/admin123` when insecure defaults are not allowed; set `ADMIN_USER` and `ADMIN_PASS` for production admin bootstrap.
+- The optional in-process scheduler is still available for local/demo/single-instance workflows, but defaults off in detected multi-instance runtimes unless `SCHEDULER_ENABLED=1` is explicitly set.
+- Existing OCR, OpenAI/LLM, RAG, OEM source policy/adapters, telemetry, behaviour, predictive care, diagnostics gates, Question Studio, Recommendation Studio and controlled agent features were preserved.

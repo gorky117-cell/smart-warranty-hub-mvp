@@ -19,6 +19,7 @@ from .kpi_watchdog import run_kpi_watchdog
 from .kpi_remediation import run_kpi_remediation_cycle
 from .kpi_execution import run_execution_cycle
 from . import remote_diagnostics as remote_diag_service
+from .runtime_safety import scheduler_enabled_by_env
 
 
 def oem_refresh_loop(interval_minutes: int = 60):
@@ -174,8 +175,9 @@ def oem_refresh_loop(interval_minutes: int = 60):
 
 
 def start_scheduler(interval_minutes: int = 240):
-    if os.getenv("SCHEDULER_ENABLED", "true").strip().lower() not in ("1", "true", "yes"):
-        log_action("scheduler_disabled", "SCHEDULER_ENABLED=false")
+    enabled, reason = scheduler_enabled_by_env()
+    if not enabled:
+        log_action("scheduler_disabled", reason)
         return
     t = threading.Thread(target=oem_refresh_loop, args=(interval_minutes,), daemon=True)
     t.start()

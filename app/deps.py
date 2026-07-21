@@ -10,13 +10,14 @@ from sqlalchemy.orm import Session
 
 from .db import SessionLocal, engine
 from .db_models import Base, UserDB, AuditLogDB
+from .services.runtime_safety import insecure_defaults_allowed
 
 
 def _is_truthy(value: Optional[str]) -> bool:
     return (value or "").strip().lower() in ("1", "true", "yes", "on")
 
 
-_ALLOW_INSECURE_DEFAULTS = _is_truthy(os.getenv("ALLOW_INSECURE_DEFAULTS", "true"))
+_ALLOW_INSECURE_DEFAULTS = insecure_defaults_allowed()
 
 SECRET_KEY = os.getenv("JWT_SECRET")
 if not SECRET_KEY:
