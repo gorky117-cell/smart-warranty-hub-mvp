@@ -838,3 +838,14 @@ git ls-remote --heads origin
 - `pytest.ini` now limits discovery to `tests` and sets `pythonpath = .`, so plain `pytest` works from the repo root.
 - Added focused regression tests for cross-user payload rejection, warranty ownership enforcement, owner success path and production admin fallback safety.
 - Verification: `python -m compileall -q app` passed; `pytest -q` passed with `122 passed` and the existing three scikit-learn model-version warnings.
+
+## 44. Hackathon readiness audit - 2026-07-22
+
+- Final read-only audit completed with the active branch clean and synchronized: `master...origin/master` at `803e8b38` (`Harden pilot ownership checks`).
+- Verification repeated successfully: `pytest -q` passed with `122 passed`; `python -m compileall -q app` passed.
+- The public production site responded successfully over HTTPS and has the expected security headers. Its protected `/consent` route returned `401 Missing token`, confirming an authenticated Phase 9-era deployment surface.
+- Hackathon assessment: ready for a controlled demo. The product has protected upload/OCR, warranty intelligence, optional OpenAI capability, predictive care, telemetry privacy, OEM workflows, controlled agent outputs and Phase 9 pilot safeguards.
+- Do not present the synthetic 50-case KPI evaluations as live customer outcomes. Describe them as controlled test evidence.
+- Remaining non-blocking hackathon risks: GitHub's default branch is still the older `main` while active work is on `master` (112 commits ahead); no GitHub Actions or branch protection; rate limiting, AI quota and direct-consent persistence are local/process-bound for the pilot; the local environment reports dependency conflicts and three scikit-learn model-version warnings.
+- Recommended immediate presentation action: set GitHub's default branch to `master` before judges review the repository. Production hardening is intentionally out of scope for the hackathon.
+- Judge-facing presentation script: `docs/HACKATHON_DEMO_GUIDE.md`.

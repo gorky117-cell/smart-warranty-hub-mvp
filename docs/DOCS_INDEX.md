@@ -16,6 +16,7 @@ This index points to the complete section-wise documentation set for product, KP
 10. KPI Master Scorecard (all phases + metrics): `docs/kpi_master_scorecard.md`
 11. OEM Dashboard & Integration Manual (IoT + non-IoT): `docs/oem_dashboard_and_integration_manual.md`
 12. Deployment & Configuration Reference (Railway/env/operations): `docs/deployment_config_reference.md`
+13. Hackathon Demo Guide (judge flow, talk track and claims boundary): `docs/HACKATHON_DEMO_GUIDE.md`
 
 ## Existing Phase Runbooks (already in repo)
 
