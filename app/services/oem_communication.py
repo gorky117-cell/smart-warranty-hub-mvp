@@ -15,6 +15,7 @@ from ..db_models import (
     WarrantyDB,
 )
 from .notifications import create_notification
+from .oem_consent import direct_consent_required, has_oem_direct_consent
 from .predictive import score_warranty
 
 
@@ -300,6 +301,23 @@ def send_oem_message(
         )
         return {"ok": False, "decision": "blocked", "blocked_reason": "recipient_not_found", "trace_id": row.id}
 
+    if direct_consent_required() and not has_oem_direct_consent(recipient_user_id):
+        row = _record_trace(
+            db,
+            sender_user_id=sender_user_id,
+            sender_role=sender_role,
+            recipient_user_id=recipient_user_id,
+            warranty_id=warranty_id,
+            kind=kind,
+            channel=channel,
+            title=title,
+            message=message,
+            decision="blocked",
+            blocked_reason="oem_direct_consent_required",
+            trace_json={"metadata": metadata or {}, "consent_scope": "oem_direct_sharing"},
+        )
+        return {"ok": False, "decision": "blocked", "blocked_reason": "oem_direct_consent_required", "trace_id": row.id}
+
     if os.getenv("REQUIRE_USER_CONSENT", "false").lower() == "true" and not bool(getattr(user, "consent_analytics", 0)):
         row = _record_trace(
             db,
@@ -313,7 +331,7 @@ def send_oem_message(
             message=message,
             decision="blocked",
             blocked_reason="consent_required",
-            trace_json={"metadata": metadata or {}},
+            trace_json={"metadata": metadata or {}, "consent_scope": "analytics_legacy"},
         )
         return {"ok": False, "decision": "blocked", "blocked_reason": "consent_required", "trace_id": row.id}
 

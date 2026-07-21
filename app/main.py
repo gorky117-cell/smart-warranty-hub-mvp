@@ -56,6 +56,7 @@ from .services import oem_question_service
 from .services import ollama_questions
 from .services import oem_recommendation_service
 from .services import oem_communication as oem_communication_service
+from .services import oem_consent as oem_consent_service
 from .services import oem_dispatch as oem_dispatch_service
 from .services import kpi_watchdog as kpi_watchdog_service
 from .services import kpi_remediation as kpi_remediation_service
@@ -156,7 +157,8 @@ class BehaviourEventRequest(BaseModel):
 
 class ConsentRequest(BaseModel):
     user_id: str
-    consent_analytics: bool
+    consent_analytics: bool | None = None
+    consent_oem_direct_sharing: bool | None = None
 
 
 class OemVerifyRequest(BaseModel):
@@ -2392,10 +2394,41 @@ def update_consent(payload: ConsentRequest, current=Depends(require_user)):
         user = db.query(UserDB).filter_by(username=payload.user_id).first()
         if not user:
             raise HTTPException(status_code=404, detail="user_not_found")
-        user.consent_analytics = 1 if payload.consent_analytics else 0
+        if payload.consent_analytics is not None:
+            user.consent_analytics = 1 if payload.consent_analytics else 0
         db.add(user)
         db.commit()
-    return {"ok": True, "user_id": payload.user_id, "consent_analytics": payload.consent_analytics}
+    direct = oem_consent_service.get_oem_direct_consent(payload.user_id)
+    if payload.consent_oem_direct_sharing is not None:
+        direct = oem_consent_service.set_oem_direct_consent(
+            payload.user_id,
+            payload.consent_oem_direct_sharing,
+        )
+    return {
+        "ok": True,
+        "user_id": payload.user_id,
+        "consent_analytics": payload.consent_analytics,
+        "consent_oem_direct_sharing": bool(direct.get("oem_direct_sharing")),
+    }
+
+
+@app.get("/consent", dependencies=[Depends(require_user)])
+def get_consent(user_id: str | None = None, current=Depends(require_user)):
+    uid = user_id or current.username
+    if current.username != uid and current.role != "admin":
+        raise HTTPException(status_code=403, detail="forbidden")
+    with SessionLocal() as db:
+        user = db.query(UserDB).filter_by(username=uid).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="user_not_found")
+        direct = oem_consent_service.get_oem_direct_consent(uid)
+        return {
+            "ok": True,
+            "user_id": uid,
+            "consent_analytics": bool(getattr(user, "consent_analytics", 0)),
+            "consent_oem_direct_sharing": bool(direct.get("oem_direct_sharing")),
+            "oem_direct_sharing_updated_at": direct.get("updated_at"),
+        }
 
 
 @app.get("/diagnostics/capability/{warranty_id}", dependencies=[Depends(require_user)])

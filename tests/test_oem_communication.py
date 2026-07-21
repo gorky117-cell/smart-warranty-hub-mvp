@@ -4,6 +4,7 @@ from app.db import SessionLocal
 from app.db_models import NotificationDB, OemIssueSignalDB, UserDB
 from app.deps import hash_password
 from app.services import oem_communication
+from app.services import oem_consent
 
 
 def _ensure_user(db, username: str, role: str = "user") -> None:
@@ -22,10 +23,12 @@ def _ensure_user(db, username: str, role: str = "user") -> None:
     db.commit()
 
 
-def test_oem_important_update_sends_with_issue_signal():
+def test_oem_important_update_sends_with_issue_signal(tmp_path, monkeypatch):
+    monkeypatch.setenv("OEM_DIRECT_CONSENT_FILE", str(tmp_path / "oem_consent.json"))
     with SessionLocal() as db:
         _ensure_user(db, "oem_sender_1", role="oem")
         _ensure_user(db, "user_rcv_1", role="user")
+        oem_consent.set_oem_direct_consent("user_rcv_1", True)
         db.add(
             OemIssueSignalDB(
                 brand="Samsung",
@@ -66,10 +69,12 @@ def test_oem_important_update_sends_with_issue_signal():
         assert notif is not None
 
 
-def test_oem_product_recommendation_blocked_without_match():
+def test_oem_product_recommendation_blocked_without_match(tmp_path, monkeypatch):
+    monkeypatch.setenv("OEM_DIRECT_CONSENT_FILE", str(tmp_path / "oem_consent.json"))
     with SessionLocal() as db:
         _ensure_user(db, "oem_sender_2", role="oem")
         _ensure_user(db, "user_rcv_2", role="user")
+        oem_consent.set_oem_direct_consent("user_rcv_2", True)
 
         res = oem_communication.send_oem_message(
             db,
@@ -89,10 +94,12 @@ def test_oem_product_recommendation_blocked_without_match():
         assert res["blocked_reason"] == "not_important_or_not_matched"
 
 
-def test_oem_contact_rate_limited_to_one_in_six_months():
+def test_oem_contact_rate_limited_to_one_in_six_months(tmp_path, monkeypatch):
+    monkeypatch.setenv("OEM_DIRECT_CONSENT_FILE", str(tmp_path / "oem_consent.json"))
     with SessionLocal() as db:
         _ensure_user(db, "oem_sender_3", role="oem")
         _ensure_user(db, "user_rcv_3", role="user")
+        oem_consent.set_oem_direct_consent("user_rcv_3", True)
         db.add(
             OemIssueSignalDB(
                 brand="LG",
@@ -137,3 +144,29 @@ def test_oem_contact_rate_limited_to_one_in_six_months():
         )
         assert second["decision"] == "blocked"
         assert second["blocked_reason"] == "rate_limited_6_months"
+
+
+def test_oem_direct_message_requires_explicit_direct_consent(tmp_path, monkeypatch):
+    monkeypatch.setenv("OEM_DIRECT_CONSENT_FILE", str(tmp_path / "oem_consent.json"))
+    monkeypatch.setenv("REQUIRE_OEM_DIRECT_CONSENT", "1")
+    with SessionLocal() as db:
+        _ensure_user(db, "oem_sender_9f", role="oem")
+        _ensure_user(db, "user_rcv_9f", role="user")
+
+        res = oem_communication.send_oem_message(
+            db,
+            sender_user_id="oem_sender_9f",
+            sender_role="oem",
+            recipient_user_id="user_rcv_9f",
+            kind="important_update",
+            title="Important product update",
+            message="Please review this product update.",
+            brand="Samsung",
+            model_code="QLED-55",
+            region="IN",
+            send_if_ineligible=True,
+        )
+
+        assert res["ok"] is False
+        assert res["decision"] == "blocked"
+        assert res["blocked_reason"] == "oem_direct_consent_required"

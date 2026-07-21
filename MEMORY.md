@@ -818,3 +818,12 @@ git ls-remote --heads origin
 - Added protected `GET /ai/usage` so a signed-in user can inspect their current daily AI quota usage.
 - Quota records are aggregate counts by user/day/feature and do not store prompts, invoices, tokens, model responses or raw customer payloads.
 - Added focused tests for consumption, blocking, disable switch, route-level enforcement and usage reporting.
+
+## 42. Latest Phase 9F direct OEM consent update
+
+- Added `app/services/oem_consent.py` for explicit direct-OEM sharing consent separate from aggregate analytics consent.
+- Direct OEM communication now requires `consent_oem_direct_sharing=true` by default through `REQUIRE_OEM_DIRECT_CONSENT=1`.
+- Existing aggregate OEM telemetry/insight endpoints are unchanged; they continue to use cohort suppression and do not require direct-sharing consent.
+- `/consent` can now update direct OEM sharing consent, and `GET /consent` returns both analytics and direct-OEM sharing consent state.
+- OEM communication traces now record `oem_direct_consent_required` when a direct message is blocked for missing direct-sharing consent.
+- Added focused tests for default-off direct consent, consent endpoint update/access control and OEM communication blocking.

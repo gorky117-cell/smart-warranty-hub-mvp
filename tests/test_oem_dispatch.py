@@ -3,7 +3,7 @@ from datetime import datetime
 from app.db import SessionLocal
 from app.db_models import BehaviourProfile, OemCommunicationTraceDB, OemIssueSignalDB, UserDB, WarrantyDB
 from app.deps import hash_password
-from app.services import oem_dispatch
+from app.services import oem_consent, oem_dispatch
 
 
 def _ensure_user(db, username: str, role: str = "user") -> None:
@@ -42,6 +42,7 @@ def _ensure_warranty(db, wid: str, brand: str, model_code: str, region: str = "I
 
 def test_weekly_dispatch_sends_important_update_when_issue_exists(tmp_path, monkeypatch):
     monkeypatch.setenv("OEM_DISPATCH_POLICY_FILE", str(tmp_path / "oem_dispatch_policy.json"))
+    monkeypatch.setenv("OEM_DIRECT_CONSENT_FILE", str(tmp_path / "oem_consent.json"))
     oem_dispatch.set_dispatch_policy(
         {
             "enabled": True,
@@ -57,6 +58,7 @@ def test_weekly_dispatch_sends_important_update_when_issue_exists(tmp_path, monk
 
     with SessionLocal() as db:
         _ensure_user(db, "weekly_user_1", "user")
+        oem_consent.set_oem_direct_consent("weekly_user_1", True)
         _ensure_warranty(db, "w_week_1", "Samsung", "QLED-55", "IN")
         db.add(
             BehaviourProfile(
@@ -100,6 +102,7 @@ def test_weekly_dispatch_sends_important_update_when_issue_exists(tmp_path, monk
 
 def test_weekly_dispatch_dry_run_does_not_send(tmp_path, monkeypatch):
     monkeypatch.setenv("OEM_DISPATCH_POLICY_FILE", str(tmp_path / "oem_dispatch_policy.json"))
+    monkeypatch.setenv("OEM_DIRECT_CONSENT_FILE", str(tmp_path / "oem_consent.json"))
     oem_dispatch.set_dispatch_policy(
         {
             "enabled": True,
@@ -146,6 +149,7 @@ def test_weekly_dispatch_dry_run_does_not_send(tmp_path, monkeypatch):
 
 def test_monthly_dispatch_skips_when_not_enough_signal_and_notifies_oem(tmp_path, monkeypatch):
     monkeypatch.setenv("OEM_DISPATCH_POLICY_FILE", str(tmp_path / "oem_dispatch_policy.json"))
+    monkeypatch.setenv("OEM_DIRECT_CONSENT_FILE", str(tmp_path / "oem_consent.json"))
     oem_dispatch.set_dispatch_policy(
         {
             "enabled": True,
