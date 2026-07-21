@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
 
 from app.db import SessionLocal
 from app.db_models import NotificationDB, UserDB, WarrantyDB
@@ -29,7 +29,7 @@ def _upsert_warranty(db, wid: str, *, expiry_days: int | None, coverage_months: 
         db.add(w)
     w.purchase_date = datetime.utcnow() - timedelta(days=60)
     w.coverage_months = coverage_months
-    w.expiry_date = (datetime.utcnow() + timedelta(days=expiry_days)) if expiry_days is not None else None
+    w.expiry_date = datetime.combine(date.today() + timedelta(days=expiry_days), time(hour=12)) if expiry_days is not None else None
     w.created_at = w.created_at or datetime.utcnow()
     db.commit()
     return w
