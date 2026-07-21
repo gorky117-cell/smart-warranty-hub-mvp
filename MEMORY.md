@@ -669,3 +669,12 @@ git ls-remote --heads origin
 - Eligible cohorts show registered product count, risk distribution, expiry cohorts, behaviour/care averages, top care issues, service demand and recommendation opportunities.
 - Existing OEM UI sections were preserved: risk chart, forecast, behaviour chart, privacy-safe telemetry, Question Studio, Recommendation Studio, top issues, EV overview and product interest.
 - Focused verification: `23 passed` across Phase 6 aggregate, Phase 5 behaviour/predictive, telemetry, OEM dispatch/communication, invoice/OpenAI pipeline and RAG health tests.
+
+## 26. Latest Phase 6C OEM question aggregate loop update
+
+- Added aggregate OEM question answer stats without exposing individual customer answers.
+- `app/services/oem_question_service.py` now has `aggregate_answers`, which suppresses answer stats below `OEM_QUESTION_MIN_COHORT` (default follows aggregate threshold, otherwise 10).
+- Added protected `/oem/questions/answer-stats` endpoint for OEM/admin users.
+- `templates/oem_dashboard.html` now shows **Aggregate answers** under Customer Question Studio, with privacy suppression state or aggregate answer counts.
+- Existing Question Studio publish/active/disable flow and Recommendation Studio were preserved.
+- Focused verification: `25 passed` across Phase 6C question loop, Phase 6 aggregate, Phase 5 behaviour/predictive, telemetry, OEM dispatch/communication, invoice/OpenAI pipeline and RAG health tests.

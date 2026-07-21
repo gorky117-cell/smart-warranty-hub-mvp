@@ -929,6 +929,22 @@ def oem_questions_active(brand: str | None = None, model_code: str | None = None
         return {"ok": False, "items": [], "error": "server_error"}
 
 
+@app.get("/oem/questions/answer-stats", dependencies=[Depends(require_oem_or_admin)])
+def oem_questions_answer_stats(
+    brand: str | None = None,
+    model_code: str | None = None,
+    product_type: str | None = None,
+    region: str | None = None,
+    model: str | None = None,
+    current=Depends(require_oem_or_admin),
+):
+    min_cohort = int(os.getenv("OEM_QUESTION_MIN_COHORT", os.getenv("OEM_AGGREGATE_MIN_COHORT", "10")))
+    return oem_question_service.aggregate_answers(
+        {"brand": brand, "model_code": model_code or model, "product_type": product_type, "region": region},
+        min_cohort=min_cohort,
+    )
+
+
 @app.get("/api/oem/questions/active")
 def oem_questions_active_alias(brand: str | None = None, model_code: str | None = None, product_type: str | None = None, region: str | None = None, current=Depends(require_oem_or_admin)):
     return oem_questions_active(brand=brand, model_code=model_code, product_type=product_type, region=region)

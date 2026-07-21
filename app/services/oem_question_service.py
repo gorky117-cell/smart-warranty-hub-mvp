@@ -5,6 +5,7 @@ import os
 import uuid
 import datetime as dt
 import logging
+from collections import Counter
 from typing import List, Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -117,3 +118,48 @@ def record_oem_answer(user_id: str, warranty_id: str, question_id: str, answer: 
         "ts": dt.datetime.utcnow().isoformat(),
     }
     _append_jsonl(ANSWERS_PATH, rec)
+
+
+def aggregate_answers(filters: Dict, *, min_cohort: int = 10) -> Dict:
+    questions = {q.get("id"): q for q in list_active(filters)}
+    answers = [a for a in _load_jsonl(ANSWERS_PATH) if a.get("question_id") in questions]
+    users = {a.get("user_id") for a in answers if a.get("user_id")}
+    if len(users) < min_cohort:
+        return {
+            "status": "suppressed",
+            "reason": "minimum cohort threshold not met",
+            "min_cohort": min_cohort,
+            "cohort_size": len(users),
+            "question_count": len(questions),
+        }
+    grouped: Dict[str, Dict] = {}
+    for answer in answers:
+        qid = answer.get("question_id")
+        q = questions.get(qid) or {}
+        entry = grouped.setdefault(
+            qid,
+            {
+                "question_id": qid,
+                "text": q.get("text") or "",
+                "answer_type": q.get("answer_type") or "text",
+                "response_count": 0,
+                "answers": Counter(),
+            },
+        )
+        entry["response_count"] += 1
+        value = str(answer.get("answer") or "Not specified").strip()[:120] or "Not specified"
+        entry["answers"][value] += 1
+    items = []
+    for entry in grouped.values():
+        counts = entry.pop("answers")
+        entry["top_answers"] = [{"answer": k, "count": v} for k, v in counts.most_common(8)]
+        items.append(entry)
+    items.sort(key=lambda x: (-x.get("response_count", 0), x.get("question_id") or ""))
+    return {
+        "status": "ok",
+        "min_cohort": min_cohort,
+        "cohort_size": len(users),
+        "question_count": len(questions),
+        "items": items,
+        "privacy_note": "Aggregated answers only; individual customer answers are not exposed.",
+    }
