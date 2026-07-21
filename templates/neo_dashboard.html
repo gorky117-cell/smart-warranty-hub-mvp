@@ -465,6 +465,50 @@
       color: var(--danger);
     }
 
+    .evidence-panel {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #f8fbff;
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .evidence-panel strong {
+      color: var(--text);
+    }
+
+    .evidence-panel a {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    .evidence-pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 5px 9px;
+      margin-right: 8px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .evidence-pill.confirmed {
+      background: #e6f7ee;
+      color: var(--success);
+    }
+
+    .evidence-pill.review {
+      background: #fff4e6;
+      color: var(--warning);
+    }
+
+    .evidence-pill.unconfirmed {
+      background: #ffe6e9;
+      color: var(--danger);
+    }
+
     .placeholder {
       color: var(--muted);
     }
@@ -902,6 +946,7 @@
       <div id="overviewData" class="hidden" style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
         <div class="placeholder" id="summaryShort"></div>
         <div class="helper" id="summaryMeta">Summary source details appear after load.</div>
+        <div class="evidence-panel hidden" id="evidenceTrustPanel"></div>
         <div class="actions">
           <a class="button-link mobile-soft-btn" id="btnSeeFullSummary" href="#detailsCare">See full summary</a>
           <a class="button-link mobile-soft-btn" id="exportPdf" target="_blank">Download summary</a>
@@ -1199,6 +1244,7 @@
       const warrantyLabelMap = {};
       let toastTimer = null;
       let lastWarrantyPlainText = '';
+      let lastEvidenceStatus = null;
       function h(extra = {}) {
         const headers = { ...extra };
         const keyField = document.getElementById('apiKey');
@@ -1316,6 +1362,12 @@
         lines.push(`Purchase: ${w?.purchase_date || 'Not available yet'} | Expiry: ${w?.expiry_date || 'Not available yet'}`);
         if (w?.coverage_months !== undefined && w?.coverage_months !== null) {
           lines.push(`Coverage: ${w.coverage_months} months`);
+        }
+        const evidence = w?.evidence_status || lastEvidenceStatus;
+        if (evidence && typeof evidence === 'object') {
+          lines.push(`Evidence: ${evidence.status_label || evidenceBadgeText(evidence.status)} - ${evidence.note || 'Source details not available yet.'}`);
+          const src = evidence.source_url || (Array.isArray(evidence.sources) && evidence.sources[0] && evidence.sources[0].url) || '';
+          if (src) lines.push(`Source: ${src}`);
         }
         const addSection = (title, items, ordered = false) => {
           lines.push('');
@@ -1537,6 +1589,7 @@
         setText('summary', '');
         setText('summaryShort', '');
         setText('summaryMeta', 'Summary source details appear after load.');
+        renderEvidenceTrustPanel(null);
         setText('advisories', 'Load data to see guidance.');
         setText('warranty', 'Load data to see warranty details.');
         setText('coverageDetails', 'Load data to see coverage details.');
@@ -2297,9 +2350,53 @@
         }
         if (!labels.length) {
           el.textContent = 'Summary source details not available.';
+          renderEvidenceTrustPanel(null);
           return;
         }
         el.innerHTML = labels.map((x) => escapeHtml(x)).join(' | ');
+        renderEvidenceTrustPanel(sum);
+      }
+
+      function evidenceBadgeClass(status) {
+        const s = String(status || '').toLowerCase();
+        if (s === 'confirmed' || s === 'confirmed_internal') return 'confirmed';
+        if (s === 'cached' || s === 'estimated') return 'review';
+        return 'unconfirmed';
+      }
+
+      function evidenceBadgeText(status) {
+        const s = String(status || '').toLowerCase();
+        if (s === 'confirmed' || s === 'confirmed_internal') return 'Confirmed';
+        if (s === 'cached') return 'Cached';
+        if (s === 'estimated') return 'Estimated';
+        return 'Needs verification';
+      }
+
+      function renderEvidenceTrustPanel(sum) {
+        const panel = document.getElementById('evidenceTrustPanel');
+        if (!panel) return;
+        const evidence = (sum && (sum.evidence_status || (sum.layman_summary && sum.layman_summary.evidence_status))) || null;
+        lastEvidenceStatus = evidence;
+        if (!evidence || typeof evidence !== 'object') {
+          panel.classList.add('hidden');
+          panel.innerHTML = '';
+          return;
+        }
+        const status = evidence.status || '';
+        const label = evidence.status_label || evidenceBadgeText(status);
+        const note = evidence.note || 'Source evidence is not available yet.';
+        const requiresVerification = evidence.requires_oem_verification ? 'Verify with OEM before relying on this for a claim.' : '';
+        const sourceUrl = evidence.source_url || (Array.isArray(evidence.sources) && evidence.sources[0] && evidence.sources[0].url) || '';
+        const sourceHtml = sourceUrl && /^https?:\/\//i.test(String(sourceUrl))
+          ? ` <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener">View source</a>`
+          : '';
+        panel.className = `evidence-panel ${evidenceBadgeClass(status)}`;
+        panel.innerHTML = `
+          <span class="evidence-pill ${evidenceBadgeClass(status)}">${escapeHtml(evidenceBadgeText(status))}</span>
+          <strong>${escapeHtml(label)}</strong>
+          <div>${escapeHtml(note)}${sourceHtml}</div>
+          ${requiresVerification ? `<div>${escapeHtml(requiresVerification)}</div>` : ''}
+        `;
       }
 
       function refreshMobileNavFromScroll() {
@@ -2341,6 +2438,25 @@
         const link = document.getElementById('rawWarrantyToggle');
         if (link) link.textContent = pre.classList.contains('hidden') ? 'View raw JSON' : 'Hide raw JSON';
       }
+
+      function renderEvidenceInline(evidence) {
+        if (!evidence || typeof evidence !== 'object') return '';
+        const status = evidence.status || '';
+        const label = evidence.status_label || evidenceBadgeText(status);
+        const note = evidence.note || '';
+        const sourceUrl = evidence.source_url || (Array.isArray(evidence.sources) && evidence.sources[0] && evidence.sources[0].url) || '';
+        const sourceHtml = sourceUrl && /^https?:\/\//i.test(String(sourceUrl))
+          ? ` <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener">View source</a>`
+          : '';
+        return `
+          <div class="evidence-panel" style="margin-bottom:10px;">
+            <span class="evidence-pill ${evidenceBadgeClass(status)}">${escapeHtml(evidenceBadgeText(status))}</span>
+            <strong>${escapeHtml(label)}</strong>
+            ${note ? `<div>${escapeHtml(note)}${sourceHtml}</div>` : sourceHtml}
+          </div>
+        `;
+      }
+
       function renderWarrantyFriendly() {
         const pre = document.getElementById('warranty');
         const friendly = document.getElementById('warrantyFriendly');
@@ -2353,17 +2469,20 @@
           return;
         }
         const parts = [];
+        const evidence = data.evidence_status || lastEvidenceStatus;
+        const evidenceHtml = renderEvidenceInline(evidence);
+        if (evidenceHtml) parts.push(evidenceHtml);
         if (data.purchase_date || data.expiry_date) {
-          parts.push(`<div><strong>Purchase:</strong> ${data.purchase_date || 'N/A'} &nbsp; <strong>Expiry:</strong> ${data.expiry_date || 'N/A'}</div>`);
+          parts.push(`<div><strong>Purchase:</strong> ${escapeHtml(data.purchase_date || 'N/A')} &nbsp; <strong>Expiry:</strong> ${escapeHtml(data.expiry_date || 'N/A')}</div>`);
         }
         if (Array.isArray(data.terms) && data.terms.length) {
-          parts.push('<div><strong>Coverage / Terms:</strong><ul>' + data.terms.map(t => `<li>${t}</li>`).join('') + '</ul></div>');
+          parts.push('<div><strong>Coverage / Terms:</strong><ul>' + data.terms.map(t => `<li>${escapeHtml(t)}</li>`).join('') + '</ul></div>');
         }
         if (Array.isArray(data.exclusions) && data.exclusions.length) {
-          parts.push('<div><strong>Exclusions:</strong><ul>' + data.exclusions.map(t => `<li>${t}</li>`).join('') + '</ul></div>');
+          parts.push('<div><strong>Exclusions:</strong><ul>' + data.exclusions.map(t => `<li>${escapeHtml(t)}</li>`).join('') + '</ul></div>');
         }
         if (Array.isArray(data.claim_steps) && data.claim_steps.length) {
-          parts.push('<div><strong>Claim steps:</strong><ol>' + data.claim_steps.map(t => `<li>${t}</li>`).join('') + '</ol></div>');
+          parts.push('<div><strong>Claim steps:</strong><ol>' + data.claim_steps.map(t => `<li>${escapeHtml(t)}</li>`).join('') + '</ol></div>');
         }
         friendly.innerHTML = parts.join('') || 'No details available yet.';
         lastWarrantyPlainText = renderWarrantyPlainText(data);
