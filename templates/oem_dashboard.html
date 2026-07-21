@@ -248,6 +248,12 @@
       <div id="risk-content" class="row"></div>
     </div>
 
+    <div class="card" id="aggregate-card">
+      <h3>OEM aggregate insight</h3>
+      <div class="helper">Cohort-level warranty, risk, behaviour, expiry, demand and service signals for the current filter.</div>
+      <div id="aggregateInsight" class="placeholder" style="margin-top:10px;">Loading...</div>
+    </div>
+
     <div class="card">
       <h3>Risk vs Reviews (Dual Axis)</h3>
       <canvas id="riskChart" height="120"></canvas>
@@ -514,10 +520,13 @@
         renderTelemetry(data.telemetry || {});
         renderEv(data.ev_battery);
         renderProductInterest(data.product_interest || []);
+        fetchAggregate({ brand, model, product_type: ptype, region });
         fetchForecast({ brand, model, product_type: ptype, region });
         fetchOemNotifications();
       } catch (err) {
         document.getElementById('risk-content').innerHTML = `<p style="color:red;">${err}</p>`;
+        const agg = document.getElementById('aggregateInsight');
+        if (agg) agg.textContent = '';
         document.getElementById('issues').innerHTML = '';
         document.getElementById('behaviour').innerHTML = '';
         const tel = document.getElementById('telemetryStats');
@@ -529,6 +538,84 @@
         btn.disabled = false;
         btn.textContent = 'Refresh';
       }
+    }
+
+    async function fetchAggregate(filters) {
+      const el = document.getElementById('aggregateInsight');
+      if (el) el.textContent = 'Loading aggregate insight...';
+      try {
+        const params = new URLSearchParams();
+        if (filters?.brand) params.set('brand', filters.brand);
+        if (filters?.model) params.set('model', filters.model);
+        if (filters?.product_type) params.set('product_type', filters.product_type);
+        if (filters?.region) params.set('region', filters.region);
+        const data = await fetchApiJson(`/oem/aggregate-insights?${params.toString()}`, {}, 'oem aggregate insights');
+        renderAggregate(data);
+      } catch (e) {
+        if (el) el.textContent = `Aggregate insight not available: ${e}`;
+      }
+    }
+
+    function renderAggregate(data) {
+      const el = document.getElementById('aggregateInsight');
+      if (!el) return;
+      if (!data || !Object.keys(data).length) {
+        el.textContent = 'No aggregate insight available yet.';
+        return;
+      }
+      if (data.status === 'suppressed') {
+        el.innerHTML = `
+          <p class="pill">Suppressed for privacy</p>
+          <p class="pill">Cohort: ${data.cohort_size || 0}</p>
+          <p class="pill">Minimum: ${data.min_cohort || 10}</p>
+          <div class="helper">${data.reason || 'Minimum cohort threshold not met.'}</div>
+        `;
+        return;
+      }
+      const risk = data.risk_distribution || {};
+      const expiry = data.expiry_cohorts || {};
+      const behaviour = data.behaviour_trends || {};
+      const topIssues = Array.isArray(data.top_care_issues) ? data.top_care_issues : [];
+      const demand = Array.isArray(data.service_demand) ? data.service_demand : [];
+      const opportunities = Array.isArray(data.recommendation_opportunities) ? data.recommendation_opportunities : [];
+      const list = (items, empty, render) => (items && items.length ? items.map(render).join('') : `<li>${empty}</li>`);
+      el.innerHTML = `
+        <div class="grid-cards">
+          <div>
+            <p class="pill">Products: ${data.registered_product_count || 0}</p>
+            <p class="pill">Cohort: ${data.cohort_size || 0}</p>
+            <p class="pill">Min: ${data.min_cohort || 10}</p>
+          </div>
+          <div>
+            <p class="pill">Risk HIGH: ${risk.HIGH || 0}</p>
+            <p class="pill">Risk MEDIUM: ${risk.MEDIUM || 0}</p>
+            <p class="pill">Risk LOW: ${risk.LOW || 0}</p>
+          </div>
+          <div>
+            <p class="pill">Expiry 0-30d: ${expiry['0_30_days'] || 0}</p>
+            <p class="pill">Expiry 31-90d: ${expiry['31_90_days'] || 0}</p>
+            <p class="pill">Expired: ${expiry.expired || 0}</p>
+          </div>
+          <div>
+            <p class="pill">Care: ${(behaviour.care_score || 0).toFixed(2)}</p>
+            <p class="pill">Behaviour: ${(behaviour.behaviour_score || 0).toFixed(2)}</p>
+            <p class="pill">Response: ${(behaviour.responsiveness_score || 0).toFixed(2)}</p>
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <strong>Top care issues</strong>
+          <ul>${list(topIssues, 'No care issue signal yet.', item => `<li>${item.issue}: ${item.count || 0}</li>`)}</ul>
+        </div>
+        <div>
+          <strong>Service demand</strong>
+          <ul>${list(demand, 'No service demand signal yet.', item => `<li>${item.issue}: ${item.count || 0}</li>`)}</ul>
+        </div>
+        <div>
+          <strong>Recommendation opportunities</strong>
+          <ul>${list(opportunities, 'No recommendation opportunity yet.', item => `<li>${item.action || item.type} ${item.reason ? '- ' + item.reason : ''}</li>`)}</ul>
+        </div>
+        <div class="helper">${data.privacy_note || 'Aggregate cohort metrics only.'}</div>
+      `;
     }
 
     async function fetchForecast(filters) {

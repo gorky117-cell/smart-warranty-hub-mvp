@@ -660,3 +660,12 @@ git ls-remote --heads origin
 - The endpoint suppresses results below `OEM_AGGREGATE_MIN_COHORT` (default follows `OEM_TELEMETRY_MIN_COHORT`, otherwise 10) and returns only cohort-level metrics.
 - OEM Question Studio and Recommendation Studio remain active; this endpoint gives them safer aggregate context rather than exposing individual customer data.
 - Focused verification: `23 passed` across Phase 6 aggregate tests plus Phase 5 behaviour/predictive, telemetry, OEM dispatch/communication, invoice/OpenAI pipeline and RAG health tests.
+
+## 25. Latest Phase 6B OEM aggregate dashboard update
+
+- `templates/oem_dashboard.html` now shows an **OEM aggregate insight** card near the top of the dashboard.
+- The card calls `/oem/aggregate-insights` with the same product type, brand, model and region filters used by the existing dashboard.
+- Below-threshold cohorts show a privacy suppression state with cohort size and minimum cohort.
+- Eligible cohorts show registered product count, risk distribution, expiry cohorts, behaviour/care averages, top care issues, service demand and recommendation opportunities.
+- Existing OEM UI sections were preserved: risk chart, forecast, behaviour chart, privacy-safe telemetry, Question Studio, Recommendation Studio, top issues, EV overview and product interest.
+- Focused verification: `23 passed` across Phase 6 aggregate, Phase 5 behaviour/predictive, telemetry, OEM dispatch/communication, invoice/OpenAI pipeline and RAG health tests.
