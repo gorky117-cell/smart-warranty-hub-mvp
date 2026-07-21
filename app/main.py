@@ -9,6 +9,7 @@ from urllib.parse import quote, urlencode
 from html import escape
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Depends, Form, Response, status, Body, BackgroundTasks
+from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
@@ -372,6 +373,7 @@ app = FastAPI(
     description="Warranty ingestion, canonicalisation, risk, nudges, predictive care, OEM fetch, and service orchestration.",
     version="0.2.0",
     lifespan=lifespan,
+    docs_url=None,
 )
 
 # Optional host and HTTPS hardening (recommended for Railway production).
@@ -380,6 +382,18 @@ if _allowed_hosts:
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=_allowed_hosts)
 
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
+static_path = Path(__file__).resolve().parents[1] / "static"
+app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+
+
+@app.get("/docs", include_in_schema=False)
+def swagger_docs():
+    return get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=f"{app.title} - Docs",
+        swagger_js_url="/static/swagger-ui/swagger-ui-bundle.js",
+        swagger_css_url="/static/swagger-ui/swagger-ui.css",
+    )
 
 @app.get("/favicon.ico")
 def favicon():
