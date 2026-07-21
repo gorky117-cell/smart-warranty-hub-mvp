@@ -1,6 +1,7 @@
 import os
 import logging
 import re
+import time
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict
@@ -73,6 +74,13 @@ from .services import telemetry_intelligence
 from .services import oem_aggregate as oem_aggregate_service
 from .services.csrf import CSRF_COOKIE_NAME, new_csrf_token, validate_csrf
 from .services.rate_limiter import check_rate_limit
+from .services.request_context import (
+    REQUEST_ID_HEADER,
+    elapsed_ms_since,
+    log_request,
+    request_id_from,
+    request_log_record,
+)
 from .services.warranty_status import compute_warranty_status
 from .services.notifications import run_initial_analysis_and_notifications
 logger = logging.getLogger(__name__)
@@ -444,15 +452,45 @@ def dashboard_dev():
 
 @app.middleware("http")
 async def cache_dashboard(request: Request, call_next):
+    request_id = request_id_from(request)
+    request.state.request_id = request_id
+    start = time.perf_counter()
     try:
         validate_csrf(request)
     except HTTPException as exc:
-        return Response(
+        elapsed_ms = elapsed_ms_since(start)
+        record = request_log_record(
+            request,
+            request_id=request_id,
+            status_code=exc.status_code,
+            elapsed_ms=elapsed_ms,
+            error=str(exc.detail),
+        )
+        log_request(record)
+        response = Response(
             content=f'{{"detail":"{exc.detail}"}}',
             status_code=exc.status_code,
             media_type="application/json",
         )
-    response = await call_next(request)
+        response.headers[REQUEST_ID_HEADER] = request_id
+        return response
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        elapsed_ms = elapsed_ms_since(start)
+        record = request_log_record(
+            request,
+            request_id=request_id,
+            status_code=500,
+            elapsed_ms=elapsed_ms,
+            error=exc.__class__.__name__,
+        )
+        log_request(record, exc_info=True)
+        response = Response(
+            content='{"detail":"Internal server error"}',
+            status_code=500,
+            media_type="application/json",
+        )
     path = request.url.path
     if path.startswith("/dashboard"):
         # Cache static assets aggressively; index less so
@@ -477,6 +515,16 @@ async def cache_dashboard(request: Request, call_next):
     )
     if request.headers.get("x-forwarded-proto", "").lower() == "https":
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    response.headers[REQUEST_ID_HEADER] = request_id
+    elapsed_ms = elapsed_ms_since(start)
+    log_request(
+        request_log_record(
+            request,
+            request_id=request_id,
+            status_code=response.status_code,
+            elapsed_ms=elapsed_ms,
+        )
+    )
     return response
 
 

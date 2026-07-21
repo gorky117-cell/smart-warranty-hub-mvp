@@ -800,3 +800,12 @@ git ls-remote --heads origin
 - Neo, OEM, admin, console, React, simple upload and warranty-tab UI helpers now attach the CSRF token for browser write actions.
 - Scheduler form posts include the CSRF token in the form action for the existing non-JavaScript form path.
 - Added focused tests for CSRF cookie issuance, rejection without token, acceptance with token and Bearer-token compatibility.
+
+## 40. Latest Phase 9D request tracing/logging update
+
+- Added `app/services/request_context.py` for request ID generation and structured request log records.
+- Every HTTP response now includes `X-Request-ID`, reusing a valid caller-supplied value when present.
+- Request logging records method, path, status code, elapsed milliseconds, client IP and safe user context without storing request bodies, cookies, tokens, invoice content or authorization headers.
+- CSRF failures and unhandled exceptions use the same request ID path so Railway logs can be correlated with browser/API responses.
+- Unhandled exceptions return a generic JSON 500 response rather than leaking internal exception details.
+- Added focused tests for generated request IDs, supplied request ID reuse, CSRF rejection headers and sensitive-header redaction.
