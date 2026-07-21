@@ -15,23 +15,48 @@ from ..storage import generate_id
 def _ensure_schema(db: Session):
     """
     Backward-compatible guard: ensure new columns exist on the notifications table.
-    Adds nullable audience/brand/region columns if missing (SQLite-safe).
+    Adds nullable audience/brand/region columns if missing.
     """
     try:
-        cols = {row[1] for row in db.execute(text("PRAGMA table_info(notifications)")).fetchall()}
+        dialect = db.get_bind().dialect.name
+        if dialect == "sqlite":
+            cols = {row[1] for row in db.execute(text("PRAGMA table_info(notifications)")).fetchall()}
+        elif dialect == "postgresql":
+            rows = db.execute(
+                text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name = 'notifications'"
+                )
+            ).fetchall()
+            cols = {row[0] for row in rows}
+        else:
+            return
         alters = []
         if "audience" not in cols:
-            alters.append("ALTER TABLE notifications ADD COLUMN audience TEXT DEFAULT 'user'")
+            if dialect == "postgresql":
+                alters.append("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS audience TEXT DEFAULT 'user'")
+            else:
+                alters.append("ALTER TABLE notifications ADD COLUMN audience TEXT DEFAULT 'user'")
         if "brand" not in cols:
-            alters.append("ALTER TABLE notifications ADD COLUMN brand TEXT")
+            if dialect == "postgresql":
+                alters.append("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS brand TEXT")
+            else:
+                alters.append("ALTER TABLE notifications ADD COLUMN brand TEXT")
         if "region" not in cols:
-            alters.append("ALTER TABLE notifications ADD COLUMN region TEXT")
+            if dialect == "postgresql":
+                alters.append("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS region TEXT")
+            else:
+                alters.append("ALTER TABLE notifications ADD COLUMN region TEXT")
         for stmt in alters:
             db.execute(text(stmt))
         if alters:
             db.commit()
     except Exception:
         # Do not block main flow if pragma fails; queries may still work if schema is current.
+        try:
+            db.rollback()
+        except Exception:
+            pass
         pass
 
 

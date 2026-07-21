@@ -108,7 +108,9 @@ def _load_rules(db: Session) -> List[RecommendationRule]:
 
 def _matches_rule(rule: RecommendationRule, context: Dict) -> bool:
     cond = rule.condition_json or {}
-    aqi = context.get("aqi_band", 0)
+    aqi = context.get("aqi_band")
+    if aqi is None:
+        aqi = 0
     risk_label = context.get("risk_label", "LOW")
     behaviour_score = context.get("behaviour_score", 0.5)
     care_score = context.get("care_score", 0.5)
