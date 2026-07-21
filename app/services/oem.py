@@ -12,6 +12,29 @@ from .oem_parsers import parse_oem_text, parse_oem_html
 from . import oem_adapters, oem_source_policy
 
 
+def preflight_oem_fetch(url: str, brand: str) -> Dict[str, object]:
+    adapter = oem_adapters.get_adapter(brand)
+    if adapter:
+        allowed = adapter.allows_url(url)
+        return {
+            "ok": allowed,
+            "brand": brand,
+            "url": url,
+            "mode": "controlled_adapter",
+            "adapter": adapter.brand,
+            "reason": "approved_adapter_url" if allowed else "url_not_allowed_for_adapter",
+        }
+    allowed = oem_source_policy.manual_url_allowed(url, brand)
+    return {
+        "ok": allowed,
+        "brand": brand,
+        "url": url,
+        "mode": "approved_source_policy",
+        "adapter": None,
+        "reason": "approved_oem_url" if allowed else "url_not_approved_for_oem_fetch",
+    }
+
+
 def fetch_oem_page(url: str, brand: str, model: str, region: Optional[str] = None) -> Artifact:
     adapter = oem_adapters.get_adapter(brand)
     if adapter:

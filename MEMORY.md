@@ -716,3 +716,14 @@ git ls-remote --heads origin
 - Source trust now gives approved OEM source evidence a distinct label while still requiring OEM verification for claim certainty unless the domain is explicitly verified.
 - Existing terms cache behavior, internal warranty lookup, default fallbacks, scraping/adapters, OCR, OpenAI/LLM, RAG, telemetry, behaviour and OEM dashboard features were preserved.
 - Focused verification: `31 passed` across source trust, evidence status, warranty parser/discovery, invoice pipeline and Phase 7 adapter tests; edited Python files compile.
+
+## 31. Latest Phase 7D OEM fetch preflight update
+
+- Added `preflight_oem_fetch` to enforce approved-source checks before OEM fetch work is queued, reviewed or executed.
+- `/oem/fetch` now rejects arbitrary URLs at the API boundary instead of placing them into the OEM fetch queue.
+- Admin review approval for `oem_fetch` repeats the same preflight check before execution.
+- Controlled brand adapters remain the preferred path; Samsung adapter URLs must stay under approved Samsung domains.
+- Non-adapter brands still use the Phase 7A source policy, with production arbitrary URL fetches blocked by default.
+- Existing OEM review queue, scheduler, adapter registry, terms cache, discovery/parser, OCR, OpenAI/LLM, RAG, telemetry, behaviour, Question Studio and Recommendation Studio were preserved.
+- Live smoke after Phase 7C deploy: `/health/full` returned `ok`; `/oem/source-policy` and `/oem/adapters` returned expected unauthenticated `401 Missing token`.
+- Focused verification: `27 passed` across Phase 7D preflight, adapter, discovery, parser, source trust and evidence tests; edited Python files compile.

@@ -29,7 +29,7 @@ from .services.ingestion import ingest_artifact
 from .services.llm import generate_text
 from .services.nudge import generate_nudges
 from .services.predictive import compute_predictive_score, predictive_model, build_feature_vector, score_warranty
-from .services.oem import fetch_oem_page
+from .services.oem import fetch_oem_page, preflight_oem_fetch
 from .services.risk import compute_risk
 from .services.service import create_ticket
 from .storage import store, generate_id
@@ -3191,6 +3191,16 @@ def oem_forecast(
 
 @app.post("/oem/fetch", dependencies=[Depends(rbac_dependency)])
 def oem_fetch(payload: OemFetchRequest):
+    preflight = preflight_oem_fetch(payload.url, payload.brand)
+    if not preflight.get("ok"):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "reason": preflight.get("reason"),
+                "message": "OEM fetch is limited to approved OEM sources or controlled brand adapters.",
+                "preflight": preflight,
+            },
+        )
     with SessionLocal() as db:
         db.merge(
             OEMFetchDB(
@@ -3299,6 +3309,16 @@ def approve(review_id: str, reason: str | None = None):
         item = approve_review(review_id, reason)
         if item.action == "oem_fetch":
             data = item.payload
+            preflight = preflight_oem_fetch(data["url"], data["brand"])
+            if not preflight.get("ok"):
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "reason": preflight.get("reason"),
+                        "message": "OEM fetch is limited to approved OEM sources or controlled brand adapters.",
+                        "preflight": preflight,
+                    },
+                )
             artifact = fetch_oem_page(data["url"], data["brand"], data["model"], data.get("region"))
             return {"review": item, "artifact": artifact}
         return {"review": item}
