@@ -73,6 +73,7 @@ from .services import diagnostics_capability as diag_cap_service
 from .services import emailer as emailer_service
 from .services import telemetry_intelligence
 from .services import oem_aggregate as oem_aggregate_service
+from .services.runtime_safety import insecure_defaults_allowed
 from .services.csrf import CSRF_COOKIE_NAME, new_csrf_token, validate_csrf
 from .services.rate_limiter import check_rate_limit
 from .services.ai_quota import check_and_consume as consume_ai_quota, usage_for as ai_usage_for
@@ -729,7 +730,7 @@ def _ensure_ui_oem_or_admin(request: Request, current: Optional[UserDB]) -> Opti
 
 
 def _user_can_access_warranty(db: Session, *, user: UserDB, warranty_id: str) -> bool:
-    if user.role in ("admin", "oem"):
+    if user.role in ("admin", "oem", "tpa"):
         return True
     rec = (
         db.query(WarrantyOwnerDB)
@@ -763,6 +764,24 @@ def _require_warranty_access(db: Session, *, user: UserDB, warranty_id: str) -> 
             db.rollback()
 
     raise HTTPException(status_code=403, detail="forbidden")
+
+
+def _subject_user_id(current: UserDB, requested_user_id: str | None = None) -> str:
+    if current.role in ("admin", "oem", "tpa"):
+        return requested_user_id or current.username
+    if requested_user_id and requested_user_id != current.username:
+        raise HTTPException(status_code=403, detail="forbidden")
+    return current.username
+
+
+def _ensure_warranty_exists(db: Session, warranty_id: str):
+    warranty = db.query(WarrantyDB).filter_by(id=warranty_id).first()
+    if warranty:
+        return warranty
+    warranty = store.warranties.get(warranty_id)
+    if warranty:
+        return warranty
+    raise HTTPException(status_code=404, detail="Warranty not found")
 
 
 def _build_warranty_status_info(warranty) -> Dict[str, object]:
@@ -1228,7 +1247,7 @@ def _ensure_users_table_and_admin(db) -> None:
     except Exception:
         return
     try:
-        allow_insecure = os.getenv("ALLOW_INSECURE_DEFAULTS", "true").strip().lower() in ("1", "true", "yes", "on")
+        allow_insecure = insecure_defaults_allowed()
         admin_user = os.getenv("ADMIN_USER")
         admin_pass = os.getenv("ADMIN_PASS")
         if not admin_user or not admin_pass:
@@ -1854,7 +1873,12 @@ def get_job(job_id: str, db=Depends(get_db), current: UserDB = Depends(require_u
 
 
 @app.post("/warranty/terms/refresh", dependencies=[Depends(rbac_dependency)])
-def refresh_warranty_terms(payload: TermsRefreshRequest, db=Depends(get_db)):
+def refresh_warranty_terms(
+    payload: TermsRefreshRequest,
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    _require_warranty_access(db, user=current, warranty_id=payload.warranty_id)
     warranty = db.query(WarrantyDB).filter_by(id=payload.warranty_id).first()
     if not warranty:
         raise HTTPException(status_code=404, detail="Warranty not found")
@@ -2049,12 +2073,17 @@ def warranty_resolution_agent_traces(
 
 
 @app.post("/behaviour-events", dependencies=[Depends(rbac_dependency)])
-def push_behaviour_event(payload: BehaviourEventRequest):
-    if payload.warranty_id not in store.warranties:
-        raise HTTPException(status_code=404, detail="Warranty not found")
-    _require_consent(payload.user_id)
+def push_behaviour_event(
+    payload: BehaviourEventRequest,
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    uid = _subject_user_id(current, payload.user_id)
+    _ensure_warranty_exists(db, payload.warranty_id)
+    _require_warranty_access(db, user=current, warranty_id=payload.warranty_id)
+    _require_consent(uid)
     event = BehaviourEvent(
-        user_id=payload.user_id,
+        user_id=uid,
         warranty_id=payload.warranty_id,
         event_type=payload.event_type,
         details=payload.details or {},
@@ -2063,20 +2092,30 @@ def push_behaviour_event(payload: BehaviourEventRequest):
 
 
 @app.post("/risk/score", dependencies=[Depends(rbac_dependency)])
-def risk_score(payload: RiskRequest):
-    if payload.warranty_id not in store.warranties:
-        raise HTTPException(status_code=404, detail="Warranty not found")
-    return compute_risk(payload.user_id, payload.warranty_id)
+def risk_score(
+    payload: RiskRequest,
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    uid = _subject_user_id(current, payload.user_id)
+    _ensure_warranty_exists(db, payload.warranty_id)
+    _require_warranty_access(db, user=current, warranty_id=payload.warranty_id)
+    return compute_risk(uid, payload.warranty_id)
 
 
 @app.get("/advisories/{warranty_id}", dependencies=[Depends(rbac_dependency)])
-def advisories(warranty_id: str, user_id: str):
-    warranty = store.get_warranty_db(warranty_id)
-    if not warranty:
-        raise HTTPException(status_code=404, detail="Warranty not found")
-    risk = compute_risk(user_id, warranty_id)
+def advisories(
+    warranty_id: str,
+    user_id: str | None = None,
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    uid = _subject_user_id(current, user_id)
+    warranty = _ensure_warranty_exists(db, warranty_id)
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
+    risk = compute_risk(uid, warranty_id)
     status_info = _build_warranty_status_info(warranty)
-    variant = policy.assign_variant(user_id, warranty_id, experiment="fogg_nudge", variants=("A", "B"))
+    variant = policy.assign_variant(uid, warranty_id, experiment="fogg_nudge", variants=("A", "B"))
     nudges = generate_nudges(risk, variant)
     band_map = {"high": "critical", "medium": "warning", "low": "info"}
     severity = band_map.get(getattr(risk, "band", "low"), "info")
@@ -2103,10 +2142,14 @@ def advisories(warranty_id: str, user_id: str):
 
 
 @app.post("/advisories/nudge-event", dependencies=[Depends(require_user)])
-def log_nudge_event(payload: NudgeEventRequest, db=Depends(get_db)):
+def log_nudge_event(payload: NudgeEventRequest, db=Depends(get_db), current: UserDB = Depends(require_user)):
+    uid = _subject_user_id(current, payload.user_id)
+    if payload.warranty_id:
+        _ensure_warranty_exists(db, payload.warranty_id)
+        _require_warranty_access(db, user=current, warranty_id=payload.warranty_id)
     now = datetime.utcnow()
     ev = NudgeEvents(
-        user_id=payload.user_id,
+        user_id=uid,
         warranty_id=payload.warranty_id,
         nudge_type=payload.nudge_type,
         outcome=payload.outcome,
@@ -2121,11 +2164,16 @@ def log_nudge_event(payload: NudgeEventRequest, db=Depends(get_db)):
 
 
 @app.post("/service-tickets", dependencies=[Depends(rbac_dependency)])
-def service_ticket(payload: ServiceTicketRequest):
-    if payload.warranty_id not in store.warranties:
-        raise HTTPException(status_code=404, detail="Warranty not found")
+def service_ticket(
+    payload: ServiceTicketRequest,
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    uid = _subject_user_id(current, payload.user_id)
+    _ensure_warranty_exists(db, payload.warranty_id)
+    _require_warranty_access(db, user=current, warranty_id=payload.warranty_id)
     ticket = create_ticket(
-        payload.user_id,
+        uid,
         payload.warranty_id,
         payload.symptom,
         payload.evidence or [],
@@ -2134,7 +2182,9 @@ def service_ticket(payload: ServiceTicketRequest):
 
 
 @app.get("/service-tickets/{warranty_id}", dependencies=[Depends(rbac_dependency)])
-def list_tickets(warranty_id: str):
+def list_tickets(warranty_id: str, db=Depends(get_db), current: UserDB = Depends(require_user)):
+    _ensure_warranty_exists(db, warranty_id)
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
     return store.list_tickets(warranty_id)
 
 
@@ -2233,26 +2283,35 @@ def capture_artifact(
 def warranty_ui(
     request: Request,
     warranty_id: str,
-    user_id: str,
+    user_id: str | None = None,
     current: Optional[UserDB] = Depends(get_current_user_optional),
 ):
     ui_redirect = _ensure_ui_user(request, current)
     if ui_redirect:
         return ui_redirect
-    warranty = store.warranties.get(warranty_id)
-    if not warranty:
-        raise HTTPException(status_code=404, detail="Warranty not found")
-    # Summary
     with SessionLocal() as db:
+        warranty = _ensure_warranty_exists(db, warranty_id)
+        if current:
+            uid = _subject_user_id(current, user_id)
+            _require_warranty_access(db, user=current, warranty_id=warranty_id)
+        elif _demo_public_ui_enabled():
+            uid = user_id or "demo"
+        else:
+            raise HTTPException(status_code=401, detail="Missing token")
+        # Summary
         summary_resp = _build_warranty_summary_response(SummaryRequest(warranty_id=warranty_id), db, current)
+        adv = advisories(warranty_id, uid, db, current) if current else {
+            "risk": compute_risk(uid, warranty_id),
+            "nudges": generate_nudges(compute_risk(uid, warranty_id), "A"),
+            "variant": "A",
+        }
     summary_text = summary_resp.get("summary", "")
     # Risk & advisories
-    adv = advisories(warranty_id, user_id)
     risk_data = adv["risk"]
     nudges = adv["nudges"]
     variant = adv.get("variant")
     # Predictive
-    predictive = compute_predictive_score(user_id, warranty_id, warranty.model_code, None, None)
+    predictive = compute_predictive_score(uid, warranty_id, warranty.model_code, None, None)
     return templates.TemplateResponse(
         "warranty.html",
         {
@@ -2368,15 +2427,20 @@ def oem_dashboard(request: Request, current: Optional[UserDB] = Depends(get_curr
 
 
 @app.post("/telemetry", dependencies=[Depends(rbac_dependency)])
-def push_telemetry(payload: TelemetryRequest):
-    if payload.warranty_id not in store.warranties:
-        raise HTTPException(status_code=404, detail="Warranty not found")
-    _require_consent(payload.user_id)
+def push_telemetry(
+    payload: TelemetryRequest,
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    uid = _subject_user_id(current, payload.user_id)
+    _ensure_warranty_exists(db, payload.warranty_id)
+    _require_warranty_access(db, user=current, warranty_id=payload.warranty_id)
+    _require_consent(uid)
     safe_payload = telemetry_intelligence.prepare_event_payload(payload.event_type, payload.payload)
     event = TelemetryEvent(
         id=generate_id("tel"),
         warranty_id=payload.warranty_id,
-        user_id=payload.user_id,
+        user_id=uid,
         model_code=payload.model_code,
         region=payload.region,
         timezone=payload.timezone,
@@ -2531,14 +2595,21 @@ def oem_adapter_status():
 
 
 @app.post("/predictive/score", dependencies=[Depends(rbac_dependency)])
-def predictive_score(payload: PredictiveRequest, db=Depends(get_db)):
-    data = score_warranty(payload.user_id, payload.warranty_id)
+def predictive_score(
+    payload: PredictiveRequest,
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    uid = _subject_user_id(current, payload.user_id)
+    _ensure_warranty_exists(db, payload.warranty_id)
+    _require_warranty_access(db, user=current, warranty_id=payload.warranty_id)
+    data = score_warranty(uid, payload.warranty_id)
     try:
         risk_label = (data.get("risk_label") or "LOW").upper()
         if risk_label in ("MEDIUM", "HIGH"):
             severity = "warning" if risk_label == "MEDIUM" else "critical"
             notification_service.create_notification(
-                user_id=payload.user_id,
+                user_id=uid,
                 warranty_id=payload.warranty_id,
                 type=f"risk_{risk_label.lower()}",
                 title=f"Risk {risk_label.title()} detected",
@@ -2549,7 +2620,7 @@ def predictive_score(payload: PredictiveRequest, db=Depends(get_db)):
         if warranty:
             notification_service.create_expiry_notifications(
                 db=db,
-                user_id=payload.user_id,
+                user_id=uid,
                 warranty_id=payload.warranty_id,
                 warranty=warranty,
             )

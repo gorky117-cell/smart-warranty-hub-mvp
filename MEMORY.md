@@ -827,3 +827,14 @@ git ls-remote --heads origin
 - `/consent` can now update direct OEM sharing consent, and `GET /consent` returns both analytics and direct-OEM sharing consent state.
 - OEM communication traces now record `oem_direct_consent_required` when a direct message is blocked for missing direct-sharing consent.
 - Added focused tests for default-off direct consent, consent endpoint update/access control and OEM communication blocking.
+
+## 43. Latest Phase 9G pilot security hardening update
+
+- Added shared request-user and warranty-existence helpers for legacy API hardening.
+- Behaviour events, risk scoring, advisories, nudge events, service tickets, telemetry, predictive scoring and terms refresh now enforce authenticated user ownership before acting on a warranty.
+- Normal users can no longer pass another user's `user_id`; OEM/TPA/admin roles keep operator access where the existing role model already allowed it.
+- The warranty detail UI now resolves the current signed-in user by default and preserves demo-public behavior only when that feature is enabled.
+- The partial database admin fallback now uses the shared Phase 9 runtime safety rule instead of defaulting insecure in production.
+- `pytest.ini` now limits discovery to `tests` and sets `pythonpath = .`, so plain `pytest` works from the repo root.
+- Added focused regression tests for cross-user payload rejection, warranty ownership enforcement, owner success path and production admin fallback safety.
+- Verification: `python -m compileall -q app` passed; `pytest -q` passed with `122 passed` and the existing three scikit-learn model-version warnings.
