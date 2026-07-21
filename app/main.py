@@ -991,6 +991,22 @@ def oem_recommendations_active(product_type: str | None = None, brand: str | Non
         return {"ok": False, "items": [], "error": "server_error"}
 
 
+@app.get("/oem/recommendations/stats", dependencies=[Depends(require_oem_or_admin)])
+def oem_recommendations_stats(
+    product_type: str | None = None,
+    brand: str | None = None,
+    model: str | None = None,
+    region: str | None = None,
+    risk_band: str | None = None,
+    current=Depends(require_oem_or_admin),
+):
+    min_cohort = int(os.getenv("OEM_RECOMMENDATION_MIN_COHORT", os.getenv("OEM_AGGREGATE_MIN_COHORT", "10")))
+    return oem_recommendation_service.aggregate_stats(
+        {"product_type": product_type, "brand": brand, "model": model, "region": region, "risk_band": risk_band},
+        min_cohort=min_cohort,
+    )
+
+
 @app.post("/oem/recommendations/disable", dependencies=[Depends(require_oem_or_admin)])
 @app.post("/api/oem/recommendations/disable", dependencies=[Depends(require_oem_or_admin)])
 def oem_recommendations_disable(payload: Dict = Body(...)):

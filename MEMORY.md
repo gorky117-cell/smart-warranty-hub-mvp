@@ -678,3 +678,13 @@ git ls-remote --heads origin
 - `templates/oem_dashboard.html` now shows **Aggregate answers** under Customer Question Studio, with privacy suppression state or aggregate answer counts.
 - Existing Question Studio publish/active/disable flow and Recommendation Studio were preserved.
 - Focused verification: `25 passed` across Phase 6C question loop, Phase 6 aggregate, Phase 5 behaviour/predictive, telemetry, OEM dispatch/communication, invoice/OpenAI pipeline and RAG health tests.
+
+## 27. Latest Phase 6D OEM recommendation aggregate loop update
+
+- Added aggregate recommendation demand stats without exposing individual customer actions.
+- `app/services/product_recommendations.py` now has `aggregate_product_interest_stats` for privacy-gated product-interest action counts.
+- `app/services/oem_recommendation_service.py` now has `aggregate_stats`, combining active OEM recommendations with aggregate product-interest demand and recommendation opportunities.
+- Added protected `/oem/recommendations/stats` endpoint for OEM/admin users.
+- `templates/oem_dashboard.html` now shows **Aggregate demand** under Recommendation Studio, with suppression state or aggregate product demand/action counts.
+- Existing customer recommendations, product recommendations, product-interest events, Question Studio and Recommendation Studio generation/publish flows were preserved.
+- Focused verification: `28 passed` across Phase 6D recommendation loop, Phase 6C question loop, Phase 6 aggregate, Phase 5 behaviour/predictive, telemetry, OEM dispatch/communication, invoice/OpenAI pipeline and RAG health tests.

@@ -335,6 +335,8 @@
         <button id="rec-gen">Generate recommendation</button>
       </div>
       <div id="rec-preview" class="helper">No preview yet.</div>
+      <h4>Aggregate demand</h4>
+      <div id="rec-stats" class="helper">Loading...</div>
     </div>
 
     <div class="card">
@@ -1163,8 +1165,52 @@
           ${renderList('Suggested OEM actions', data.suggested_oem_actions)}
           ${renderList('Suggested products', data.suggested_products)}
         `;
+        recStats();
       } catch (e) {
         if (el) el.textContent = 'Recommendation preview failed: ' + e;
+      }
+    }
+
+    async function recStats() {
+      const el = document.getElementById('rec-stats');
+      if (el) el.textContent = 'Loading...';
+      try {
+        const params = new URLSearchParams();
+        const ptype = document.getElementById('qs-ptype')?.value || '';
+        const brand = document.getElementById('qs-brand')?.value || '';
+        const model = document.getElementById('qs-model')?.value || '';
+        const region = document.getElementById('qs-region')?.value || '';
+        if (ptype) params.append('product_type', ptype);
+        if (brand) params.append('brand', brand);
+        if (model) params.append('model', model);
+        if (region) params.append('region', region);
+        const data = await fetchApiJson(`/oem/recommendations/stats?${params.toString()}`, {}, 'recommendation stats');
+        if (!el) return;
+        if (data.status === 'suppressed') {
+          el.innerHTML = `
+            <p class="pill">Suppressed for privacy</p>
+            <p class="pill">Cohort: ${data.cohort_size || 0}</p>
+            <p class="pill">Minimum: ${data.min_cohort || 10}</p>
+            <p class="pill">Active recommendations: ${data.active_recommendation_count || 0}</p>
+            <div class="helper">${data.reason || 'Minimum cohort threshold not met.'}</div>
+          `;
+          return;
+        }
+        const products = Array.isArray(data.product_interest) ? data.product_interest : [];
+        const opportunities = Array.isArray(data.recommendation_opportunities) ? data.recommendation_opportunities : [];
+        const actions = data.action_counts || {};
+        const actionRows = Object.keys(actions).sort().map(k => `<p class="pill">${k}: ${actions[k] || 0}</p>`).join('');
+        el.innerHTML = `
+          <p class="pill">Cohort: ${data.cohort_size || 0}</p>
+          <p class="pill">Active recommendations: ${data.active_recommendation_count || 0}</p>
+          <p class="pill">Demand signals: ${products.length}</p>
+          <div style="margin-top:8px;">${actionRows || '<p class="pill">No actions yet</p>'}</div>
+          <div style="margin-top:8px;"><strong>Top product demand</strong><ul>${products.map(p => `<li>${p.title || p.product_id}: ${p.count || 0}</li>`).join('') || '<li>No demand signal yet.</li>'}</ul></div>
+          <div><strong>Opportunities</strong><ul>${opportunities.map(o => `<li>${o.action || o.type} ${o.reason ? '- ' + o.reason : ''}</li>`).join('') || '<li>No opportunity yet.</li>'}</ul></div>
+          <div class="helper">${data.privacy_note || 'Aggregated recommendation demand only.'}</div>
+        `;
+      } catch (e) {
+        if (el) el.textContent = 'Recommendation stats not available: ' + e;
       }
     }
 
@@ -1229,6 +1275,7 @@
     qsSyncFilters();
     qsLoadLlmStatus();
     qsLoadActive();
+    recStats();
     loadProductOptions().finally(fetchStats);
   </script>
 <script src=" /static/warranty-dropdown.js\></script></body>

@@ -198,3 +198,61 @@ def aggregate_product_interest(region: Optional[str] = None, risk_band: Optional
         entry["count"] += 1
     top = sorted(counts.values(), key=lambda x: (-x["count"], x["product_id"]))[:limit]
     return top
+
+
+def aggregate_product_interest_stats(
+    *,
+    region: Optional[str] = None,
+    risk_band: Optional[str] = None,
+    product_id: Optional[str] = None,
+    min_cohort: int = 10,
+    limit: int = 10,
+) -> Dict:
+    users = set()
+    product_counts: Dict[str, Dict] = {}
+    action_counts: Dict[str, int] = {}
+    for ev in _iter_events() or []:
+        if region and ev.get("region") and ev.get("region") != region:
+            continue
+        if risk_band and ev.get("risk_band") and ev.get("risk_band") != risk_band:
+            continue
+        if product_id and ev.get("product_id") != product_id:
+            continue
+        uid = ev.get("user_id")
+        if uid:
+            users.add(uid)
+        pid = ev.get("product_id")
+        if pid:
+            entry = product_counts.setdefault(
+                pid,
+                {
+                    "product_id": pid,
+                    "title": ev.get("title") or pid,
+                    "count": 0,
+                    "actions": {},
+                    "risk_bands": {},
+                },
+            )
+            entry["count"] += 1
+            action = ev.get("action") or "unknown"
+            band = ev.get("risk_band") or "unknown"
+            entry["actions"][action] = entry["actions"].get(action, 0) + 1
+            entry["risk_bands"][band] = entry["risk_bands"].get(band, 0) + 1
+            action_counts[action] = action_counts.get(action, 0) + 1
+    if len(users) < min_cohort:
+        return {
+            "status": "suppressed",
+            "reason": "minimum cohort threshold not met",
+            "min_cohort": min_cohort,
+            "cohort_size": len(users),
+        }
+    top = sorted(product_counts.values(), key=lambda x: (-x["count"], x["product_id"]))[:limit]
+    return {
+        "status": "ok",
+        "min_cohort": min_cohort,
+        "cohort_size": len(users),
+        "event_count": sum(item["count"] for item in product_counts.values()),
+        "action_counts": action_counts,
+        "items": top,
+        "privacy_note": "Aggregated product-interest signals only; individual customer actions are not exposed.",
+    }

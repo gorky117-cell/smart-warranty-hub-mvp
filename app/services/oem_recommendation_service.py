@@ -1,8 +1,11 @@
 import json
 import uuid
 import datetime as dt
+import os
 from pathlib import Path
 from typing import Dict, List, Optional
+
+from . import product_recommendations as prod_recs_service
 
 REC_PATH = Path("data/oem_recommendations.jsonl")
 
@@ -80,3 +83,62 @@ def disable_rec(rec_id: str) -> bool:
     if changed:
         _write_all(REC_PATH, rows)
     return changed
+
+
+def aggregate_stats(filters: Dict, *, min_cohort: Optional[int] = None) -> Dict:
+    threshold = min_cohort if min_cohort is not None else int(os.getenv("OEM_RECOMMENDATION_MIN_COHORT", os.getenv("OEM_AGGREGATE_MIN_COHORT", "10")))
+    active = list_active(filters)
+    interest = prod_recs_service.aggregate_product_interest_stats(
+        region=filters.get("region"),
+        risk_band=filters.get("risk_band"),
+        min_cohort=threshold,
+        limit=10,
+    )
+    if interest.get("status") == "suppressed":
+        return {
+            "status": "suppressed",
+            "reason": interest.get("reason"),
+            "min_cohort": threshold,
+            "cohort_size": interest.get("cohort_size", 0),
+            "active_recommendation_count": len(active),
+        }
+    opportunity_notes = []
+    items = interest.get("items") or []
+    if items:
+        top = items[0]
+        opportunity_notes.append(
+            {
+                "type": "demand_signal",
+                "reason": f"{top.get('title') or top.get('product_id')} has {top.get('count', 0)} aggregate actions.",
+                "action": "Review or publish a matching OEM recommendation.",
+            }
+        )
+    if not active:
+        opportunity_notes.append(
+            {
+                "type": "studio_gap",
+                "reason": "No active OEM recommendations match this filter.",
+                "action": "Generate a recommendation from current aggregate insight.",
+            }
+        )
+    return {
+        "status": "ok",
+        "min_cohort": threshold,
+        "cohort_size": interest.get("cohort_size", 0),
+        "active_recommendation_count": len(active),
+        "active_recommendations": [
+            {
+                "id": r.get("id"),
+                "title": r.get("title"),
+                "brand": r.get("brand"),
+                "model": r.get("model"),
+                "region": r.get("region"),
+                "status": r.get("status"),
+            }
+            for r in active[:10]
+        ],
+        "product_interest": items,
+        "action_counts": interest.get("action_counts", {}),
+        "recommendation_opportunities": opportunity_notes,
+        "privacy_note": "Aggregated recommendation demand only; individual customer actions are not exposed.",
+    }
