@@ -254,6 +254,12 @@
       <div id="aggregateInsight" class="placeholder" style="margin-top:10px;">Loading...</div>
     </div>
 
+    <div class="card" id="source-verification-card">
+      <h3>Controlled source verification</h3>
+      <div class="helper">OEM source lookup is limited to approved domains, controlled adapters and cached/stored evidence.</div>
+      <div id="sourceVerification" class="placeholder" style="margin-top:10px;">Loading...</div>
+    </div>
+
     <div class="card">
       <h3>Risk vs Reviews (Dual Axis)</h3>
       <canvas id="riskChart" height="120"></canvas>
@@ -525,6 +531,7 @@
         renderEv(data.ev_battery);
         renderProductInterest(data.product_interest || []);
         fetchAggregate({ brand, model, product_type: ptype, region });
+        fetchSourceVerification({ brand });
         fetchForecast({ brand, model, product_type: ptype, region });
         fetchOemNotifications();
       } catch (err) {
@@ -538,10 +545,55 @@
         document.getElementById('evStats').innerHTML = '';
         const pi = document.getElementById('productInterest');
         if (pi) pi.textContent = '';
+        const src = document.getElementById('sourceVerification');
+        if (src) src.textContent = '';
       } finally {
         btn.disabled = false;
         btn.textContent = 'Refresh';
       }
+    }
+
+    async function fetchSourceVerification(filters) {
+      const el = document.getElementById('sourceVerification');
+      if (el) el.textContent = 'Loading source policy...';
+      try {
+        const params = new URLSearchParams();
+        if (filters?.brand) params.set('brand', filters.brand);
+        const [policyData, adaptersData] = await Promise.all([
+          fetchApiJson(`/oem/source-policy?${params.toString()}`, {}, 'source policy'),
+          fetchApiJson('/oem/adapters', {}, 'oem adapters'),
+        ]);
+        renderSourceVerification(policyData.policy || {}, adaptersData.adapters || {});
+      } catch (e) {
+        if (el) el.textContent = `Source verification not available: ${e}`;
+      }
+    }
+
+    function renderSourceVerification(policy, adapters) {
+      const el = document.getElementById('sourceVerification');
+      if (!el) return;
+      const adapterItems = Object.values(adapters || {});
+      const adapterList = adapterItems.length
+        ? adapterItems.map(a => `<li>${a.brand}: ${(a.approved_domains || []).join(', ')}</li>`).join('')
+        : '<li>No controlled adapters enabled yet.</li>';
+      el.innerHTML = `
+        <div class="grid-cards">
+          <div>
+            <p class="pill">Production: ${policy.production ? 'yes' : 'no'}</p>
+            <p class="pill">Strict preflight: ${policy.preflight_strict ? 'on' : 'off'}</p>
+            <p class="pill">Official only: ${policy.official_only ? 'on' : 'off'}</p>
+          </div>
+          <div>
+            <p class="pill">Broad search: ${policy.broad_search_allowed ? 'allowed' : 'blocked'}</p>
+            <p class="pill">Default: ${policy.broad_search_default || 'disabled'}</p>
+            <p class="pill">Local fixtures: ${policy.local_dev_sources_allowed ? 'allowed' : 'hidden'}</p>
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <strong>Controlled adapters</strong>
+          <ul>${adapterList}</ul>
+        </div>
+      `;
     }
 
     async function fetchAggregate(filters) {

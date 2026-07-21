@@ -727,3 +727,11 @@ git ls-remote --heads origin
 - Existing OEM review queue, scheduler, adapter registry, terms cache, discovery/parser, OCR, OpenAI/LLM, RAG, telemetry, behaviour, Question Studio and Recommendation Studio were preserved.
 - Live smoke after Phase 7C deploy: `/health/full` returned `ok`; `/oem/source-policy` and `/oem/adapters` returned expected unauthenticated `401 Missing token`.
 - Focused verification: `27 passed` across Phase 7D preflight, adapter, discovery, parser, source trust and evidence tests; edited Python files compile.
+
+## 32. Latest Phase 7E OEM source verification UI update
+
+- `templates/oem_dashboard.html` now includes a **Controlled source verification** card.
+- The card calls protected `/oem/source-policy` and `/oem/adapters` using the selected brand filter.
+- OEM/admin users can see production/preflight/official-only/broad-search/local-fixture policy status and the enabled controlled adapter domains.
+- Existing OEM dashboard sections were preserved: risk distribution, aggregate insight, forecast, behaviour chart, telemetry, Question Studio, Recommendation Studio, top issues, EV overview and product interest.
+- Focused verification: `28 passed` across Phase 7E UI, Phase 7D preflight, Phase 7 adapter, discovery, parser, source trust and evidence tests; edited Python files compile.
