@@ -1640,6 +1640,7 @@ def get_warranty(warranty_id: str, db=Depends(get_db), current: UserDB = Depends
         raise HTTPException(status_code=404, detail="Warranty not found")
     payload = warranty.model_dump()
     payload.update(_build_warranty_status_info(warranty))
+    payload["evidence_status"] = summary_engine.build_evidence_summary(warranty)
     return payload
 
 
@@ -1789,8 +1790,13 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db), current: UserDB =
             "invoice_no": parsed.invoice_no,
             "purchase_date": parsed.purchase_date.isoformat() if parsed.purchase_date else None,
         }
+    evidence_status = summary_engine.build_evidence_summary(warranty)
     evidence = {
         "source_artifact_ids": getattr(warranty, "source_artifact_ids", None) or [],
+        "terms": evidence_status.get("sources", []),
+        "status": evidence_status.get("status"),
+        "status_label": evidence_status.get("status_label"),
+        "note": evidence_status.get("note"),
     }
     terms_source_url = ((getattr(warranty, "alternatives", None) or {}).get("terms_source_url"))
     terms_source_type = ((getattr(warranty, "alternatives", None) or {}).get("terms_source_type"))
@@ -1811,6 +1817,7 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db), current: UserDB =
             "claim_steps": warranty.claim_steps or [],
             "layman_summary": layman,
             "evidence": evidence,
+            "evidence_status": evidence_status,
             "processing_status": latest_job.status if latest_job else None,
             "terms_source_url": terms_source_url,
             "terms_source_type": terms_source_type,
@@ -1831,6 +1838,7 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db), current: UserDB =
         "claim_steps": warranty.claim_steps or [],
         "layman_summary": layman,
         "evidence": evidence,
+        "evidence_status": evidence_status,
         "processing_status": latest_job.status if latest_job else None,
         "terms_source_url": terms_source_url,
         "terms_source_type": terms_source_type,
@@ -3120,6 +3128,7 @@ def warranty_summary(payload: SummaryRequest, db=Depends(get_db), current: UserD
         text = "\n".join(lines)
     structured = summary_engine.build_structured_summary(warranty)
     layman = summary_engine.build_layman_summary(warranty)
+    evidence_status = summary_engine.build_evidence_summary(warranty)
     terms_source_url = ((getattr(warranty, "alternatives", None) or {}).get("terms_source_url"))
     terms_source_type = ((getattr(warranty, "alternatives", None) or {}).get("terms_source_type"))
     log_action("warranty_summary", f"warranty_id={payload.warranty_id} prompt_len={len(prompt)}")
@@ -3129,6 +3138,7 @@ def warranty_summary(payload: SummaryRequest, db=Depends(get_db), current: UserD
         "summary_points": structured.get("points", []),
         "summary_tags": structured.get("tags", []),
         "layman_summary": layman,
+        "evidence_status": evidence_status,
         "terms_source_url": terms_source_url,
         "terms_source_type": terms_source_type,
     }

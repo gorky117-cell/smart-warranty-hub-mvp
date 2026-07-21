@@ -38,16 +38,84 @@ def _template_summary(warranty: CanonicalWarranty) -> str:
     terms = warranty.terms or []
     exclusions = warranty.exclusions or []
     claim_steps = warranty.claim_steps or []
+    evidence = build_evidence_summary(warranty)
     lines = [
         f"Product: {warranty.brand or 'N/A'} {warranty.model_code or 'N/A'}",
         f"Purchase date: {warranty.purchase_date or 'N/A'}",
         f"Expiry date: {warranty.expiry_date or 'N/A'}",
         f"Coverage months: {warranty.coverage_months or 'N/A'}",
+        f"Evidence: {evidence['status_label']} - {evidence['note']}",
         "Coverage / Terms: " + ("; ".join(terms) if terms else "Not available yet."),
         "Exclusions: " + ("; ".join(exclusions) if exclusions else "Not available yet."),
         "Claim steps: " + ("; ".join(claim_steps) if claim_steps else "Not available yet."),
     ]
     return "\n".join(lines)
+
+
+def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
+    """
+    Additive trust layer for warranty terms.
+    It labels whether the terms are confirmed, cached, estimated, or not confirmed
+    without changing the underlying warranty/scoring logic.
+    """
+    alt = getattr(warranty, "alternatives", None) or {}
+    source_type = (alt.get("terms_source_type") or "unknown").strip() or "unknown"
+    source_url = alt.get("terms_source_url")
+    refreshed_at = alt.get("terms_last_refreshed_at")
+
+    if source_type == "scraped" and source_url:
+        status = "confirmed"
+        label = "Confirmed from source"
+        note = "Warranty terms were extracted from an external source URL. Verify the source before claim submission."
+        confidence = 0.85
+    elif source_type == "internal_warranty_db":
+        status = "confirmed_internal"
+        label = "Confirmed from saved warranty record"
+        note = "Warranty terms came from an existing saved warranty record."
+        confidence = 0.8
+    elif source_type == "internal_terms_cache":
+        status = "cached"
+        label = "Cached source"
+        note = "Warranty terms came from the local terms cache. Refresh from OEM source if claim certainty is required."
+        confidence = 0.7
+    elif source_type == "default_rules":
+        status = "estimated"
+        label = "Estimated, not confirmed"
+        note = "Warranty terms are estimated from category/default rules, not confirmed by an OEM source."
+        confidence = 0.45
+    elif source_type == "invoice_only":
+        status = "not_confirmed"
+        label = "Not confirmed"
+        note = "Invoice data was found, but official warranty terms have not been confirmed."
+        confidence = 0.35
+    else:
+        status = "not_confirmed"
+        label = "Not confirmed"
+        note = "Source evidence is missing. Do not treat these warranty terms as confirmed."
+        confidence = 0.3
+
+    sources = []
+    if source_url:
+        sources.append(
+            {
+                "title": "Warranty terms source",
+                "url": source_url,
+                "source_type": source_type,
+                "fetched_at": refreshed_at,
+                "confidence": confidence,
+            }
+        )
+    return {
+        "status": status,
+        "status_label": label,
+        "source_type": source_type,
+        "source_url": source_url,
+        "last_refreshed_at": refreshed_at,
+        "confidence": confidence,
+        "requires_oem_verification": status in {"estimated", "not_confirmed", "cached"},
+        "note": note,
+        "sources": sources,
+    }
 
 
 def _summarize_with_ollama(prompt: str) -> Tuple[Optional[str], Optional[str]]:
@@ -154,9 +222,13 @@ def summarize_warranty(warranty: CanonicalWarranty) -> Tuple[str, str]:
     if _LLM_PROVIDER == "none":
         return _template_summary(warranty), "template"
 
+    evidence = build_evidence_summary(warranty)
     prompt = (
         "Summarize the warranty in under 120 words; list coverage, exclusions, expiry, and claim steps. "
+        "Do not present estimated or invoice-only terms as confirmed. "
+        "If evidence_status is not confirmed, explicitly say the terms are not confirmed and should be verified with OEM. "
         "Return plain text.\n\n"
+        f"Evidence status: {evidence['status_label']}\nEvidence note: {evidence['note']}\n"
         f"Brand: {warranty.brand}\nModel: {warranty.model_code}\nExpiry: {warranty.expiry_date}\n"
         f"Coverage months: {warranty.coverage_months}\nTerms: {warranty.terms}\nExclusions: {warranty.exclusions}\n"
         f"Claim steps: {warranty.claim_steps}\n"
@@ -223,6 +295,7 @@ def build_layman_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
     terms = [str(t).strip() for t in (warranty.terms or []) if str(t).strip()]
     exclusions = [str(e).strip() for e in (warranty.exclusions or []) if str(e).strip()]
     claim_steps = [str(c).strip() for c in (warranty.claim_steps or []) if str(c).strip()]
+    evidence = build_evidence_summary(warranty)
 
     product = " ".join([x for x in [warranty.brand, warranty.model_code] if x]) or (warranty.product_name or "product")
     coverage = f"{warranty.coverage_months} months" if warranty.coverage_months else "not clearly stated"
@@ -259,10 +332,13 @@ def build_layman_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
     if not terms and not exclusions and not claim_steps:
         red_flags.append("Only limited warranty text was found; confidence may be low.")
 
-    overview = (
-        f"For {product}, expected coverage is {coverage}. "
-        "Use this as guidance and verify final terms on official OEM sources."
-    )
+    if evidence["status"] in {"confirmed", "confirmed_internal"}:
+        overview = f"For {product}, expected coverage is {coverage}. {evidence['note']}"
+    else:
+        overview = (
+            f"For {product}, expected coverage is {coverage}, but the warranty terms are not confirmed. "
+            f"{evidence['note']}"
+        )
 
     return {
         "overview": overview,
@@ -271,6 +347,7 @@ def build_layman_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
         "fine_print": fine_print,
         "claim_friction": claim_friction,
         "red_flags": red_flags,
+        "evidence_status": evidence,
     }
 
 

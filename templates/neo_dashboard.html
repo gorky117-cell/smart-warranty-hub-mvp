@@ -2280,9 +2280,18 @@
         const summarySource = (sum && sum.source) ? String(sum.source) : 'unknown';
         const termsSourceType = (sum && sum.terms_source_type) ? String(sum.terms_source_type) : 'unknown';
         const termsSourceUrl = (sum && sum.terms_source_url) ? String(sum.terms_source_url) : '';
+        const evidenceStatus = (sum && (sum.evidence_status || (sum.layman_summary && sum.layman_summary.evidence_status))) || {};
+        const evidenceLabel = evidenceStatus.status_label ? String(evidenceStatus.status_label) : '';
+        const evidenceNote = evidenceStatus.note ? String(evidenceStatus.note) : '';
         const labels = [];
         labels.push(`Summary: ${summarySource}`);
         labels.push(`Terms: ${termsSourceType}`);
+        if (evidenceLabel) {
+          labels.push(`Evidence: ${evidenceLabel}`);
+        }
+        if (evidenceNote) {
+          labels.push(evidenceNote);
+        }
         if (termsSourceUrl && (termsSourceUrl.startsWith('http://') || termsSourceUrl.startsWith('https://'))) {
           labels.push(`Source URL: ${termsSourceUrl}`);
         }

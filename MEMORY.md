@@ -593,3 +593,12 @@ git ls-remote --heads origin
 - `docs/oem_dashboard_and_integration_manual.md` — OEM/IoT/non-IoT integration manual.
 - `docs/deployment_config_reference.md` — Railway/env/operations reference.
 - `docs/DOCS_INDEX.md` — documentation navigation.
+
+---
+
+## 18. Latest Phase 3A update
+
+- Added the additive warranty evidence trust layer in `app/services/summary_engine.py`.
+- Existing summary responses now expose `evidence_status` with labels for `confirmed`, `confirmed_internal`, `cached`, `estimated`, and `not_confirmed`.
+- Customer summaries now explicitly say terms are not confirmed when source evidence is invoice-only, missing, or default-rule based.
+- Neo dashboard summary metadata displays the evidence label/note without changing routes or existing fields.
