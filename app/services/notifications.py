@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime, timedelta, date
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -72,6 +73,32 @@ def _to_dict(n: NotificationDB) -> dict:
         "is_read": bool(n.is_read),
         "created_at": n.created_at,
     }
+
+
+def _product_label(warranty: Optional[WarrantyDB], warranty_id: Optional[str]) -> str:
+    if not warranty:
+        return warranty_id or "Product"
+    product_name = (getattr(warranty, "product_name", None) or "").strip()
+    brand = (getattr(warranty, "brand", None) or "").strip()
+    model = (getattr(warranty, "model_code", None) or "").strip()
+    base = product_name or " ".join(part for part in [brand, model] if part).strip() or "Product"
+    return f"{base} ({warranty_id})" if warranty_id else base
+
+
+def _upgrade_legacy_message(message: str, warranty_id: Optional[str], label: str) -> str:
+    if not message or not warranty_id or not label or label == warranty_id:
+        return message
+    escaped_id = re.escape(warranty_id)
+    replacements = [
+        (rf"\bwarranty\s+{escaped_id}\b", label),
+        (rf"\bWarranty\s+{escaped_id}\b", label),
+        (rf"\bproduct\s+{escaped_id}\b", label),
+        (rf"\bProduct\s+{escaped_id}\b", label),
+    ]
+    updated = message
+    for pattern, repl in replacements:
+        updated = re.sub(pattern, repl, updated)
+    return updated
 
 
 def _as_date(value) -> Optional[date]:
@@ -348,7 +375,27 @@ def list_notifications(user_id: str, only_unread: bool = False, db: Optional[Ses
         if only_unread:
             q = q.filter(NotificationDB.is_read == 0)
         q = q.order_by(NotificationDB.created_at.desc())
-        return [_to_dict(n) for n in q.all()]
+        notifications = q.all()
+        warranty_ids = {n.warranty_id for n in notifications if n.warranty_id}
+        warranties = {}
+        if warranty_ids:
+            rows = db.query(WarrantyDB).filter(WarrantyDB.id.in_(warranty_ids)).all()
+            warranties = {w.id: w for w in rows}
+        changed = False
+        items = []
+        for n in notifications:
+            label = _product_label(warranties.get(n.warranty_id), n.warranty_id)
+            upgraded_message = _upgrade_legacy_message(n.message, n.warranty_id, label)
+            if upgraded_message != n.message:
+                n.message = upgraded_message
+                db.add(n)
+                changed = True
+            item = _to_dict(n)
+            item["product_label"] = label
+            items.append(item)
+        if changed:
+            db.commit()
+        return items
     finally:
         if close_db:
             db.close()

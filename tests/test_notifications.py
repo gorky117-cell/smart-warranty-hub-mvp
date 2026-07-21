@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from app.db import SessionLocal
 from app.db_models import NotificationDB, UserDB, WarrantyDB
 from app.deps import hash_password
-from app.services.notifications import create_expiry_notifications, refresh_expiry_notifications
+from app.services.notifications import create_expiry_notifications, list_notifications, refresh_expiry_notifications
 
 
 def _ensure_user(db, username: str) -> None:
@@ -104,3 +104,35 @@ def test_refresh_expiry_notifications_uses_derived_expiry():
             .first()
         )
         assert row is not None
+
+
+def test_list_notifications_upgrades_legacy_warranty_id_text():
+    with SessionLocal() as db:
+        _ensure_user(db, "notif_user_legacy")
+        w = _upsert_warranty(db, "w_notif_legacy", expiry_days=60)
+        w.product_name = "Microwave Oven"
+        w.brand = "Acmeco"
+        w.model_code = "ZX-100"
+        db.query(NotificationDB).filter_by(id="ntf_link_notif_user_legacy").delete()
+        db.add(
+            NotificationDB(
+                id="ntf_link_notif_user_legacy",
+                user_id="notif_user_legacy",
+                warranty_id=w.id,
+                audience="user",
+                type="risk_high",
+                title="Risk High detected",
+                message="Predictive model flagged high risk for warranty w_notif_legacy.",
+                severity="critical",
+                is_read=0,
+                created_at=datetime.utcnow(),
+            )
+        )
+        db.commit()
+
+        items = list_notifications("notif_user_legacy", only_unread=True, db=db)
+
+        assert items[0]["message"] == "Predictive model flagged high risk for Microwave Oven (w_notif_legacy)."
+        assert items[0]["product_label"] == "Microwave Oven (w_notif_legacy)"
+        row = db.query(NotificationDB).filter_by(id="ntf_link_notif_user_legacy").first()
+        assert row.message == items[0]["message"]
