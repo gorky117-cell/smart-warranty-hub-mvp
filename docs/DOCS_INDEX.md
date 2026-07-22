@@ -16,11 +16,8 @@ This index points to the complete section-wise documentation set for product, KP
 10. KPI Master Scorecard (all phases + metrics): `docs/kpi_master_scorecard.md`
 11. OEM Dashboard & Integration Manual (IoT + non-IoT): `docs/oem_dashboard_and_integration_manual.md`
 12. Deployment & Configuration Reference (Railway/env/operations): `docs/deployment_config_reference.md`
-13. Hackathon Demo Guide (judge flow, talk track and claims boundary): `docs/HACKATHON_DEMO_GUIDE.md`
-14. Downloadable Hackathon Demo Guide (Word): `docs/Smart_Warranty_Hub_Hackathon_Demo_Guide.docx`
-15. Browser Hackathon Demo Page (open/downloadable HTML): `docs/HACKATHON_DEMO.html`
-16. Investor Demo KPI Baseline (synthetic KPI results and caveats): `docs/INVESTOR_DEMO_KPI_BASELINE.md`
-17. Phase 10A Partner KPI Runbook (TPA, retailer and supplier synthetic KPI coverage): `docs/partner_kpi_phase10a_runbook.md`
+13. Investor Demo KPI Baseline (synthetic KPI results and caveats): `docs/INVESTOR_DEMO_KPI_BASELINE.md`
+14. Phase 10A Partner KPI Runbook (TPA, retailer and supplier synthetic KPI coverage): `docs/partner_kpi_phase10a_runbook.md`
 
 ## Existing Phase Runbooks (already in repo)
 

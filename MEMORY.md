@@ -848,14 +848,14 @@ git ls-remote --heads origin
 - Do not present the synthetic 50-case KPI evaluations as live customer outcomes. Describe them as controlled test evidence.
 - Remaining non-blocking hackathon risks: GitHub's default branch is still the older `main` while active work is on `master` (112 commits ahead); no GitHub Actions or branch protection; rate limiting, AI quota and direct-consent persistence are local/process-bound for the pilot; the local environment reports dependency conflicts and three scikit-learn model-version warnings.
 - Recommended immediate presentation action: set GitHub's default branch to `master` before judges review the repository. Production hardening is intentionally out of scope for the hackathon.
-- Judge-facing presentation script: `docs/HACKATHON_DEMO_GUIDE.md`, with a downloadable Word handout at `docs/Smart_Warranty_Hub_Hackathon_Demo_Guide.docx`.
+- Hackathon-specific presentation artifacts were later removed from the repo and kept only as local backups because the project direction changed to investor/MVP readiness.
 
-## 45. Hackathon demo artifact - 2026-07-22
+## 45. Hackathon artifact cleanup - 2026-07-22
 
-- Added a standalone browser demo page at `docs/HACKATHON_DEMO.html`.
-- The demo page is a real repo artifact that can be opened locally or downloaded from GitHub; it does not require Railway or a running server.
-- It includes the two-minute judge flow, safe claims wording, proof points, backup terminal demo commands, health-check commands, Q&A answers and presenter checklist.
-- Updated `docs/HACKATHON_DEMO_GUIDE.md` and `docs/DOCS_INDEX.md` to point to the HTML demo page.
+- The earlier hackathon-specific demo files were removed from the repo after the project direction changed away from the OpenAI hackathon.
+- Local backup copies are preserved outside the repo at `D:\smart-warranty-hub-mvp-main\local_download_backups\hackathon_docs`.
+- Removed repo artifacts: `docs/HACKATHON_DEMO.html`, `docs/HACKATHON_DEMO_GUIDE.md` and `docs/Smart_Warranty_Hub_Hackathon_Demo_Guide.docx`.
+- Investor/MVP readiness docs remain in the repo, especially `docs/INVESTOR_DEMO_KPI_BASELINE.md` and `docs/partner_kpi_phase10a_runbook.md`.
 
 ## 46. Investor/demo synthetic KPI retest - 2026-07-22
 
