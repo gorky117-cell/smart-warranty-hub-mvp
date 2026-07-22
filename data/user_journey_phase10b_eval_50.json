@@ -1,0 +1,92 @@
+{
+  "summary": {
+    "dataset_rows": 50,
+    "personas_covered": 7,
+    "persona_counts": {
+      "new_customer": 8,
+      "missing_fields": 7,
+      "near_expiry": 7,
+      "expired_warranty": 7,
+      "claim_needed": 7,
+      "consent_denied": 7,
+      "mobile_first": 7
+    },
+    "journey_metrics": {
+      "upload_flow_success_pct": 100.0,
+      "summary_flow_success_pct": 100.0,
+      "predictive_flow_success_pct": 100.0,
+      "cross_user_block_coverage_pct": 100.0,
+      "agent_draft_only_coverage_pct": 100.0,
+      "oem_direct_consent_block_coverage_pct": 100.0,
+      "notification_expected_case_coverage_pct": 100.0,
+      "mobile_first_case_coverage_pct": 100.0
+    },
+    "instrumented_user_journey_checks": 8,
+    "passing_user_journey_checks": 8,
+    "user_journey_pass_rate_pct": 100.0,
+    "latency_ms": 1.01,
+    "synthetic_only": true
+  },
+  "checks": [
+    {
+      "area": "Upload and summary",
+      "metric": "Upload flow success",
+      "target": "100%",
+      "value": 100.0,
+      "status": "pass"
+    },
+    {
+      "area": "Upload and summary",
+      "metric": "Warranty summary flow success",
+      "target": "100%",
+      "value": 100.0,
+      "status": "pass"
+    },
+    {
+      "area": "Risk and care",
+      "metric": "Predictive flow success",
+      "target": "100%",
+      "value": 100.0,
+      "status": "pass"
+    },
+    {
+      "area": "Security",
+      "metric": "Cross-user access blocked",
+      "target": "100%",
+      "value": 100.0,
+      "status": "pass"
+    },
+    {
+      "area": "Consent",
+      "metric": "Direct OEM sharing blocked without consent",
+      "target": "100%",
+      "value": 100.0,
+      "status": "pass"
+    },
+    {
+      "area": "Agent safety",
+      "metric": "High-risk/claim-needed agent output remains draft-only",
+      "target": "100%",
+      "value": 100.0,
+      "status": "pass"
+    },
+    {
+      "area": "Notifications",
+      "metric": "Near-expiry/expired/high-risk cases expect notification coverage",
+      "target": ">= 90%",
+      "value": 100.0,
+      "status": "pass"
+    },
+    {
+      "area": "Mobile",
+      "metric": "Mobile-first journey included",
+      "target": "100%",
+      "value": 100.0,
+      "status": "pass"
+    }
+  ],
+  "artifacts": {
+    "cases_file": "test_data/user_journey_phase10b_cases_50.json"
+  },
+  "claim_boundary": "Controlled synthetic user-journey evaluation only; not live user behaviour or production funnel evidence."
+}

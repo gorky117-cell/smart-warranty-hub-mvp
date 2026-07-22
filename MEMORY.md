@@ -885,3 +885,13 @@ git ls-remote --heads origin
 - Rewrote `README.md` for investor/MVP first impression.
 - README now surfaces the investor KPI baseline, docs index, project reference, golden path, Phase 10A partner KPI runbook, current evidence snapshot, validation commands and pilot limits.
 - The README explicitly states that synthetic KPI numbers are controlled evaluation results, not live production outcomes.
+
+## 49. Phase 10B user journey synthetic coverage - 2026-07-22
+
+- Added `scripts/eval_user_journey_phase10b.py` for controlled synthetic user-journey coverage.
+- Added `docs/user_journey_phase10b_runbook.md`.
+- Generated `data/user_journey_phase10b_eval_50.json` and `test_data/user_journey_phase10b_cases_50.json`.
+- Phase 10B covers seven personas: new customer, missing fields, near expiry, expired warranty, claim needed, consent denied and mobile-first.
+- Current synthetic 50-case result: 8/8 user journey checks passing.
+- Covered checks: upload success, warranty summary success, predictive flow success, notification expectation coverage, cross-user access blocking, direct OEM consent blocking, draft-only agent boundary and mobile-first journey inclusion.
+- This preserves the claim boundary: user journey coverage is synthetic test evidence only until real product analytics and user cohorts exist.

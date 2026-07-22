@@ -18,6 +18,7 @@ This index points to the complete section-wise documentation set for product, KP
 12. Deployment & Configuration Reference (Railway/env/operations): `docs/deployment_config_reference.md`
 13. Investor Demo KPI Baseline (synthetic KPI results and caveats): `docs/INVESTOR_DEMO_KPI_BASELINE.md`
 14. Phase 10A Partner KPI Runbook (TPA, retailer and supplier synthetic KPI coverage): `docs/partner_kpi_phase10a_runbook.md`
+15. Phase 10B User Journey Runbook (synthetic user journey coverage): `docs/user_journey_phase10b_runbook.md`
 
 ## Existing Phase Runbooks (already in repo)
 
@@ -32,7 +33,8 @@ This index points to the complete section-wise documentation set for product, KP
 9. Phase 9 watchdog: `docs/kpi_watchdog_phase9_runbook.md`
 10. Phase 10 remediation: `docs/kpi_phase10_runbook.md`
 11. Phase 10A partner KPI coverage: `docs/partner_kpi_phase10a_runbook.md`
-12. Phase 12 execution lifecycle: `docs/kpi_phase12_runbook.md`
+12. Phase 10B user journey coverage: `docs/user_journey_phase10b_runbook.md`
+13. Phase 12 execution lifecycle: `docs/kpi_phase12_runbook.md`
 
 ## Suggested Reading Order
 

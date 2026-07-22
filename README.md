@@ -18,6 +18,7 @@ The current repo is positioned for MVP/investor review, not full production scal
 - Phase 1C OCR PDF synthetic set: 50/50 processed, 100.0% OCR success
 - Phase 8 KPI automation: 10/10 instrumented KPIs passing
 - Phase 10A partner KPI synthetic coverage: 4/4 partner KPIs passing
+- Phase 10B user journey synthetic coverage: 8/8 journey checks passing
 - Partner KPI synthetic values:
   - TPA claim TAT improvement: 39.29%
   - Retailer escalation reduction: 26.04%

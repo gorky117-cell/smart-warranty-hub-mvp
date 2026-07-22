@@ -29,6 +29,7 @@ This file records the current synthetic KPI baseline for investor/demo review. T
 | Phase 9 KPI watchdog | 50 | 100.0% decision accuracy |
 | Phase 10 remediation loop | 50 | 100.0% decision accuracy; history persistence verified |
 | Phase 10A partner KPI coverage | 50 | 4/4 synthetic partner KPIs passing |
+| Phase 10B user journey coverage | 50 | 8/8 synthetic user journey checks passing |
 | Phase 12 execution tracking | 50 | 100.0% execution success; lifecycle integrity verified |
 
 ## KPI Automation Details
@@ -53,11 +54,17 @@ Partner KPIs now covered by Phase 10A synthetic evaluation:
 - Supplier stockout rate: 2.6% against target `< 5%`
 - Supplier excess inventory reduction: 20.4% against target `>= 15%`
 
+User journey coverage now covered by Phase 10B synthetic evaluation:
+
+- Personas covered: new customer, missing fields, near expiry, expired warranty, claim needed, consent denied and mobile-first.
+- Checks passing: 8/8.
+- Covered areas: upload, summary, predictive risk, notification expectations, cross-user blocking, direct OEM consent blocking, draft-only agent behavior and mobile-first journey inclusion.
+
 ## Investor Demo Wording
 
 Use this wording:
 
-> Smart Warranty Hub has controlled 50-case synthetic evaluations across ingestion/OCR, warranty terms enrichment, predictive risk, nudges, service ticketing, OEM dispatch, KPI watchdog, remediation, execution tracking and partner KPI coverage for TPA, retailer and supplier workflows. These tests validate the product mechanics and measurement design. They are not live customer or partner impact claims yet.
+> Smart Warranty Hub has controlled 50-case synthetic evaluations across ingestion/OCR, warranty terms enrichment, predictive risk, nudges, service ticketing, OEM dispatch, KPI watchdog, remediation, execution tracking, partner KPI coverage and user journey coverage. These tests validate the product mechanics and measurement design. They are not live customer or partner impact claims yet.
 
 Avoid claiming production-grade reduction in warranty cost, claim turnaround time, stockouts, escalations or field failures until those metrics are measured from live pilots.
 
