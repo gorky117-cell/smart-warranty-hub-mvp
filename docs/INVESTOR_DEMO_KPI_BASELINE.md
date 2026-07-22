@@ -28,6 +28,7 @@ This file records the current synthetic KPI baseline for investor/demo review. T
 | Phase 8 KPI automation | 50 | 10/10 instrumented KPIs passing; KPI pass rate 100.0% |
 | Phase 9 KPI watchdog | 50 | 100.0% decision accuracy |
 | Phase 10 remediation loop | 50 | 100.0% decision accuracy; history persistence verified |
+| Phase 10A partner KPI coverage | 50 | 4/4 synthetic partner KPIs passing |
 | Phase 12 execution tracking | 50 | 100.0% execution success; lifecycle integrity verified |
 
 ## KPI Automation Details
@@ -45,17 +46,18 @@ Instrumented KPIs currently passing:
 - Drift PSI: 0.1169 against target `<= 0.20`
 - A/B variant balance gap: 0 against target `<= 1`
 
-Not yet instrumented:
+Partner KPIs now covered by Phase 10A synthetic evaluation:
 
-- TPA claim turnaround time
-- Retailer escalations per 1,000 units
-- Supplier stockout rate
+- TPA claim turnaround time improvement: 39.29% against target `>= 30%`
+- Retailer escalations per 1,000 units reduction: 26.04% against target `>= 20%`
+- Supplier stockout rate: 2.6% against target `< 5%`
+- Supplier excess inventory reduction: 20.4% against target `>= 15%`
 
 ## Investor Demo Wording
 
 Use this wording:
 
-> Smart Warranty Hub has controlled 50-case synthetic evaluations across ingestion/OCR, warranty terms enrichment, predictive risk, nudges, service ticketing, OEM dispatch, KPI watchdog, remediation and execution tracking. These tests validate the product mechanics and measurement design. They are not live customer impact claims yet.
+> Smart Warranty Hub has controlled 50-case synthetic evaluations across ingestion/OCR, warranty terms enrichment, predictive risk, nudges, service ticketing, OEM dispatch, KPI watchdog, remediation, execution tracking and partner KPI coverage for TPA, retailer and supplier workflows. These tests validate the product mechanics and measurement design. They are not live customer or partner impact claims yet.
 
 Avoid claiming production-grade reduction in warranty cost, claim turnaround time, stockouts, escalations or field failures until those metrics are measured from live pilots.
 
@@ -63,6 +65,6 @@ Avoid claiming production-grade reduction in warranty cost, claim turnaround tim
 
 1. Improve OCR serial-number extraction from 92.5% F1 toward 100%.
 2. Improve preflight scraping lookup/parse success from 88.0% by expanding controlled fixtures/parser coverage.
-3. Add real instrumentation for TPA claim TAT, retailer escalations and supplier stockout metrics.
+3. Convert Phase 10A synthetic partner KPI coverage into pilot-data instrumentation once partner feeds exist.
 4. Keep GitHub reviewers on `master`, or change the repository default branch from `main` to `master`.
 5. Keep production claims conservative until persistence and shared infrastructure are upgraded beyond local/process-level pilot stores.

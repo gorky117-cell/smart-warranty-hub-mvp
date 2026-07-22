@@ -20,6 +20,7 @@ This index points to the complete section-wise documentation set for product, KP
 14. Downloadable Hackathon Demo Guide (Word): `docs/Smart_Warranty_Hub_Hackathon_Demo_Guide.docx`
 15. Browser Hackathon Demo Page (open/downloadable HTML): `docs/HACKATHON_DEMO.html`
 16. Investor Demo KPI Baseline (synthetic KPI results and caveats): `docs/INVESTOR_DEMO_KPI_BASELINE.md`
+17. Phase 10A Partner KPI Runbook (TPA, retailer and supplier synthetic KPI coverage): `docs/partner_kpi_phase10a_runbook.md`
 
 ## Existing Phase Runbooks (already in repo)
 
@@ -33,7 +34,8 @@ This index points to the complete section-wise documentation set for product, KP
 8. Phase 8 scorecard: `docs/kpi_phase8_runbook.md`
 9. Phase 9 watchdog: `docs/kpi_watchdog_phase9_runbook.md`
 10. Phase 10 remediation: `docs/kpi_phase10_runbook.md`
-11. Phase 12 execution lifecycle: `docs/kpi_phase12_runbook.md`
+11. Phase 10A partner KPI coverage: `docs/partner_kpi_phase10a_runbook.md`
+12. Phase 12 execution lifecycle: `docs/kpi_phase12_runbook.md`
 
 ## Suggested Reading Order
 

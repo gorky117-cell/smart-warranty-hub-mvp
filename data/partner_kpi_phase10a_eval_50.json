@@ -1,0 +1,67 @@
+{
+  "summary": {
+    "dataset_rows": 50,
+    "tpa_cases": 16,
+    "retailer_cases": 16,
+    "supplier_cases": 18,
+    "instrumented_partner_kpis": 4,
+    "passing_partner_kpis": 4,
+    "partner_kpi_pass_rate_pct": 100.0,
+    "tpa_claim_tat_median_baseline_days": 14.0,
+    "tpa_claim_tat_median_swh_days": 8.5,
+    "tpa_claim_tat_improvement_pct": 39.29,
+    "retailer_escalations_per_1000_baseline": 24.65,
+    "retailer_escalations_per_1000_swh": 18.23,
+    "retailer_escalation_reduction_pct": 26.04,
+    "supplier_stockout_rate_pct": 2.6,
+    "supplier_excess_inventory_reduction_pct": 20.4,
+    "latency_ms": 0.5,
+    "synthetic_only": true
+  },
+  "kpis": [
+    {
+      "stakeholder": "TPA",
+      "kpi": "Claim Turnaround Time (TAT)",
+      "formula": "median baseline claim days vs median SWH-assisted claim days",
+      "target": ">= 30% improvement",
+      "value": 39.29,
+      "status": "pass",
+      "instrumented": true,
+      "synthetic_only": true
+    },
+    {
+      "stakeholder": "Retailer",
+      "kpi": "Escalations per 1,000 Units",
+      "formula": "baseline escalations per 1,000 units vs SWH-assisted escalations per 1,000 units",
+      "target": ">= 20% reduction",
+      "value": 26.04,
+      "status": "pass",
+      "instrumented": true,
+      "synthetic_only": true
+    },
+    {
+      "stakeholder": "Supplier",
+      "kpi": "Stockout Rate",
+      "formula": "stocked_out_skus / critical_skus",
+      "target": "< 5%",
+      "value": 2.6,
+      "status": "pass",
+      "instrumented": true,
+      "synthetic_only": true
+    },
+    {
+      "stakeholder": "Supplier",
+      "kpi": "Excess Inventory",
+      "formula": "baseline excess units vs SWH-assisted excess units",
+      "target": ">= 15% reduction",
+      "value": 20.4,
+      "status": "pass",
+      "instrumented": true,
+      "synthetic_only": true
+    }
+  ],
+  "artifacts": {
+    "cases_file": "test_data/partner_kpi_phase10a_cases_50.json"
+  },
+  "claim_boundary": "Controlled synthetic partner KPI evaluation only; not live customer, retailer, supplier or TPA production evidence."
+}

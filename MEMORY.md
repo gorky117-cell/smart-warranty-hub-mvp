@@ -865,5 +865,15 @@ git ls-remote --heads origin
 - Refreshed the synthetic KPI evaluators for ingestion/OCR PDF, preflight scraping, terms NLP, predictive risk, NIP advisories, service ticketing, OEM dispatch, KPI automation, watchdog, remediation and execution tracking.
 - Current synthetic baseline is documented at `docs/INVESTOR_DEMO_KPI_BASELINE.md`.
 - Key strong points: 100.0% OCR success on 50 PDF samples, 100.0% pass on the 10 instrumented Phase 8 KPIs, 100.0% decision accuracy for watchdog/remediation, and 100.0% execution success for Phase 12 lifecycle tracking.
-- Current refinement targets: OCR serial-number F1 is 0.925, preflight lookup/parse success is 88.0%, and TPA claim TAT / retailer escalations / supplier stockout KPIs are not yet instrumented.
+- Current refinement targets at that point: OCR serial-number F1 is 0.925, preflight lookup/parse success is 88.0%, and TPA claim TAT / retailer escalations / supplier stockout KPIs were not yet instrumented before Phase 10A.
 - Investor-safe claim boundary remains: these are controlled synthetic test results, not live production customer outcomes.
+
+## 47. Phase 10A partner KPI synthetic coverage - 2026-07-22
+
+- Added `scripts/eval_partner_kpi_phase10a.py` for controlled synthetic partner KPI coverage.
+- Added `docs/partner_kpi_phase10a_runbook.md`.
+- Generated `data/partner_kpi_phase10a_eval_50.json` and `test_data/partner_kpi_phase10a_cases_50.json`.
+- Phase 10A covers TPA claim turnaround time, retailer escalations per 1,000 units, supplier stockout rate and supplier excess inventory.
+- Current synthetic 50-case result: 4/4 partner KPIs passing.
+- Current synthetic values: TPA claim TAT improvement 39.29%, retailer escalation reduction 26.04%, supplier stockout rate 2.6%, supplier excess inventory reduction 20.4%.
+- This preserves the claim boundary: partner KPI coverage is synthetic test evidence only until real pilot partner feeds exist.
