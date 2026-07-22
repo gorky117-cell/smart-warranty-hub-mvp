@@ -877,3 +877,11 @@ git ls-remote --heads origin
 - Current synthetic 50-case result: 4/4 partner KPIs passing.
 - Current synthetic values: TPA claim TAT improvement 39.29%, retailer escalation reduction 26.04%, supplier stockout rate 2.6%, supplier excess inventory reduction 20.4%.
 - This preserves the claim boundary: partner KPI coverage is synthetic test evidence only until real pilot partner feeds exist.
+
+## 48. GitHub investor-readiness cleanup - 2026-07-22
+
+- Changed the GitHub repository default branch from `main` to `master` using `gh repo edit`.
+- Verified GitHub now reports `defaultBranchRef.name` as `master`.
+- Rewrote `README.md` for investor/MVP first impression.
+- README now surfaces the investor KPI baseline, docs index, project reference, golden path, Phase 10A partner KPI runbook, current evidence snapshot, validation commands and pilot limits.
+- The README explicitly states that synthetic KPI numbers are controlled evaluation results, not live production outcomes.
