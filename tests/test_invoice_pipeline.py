@@ -11,6 +11,8 @@ from app.services import invoice_pipeline, summary_engine
 from app.services.openai_intelligence import merge_invoice_enrichment
 from app.services.ingestion import extract_product_fields, ingest_artifact
 from app.services.canonical import canonicalize_artifact
+from app.services.warranty_discovery import discover_sources
+from app.services.terms_lookup import lookup_terms
 from app.models import ArtifactType, CanonicalWarranty
 
 
@@ -218,3 +220,32 @@ def test_canonical_invoice_does_not_invent_unconfirmed_warranty_terms():
     assert warranty.terms == []
     assert warranty.exclusions == []
     assert any("Verify official OEM warranty terms" in step for step in warranty.claim_steps)
+
+
+def test_epson_l3250_discovers_official_source_and_terms():
+    sources = discover_sources(
+        brand="Epson",
+        model_code="L3250",
+        product_name="Epson L 3250 Printer",
+        region="IN",
+        mode="auto+manual",
+        allow_retail=True,
+    )
+
+    assert sources
+    assert sources[0].official is True
+    assert "epson.co.in" in sources[0].url
+
+    with SessionLocal() as db:
+        result = lookup_terms(
+            db,
+            brand="Epson",
+            category="electronics",
+            region="IN",
+            model_code="L3250",
+            product_name="Epson L 3250 Printer",
+            force_refresh=True,
+        )
+
+    assert result.duration_months == 12
+    assert result.source_url and "epson.co.in" in result.source_url

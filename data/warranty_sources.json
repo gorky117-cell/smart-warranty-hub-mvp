@@ -26,5 +26,19 @@
     "official": false,
     "synthetic": true,
     "notes": "Synthetic dev/test source only. Not an official OEM warranty document."
+  },
+  {
+    "id": "epson_l3250_in_official_product_warranty",
+    "title": "Epson EcoTank L3250 India official product warranty",
+    "brand": "Epson",
+    "model_code": "L3250",
+    "product_name": "Epson L 3250 Printer",
+    "product_type": "electronics",
+    "region": "IN",
+    "source_type": "oem_product",
+    "url": "https://www.epson.co.in/For-Home/Printers/EcoTank-Printers/Epson-EcoTank-L3250-A4-Wi-Fi-All-in-One-Ink-Tank-Printer/p/C11CJ67508",
+    "official": true,
+    "synthetic": false,
+    "notes": "Official Epson India product page states warranty coverage for this printer model."
   }
 ]

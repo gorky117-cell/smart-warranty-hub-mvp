@@ -789,6 +789,7 @@ git ls-remote --heads origin
 - Added generic known-OEM and product-term scoring for messy OCR invoices; the regression case is an image-only printer invoice where OCR reads `Epson L 3250 Printer`.
 - Fixed category inference so substring matches like `delivery` no longer trigger EV classification.
 - New invoice-only warranties no longer get invented generic coverage/exclusion terms; they keep claim-prep steps and require official OEM terms verification.
+- Added Epson to the approved OEM domain/source library with the official India L3250 product warranty page, so controlled terms lookup can initialize from product evidence before relying on broad web search.
 - Existing OCR, OpenAI/LLM enrichment, RAG, controlled OEM source policy/search, telemetry, behaviour, predictive care, recommendations, diagnostics and agent features were preserved.
 
 ## 38. Latest Phase 9B rate-limit safety update
