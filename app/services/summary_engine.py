@@ -70,7 +70,12 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
         source_type=source_type,
     )
 
-    if source_type == "scraped" and source_url:
+    if source_type == "approved_oem_source" and source_url:
+        status = "confirmed"
+        label = source_trust["label"]
+        note = source_trust["note"]
+        confidence = source_trust["confidence"]
+    elif source_type == "scraped" and source_url:
         if source_trust.get("verified") or source_trust.get("official"):
             status = "confirmed"
         else:

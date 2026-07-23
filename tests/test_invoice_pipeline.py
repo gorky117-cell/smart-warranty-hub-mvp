@@ -6,7 +6,7 @@ from fpdf import FPDF
 
 from app.main import app
 from app.db import SessionLocal
-from app.db_models import PipelineJobDB, WarrantySummaryDB, ParsedFieldDB
+from app.db_models import PipelineJobDB, WarrantyDB, WarrantySummaryDB, ParsedFieldDB
 from app.services import invoice_pipeline, summary_engine
 from app.services.openai_intelligence import merge_invoice_enrichment
 from app.services.ingestion import extract_product_fields, ingest_artifact
@@ -249,3 +249,41 @@ def test_epson_l3250_discovers_official_source_and_terms():
 
     assert result.duration_months == 12
     assert result.source_url and "epson.co.in" in result.source_url
+
+
+def test_pipeline_persists_epson_terms_source_after_lookup():
+    artifact = ingest_artifact(
+        ArtifactType.invoice,
+        content=(
+            "TAX INVOICE\n"
+            "The Print Mall Invoice No. Dated\n"
+            "TPM/4313/25-26 1-Jul-25\n"
+            "1 Epson L 3250 Printer 84433240 1no 13,200.00 11,186.44\n"
+            "XAHT699208\n"
+        ),
+    )
+    warranty = canonicalize_artifact(artifact, None)
+    with SessionLocal() as db:
+        job = invoice_pipeline.create_job(
+            db,
+            warranty_id=warranty.id,
+            artifact_id=artifact.id,
+            source_path=None,
+        )
+
+    invoice_pipeline.run_job(job.id)
+
+    with SessionLocal() as db:
+        job_row = db.query(PipelineJobDB).filter_by(id=job.id).first()
+        warranty_row = db.query(WarrantyDB).filter_by(id=warranty.id).first()
+        summary = db.query(WarrantySummaryDB).filter_by(warranty_id=warranty.id).first()
+
+    assert job_row.status == "done"
+    assert job_row.error is None
+    assert warranty_row.brand == "Epson"
+    assert warranty_row.model_code == "L3250"
+    assert warranty_row.coverage_months == 12
+    assert warranty_row.expiry_date is not None
+    assert "epson.co.in" in (warranty_row.alternatives or {}).get("terms_source_url", "")
+    assert (warranty_row.alternatives or {}).get("terms_source_type") == "approved_oem_source"
+    assert summary is not None

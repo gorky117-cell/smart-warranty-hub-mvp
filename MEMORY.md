@@ -790,6 +790,10 @@ git ls-remote --heads origin
 - Fixed category inference so substring matches like `delivery` no longer trigger EV classification.
 - New invoice-only warranties no longer get invented generic coverage/exclusion terms; they keep claim-prep steps and require official OEM terms verification.
 - Added Epson to the approved OEM domain/source library with the official India L3250 product warranty page, so controlled terms lookup can initialize from product evidence before relying on broad web search.
+- Fixed the invoice pipeline source-classification import so successful terms lookup is persisted instead of failing the job after product extraction.
+- Fixed terms lookup so generic invoice claim-prep steps alone do not count as reusable internal warranty terms; this prevents incomplete first-pass records from blocking official OEM lookup.
+- Terms cache reuse now requires a real non-internal source URL, preventing stale/default cache rows from masking official OEM discovery.
+- Evidence summaries now treat `approved_oem_source` URLs as confirmed source evidence instead of falling through to missing-evidence messaging.
 - Existing OCR, OpenAI/LLM enrichment, RAG, controlled OEM source policy/search, telemetry, behaviour, predictive care, recommendations, diagnostics and agent features were preserved.
 
 ## 38. Latest Phase 9B rate-limit safety update

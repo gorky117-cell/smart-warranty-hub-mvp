@@ -86,6 +86,11 @@ def _cache_is_fresh(item: WarrantyTermsCacheDB, max_age_days: int = 30) -> bool:
     return (datetime.utcnow() - item.fetched_at) <= timedelta(days=max_age_days)
 
 
+def _cache_has_real_source(item: WarrantyTermsCacheDB) -> bool:
+    src = (item.source_url or "").strip()
+    return bool(src) and not src.startswith("internal://")
+
+
 def _to_terms_result(parsed: ParsedTerms, source_url: Optional[str]) -> TermsResult:
     return TermsResult(
         duration_months=parsed.duration_months,
@@ -171,7 +176,7 @@ def lookup_terms(
                 q = q.filter(WarrantyDB.product_name == product_name)
                 has_filter = True
             rec = q.order_by(WarrantyDB.created_at.desc()).first() if has_filter else None
-            if rec and (rec.terms or rec.exclusions or rec.claim_steps or rec.coverage_months):
+            if rec and (rec.terms or rec.exclusions or rec.coverage_months):
                 result = TermsResult(
                     duration_months=rec.coverage_months,
                     terms=rec.terms or [],
@@ -200,7 +205,7 @@ def lookup_terms(
                 WarrantyTermsCacheDB.region == region,
             )
             cached = cache_q.order_by(WarrantyTermsCacheDB.fetched_at.desc()).first()
-        if cached and _cache_is_fresh(cached):
+        if cached and _cache_is_fresh(cached) and _cache_has_real_source(cached):
             result = TermsResult(
                 duration_months=cached.duration_months,
                 terms=cached.terms or [],

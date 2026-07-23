@@ -288,6 +288,7 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
     lines = text.strip().split('\n')
     has_warranty_context = bool(
         re.search(r"\b(warranty|serial|imei|model|product|device)\b", lowered, re.IGNORECASE)
+        or any(term in lowered for term in _PRODUCT_TERMS)
     )
 
     line_items = _line_item_candidates(lines)

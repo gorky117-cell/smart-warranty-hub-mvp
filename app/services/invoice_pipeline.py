@@ -18,7 +18,7 @@ from ..storage import generate_id, store
 from ..models import CanonicalWarranty
 from .ocr import extract_text_with_meta
 from .ingestion import extract_product_fields
-from .terms_lookup import lookup_terms
+from .terms_lookup import classify_terms_source_url, lookup_terms
 from .oem_domain_verify import verify_or_suggest
 from .notifications import create_oem_notification
 from .review_crawler import crawl_reviews_for_product
@@ -227,7 +227,7 @@ def run_job(job_id: str) -> None:
             meta = dict(warranty.alternatives or {})
             if terms_result:
                 source_url = terms_result.source_url or ""
-                source_type = terms_lookup.classify_terms_source_url(source_url, warranty.brand)
+                source_type = classify_terms_source_url(source_url, warranty.brand)
                 meta["terms_source_url"] = source_url or None
                 meta["terms_source_type"] = source_type
                 meta["terms_last_refreshed_at"] = datetime.utcnow().isoformat()
