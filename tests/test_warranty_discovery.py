@@ -202,3 +202,44 @@ def test_production_blocks_broad_search_without_explicit_override(monkeypatch, t
 
     assert results == []
     assert calls == []
+
+
+def test_missing_oem_domain_bootstraps_official_site_query(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(wd, "_PREFLIGHT_STRICT", True)
+    monkeypatch.setattr(wd, "_ALLOW_BROAD_FALLBACK", False)
+    monkeypatch.setattr(wd, "_SEARCH_MAX_QUERIES", 1)
+    monkeypatch.setattr(wd, "_SEARCH_MAX_RESULTS", 3)
+    monkeypatch.setattr(wd, "_DOMAIN_BOOTSTRAP_ENABLED", True)
+    monkeypatch.setattr(wd, "_DOMAIN_BOOTSTRAP_MAX_RESULTS", 3)
+    monkeypatch.setattr(wd, "load_oem_domains", lambda: {})
+    monkeypatch.setattr(wd, "load_verified_domains", lambda: {})
+    monkeypatch.setattr(wd, "_domain_alive", lambda domain, timeout: domain == "support.testbrand.com")
+
+    calls = []
+
+    def _fake_search(query: str, count: int = 5, timeout: int = 6):
+        calls.append(query)
+        if query == "TestBrand official website":
+            return [
+                {"url": "https://marketplace.example/testbrand"},
+                {"url": "https://support.testbrand.com"},
+            ]
+        if query.startswith("site:support.testbrand.com "):
+            return [{"url": "https://support.testbrand.com/warranty/model-100"}]
+        return []
+
+    monkeypatch.setattr(wd, "search_web", _fake_search)
+
+    results = wd.discover_sources(
+        brand="TestBrand",
+        model_code="MODEL-100",
+        product_name="TestBrand Model 100 Printer",
+        region="IN",
+        data_path=_empty_sources(tmp_path),
+    )
+
+    assert results
+    assert results[0].url == "https://support.testbrand.com/warranty/model-100"
+    assert results[0].official is True
+    assert any(q == "TestBrand official website" for q in calls)
+    assert any(q.startswith("site:support.testbrand.com ") for q in calls)

@@ -794,6 +794,7 @@ git ls-remote --heads origin
 - Fixed terms lookup so generic invoice claim-prep steps alone do not count as reusable internal warranty terms; this prevents incomplete first-pass records from blocking official OEM lookup.
 - Terms cache reuse now requires a real non-internal source URL, preventing stale/default cache rows from masking official OEM discovery.
 - Evidence summaries now treat `approved_oem_source` URLs as confirmed source evidence instead of falling through to missing-evidence messaging.
+- Controlled terms discovery can now bootstrap official-looking OEM domains when a detected invoice brand is missing from the approved domain catalog, then uses site-scoped warranty search from that live brand-matching domain.
 - Existing OCR, OpenAI/LLM enrichment, RAG, controlled OEM source policy/search, telemetry, behaviour, predictive care, recommendations, diagnostics and agent features were preserved.
 
 ## 38. Latest Phase 9B rate-limit safety update

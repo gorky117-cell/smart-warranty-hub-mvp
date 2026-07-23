@@ -43,6 +43,23 @@ _ALLOW_BROAD_FALLBACK = os.getenv("TERMS_ALLOW_BROAD_FALLBACK", "false").strip()
 _PREFLIGHT_MAX_DOMAINS = int(os.getenv("TERMS_PREFLIGHT_MAX_DOMAINS", "4"))
 _PREFLIGHT_TIMEOUT = int(os.getenv("TERMS_PREFLIGHT_TIMEOUT_SEC", "4"))
 _ALLOW_LOCAL_DEV_SOURCES = os.getenv("TERMS_ALLOW_LOCAL_DEV_SOURCES", "false").strip().lower() in ("1", "true", "yes")
+_DOMAIN_BOOTSTRAP_ENABLED = os.getenv("TERMS_DOMAIN_BOOTSTRAP_ENABLED", "true").strip().lower() in ("1", "true", "yes")
+_DOMAIN_BOOTSTRAP_MAX_RESULTS = int(os.getenv("TERMS_DOMAIN_BOOTSTRAP_MAX_RESULTS", "5"))
+_DOMAIN_BOOTSTRAP_MAX_DOMAINS = int(os.getenv("TERMS_DOMAIN_BOOTSTRAP_MAX_DOMAINS", "3"))
+
+_DOMAIN_REJECT_MARKERS = (
+    "amazon.",
+    "flipkart.",
+    "jiomart.",
+    "meesho.",
+    "myntra.",
+    "snapdeal.",
+    "youtube.",
+    "facebook.",
+    "instagram.",
+    "linkedin.",
+    "wikipedia.",
+)
 
 
 def _host(url: str) -> str:
@@ -149,6 +166,52 @@ def _preflight_domains(brand: Optional[str], oem_domains: Dict[str, List[str]], 
     return alive
 
 
+def _brand_token_in_host(brand: Optional[str], host: str) -> bool:
+    brand_norm = _normalize(brand)
+    host_norm = _normalize(host).replace("-", "")
+    if not brand_norm or not host_norm:
+        return False
+    return brand_norm.replace(" ", "") in host_norm
+
+
+def _reject_bootstrap_host(host: str) -> bool:
+    clean = _normalize(host)
+    return any(marker in clean for marker in _DOMAIN_REJECT_MARKERS)
+
+
+def _bootstrap_candidate_domains(brand: Optional[str], region: Optional[str]) -> List[str]:
+    if not _DOMAIN_BOOTSTRAP_ENABLED or not brand:
+        return []
+    queries = [
+        f"{brand} official website",
+        f"{brand} warranty support official",
+    ]
+    if region:
+        queries.append(f"{brand} {region} official website")
+    candidates: Dict[str, int] = {}
+    for q in queries[:2]:
+        for item in search_web(q, count=_DOMAIN_BOOTSTRAP_MAX_RESULTS, timeout=_SEARCH_TIMEOUT):
+            host = _host(item.get("url") or "")
+            if not host or _reject_bootstrap_host(host):
+                continue
+            if not _brand_token_in_host(brand, host):
+                continue
+            score = 10
+            if region and host.endswith(f".{region.lower()}"):
+                score += 4
+            if host.startswith("www."):
+                score += 1
+            candidates[host] = max(candidates.get(host, 0), score)
+    ranked = [host for host, _score in sorted(candidates.items(), key=lambda item: item[1], reverse=True)]
+    alive: List[str] = []
+    for host in ranked:
+        if len(alive) >= max(0, _DOMAIN_BOOTSTRAP_MAX_DOMAINS):
+            break
+        if _domain_alive(host, timeout=_PREFLIGHT_TIMEOUT):
+            alive.append(host)
+    return alive
+
+
 def _match_score(entry: Dict, brand: str, model_code: Optional[str], product_name: Optional[str]) -> int:
     score = 0
     if _normalize(entry.get("brand")) == _normalize(brand):
@@ -184,6 +247,9 @@ def discover_sources(
     verified_domains = load_verified_domains()
     official_for_brand = _domains_for_brand(oem_domains, brand)
     preflight_alive_domains = _preflight_domains(brand, oem_domains, verified_domains)
+    if not preflight_alive_domains and not official_for_brand:
+        preflight_alive_domains = _bootstrap_candidate_domains(brand, region)
+        official_for_brand = preflight_alive_domains[:]
     results: List[DiscoverySource] = []
     for entry in raw:
         entry_brand = _normalize(entry.get("brand"))
