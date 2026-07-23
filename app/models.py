@@ -123,4 +123,5 @@ class TermsResult(AppBaseModel):
     exclusions: List[str] = Field(default_factory=list)
     claim_steps: List[str] = Field(default_factory=list)
     source_url: Optional[str] = None
+    source_urls: List[str] = Field(default_factory=list)
     raw_text: Optional[str] = None

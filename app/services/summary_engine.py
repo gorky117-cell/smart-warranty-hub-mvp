@@ -62,6 +62,7 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
     alt = getattr(warranty, "alternatives", None) or {}
     source_type = (alt.get("terms_source_type") or "unknown").strip() or "unknown"
     source_url = alt.get("terms_source_url")
+    source_urls = alt.get("terms_source_urls") or ([source_url] if source_url else [])
     refreshed_at = alt.get("terms_last_refreshed_at")
 
     source_trust = classify_terms_source(
@@ -115,11 +116,13 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
         confidence = 0.3
 
     sources = []
-    if source_url:
+    for idx, url in enumerate(source_urls):
+        if not url:
+            continue
         sources.append(
             {
-                "title": "Warranty terms source",
-                "url": source_url,
+                "title": "Warranty terms source" if idx == 0 else f"Warranty terms source {idx + 1}",
+                "url": url,
                 "source_type": source_type,
                 "trust_status": source_trust.get("status"),
                 "official": source_trust.get("official", False),

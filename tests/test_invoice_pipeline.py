@@ -7,13 +7,15 @@ from fpdf import FPDF
 from app.main import app
 from app.db import SessionLocal
 from app.db_models import PipelineJobDB, WarrantyDB, WarrantySummaryDB, ParsedFieldDB
-from app.services import invoice_pipeline, summary_engine
+from app.services import invoice_pipeline, summary_engine, terms_lookup
 from app.services.openai_intelligence import merge_invoice_enrichment
 from app.services.ingestion import extract_product_fields, ingest_artifact
 from app.services.canonical import canonicalize_artifact
 from app.services.warranty_discovery import discover_sources
 from app.services.terms_lookup import lookup_terms
 from app.models import ArtifactType, CanonicalWarranty
+from app.services.warranty_discovery import DiscoverySource
+from app.services.warranty_parser import ParsedTerms
 
 
 def _make_pdf(path: Path, text: str) -> None:
@@ -251,6 +253,66 @@ def test_epson_l3250_discovers_official_source_and_terms():
     assert result.source_url and "epson.co.in" in result.source_url
 
 
+def test_terms_lookup_merges_multiple_controlled_oem_sources(monkeypatch):
+    urls = [
+        "https://support.acmeco.example/product/zx-100",
+        "https://support.acmeco.example/warranty",
+        "https://support.acmeco.example/claim",
+    ]
+
+    def fake_discover_sources(**kwargs):
+        return [
+            DiscoverySource(url=urls[0], source_type="oem_product", score=90, official=True),
+            DiscoverySource(url=urls[1], source_type="oem_warranty", score=85, official=True),
+            DiscoverySource(url=urls[2], source_type="oem_warranty", score=80, official=True),
+        ]
+
+    def fake_parse_terms_from_url(url):
+        if url.endswith("/product/zx-100"):
+            return ParsedTerms(
+                duration_months=12,
+                terms=["Standard coverage for 12 months from purchase date."],
+                exclusions=[],
+                claim_steps=[],
+                raw_text="ZX-100 product page",
+            ), None
+        if url.endswith("/warranty"):
+            return ParsedTerms(
+                duration_months=None,
+                terms=[],
+                exclusions=["Liquid damage is excluded."],
+                claim_steps=[],
+                raw_text="Warranty policy page",
+            ), None
+        return ParsedTerms(
+            duration_months=None,
+            terms=[],
+            exclusions=[],
+            claim_steps=["Keep invoice and serial number ready."],
+            raw_text="Claim support page",
+        ), None
+
+    monkeypatch.setattr(terms_lookup, "discover_sources", fake_discover_sources)
+    monkeypatch.setattr(terms_lookup, "parse_terms_from_url", fake_parse_terms_from_url)
+
+    with SessionLocal() as db:
+        result = lookup_terms(
+            db,
+            brand="Acmeco",
+            category="electronics",
+            region="US",
+            model_code="ZX-100",
+            product_name="Acmeco ZX-100 Printer",
+            force_refresh=True,
+        )
+
+    assert result.duration_months == 12
+    assert "Standard coverage for 12 months from purchase date." in result.terms
+    assert "Liquid damage is excluded." in result.exclusions
+    assert "Keep invoice and serial number ready." in result.claim_steps
+    assert result.source_urls == urls
+
+
 def test_pipeline_persists_epson_terms_source_after_lookup():
     artifact = ingest_artifact(
         ArtifactType.invoice,
@@ -285,5 +347,9 @@ def test_pipeline_persists_epson_terms_source_after_lookup():
     assert warranty_row.coverage_months == 12
     assert warranty_row.expiry_date is not None
     assert "epson.co.in" in (warranty_row.alternatives or {}).get("terms_source_url", "")
+    assert any(
+        "epson.co.in" in url
+        for url in (warranty_row.alternatives or {}).get("terms_source_urls", [])
+    )
     assert (warranty_row.alternatives or {}).get("terms_source_type") == "approved_oem_source"
     assert summary is not None

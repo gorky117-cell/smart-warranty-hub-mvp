@@ -33,6 +33,7 @@ _SCRAPE_ALLOW_RETAIL = os.getenv("TERMS_SCRAPE_ALLOW_RETAIL", "1").strip().lower
 _SOURCE_INTERNAL_WARRANTY = "internal://warranty_db"
 _SOURCE_INTERNAL_CACHE = "internal://terms_cache"
 _SOURCE_INTERNAL_DEFAULT = "internal://default_rules"
+_AUTO_MAX_SOURCES = int(os.getenv("TERMS_AUTO_MAX_SOURCES", "4"))
 
 
 def _mode_allows_auto(mode: str) -> bool:
@@ -98,7 +99,41 @@ def _to_terms_result(parsed: ParsedTerms, source_url: Optional[str]) -> TermsRes
         exclusions=parsed.exclusions or [],
         claim_steps=parsed.claim_steps or [],
         source_url=source_url,
+        source_urls=[source_url] if source_url else [],
         raw_text=parsed.raw_text,
+    )
+
+
+def _dedupe(items: List[str]) -> List[str]:
+    out: List[str] = []
+    seen = set()
+    for item in items or []:
+        clean = " ".join(str(item).split()).strip()
+        if not clean:
+            continue
+        key = clean.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(clean)
+    return out
+
+
+def _merge_terms_results(results: List[TermsResult]) -> Optional[TermsResult]:
+    usable = [r for r in results if r and (r.duration_months or r.terms or r.exclusions or r.claim_steps)]
+    if not usable:
+        return None
+    durations = [r.duration_months for r in usable if r.duration_months]
+    source_urls = _dedupe([url for r in usable for url in (r.source_urls or ([r.source_url] if r.source_url else []))])
+    raw_chunks = [r.raw_text for r in usable if r.raw_text]
+    return TermsResult(
+        duration_months=max(durations) if durations else None,
+        terms=_dedupe([item for r in usable for item in (r.terms or [])]),
+        exclusions=_dedupe([item for r in usable for item in (r.exclusions or [])]),
+        claim_steps=_dedupe([item for r in usable for item in (r.claim_steps or [])]),
+        source_url=source_urls[0] if source_urls else None,
+        source_urls=source_urls,
+        raw_text="\n\n--- SOURCE ---\n\n".join(raw_chunks)[:12000] if raw_chunks else None,
     )
 
 
@@ -183,6 +218,7 @@ def lookup_terms(
                     exclusions=rec.exclusions or [],
                     claim_steps=rec.claim_steps or [],
                     source_url=_SOURCE_INTERNAL_WARRANTY,
+                    source_urls=[_SOURCE_INTERNAL_WARRANTY],
                     raw_text=None,
                 )
                 return _apply_region_policy(
@@ -212,6 +248,7 @@ def lookup_terms(
                 exclusions=cached.exclusions or [],
                 claim_steps=cached.claim_steps or [],
                 source_url=cached.source_url or _SOURCE_INTERNAL_CACHE,
+                source_urls=[cached.source_url or _SOURCE_INTERNAL_CACHE],
                 raw_text=cached.raw_text,
             )
             return _apply_region_policy(
@@ -275,28 +312,36 @@ def lookup_terms(
                 mode=_SCRAPE_MODE,
                 allow_retail=_SCRAPE_ALLOW_RETAIL,
             )
+            parsed_results: List[TermsResult] = []
             for src in sources:
+                if len(parsed_results) >= max(1, _AUTO_MAX_SOURCES):
+                    break
                 parsed, err = parse_terms_from_url(src.url)
                 if not parsed or err:
                     continue
                 result = _to_terms_result(parsed, src.url)
+                parsed_results.append(result)
+                if result.duration_months and result.exclusions and result.claim_steps:
+                    break
+            merged = _merge_terms_results(parsed_results)
+            if merged:
                 cached = WarrantyTermsCacheDB(
                     brand=brand,
                     category=norm_category,
                     region=region,
-                    source_url=src.url,
+                    source_url=merged.source_url,
                     fetched_at=datetime.utcnow(),
-                    duration_months=result.duration_months,
-                    raw_text=result.raw_text,
-                    terms=result.terms,
-                    exclusions=result.exclusions,
-                    claim_steps=result.claim_steps,
+                    duration_months=merged.duration_months,
+                    raw_text=merged.raw_text,
+                    terms=merged.terms,
+                    exclusions=merged.exclusions,
+                    claim_steps=merged.claim_steps,
                 )
                 db.add(cached)
                 db.commit()
                 return _apply_region_policy(
                     db,
-                    result,
+                    merged,
                     region=region,
                     brand=brand,
                     model_code=model_code,

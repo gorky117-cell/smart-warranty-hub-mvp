@@ -917,3 +917,14 @@ git ls-remote --heads origin
 - Current synthetic 50-case result: 8/8 user journey checks passing.
 - Covered checks: upload success, warranty summary success, predictive flow success, notification expectation coverage, cross-user access blocking, direct OEM consent blocking, draft-only agent boundary and mobile-first journey inclusion.
 - This preserves the claim boundary: user journey coverage is synthetic test evidence only until real product analytics and user cohorts exist.
+
+## 50. Controlled multi-source OEM evidence merge - 2026-07-23
+
+- Fixed Smart Warranty Hub's terms lookup to go deeper after invoice OCR/product extraction instead of stopping at the first official product page.
+- `lookup_terms` now parses and merges up to `TERMS_AUTO_MAX_SOURCES` controlled discovered sources, default `4`, covering product pages, warranty pages, support pages, manuals and claim pages when discovery returns them.
+- The merge keeps the strongest duration, combines unique terms, exclusions and claim steps, and preserves multiple official source URLs in `TermsResult.source_urls`.
+- Invoice pipeline and manual terms refresh now persist `terms_source_urls` in warranty alternatives while keeping the existing primary `terms_source_url` for compatibility.
+- Evidence summaries now expose every stored terms source link, so the UI/API can show product/warranty/support/manual evidence instead of one collapsed link.
+- This is a global pipeline fix, not an Epson-only or single-invoice patch. It applies to any invoice where OCR/extraction identifies enough brand/model/product context and controlled discovery finds approved/verified OEM sources.
+- The safety boundary remains: no arbitrary web browsing by the agent, no marketplace/social sources as authority, and missing official evidence must remain "not confirmed" instead of invented warranty terms.
+- Verification passed: `python -m py_compile app\models.py app\services\terms_lookup.py app\services\invoice_pipeline.py app\main.py app\services\summary_engine.py`; focused OEM evidence tests passed with `29 passed`; full `python -m pytest -q` passed with `130 passed` and the existing three scikit-learn model-version warnings.

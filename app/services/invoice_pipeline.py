@@ -229,6 +229,7 @@ def run_job(job_id: str) -> None:
                 source_url = terms_result.source_url or ""
                 source_type = classify_terms_source_url(source_url, warranty.brand)
                 meta["terms_source_url"] = source_url or None
+                meta["terms_source_urls"] = terms_result.source_urls or ([source_url] if source_url else [])
                 meta["terms_source_type"] = source_type
                 meta["terms_last_refreshed_at"] = datetime.utcnow().isoformat()
             else:

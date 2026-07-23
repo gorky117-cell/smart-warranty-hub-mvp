@@ -1920,6 +1920,7 @@ def refresh_warranty_terms(
     src = result.source_url or ""
     src_type = terms_lookup.classify_terms_source_url(src, warranty.brand)
     alt["terms_source_url"] = src or None
+    alt["terms_source_urls"] = result.source_urls or ([src] if src else [])
     alt["terms_source_type"] = src_type
     alt["terms_last_refreshed_at"] = datetime.utcnow().isoformat()
     warranty.alternatives = alt

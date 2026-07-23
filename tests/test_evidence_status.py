@@ -49,6 +49,34 @@ def test_official_scraped_source_is_confirmed_with_source_metadata():
     assert evidence["sources"][0]["url"] == "https://support.hp.com/warranty"
 
 
+def test_evidence_summary_includes_multiple_terms_sources():
+    evidence = summary_engine.build_evidence_summary(
+        CanonicalWarranty(
+            id="w_multi",
+            brand="HP",
+            model_code="PROBOOK",
+            coverage_months=12,
+            terms=["Base parts covered."],
+            alternatives={
+                "terms_source_type": "scraped",
+                "terms_source_url": "https://support.hp.com/product",
+                "terms_source_urls": [
+                    "https://support.hp.com/product",
+                    "https://support.hp.com/warranty",
+                    "https://support.hp.com/claim",
+                ],
+            },
+        )
+    )
+
+    assert evidence["status"] == "confirmed"
+    assert [source["url"] for source in evidence["sources"]] == [
+        "https://support.hp.com/product",
+        "https://support.hp.com/warranty",
+        "https://support.hp.com/claim",
+    ]
+
+
 def test_unverified_scraped_source_is_not_confirmed():
     evidence = summary_engine.build_evidence_summary(
         _warranty("scraped", "https://example.com/warranty")
