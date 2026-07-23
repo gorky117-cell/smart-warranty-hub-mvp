@@ -1489,6 +1489,15 @@ def login(
     return resp
 
 
+@app.get("/auth/signup/form")
+def signup_form_get(next_url: str | None = None):
+    params = {}
+    if next_url:
+        params["next"] = next_url
+    suffix = f"?{urlencode(params)}" if params else ""
+    return RedirectResponse(url=f"/login{suffix}", status_code=status.HTTP_303_SEE_OTHER)
+
+
 @app.get("/auth/login")
 def login_redirect():
     return RedirectResponse(url="/login", status_code=status.HTTP_307_TEMPORARY_REDIRECT)

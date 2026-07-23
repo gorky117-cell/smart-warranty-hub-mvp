@@ -798,6 +798,12 @@ git ls-remote --heads origin
 - Stress testing found and fixed numeric-leading model codes such as `55UQ7500`; 100 synthetic invoice parse cases across printer/mobile/HP printer/TV patterns completed with zero parser failures.
 - Existing OCR, OpenAI/LLM enrichment, RAG, controlled OEM source policy/search, telemetry, behaviour, predictive care, recommendations, diagnostics and agent features were preserved.
 
+## 43. Latest auth form route resilience update
+
+- Added `GET /auth/signup/form` as a safe redirect back to `/login`.
+- This prevents browser refresh/direct-open of the POST-only signup form action from showing a Railway 405/application-failed page.
+- Existing POST signup behavior, login flow, cookie auth, CSRF behavior and dashboard routes were preserved.
+
 ## 38. Latest Phase 9B rate-limit safety update
 
 - Added `app/services/rate_limiter.py` as a lightweight in-process pilot limiter.
