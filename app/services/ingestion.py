@@ -193,6 +193,7 @@ def _model_from_product_line(line: str, brand: Optional[str]) -> Optional[str]:
     text = _normalize_spaces(text)
     patterns = (
         r"\b([A-Z]{1,5}\s*-?\s*\d{2,5}[A-Z0-9\-]*)\b",
+        r"\b(\d{2,4}[A-Z]{1,6}[A-Z0-9\-]*)\b",
         r"\b([A-Z0-9]{2,}-[A-Z0-9\-]{2,})\b",
     )
     for pat in patterns:

@@ -795,6 +795,7 @@ git ls-remote --heads origin
 - Terms cache reuse now requires a real non-internal source URL, preventing stale/default cache rows from masking official OEM discovery.
 - Evidence summaries now treat `approved_oem_source` URLs as confirmed source evidence instead of falling through to missing-evidence messaging.
 - Controlled terms discovery can now bootstrap official-looking OEM domains when a detected invoice brand is missing from the approved domain catalog, then uses site-scoped warranty search from that live brand-matching domain.
+- Stress testing found and fixed numeric-leading model codes such as `55UQ7500`; 100 synthetic invoice parse cases across printer/mobile/HP printer/TV patterns completed with zero parser failures.
 - Existing OCR, OpenAI/LLM enrichment, RAG, controlled OEM source policy/search, telemetry, behaviour, predictive care, recommendations, diagnostics and agent features were preserved.
 
 ## 38. Latest Phase 9B rate-limit safety update
