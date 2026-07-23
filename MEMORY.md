@@ -928,3 +928,11 @@ git ls-remote --heads origin
 - This is a global pipeline fix, not an Epson-only or single-invoice patch. It applies to any invoice where OCR/extraction identifies enough brand/model/product context and controlled discovery finds approved/verified OEM sources.
 - The safety boundary remains: no arbitrary web browsing by the agent, no marketplace/social sources as authority, and missing official evidence must remain "not confirmed" instead of invented warranty terms.
 - Verification passed: `python -m py_compile app\models.py app\services\terms_lookup.py app\services\invoice_pipeline.py app\main.py app\services\summary_engine.py`; focused OEM evidence tests passed with `29 passed`; full `python -m pytest -q` passed with `130 passed` and the existing three scikit-learn model-version warnings.
+
+## 51. Upload failure visibility patch - 2026-07-23
+
+- Kept this fix narrow after a production dashboard showed `Upload failed:` without a reason.
+- The upload endpoint now catches unexpected OCR/ingestion exceptions and returns a JSON `500` with `Upload processing failed: ...` instead of letting the server return a blank/non-JSON failure.
+- The Neo dashboard upload handler now reads the raw response body before JSON parsing, so backend text/HTML/empty failures show a useful reason or HTTP status instead of a blank message.
+- No warranty/OEM/RAG behavior was changed in this patch.
+- Verification passed: `python -m py_compile app\main.py`; local upload of `C:\Users\lenovo\Desktop\printer invoice .pdf` returned `200` with a warranty/job id; focused upload/CSRF tests passed with `2 passed` and the existing three scikit-learn model-version warnings.

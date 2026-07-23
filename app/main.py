@@ -1616,7 +1616,15 @@ async def upload_artifact(
                 )
             f.write(chunk)
     await file.close()
-    artifact = ingest_artifact(type, file_path=str(dest), use_ocr=True)
+    try:
+        artifact = ingest_artifact(type, file_path=str(dest), use_ocr=True)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Upload processing failed: {exc}",
+        )
 
     guardrail = {"decision": "clear", "message": None}
     if type == ArtifactType.invoice:
