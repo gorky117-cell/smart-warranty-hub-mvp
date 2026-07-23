@@ -947,3 +947,11 @@ git ls-remote --heads origin
 - Live official Epson India L3250 page verification parsed: `12` months, `30,000 prints`, `whichever comes first`, printhead coverage and service/warranty support steps from the official Epson page.
 - The safety boundary remains unchanged: only already-approved/controlled sources can confirm warranty terms, and missing exclusions/claim details must stay explicit rather than invented.
 - Verification passed: `python -m py_compile app\services\warranty_parser.py app\services\terms_lookup.py app\services\invoice_pipeline.py app\services\summary_engine.py`; focused parser/pipeline/discovery/evidence tests passed with `32 passed`; full `python -m pytest -q` passed with `132 passed` and the existing three scikit-learn model-version warnings.
+
+## 53. New upload terms cache refresh fix - 2026-07-23
+
+- Root cause of the post-parser deployment screen: new invoice jobs were allowed to reuse the existing 30-day `WarrantyTermsCacheDB` row for the same brand/category/region.
+- That meant a newly uploaded Epson invoice could still show the old cached term `Standard coverage for 12 months from purchase date` even after the global parser learned to extract `30,000 prints`, `whichever comes first`, printhead coverage and service steps.
+- Fixed `invoice_pipeline.run_job` so fresh invoice uploads call `lookup_terms(..., force_refresh=True)` and re-parse controlled official sources instead of using stale cached terms.
+- Added a regression test proving new upload pipeline calls terms lookup with `force_refresh=True`.
+- Verification passed: `python -m py_compile app\services\invoice_pipeline.py`; focused cache/parser/pipeline test slice passed with `3 passed`; focused parser/pipeline/evidence/discovery suite passed with `33 passed` and the existing three scikit-learn model-version warnings.

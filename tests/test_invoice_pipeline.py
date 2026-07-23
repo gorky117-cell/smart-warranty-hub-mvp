@@ -13,7 +13,7 @@ from app.services.ingestion import extract_product_fields, ingest_artifact
 from app.services.canonical import canonicalize_artifact
 from app.services.warranty_discovery import discover_sources
 from app.services.terms_lookup import lookup_terms
-from app.models import ArtifactType, CanonicalWarranty
+from app.models import ArtifactType, CanonicalWarranty, TermsResult
 from app.services.warranty_discovery import DiscoverySource
 from app.services.warranty_parser import ParsedTerms
 
@@ -353,3 +353,42 @@ def test_pipeline_persists_epson_terms_source_after_lookup():
     )
     assert (warranty_row.alternatives or {}).get("terms_source_type") == "approved_oem_source"
     assert summary is not None
+
+
+def test_pipeline_force_refreshes_terms_for_new_upload(monkeypatch):
+    calls = []
+
+    def fake_lookup_terms(*args, **kwargs):
+        calls.append(kwargs)
+        return TermsResult(
+            duration_months=12,
+            terms=["Fresh official warranty terms from parser."],
+            source_url="https://www.epson.co.in/fresh",
+            source_urls=["https://www.epson.co.in/fresh"],
+        )
+
+    monkeypatch.setattr(invoice_pipeline, "lookup_terms", fake_lookup_terms)
+
+    artifact = ingest_artifact(
+        ArtifactType.invoice,
+        content=(
+            "TAX INVOICE\n"
+            "The Print Mall Invoice No. Dated\n"
+            "TPM/4313/25-26 1-Jul-25\n"
+            "1 Epson L 3250 Printer 84433240 1no 13,200.00 11,186.44\n"
+            "XAHT699208\n"
+        ),
+    )
+    warranty = canonicalize_artifact(artifact, None)
+    with SessionLocal() as db:
+        job = invoice_pipeline.create_job(
+            db,
+            warranty_id=warranty.id,
+            artifact_id=artifact.id,
+            source_path=None,
+        )
+
+    invoice_pipeline.run_job(job.id)
+
+    assert calls
+    assert calls[0]["force_refresh"] is True

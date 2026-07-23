@@ -183,6 +183,7 @@ def run_job(job_id: str) -> None:
                     region=warranty.region_code,
                     model_code=warranty.model_code,
                     product_name=warranty.product_name,
+                    force_refresh=True,
                 )
             # Auto-verify OEM domain on new brand (bounded attempts)
             if os.getenv("OEM_AUTO_VERIFY", "true").lower() == "true" and warranty.brand:
