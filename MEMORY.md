@@ -782,6 +782,15 @@ git ls-remote --heads origin
 - The optional in-process scheduler is still available for local/demo/single-instance workflows, but defaults off in detected multi-instance runtimes unless `SCHEDULER_ENABLED=1` is explicitly set.
 - Existing OCR, OpenAI/LLM, RAG, OEM source policy/adapters, telemetry, behaviour, predictive care, diagnostics gates, Question Studio, Recommendation Studio and controlled agent features were preserved.
 
+## 42. Latest global invoice product extraction correction
+
+- Fixed invoice parsing to prefer scored line-item product/OEM rows over seller/header text.
+- Seller/retailer text is retained in extraction alternatives instead of being treated as the OEM brand.
+- Added generic known-OEM and product-term scoring for messy OCR invoices; the regression case is an image-only printer invoice where OCR reads `Epson L 3250 Printer`.
+- Fixed category inference so substring matches like `delivery` no longer trigger EV classification.
+- New invoice-only warranties no longer get invented generic coverage/exclusion terms; they keep claim-prep steps and require official OEM terms verification.
+- Existing OCR, OpenAI/LLM enrichment, RAG, controlled OEM source policy/search, telemetry, behaviour, predictive care, recommendations, diagnostics and agent features were preserved.
+
 ## 38. Latest Phase 9B rate-limit safety update
 
 - Added `app/services/rate_limiter.py` as a lightweight in-process pilot limiter.

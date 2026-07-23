@@ -54,19 +54,12 @@ def canonicalize_artifact(
         purchase_date=purchase_date,
         coverage_months=coverage_months,
         expiry_date=expiry_date,
-        terms=[
-            "Base parts and labour coverage within stated period.",
-            "Firmware support updates included where applicable.",
-        ],
-        exclusions=[
-            "Physical or liquid damage.",
-            "Unauthorised repair or tampering.",
-            "Improper installation or maintenance outside guidance.",
-        ],
+        terms=[],
+        exclusions=[],
         claim_steps=[
             "Keep invoice or receipt ready.",
             "Share serial/model information with support.",
-            "Provide error evidence (photos or logs) for faster triage.",
+            "Verify official OEM warranty terms before relying on claim coverage.",
         ],
         confidence=confidence,
         alternatives=alternatives,

@@ -6,6 +6,26 @@ from ..models import Artifact, ArtifactType
 from ..storage import generate_id, store
 from .ocr import extract_text
 
+_KNOWN_OEMS = (
+    "acer", "apple", "asus", "bajaj", "bosch", "brother", "canon", "dell", "dyson",
+    "epson", "godrej", "haier", "hp", "lenovo", "lg", "mi", "microsoft", "oneplus",
+    "oppo", "panasonic", "philips", "samsung", "sony", "vivo", "voltas", "whirlpool",
+    "xiaomi",
+)
+
+_PRODUCT_TERMS = (
+    "ac", "air conditioner", "battery", "camera", "desktop", "dishwasher", "fridge",
+    "geyser", "headphone", "laptop", "microwave", "mobile", "monitor", "notebook",
+    "phone", "printer", "refrigerator", "router", "scooter", "speaker", "tablet",
+    "television", "tv", "washing machine",
+)
+
+_LINE_NOISE_TERMS = (
+    "amount", "bank", "buyer", "cgst", "declaration", "delivery", "dispatch", "email",
+    "gst", "gstin", "hsn", "ifsc", "invoice", "jurisdiction", "pan", "payment", "rate",
+    "rupees", "sgst", "state", "tax", "terms", "total",
+)
+
 _RETAILER_MARKERS = (
     "flipkart",
     "amazon",
@@ -17,6 +37,11 @@ _RETAILER_MARKERS = (
     "myntra",
     "snapdeal",
     "meesho",
+    "mall",
+    "retail",
+    "store",
+    "traders",
+    "trade centre",
 )
 
 
@@ -28,9 +53,26 @@ def _looks_like_seller_text(value: str) -> bool:
     low = (value or "").strip().lower()
     if not low:
         return True
+    if low in ("tax", "tax invoice", "invoice", "bill", "receipt", "cash memo"):
+        return True
     if low.startswith(("seller", "sold by", "merchant", "supplier", "retailer")):
         return True
     return any(marker in low for marker in _RETAILER_MARKERS)
+
+
+def _canonical_oem(value: str) -> Optional[str]:
+    low = (value or "").lower()
+    tokens = set(re.findall(r"[a-z0-9]+", low))
+    for brand in _KNOWN_OEMS:
+        if brand in tokens:
+            if brand == "hp":
+                return "HP"
+            if brand == "lg":
+                return "LG"
+            if brand == "mi":
+                return "Mi"
+            return brand.title()
+    return None
 
 
 def _clean_brand_candidate(raw: str) -> Optional[str]:
@@ -54,14 +96,30 @@ def _clean_brand_candidate(raw: str) -> Optional[str]:
     return text.title()
 
 
+def _clean_seller_candidate(raw: str) -> Optional[str]:
+    text = _normalize_spaces(raw).strip(":-|")
+    if not text:
+        return None
+    text = re.split(r"\b(invoice|bill to|buyer|delivery note|mode/terms|gstin|description of goods|hsn|quantity|rate|amount)\b", text, flags=re.IGNORECASE)[0]
+    text = _normalize_spaces(text).strip(":-|")
+    low = text.lower()
+    if len(text) < 3 or low in ("tax", "tax invoice", "invoice", "bill", "receipt"):
+        return None
+    if any(term in low for term in ("shop no", "state name", "place of supply", "contact", "e-mail", "email")):
+        return None
+    return text.title()
+
+
 def _infer_product_category(*, product_name: Optional[str], model_code: Optional[str], lowered_text: str) -> Optional[str]:
     hay = " ".join([product_name or "", model_code or "", lowered_text]).lower()
     tokens = set(re.findall(r"[a-z0-9]+", hay))
     if any(k in hay for k in ("phone", "mobile", "iphone", "android", "galaxy")):
         return "mobile"
-    if any(k in hay for k in ("tv", "oled", "qled", "bravia")):
+    if "printer" in tokens:
         return "electronics"
-    if any(k in hay for k in ("laptop", "notebook", "macbook")):
+    if any(k in tokens for k in ("tv", "oled", "qled", "bravia")):
+        return "electronics"
+    if any(k in tokens for k in ("laptop", "notebook", "macbook", "monitor", "router", "camera")):
         return "electronics"
     if (
         "ac" in tokens
@@ -83,8 +141,80 @@ def _infer_product_category(*, product_name: Optional[str], model_code: Optional
         )
     ):
         return "appliance"
-    if any(k in hay for k in ("ev", "battery", "batt", "scooter", "motor", "car", "ather", "450x", "nexon")):
+    if (
+        "ev" in tokens
+        or "battery" in tokens
+        or "batt" in tokens
+        or any(k in tokens for k in ("scooter", "motor", "car", "ather", "450x", "nexon"))
+    ):
         return "ev"
+    return None
+
+
+def _line_item_candidates(lines: List[str]) -> List[Tuple[int, str]]:
+    candidates: List[Tuple[int, str]] = []
+    for line in lines:
+        clean = _normalize_spaces(line)
+        if len(clean) < 5:
+            continue
+        low = clean.lower()
+        if sum(1 for term in _LINE_NOISE_TERMS if term in low) >= 2:
+            continue
+        score = 0
+        if re.match(r"^\d+[\.\)]?\s+", clean):
+            score += 2
+        if _canonical_oem(clean):
+            score += 4
+        if any(term in low for term in _PRODUCT_TERMS):
+            score += 3
+        if re.search(r"\b[A-Z]{1,4}\s*-?\s*\d{2,5}[A-Z0-9\-]*\b", clean):
+            score += 2
+        if re.search(r"\b\d{5,}\b", clean):
+            score -= 1
+        if score >= 3:
+            candidates.append((score, clean))
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    return candidates
+
+
+def _strip_line_item_noise(line: str) -> str:
+    text = re.sub(r"^\d+[\.\)]?\s*", "", _normalize_spaces(line))
+    text = re.split(r"\s+\d{6,}\b", text, maxsplit=1)[0]
+    text = re.split(r"\s+\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?\b", text, maxsplit=1)[0]
+    return _normalize_spaces(text).strip(":-|")
+
+
+def _model_from_product_line(line: str, brand: Optional[str]) -> Optional[str]:
+    text = line
+    if brand:
+        text = re.sub(rf"\b{re.escape(brand)}\b", "", text, flags=re.IGNORECASE)
+    product_words = "|".join(re.escape(term) for term in _PRODUCT_TERMS)
+    text = re.sub(rf"\b({product_words})\b", " ", text, flags=re.IGNORECASE)
+    text = _normalize_spaces(text)
+    patterns = (
+        r"\b([A-Z]{1,5}\s*-?\s*\d{2,5}[A-Z0-9\-]*)\b",
+        r"\b([A-Z0-9]{2,}-[A-Z0-9\-]{2,})\b",
+    )
+    for pat in patterns:
+        m = re.search(pat, text)
+        if m:
+            return _normalize_spaces(m.group(1)).replace(" ", "").upper()
+    return None
+
+
+def _serial_from_lines(lines: List[str], product_line: Optional[str]) -> Optional[str]:
+    serial_match = re.search(r"(?:serial|s/n|sn|imei)\s*[:\-#]?\s*([a-zA-Z0-9\-]{6,})", "\n".join(lines), re.IGNORECASE)
+    if serial_match:
+        return serial_match.group(1).strip().upper()
+    if product_line:
+        try:
+            idx = next(i for i, line in enumerate(lines) if _normalize_spaces(line) == product_line)
+        except StopIteration:
+            idx = -1
+        for line in lines[idx + 1: idx + 4] if idx >= 0 else []:
+            clean = _normalize_spaces(line)
+            if re.fullmatch(r"[A-Z0-9]{8,18}", clean) and not clean.isdigit():
+                return clean.upper()
     return None
 
 
@@ -160,10 +290,26 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
         re.search(r"\b(warranty|serial|imei|model|product|device)\b", lowered, re.IGNORECASE)
     )
 
+    line_items = _line_item_candidates(lines)
+    best_item = _strip_line_item_noise(line_items[0][1]) if line_items else None
+    item_brand = _canonical_oem(best_item or "")
+    seller_candidates: List[str] = []
+    for line in lines[:8]:
+        cleaned = _clean_seller_candidate(line)
+        if cleaned and cleaned != item_brand:
+            seller_candidates.append(cleaned)
+            break
+    if seller_candidates:
+        alternatives["seller"] = seller_candidates
+
     # === BRAND EXTRACTION ===
     # Strategy 1: Explicit "Brand:" label
     brand_match = re.search(r"brand\s*[:\-]\s*([a-zA-Z0-9 \-]{2,40})", text, re.IGNORECASE)
-    if brand_match:
+    if item_brand:
+        fields["brand"] = item_brand
+        confidence["brand"] = 0.85
+        alternatives["product_line"] = [best_item] if best_item else []
+    elif brand_match:
         cleaned = _clean_brand_candidate(brand_match.group(1))
         if cleaned:
             fields["brand"] = cleaned
@@ -191,13 +337,17 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
     
     # Strategy 2: Look for product patterns in line items (e.g., "1. Samsung Galaxy S24")
     if "product_name" not in fields:
-        item_pattern = r"(?:^|\n)\s*\d+[\.\)]\s*([A-Z][a-zA-Z0-9 \-]{5,50}?)(?:\s+\d|\s+[A-Z]{2,5}\d|\s*$)"
-        item_match = re.search(item_pattern, text)
-        if item_match:
-            val = item_match.group(1).strip()
-            if val.lower() not in ('description', 'hsn', 'sac', 'qty', 'price', 'tax', 'total'):
-                fields["product_name"] = val.title()
-                confidence["product_name"] = 0.5
+        if best_item:
+            fields["product_name"] = best_item
+            confidence["product_name"] = 0.75
+        else:
+            item_pattern = r"(?:^|\n)\s*\d+[\.\)]\s*([A-Z][a-zA-Z0-9 \-]{5,50}?)(?:\s+\d|\s+[A-Z]{2,5}\d|\s*$)"
+            item_match = re.search(item_pattern, text)
+            if item_match:
+                val = item_match.group(1).strip()
+                if val.lower() not in ('description', 'hsn', 'sac', 'qty', 'price', 'tax', 'total'):
+                    fields["product_name"] = val.title()
+                    confidence["product_name"] = 0.5
 
     # === MODEL CODE ===
     model_match = re.search(r"(?:model|mode[li1])\s*[:\-#]\s*([a-zA-Z0-9\-]{2,30})", text, re.IGNORECASE)
@@ -205,21 +355,26 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
         fields["model_code"] = model_match.group(1).strip().upper()
         confidence["model_code"] = 0.7
     else:
+        item_model = _model_from_product_line(best_item or "", fields.get("brand"))
+        if item_model:
+            fields["model_code"] = item_model
+            confidence["model_code"] = 0.75
+        else:
         # Fallback model signal from common invoice token shapes.
-        model_token = re.search(r"\b([A-Z]{2,}[A-Z0-9\-]{2,})\b", text)
-        if model_token:
-            token = model_token.group(1).strip().upper()
-            if token not in (
-                "GST", "HSN", "SAC", "INR", "CGST", "SGST", "IGST",
-                "INVOICE", "BILL", "RETAIL", "TAX", "CUSTOMER", "COPY", "TOTAL",
-            ):
-                fields["model_code"] = token
-                confidence["model_code"] = 0.4
+            model_token = re.search(r"\b([A-Z]{2,}[A-Z0-9\-]{2,})\b", text)
+            if model_token:
+                token = model_token.group(1).strip().upper()
+                if token not in (
+                    "GST", "HSN", "SAC", "INR", "CGST", "SGST", "IGST",
+                    "INVOICE", "BILL", "RETAIL", "TAX", "CUSTOMER", "COPY", "TOTAL",
+                ):
+                    fields["model_code"] = token
+                    confidence["model_code"] = 0.4
 
     # === SERIAL NUMBER ===
-    serial_match = re.search(r"(?:serial|s/n|sn|imei)\s*[:\-#]?\s*([a-zA-Z0-9\-]{6,})", text, re.IGNORECASE)
-    if serial_match:
-        fields["serial_no"] = serial_match.group(1).strip().upper()
+    serial_value = _serial_from_lines(lines, line_items[0][1] if line_items else None)
+    if serial_value:
+        fields["serial_no"] = serial_value
         confidence["serial_no"] = 0.7
 
     # === PURCHASE DATE ===

@@ -9,7 +9,7 @@ from app.db import SessionLocal
 from app.db_models import PipelineJobDB, WarrantySummaryDB, ParsedFieldDB
 from app.services import invoice_pipeline, summary_engine
 from app.services.openai_intelligence import merge_invoice_enrichment
-from app.services.ingestion import ingest_artifact
+from app.services.ingestion import extract_product_fields, ingest_artifact
 from app.services.canonical import canonicalize_artifact
 from app.models import ArtifactType, CanonicalWarranty
 
@@ -183,3 +183,38 @@ def test_openai_summary_provider_falls_back_without_text(monkeypatch):
     text, source = summary_engine.summarize_warranty(warranty)
     assert source == "template"
     assert "Coverage" in text
+
+
+def test_invoice_parser_prefers_line_item_oem_over_seller_header():
+    text = """
+TAX INVOICE
+The Print Mall Invoice No. Dated
+SHOP NO-1,CAPRI TRADE CENTRE TPM/4313/25-26 1-Jul-25
+Si Description of Goods HSNISAC Quantity Rate Amount
+1 Epson L 3250 Printer 84433240 1no 13,200.00 11,186.44
+XAHT699208
+2 Paper Rim 48025890 1no 250.00 211.86
+Warranty services and claims, if any to be settled and borne by the manufactures.
+"""
+    fields, confidence, alternatives = extract_product_fields(text)
+
+    assert fields["brand"] == "Epson"
+    assert fields["model_code"] == "L3250"
+    assert fields["serial_no"] == "XAHT699208"
+    assert fields["product_category"] == "electronics"
+    assert alternatives["seller"] == ["The Print Mall"]
+    assert "Epson L 3250 Printer" in alternatives["product_line"][0]
+    assert confidence["brand"] >= 0.8
+
+
+def test_canonical_invoice_does_not_invent_unconfirmed_warranty_terms():
+    artifact = ingest_artifact(
+        ArtifactType.invoice,
+        content="Tax Invoice\nSeller Store\n1 Epson L 3250 Printer 84433240 1no\nXAHT699208\nDated 1-Jul-25",
+    )
+    warranty = canonicalize_artifact(artifact, None)
+
+    assert warranty.brand == "Epson"
+    assert warranty.terms == []
+    assert warranty.exclusions == []
+    assert any("Verify official OEM warranty terms" in step for step in warranty.claim_steps)
