@@ -936,3 +936,14 @@ git ls-remote --heads origin
 - The Neo dashboard upload handler now reads the raw response body before JSON parsing, so backend text/HTML/empty failures show a useful reason or HTTP status instead of a blank message.
 - No warranty/OEM/RAG behavior was changed in this patch.
 - Verification passed: `python -m py_compile app\main.py`; local upload of `C:\Users\lenovo\Desktop\printer invoice .pdf` returned `200` with a warranty/job id; focused upload/CSRF tests passed with `2 passed` and the existing three scikit-learn model-version warnings.
+
+## 52. Global official warranty detail extraction - 2026-07-23
+
+- Fixed the warranty parser pipeline, not a single Epson record, so official OEM pages can contribute richer details for any invoice/product.
+- Added generic extraction for usage-limit warranty language such as pages, prints, cycles, hours, kilometres/miles and `whichever comes first`.
+- Added generic extraction for covered component terms such as printhead, motor, compressor, panel, battery, charger, drum and lamp without hard-coding one invoice.
+- Added generic extraction of claim/service route lines such as product registration, warranty check, service request, repair status and service center/contact support.
+- Prevented component-specific long warranties from incorrectly replacing the base product warranty duration when a normal product duration is also present.
+- Live official Epson India L3250 page verification parsed: `12` months, `30,000 prints`, `whichever comes first`, printhead coverage and service/warranty support steps from the official Epson page.
+- The safety boundary remains unchanged: only already-approved/controlled sources can confirm warranty terms, and missing exclusions/claim details must stay explicit rather than invented.
+- Verification passed: `python -m py_compile app\services\warranty_parser.py app\services\terms_lookup.py app\services\invoice_pipeline.py app\services\summary_engine.py`; focused parser/pipeline/discovery/evidence tests passed with `32 passed`; full `python -m pytest -q` passed with `132 passed` and the existing three scikit-learn model-version warnings.

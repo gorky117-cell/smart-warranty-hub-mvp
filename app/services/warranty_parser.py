@@ -75,9 +75,26 @@ def _nlp_max_chars() -> int:
 
 
 def _best_duration_months(text: str) -> Optional[int]:
-    years = [int(m.group(1)) for m in _YEAR_RE.finditer(text)]
-    months = [int(m.group(1)) for m in _MONTH_RE.finditer(text)]
-    candidates = [y * 12 for y in years] + months
+    component_words = (
+        "motor",
+        "compressor",
+        "panel",
+        "battery",
+        "adapter",
+        "charger",
+        "drum",
+        "lamp",
+        "printhead",
+        "print head",
+    )
+    general: List[int] = []
+    component: List[int] = []
+    for sentence in _sentences(text):
+        low = sentence.lower()
+        target = component if any(word in low for word in component_words) else general
+        target.extend([int(m.group(1)) * 12 for m in _YEAR_RE.finditer(sentence)])
+        target.extend([int(m.group(1)) for m in _MONTH_RE.finditer(sentence)])
+    candidates = general or component
     if not candidates:
         return None
     return max(candidates)
@@ -133,6 +150,76 @@ def _dedupe_keep_order(items: List[str]) -> List[str]:
         seen.add(key)
         out.append(val)
     return out
+
+
+def _sentences(text: str) -> List[str]:
+    chunks = re.split(r"(?<=[.!?])\s+|[\n\r]+", text or "")
+    return _dedupe_keep_order([c for c in chunks if 12 <= len(c.strip()) <= 280])
+
+
+def _extract_coverage_terms(text: str) -> List[str]:
+    terms: List[str] = []
+    unit_re = r"(?:prints?|pages?|cycles?|hours?|km|kilometers?|miles?)"
+    for sentence in _sentences(text):
+        low = sentence.lower()
+        has_warranty = any(k in low for k in ("warranty", "coverage", "covered", "covers"))
+        has_usage_limit = re.search(r"\b\d[\d,.\s]*\s*" + unit_re + r"\b", low)
+        has_first_rule = "whichever comes first" in low
+        has_limit_word = any(k in low for k in ("up to", "maximum", "limit", "valid for"))
+        if has_warranty and (has_usage_limit or has_first_rule or has_limit_word):
+            terms.append(sentence)
+        elif has_usage_limit and has_first_rule:
+            terms.append(sentence)
+    return _dedupe_keep_order(terms)
+
+
+def _extract_covered_parts(text: str) -> List[str]:
+    terms: List[str] = []
+    for sentence in _sentences(text):
+        low = sentence.lower()
+        if any(k in low for k in ("covered", "coverage", "includes", "warranty includes")) and any(
+            part in low
+            for part in (
+                "printhead",
+                "print head",
+                "compressor",
+                "motor",
+                "panel",
+                "battery",
+                "adapter",
+                "charger",
+                "drum",
+                "lamp",
+            )
+        ):
+            terms.append(sentence)
+    return _dedupe_keep_order(terms)
+
+
+def _extract_claim_service_steps(lines: List[str]) -> List[str]:
+    out: List[str] = []
+    for line in lines:
+        low = line.lower()
+        if any(
+            key in low
+            for key in (
+                "service support",
+                "contact support",
+                "customer service",
+                "warranty check",
+                "verify warranty",
+                "service request",
+                "repair status",
+                "service center",
+                "service centre",
+                "register your product",
+                "product registration",
+            )
+        ):
+            out.append(line)
+        if len(out) >= 6:
+            break
+    return _dedupe_keep_order(out)
 
 
 def _extract_json_object(text: str) -> Optional[Dict[str, Any]]:
@@ -297,11 +384,19 @@ def parse_terms_from_text(text: str) -> ParsedTerms:
 
     duration_months = _best_duration_months(text)
     exclusions = _dedupe_keep_order(_extract_section(lines, ("exclusion", "not covered", "limitations")))
-    claim_steps = _dedupe_keep_order(_extract_section(lines, ("claim", "how to claim", "procedure", "steps")))
+    claim_steps = _dedupe_keep_order(
+        _extract_section(lines, ("claim", "how to claim", "procedure", "steps"))
+        + _extract_claim_service_steps(lines)
+    )
 
     terms: List[str] = []
     if duration_months:
         terms.append(f"Standard coverage for {duration_months} months from purchase date.")
+    terms = _dedupe_keep_order(
+        terms
+        + _extract_coverage_terms(text)
+        + _extract_covered_parts(text)
+    )
     if not terms:
         terms = _dedupe_keep_order(_extract_section(lines, ("coverage", "warranty", "includes")))
 

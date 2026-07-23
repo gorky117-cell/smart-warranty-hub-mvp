@@ -21,6 +21,40 @@ def test_parse_terms_from_text():
     assert "Contact support" in parsed.claim_steps
 
 
+def test_parse_terms_extracts_usage_limits_and_covered_parts():
+    text = (
+        "Warranty coverage of up to 1 year or 30,000 prints, whichever comes first. "
+        "Warranty includes coverage of printhead for high volume printing. "
+        "For service support call the OEM helpdesk. "
+        "Check repair status from the support page."
+    )
+
+    parsed = parse_terms_from_text(text)
+
+    assert parsed.duration_months == 12
+    joined_terms = " ".join(parsed.terms).lower()
+    assert "30,000 prints" in joined_terms
+    assert "whichever comes first" in joined_terms
+    assert "printhead" in joined_terms
+    joined_claims = " ".join(parsed.claim_steps).lower()
+    assert "service support" in joined_claims
+    assert "repair status" in joined_claims
+
+
+def test_parse_terms_extracts_non_printer_component_limits():
+    text = (
+        "Coverage: 24 months warranty from purchase date. "
+        "The motor is covered for 10 years when operated under normal use. "
+        "Service request must be raised through the official support portal."
+    )
+
+    parsed = parse_terms_from_text(text)
+
+    assert parsed.duration_months == 24
+    assert any("motor" in term.lower() for term in parsed.terms)
+    assert any("service request" in step.lower() for step in parsed.claim_steps)
+
+
 def test_parse_terms_from_url_html(tmp_path: Path):
     html = (
         "<html><body>"
