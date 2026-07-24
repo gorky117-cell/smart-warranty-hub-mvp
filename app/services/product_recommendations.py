@@ -80,6 +80,76 @@ CARE_CATALOG: Dict[str, List[Dict]] = {
         {"product_id": "appliance_installation", "title": "Follow installation guidance", "why": "General preventive care; installation mistakes can cause avoidable issues.", "priority": 2},
         {"product_id": "appliance_service", "title": "Schedule preventive service when symptoms appear", "why": "General care advice for early issue handling.", "priority": 3},
     ],
+    "heater": [
+        {"product_id": "heater_clearance", "title": "Keep safe clearance around the heater", "why": "General care advice for heaters. This is not a warranty coverage promise.", "priority": 1},
+        {"product_id": "heater_power", "title": "Use a properly rated socket", "why": "General care advice to reduce overheating and power issues.", "priority": 2},
+        {"product_id": "heater_dust", "title": "Keep vents and grills dust-free", "why": "General preventive care for airflow and heat transfer.", "priority": 3},
+    ],
+    "water_heater": [
+        {"product_id": "water_heater_pressure", "title": "Check pressure valve and installation safety", "why": "General care advice for geysers and water heaters. Follow OEM installation guidance.", "priority": 1},
+        {"product_id": "water_heater_scale", "title": "Watch for scale buildup in hard-water areas", "why": "General preventive care; warranty coverage still depends on official terms.", "priority": 2},
+        {"product_id": "water_heater_leak", "title": "Act early on leaks or tripping", "why": "General care advice to avoid larger service issues.", "priority": 3},
+    ],
+    "fan": [
+        {"product_id": "fan_balance", "title": "Keep blades balanced and clean", "why": "General care advice to reduce vibration and motor strain.", "priority": 1},
+        {"product_id": "fan_mounting", "title": "Check mounting if wobble appears", "why": "General preventive care for safe operation.", "priority": 2},
+        {"product_id": "fan_speed_noise", "title": "Log unusual speed or noise changes", "why": "General care advice for early fault detection.", "priority": 3},
+    ],
+    "air_conditioner": [
+        {"product_id": "ac_filter", "title": "Clean filters on schedule", "why": "General care advice for cooling efficiency and airflow.", "priority": 1},
+        {"product_id": "ac_drain", "title": "Watch for drain blockage or water leakage", "why": "General preventive care for AC units.", "priority": 2},
+        {"product_id": "ac_voltage", "title": "Use stable power where required", "why": "General care advice; compressor warranty depends on official OEM terms.", "priority": 3},
+    ],
+    "washing_machine": [
+        {"product_id": "washer_load", "title": "Avoid overloading the drum", "why": "General care advice to reduce motor and bearing strain.", "priority": 1},
+        {"product_id": "washer_filter", "title": "Clean lint/filter areas regularly", "why": "General preventive care for drainage and wash quality.", "priority": 2},
+        {"product_id": "washer_level", "title": "Keep the machine level", "why": "General care advice to reduce vibration and noise.", "priority": 3},
+    ],
+    "microwave": [
+        {"product_id": "microwave_container", "title": "Use microwave-safe containers", "why": "General care advice for safe operation.", "priority": 1},
+        {"product_id": "microwave_clean", "title": "Keep the cavity and door seal clean", "why": "General preventive care for heating consistency.", "priority": 2},
+        {"product_id": "microwave_metal", "title": "Avoid metal inside the microwave", "why": "General care advice; misuse may affect service eligibility.", "priority": 3},
+    ],
+    "camera": [
+        {"product_id": "camera_lens", "title": "Protect lens and sensor areas", "why": "General care advice for cameras and lenses.", "priority": 1},
+        {"product_id": "camera_moisture", "title": "Avoid moisture and dust exposure", "why": "General preventive care; liquid/dust coverage depends on official terms.", "priority": 2},
+        {"product_id": "camera_battery", "title": "Store batteries safely when idle", "why": "General care advice for battery health.", "priority": 3},
+    ],
+    "router": [
+        {"product_id": "router_ventilation", "title": "Keep the router ventilated", "why": "General care advice to reduce heat-related instability.", "priority": 1},
+        {"product_id": "router_power", "title": "Use the correct adapter", "why": "General preventive care for network hardware.", "priority": 2},
+        {"product_id": "router_firmware", "title": "Keep firmware updated when available", "why": "General care advice for stability and security.", "priority": 3},
+    ],
+    "wearable": [
+        {"product_id": "wearable_charge", "title": "Charge with the correct dock or cable", "why": "General care advice for wearables and smartwatches.", "priority": 1},
+        {"product_id": "wearable_clean", "title": "Keep sensors and strap contacts clean", "why": "General preventive care for reliable readings and charging.", "priority": 2},
+        {"product_id": "wearable_water", "title": "Respect water-resistance limits", "why": "General care advice; water damage coverage depends on official terms.", "priority": 3},
+    ],
+    "audio": [
+        {"product_id": "audio_volume", "title": "Avoid sustained maximum volume", "why": "General care advice to reduce speaker strain.", "priority": 1},
+        {"product_id": "audio_charge", "title": "Use the correct charger for powered speakers", "why": "General preventive care for battery and power issues.", "priority": 2},
+        {"product_id": "audio_moisture", "title": "Keep ports and grills dry", "why": "General care advice; water resistance depends on official terms.", "priority": 3},
+    ],
+    "purifier": [
+        {"product_id": "purifier_filter", "title": "Replace or clean filters on schedule", "why": "General care advice for air or water purifiers.", "priority": 1},
+        {"product_id": "purifier_flow", "title": "Watch for weak flow or unusual noise", "why": "General preventive care for early service signals.", "priority": 2},
+        {"product_id": "purifier_installation", "title": "Follow installation and cartridge guidance", "why": "General care advice; coverage depends on official OEM terms.", "priority": 3},
+    ],
+    "kitchen_appliance": [
+        {"product_id": "kitchen_overload", "title": "Avoid overloading the motor", "why": "General care advice for mixers, blenders and food processors.", "priority": 1},
+        {"product_id": "kitchen_clean_dry", "title": "Clean and dry jars, blades and seals after use", "why": "General preventive care for hygiene and component life.", "priority": 2},
+        {"product_id": "kitchen_cooldown", "title": "Let the motor cool after heavy use", "why": "General care advice to reduce overheating.", "priority": 3},
+    ],
+    "cooler": [
+        {"product_id": "cooler_water", "title": "Use clean water and drain stale water", "why": "General care advice for air coolers.", "priority": 1},
+        {"product_id": "cooler_pads", "title": "Clean cooling pads and tank regularly", "why": "General preventive care for airflow and odor control.", "priority": 2},
+        {"product_id": "cooler_pump", "title": "Watch pump noise or weak water flow", "why": "General care advice for early service signals.", "priority": 3},
+    ],
+    "inverter": [
+        {"product_id": "inverter_ventilation", "title": "Keep inverter and battery area ventilated", "why": "General care advice for inverter systems.", "priority": 1},
+        {"product_id": "inverter_load", "title": "Avoid exceeding rated load", "why": "General preventive care for power electronics.", "priority": 2},
+        {"product_id": "inverter_battery", "title": "Check battery terminals and backup changes", "why": "General care advice; battery warranty depends on official terms.", "priority": 3},
+    ],
     "general": [
         {"product_id": "general_manual", "title": "Keep invoice, serial number, and manual available", "why": "General care advice for faster support. Warranty coverage still depends on official terms.", "priority": 1},
         {"product_id": "general_clean", "title": "Keep the product clean and dry", "why": "General preventive care for products without a specific care profile.", "priority": 2},
@@ -113,6 +183,16 @@ def _category_from_warranty(warranty: Dict) -> str:
     joined = " ".join([pt, name, model])
     if any(k in joined for k in ["printer", "inkjet", "ecotank", "laserjet"]):
         return "printer"
+    if any(k in joined for k in ["geyser", "water heater", "instant heater"]):
+        return "water_heater"
+    if any(k in joined for k in ["oil heater", "room heater", "space heater", "radiator heater", "heater"]):
+        return "heater"
+    if any(k in joined for k in ["ceiling fan", "table fan", "pedestal fan", "exhaust fan", "fan"]):
+        return "fan"
+    if any(k in joined for k in ["air cooler", "desert cooler", "cooler"]):
+        return "cooler"
+    if any(k in joined for k in ["inverter", "ups", "home ups"]):
+        return "inverter"
     if "phone" in name or "phone" in pt or "galaxy" in name or "iphone" in name or "sm-" in model:
         return "smartphone"
     if "laptop" in name or "notebook" in name or "laptop" in pt:
@@ -123,7 +203,25 @@ def _category_from_warranty(warranty: Dict) -> str:
         return "fridge"
     if any(k in joined for k in ["tv", "television", "oled", "led tv", "smart tv"]):
         return "tv"
-    if any(k in joined for k in ["washer", "washing", "ac", "air conditioner", "dishwasher", "microwave", "appliance"]):
+    if any(k in joined for k in ["air conditioner", "airconditioner", "split ac", "window ac", "portable ac"]):
+        return "air_conditioner"
+    if any(k in joined for k in ["washer", "washing machine", "washing"]):
+        return "washing_machine"
+    if "microwave" in joined or "oven" in joined:
+        return "microwave"
+    if any(k in joined for k in ["camera", "dslr", "mirrorless", "lens", "camcorder"]):
+        return "camera"
+    if any(k in joined for k in ["router", "modem", "wifi", "wi-fi", "mesh"]):
+        return "router"
+    if any(k in joined for k in ["smartwatch", "smart watch", "wearable", "fitness band", "band"]):
+        return "wearable"
+    if any(k in joined for k in ["speaker", "soundbar", "headphone", "earbud", "audio", "bluetooth speaker"]):
+        return "audio"
+    if any(k in joined for k in ["purifier", "air purifier", "water purifier", "ro purifier"]):
+        return "purifier"
+    if any(k in joined for k in ["mixer", "grinder", "blender", "food processor", "juicer", "chopper", "toaster", "kettle"]):
+        return "kitchen_appliance"
+    if any(k in joined for k in ["dishwasher", "appliance"]):
         return "appliance"
     return "general"
 

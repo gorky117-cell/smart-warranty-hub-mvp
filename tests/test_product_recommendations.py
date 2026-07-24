@@ -39,3 +39,35 @@ def test_unknown_product_recommendations_stay_safe_and_general():
     assert "claim eligible" not in text
     assert "covered by warranty" not in text
 
+
+def test_broader_product_categories_get_specific_safe_care():
+    cases = [
+        ("Oil room heater", "heater", "socket"),
+        ("Electric geyser water heater", "water_heater", "pressure"),
+        ("Ceiling fan", "fan", "blade"),
+        ("Split AC air conditioner", "air_conditioner", "filter"),
+        ("Front load washing machine", "washing_machine", "drum"),
+        ("Microwave oven", "microwave", "container"),
+        ("Mirrorless camera", "camera", "lens"),
+        ("Wi-Fi router", "router", "firmware"),
+        ("Smartwatch wearable", "wearable", "sensor"),
+        ("Bluetooth speaker", "audio", "volume"),
+        ("RO water purifier", "purifier", "filter"),
+        ("Mixer grinder food processor", "kitchen_appliance", "motor"),
+        ("Desert air cooler", "cooler", "water"),
+        ("Home inverter UPS", "inverter", "load"),
+    ]
+
+    for product_name, expected_category, expected_word in cases:
+        recs = build_product_recommendations(
+            user_id="u1",
+            warranty_id="w1",
+            region="IN",
+            warranty={"product_name": product_name},
+            predictive={"risk_label": "MEDIUM"},
+        )
+        assert recs[0]["category"] == expected_category
+        text = " ".join((rec["title"] + " " + rec["why"]).lower() for rec in recs)
+        assert expected_word in text
+        assert "free repair" not in text
+        assert "claim eligible" not in text

@@ -967,3 +967,14 @@ git ls-remote --heads origin
 - Recommendation text is intentionally framed as general care advice and not as OEM warranty coverage, claim eligibility or free-repair confirmation.
 - Existing upload, OCR, OpenAI/Mistral/RAG, controlled OEM lookup, telemetry, predictive-risk, OEM aggregate and agent wiring were preserved.
 - Verification passed: focused parser/OEM/upload/recommendation suite passed with `35 passed`; full `python -m pytest -q` passed with `137 passed` and the existing three scikit-learn model-version warnings.
+
+## 55. Broader product-aware care categories - 2026-07-25
+
+- Expanded the shared product-care recommendation layer beyond the first buckets, without changing warranty fact confirmation or OEM evidence rules.
+- Added safe category detection and care advice for heaters, geysers/water heaters, fans, AC units, washing machines, microwaves, cameras, routers, smartwatches/wearables, speakers/audio, purifiers, kitchen appliances, air coolers and inverter/UPS products.
+- Kitchen appliance coverage includes mixers, grinders, blenders, food processors, juicers, choppers, toasters and kettles.
+- Heater/cooling/power coverage includes oil heaters, room heaters, water heaters/geysers, air coolers and inverter/UPS products.
+- Advice remains general care only; it does not claim OEM coverage, claim eligibility or free repair unless official warranty terms prove those facts elsewhere in the pipeline.
+- Fixed a category bug where raw `ac` matched inside words like `machine`; AC detection now requires AC-specific phrases such as air conditioner, split AC or window AC.
+- Added regression coverage for the new category mapping so these products do not fall back to generic backup/sync-style suggestions.
+- Verification passed: focused recommendation/parser/upload suite passed with `29 passed`; full `python -m pytest -q` passed with `138 passed` and the existing three scikit-learn model-version warnings.
