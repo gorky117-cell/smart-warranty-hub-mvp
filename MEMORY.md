@@ -978,3 +978,13 @@ git ls-remote --heads origin
 - Fixed a category bug where raw `ac` matched inside words like `machine`; AC detection now requires AC-specific phrases such as air conditioner, split AC or window AC.
 - Added regression coverage for the new category mapping so these products do not fall back to generic backup/sync-style suggestions.
 - Verification passed: focused recommendation/parser/upload suite passed with `29 passed`; full `python -m pytest -q` passed with `138 passed` and the existing three scikit-learn model-version warnings.
+
+## 56. Next production test and intelligence-layer direction - 2026-07-25
+
+- Next step is user-side production testing with real invoices across different categories before adding another feature layer.
+- Test invoices should cover printer, phone/laptop, heater/geyser/fan/AC, fridge/TV/appliance and unknown products.
+- For each invoice, verify product/brand/model extraction, controlled OEM source discovery, base warranty duration, optional extended-plan separation, evidence status, product-aware care suggestions and absence of fake claim/free-repair promises.
+- After those basics are verified, the next global layer should be product-aware behavior questions plus predictive risk updates and OEM aggregate insight.
+- Behavior questions should be selected from product category, brand/model, region/location, warranty status, invoice/OCR gaps, user notes, telemetry/events and OEM question-studio signals.
+- User answers should feed explainable predictive care signals while remaining separate from legal warranty status.
+- OEM value should remain privacy-safe aggregation by product/model/region/date range, with minimum cohort suppression and no individual customer exposure unless explicit direct-sharing consent exists.
