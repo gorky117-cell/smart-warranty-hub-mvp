@@ -41,6 +41,33 @@ def test_parse_terms_extracts_usage_limits_and_covered_parts():
     assert "repair status" in joined_claims
 
 
+def test_parse_terms_does_not_use_extended_plan_as_base_duration():
+    text = (
+        "Warranty coverage of up to 1 year or 30,000 prints, whichever comes first. "
+        "Epson warranty includes coverage of printhead for high volume printing. "
+        "Epson CoverPlus extends the standard warranty on our products for up to 5 years, "
+        "from the date the product was purchased."
+    )
+
+    parsed = parse_terms_from_text(text)
+
+    assert parsed.duration_months == 12
+    joined_terms = " ".join(parsed.terms).lower()
+    assert "30,000 prints" in joined_terms
+    assert "printhead" in joined_terms
+    assert "optional extended plan" in joined_terms
+    assert "5 years" in joined_terms
+
+
+def test_parse_terms_does_not_invent_base_duration_from_extended_plan_only():
+    text = "Optional extended warranty plan available for up to 5 years after product purchase."
+
+    parsed = parse_terms_from_text(text)
+
+    assert parsed.duration_months is None
+    assert any("optional extended plan" in term.lower() for term in parsed.terms)
+
+
 def test_parse_terms_extracts_non_printer_component_limits():
     text = (
         "Coverage: 24 months warranty from purchase date. "

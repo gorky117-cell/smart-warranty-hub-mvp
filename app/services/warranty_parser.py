@@ -35,6 +35,17 @@ class ParsedTerms:
 
 _YEAR_RE = re.compile(r"(\d{1,2})\s*(?:year|years|yr|yrs)", re.IGNORECASE)
 _MONTH_RE = re.compile(r"(\d{1,2})\s*(?:month|months|mo)", re.IGNORECASE)
+_EXTENDED_PLAN_MARKERS = (
+    "coverplus",
+    "extended warranty",
+    "extends warranty",
+    "extend warranty",
+    "extended plan",
+    "service plan",
+    "protection plan",
+    "add-on warranty",
+    "additional warranty",
+)
 
 
 def _env_true(name: str, default: str = "0") -> bool:
@@ -91,6 +102,8 @@ def _best_duration_months(text: str) -> Optional[int]:
     component: List[int] = []
     for sentence in _sentences(text):
         low = sentence.lower()
+        if any(marker in low for marker in _EXTENDED_PLAN_MARKERS):
+            continue
         target = component if any(word in low for word in component_words) else general
         target.extend([int(m.group(1)) * 12 for m in _YEAR_RE.finditer(sentence)])
         target.extend([int(m.group(1)) for m in _MONTH_RE.finditer(sentence)])
@@ -173,6 +186,15 @@ def _extract_coverage_terms(text: str) -> List[str]:
     return _dedupe_keep_order(terms)
 
 
+def _extract_extended_plan_terms(text: str) -> List[str]:
+    terms: List[str] = []
+    for sentence in _sentences(text):
+        low = sentence.lower()
+        if any(marker in low for marker in _EXTENDED_PLAN_MARKERS):
+            terms.append(f"Optional extended plan: {sentence}")
+    return _dedupe_keep_order(terms)
+
+
 def _extract_covered_parts(text: str) -> List[str]:
     terms: List[str] = []
     for sentence in _sentences(text):
@@ -198,8 +220,21 @@ def _extract_covered_parts(text: str) -> List[str]:
 
 def _extract_claim_service_steps(lines: List[str]) -> List[str]:
     out: List[str] = []
+    reject = (
+        "brighter futures",
+        "dedicated customer service team",
+        "just a phone call",
+        "home",
+        "about us",
+        "where to buy",
+        "newsletter",
+        "promotion",
+        "offers",
+    )
     for line in lines:
         low = line.lower()
+        if any(bad in low for bad in reject):
+            continue
         if any(
             key in low
             for key in (
@@ -217,7 +252,7 @@ def _extract_claim_service_steps(lines: List[str]) -> List[str]:
             )
         ):
             out.append(line)
-        if len(out) >= 6:
+        if len(out) >= 5:
             break
     return _dedupe_keep_order(out)
 
@@ -396,6 +431,7 @@ def parse_terms_from_text(text: str) -> ParsedTerms:
         terms
         + _extract_coverage_terms(text)
         + _extract_covered_parts(text)
+        + _extract_extended_plan_terms(text)
     )
     if not terms:
         terms = _dedupe_keep_order(_extract_section(lines, ("coverage", "warranty", "includes")))

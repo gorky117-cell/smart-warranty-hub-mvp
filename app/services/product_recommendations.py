@@ -48,6 +48,46 @@ PRODUCT_CATALOG: List[Dict] = [
 ]
 
 
+CARE_CATALOG: Dict[str, List[Dict]] = {
+    "printer": [
+        {"product_id": "printer_ink_level", "title": "Keep ink tanks from running dry", "why": "General care advice for ink tank printers. This is not a warranty coverage promise.", "priority": 1},
+        {"product_id": "printer_nozzle_check", "title": "Run a nozzle check when print quality drops", "why": "General care advice based on the product type. Clean only when needed to avoid unnecessary ink use.", "priority": 2},
+        {"product_id": "printer_periodic_print", "title": "Print periodically if the printer sits idle", "why": "General preventive care for inkjet printheads. This does not change OEM warranty terms.", "priority": 3},
+        {"product_id": "printer_genuine_ink", "title": "Use compatible or OEM-recommended ink", "why": "General care advice to reduce clogging and print-quality issues.", "priority": 4},
+    ],
+    "smartphone": [
+        {"product_id": "phone_battery_care", "title": "Protect battery health", "why": "General care advice: avoid heat and repeated deep discharge where practical.", "priority": 1},
+        {"product_id": "phone_screen_case", "title": "Use screen and case protection", "why": "General preventive care for accidental damage risk. This is not a warranty coverage promise.", "priority": 2},
+        {"product_id": "phone_charger", "title": "Use a reliable charger and cable", "why": "General care advice to reduce charging and port issues.", "priority": 3},
+    ],
+    "laptop": [
+        {"product_id": "laptop_backup", "title": "Keep backups current", "why": "General care advice for devices that store user data.", "priority": 1},
+        {"product_id": "laptop_cooling", "title": "Keep vents clear and manage heat", "why": "General preventive care for laptops under daily use.", "priority": 2},
+        {"product_id": "laptop_charger", "title": "Use the correct charger rating", "why": "General care advice to avoid power and battery issues.", "priority": 3},
+    ],
+    "fridge": [
+        {"product_id": "fridge_gasket", "title": "Check the door gasket seal", "why": "General preventive care for cooling efficiency.", "priority": 1},
+        {"product_id": "fridge_coils", "title": "Keep coils and vents clear", "why": "General care advice to reduce compressor strain.", "priority": 2},
+        {"product_id": "fridge_temperature", "title": "Keep temperature settings stable", "why": "General care advice for consistent cooling.", "priority": 3},
+    ],
+    "tv": [
+        {"product_id": "tv_surge", "title": "Use surge protection", "why": "General care advice for electronics exposed to voltage fluctuation.", "priority": 1},
+        {"product_id": "tv_panel_care", "title": "Clean the panel gently", "why": "General care advice to avoid screen or coating damage.", "priority": 2},
+        {"product_id": "tv_ventilation", "title": "Keep ventilation space around the TV", "why": "General preventive care for heat management.", "priority": 3},
+    ],
+    "appliance": [
+        {"product_id": "appliance_voltage", "title": "Use stable power where required", "why": "General care advice for appliances sensitive to voltage fluctuation.", "priority": 1},
+        {"product_id": "appliance_installation", "title": "Follow installation guidance", "why": "General preventive care; installation mistakes can cause avoidable issues.", "priority": 2},
+        {"product_id": "appliance_service", "title": "Schedule preventive service when symptoms appear", "why": "General care advice for early issue handling.", "priority": 3},
+    ],
+    "general": [
+        {"product_id": "general_manual", "title": "Keep invoice, serial number, and manual available", "why": "General care advice for faster support. Warranty coverage still depends on official terms.", "priority": 1},
+        {"product_id": "general_clean", "title": "Keep the product clean and dry", "why": "General preventive care for products without a specific care profile.", "priority": 2},
+        {"product_id": "general_usage_notes", "title": "Log unusual errors or service events", "why": "General care advice to make future support easier.", "priority": 3},
+    ],
+}
+
+
 _RISK_ORDER = {"LOW": 0, "MEDIUM": 1, "HIGH": 2}
 
 
@@ -70,13 +110,20 @@ def _category_from_warranty(warranty: Dict) -> str:
     pt = str(warranty.get("product_type") or "").lower()
     name = (warranty.get("product_name") or "").lower()
     model = (warranty.get("model_code") or "").lower()
+    joined = " ".join([pt, name, model])
+    if any(k in joined for k in ["printer", "inkjet", "ecotank", "laserjet"]):
+        return "printer"
     if "phone" in name or "phone" in pt or "galaxy" in name or "iphone" in name or "sm-" in model:
         return "smartphone"
     if "laptop" in name or "notebook" in name or "laptop" in pt:
         return "laptop"
     if "ev" in name or "ev" in pt or "battery" in name:
         return "ev"
-    if any(k in name for k in ["fridge", "washer", "ac", "dishwasher", "appliance"]):
+    if any(k in joined for k in ["fridge", "refrigerator"]):
+        return "fridge"
+    if any(k in joined for k in ["tv", "television", "oled", "led tv", "smart tv"]):
+        return "tv"
+    if any(k in joined for k in ["washer", "washing", "ac", "air conditioner", "dishwasher", "microwave", "appliance"]):
         return "appliance"
     return "general"
 
@@ -93,41 +140,23 @@ def build_product_recommendations(
     band = _risk_band(predictive.get("risk_label"), predictive.get("risk_score"))
     category = _category_from_warranty(warranty)
     reasons = predictive.get("behaviour_reasons") or predictive.get("reasons") or []
-    why_txt = "; ".join(reasons[:2]) if reasons else f"Risk band: {band}"
+    risk_context = "; ".join(str(r) for r in reasons[:2]) if reasons else ""
 
-    def match_catalog(item: Dict) -> bool:
-        if item.get("category") not in (category, "general"):
-            return False
-        min_band = item.get("min_risk_band")
-        if min_band and _RISK_ORDER.get(band, 0) < _RISK_ORDER.get(min_band, 0):
-            return False
-        allowed_regions = item.get("supported_regions")
-        if allowed_regions and region and region not in allowed_regions:
-            return False
-        return True
-
-    filtered = [item for item in PRODUCT_CATALOG if match_catalog(item)]
-    if not filtered:
-        filtered = [item for item in PRODUCT_CATALOG if item.get("category") == "general"]
-
-    filtered = sorted(filtered, key=lambda i: (i.get("priority", 99), i.get("product_id", "")))
-    filtered = filtered[:6]
-
+    care_items = CARE_CATALOG.get(category) or CARE_CATALOG["general"]
     results: List[ProductRecommendation] = []
-    for idx, item in enumerate(filtered):
+    for idx, item in enumerate(sorted(care_items, key=lambda i: (i.get("priority", 99), i.get("product_id", "")))[:4]):
         rec: ProductRecommendation = {
           "product_id": item["product_id"],
           "title": item["title"],
-          "category": item["category"],
+          "category": category,
           "region": region,
           "risk_band": band,
-          "why": why_txt,
+          "why": f"{item['why']} {risk_context}".strip(),
           "priority": int(item.get("priority", idx + 1)),
-          "cta_label": "View options",
+          "cta_label": "View care note",
           "cta_url": None,
         }
-        # Backward compatibility fields for UI renderers
-        rec["action"] = item.get("tags", ["view"])[0] if item.get("tags") else item.get("category", "view")
+        rec["action"] = "general_care"
         rec["description"] = rec["why"]
         rec["reason"] = rec["why"]
         results.append(rec)

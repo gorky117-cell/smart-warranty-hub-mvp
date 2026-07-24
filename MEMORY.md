@@ -955,3 +955,15 @@ git ls-remote --heads origin
 - Fixed `invoice_pipeline.run_job` so fresh invoice uploads call `lookup_terms(..., force_refresh=True)` and re-parse controlled official sources instead of using stale cached terms.
 - Added a regression test proving new upload pipeline calls terms lookup with `force_refresh=True`.
 - Verification passed: `python -m py_compile app\services\invoice_pipeline.py`; focused cache/parser/pipeline test slice passed with `3 passed`; focused parser/pipeline/evidence/discovery suite passed with `33 passed` and the existing three scikit-learn model-version warnings.
+
+## 54. Global warranty interpretation and care intelligence - 2026-07-25
+
+- Fixed Smart Warranty Hub's official-terms interpretation globally, not just for one Epson invoice.
+- The parser now separates base warranty duration from optional extended/service-plan language such as CoverPlus, extended warranty, service plan and protection plan.
+- Optional plans are still preserved as labelled terms, but they no longer drive the base warranty expiry. This prevents an upsell like "up to 5 years" from turning a 12-month base warranty into a false 60-month warranty.
+- Live controlled Epson L3250 source verification now parses `12` months, `30,000 prints`, `whichever comes first`, printhead coverage and support actions while keeping optional extended plans separate.
+- Claim/support extraction now filters obvious marketing/navigation noise such as Brighter Futures, home/about links, promotions and generic "dedicated customer service" copy.
+- Product suggestions are now category-aware general care, not generic product ads: printers get ink/nozzle/periodic-printing care; phones get battery/screen/charger care; fridges get gasket/coils/temperature care; TVs get surge/panel/ventilation care; appliances get voltage/installation/service care; unknown products get safe general guidance.
+- Recommendation text is intentionally framed as general care advice and not as OEM warranty coverage, claim eligibility or free-repair confirmation.
+- Existing upload, OCR, OpenAI/Mistral/RAG, controlled OEM lookup, telemetry, predictive-risk, OEM aggregate and agent wiring were preserved.
+- Verification passed: focused parser/OEM/upload/recommendation suite passed with `35 passed`; full `python -m pytest -q` passed with `137 passed` and the existing three scikit-learn model-version warnings.
