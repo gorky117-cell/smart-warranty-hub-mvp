@@ -198,6 +198,8 @@ def _extract_coverage_terms(text: str) -> List[str]:
     unit_re = r"(?:prints?|pages?|cycles?|hours?|km|kilometers?|miles?)"
     for sentence in _sentences(text):
         low = sentence.lower()
+        if any(marker in low for marker in _EXTENDED_PLAN_MARKERS):
+            continue
         has_warranty = any(k in low for k in ("warranty", "coverage", "covered", "covers"))
         has_usage_limit = re.search(r"\b\d[\d,.\s]*\s*" + unit_re + r"\b", low)
         has_first_rule = "whichever comes first" in low
@@ -210,28 +212,26 @@ def _extract_coverage_terms(text: str) -> List[str]:
 
 
 def _extract_extended_plan_terms(text: str) -> List[str]:
-    terms: List[str] = []
-    for sentence in _sentences(text):
-        low = sentence.lower()
-        if not any(marker in low for marker in _EXTENDED_PLAN_MARKERS):
-            continue
-        if any(marker in low for marker in _EXTENDED_PLAN_REJECT_MARKERS):
-            continue
-        if not any(marker in low for marker in _EXTENDED_PLAN_DETAIL_MARKERS):
-            continue
-        if len(sentence.split()) < 5:
-            continue
-        if len(terms) >= 2:
-            break
-        if any(marker in low for marker in _EXTENDED_PLAN_MARKERS):
-            terms.append(f"Optional extended plan: {sentence}")
-    return _dedupe_keep_order(terms)
+    # Optional paid extensions are not the user's current base warranty terms.
+    # Keep them out of terms summaries so demos and claims do not imply coverage.
+    return []
+
+
+def is_optional_extended_plan_term(text: str) -> bool:
+    low = (text or "").lower()
+    return any(marker in low for marker in _EXTENDED_PLAN_MARKERS) or low.startswith("optional extended plan")
+
+
+def sanitize_base_terms(items: List[str]) -> List[str]:
+    return _dedupe_keep_order([item for item in (items or []) if not is_optional_extended_plan_term(item)])
 
 
 def _extract_covered_parts(text: str) -> List[str]:
     terms: List[str] = []
     for sentence in _sentences(text):
         low = sentence.lower()
+        if any(marker in low for marker in _EXTENDED_PLAN_MARKERS):
+            continue
         if any(k in low for k in ("covered", "coverage", "includes", "warranty includes")) and any(
             part in low
             for part in (
@@ -464,10 +464,10 @@ def parse_terms_from_text(text: str) -> ParsedTerms:
         terms
         + _extract_coverage_terms(text)
         + _extract_covered_parts(text)
-        + _extract_extended_plan_terms(text)
     )
     if not terms:
         terms = _dedupe_keep_order(_extract_section(lines, ("coverage", "warranty", "includes")))
+    terms = sanitize_base_terms(terms)
 
     confidence = 0.0
     if duration_months:

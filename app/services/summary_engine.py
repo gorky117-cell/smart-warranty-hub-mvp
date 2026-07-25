@@ -9,6 +9,7 @@ import requests
 
 from ..models import CanonicalWarranty
 from .source_trust import classify_terms_source
+from .warranty_parser import sanitize_base_terms
 
 _LLM_PROVIDER = os.getenv("LLM_PROVIDER", "none").lower()
 _LLM_TTL_SEC = int(os.getenv("LLM_ENGINE_TTL_SEC", "900"))
@@ -36,7 +37,7 @@ def _should_unload(last_used: float) -> bool:
 
 
 def _template_summary(warranty: CanonicalWarranty) -> str:
-    terms = warranty.terms or []
+    terms = sanitize_base_terms(warranty.terms or [])
     exclusions = warranty.exclusions or []
     claim_steps = warranty.claim_steps or []
     evidence = build_evidence_summary(warranty)
@@ -259,7 +260,7 @@ def summarize_warranty(warranty: CanonicalWarranty) -> Tuple[str, str]:
         "Return plain text.\n\n"
         f"Evidence status: {evidence['status_label']}\nEvidence note: {evidence['note']}\n"
         f"Brand: {warranty.brand}\nModel: {warranty.model_code}\nExpiry: {warranty.expiry_date}\n"
-        f"Coverage months: {warranty.coverage_months}\nTerms: {warranty.terms}\nExclusions: {warranty.exclusions}\n"
+        f"Coverage months: {warranty.coverage_months}\nTerms: {sanitize_base_terms(warranty.terms or [])}\nExclusions: {warranty.exclusions}\n"
         f"Claim steps: {warranty.claim_steps}\n"
     )
     if _RAG_ENABLED:
@@ -300,8 +301,9 @@ def build_structured_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
     if warranty.expiry_date:
         points.append(f"Expiry date: {warranty.expiry_date}")
         tags.append("expiry")
-    if warranty.terms:
-        points.extend([f"Term: {t}" for t in warranty.terms[:5]])
+    terms = sanitize_base_terms(warranty.terms or [])
+    if terms:
+        points.extend([f"Term: {t}" for t in terms[:5]])
         tags.append("terms")
     if warranty.exclusions:
         points.extend([f"Exclusion: {e}" for e in warranty.exclusions[:5]])
@@ -321,7 +323,7 @@ def build_layman_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
     Human-friendly warranty explanation for non-technical users.
     Additive helper: does not change core predictive/terms logic.
     """
-    terms = [str(t).strip() for t in (warranty.terms or []) if str(t).strip()]
+    terms = [str(t).strip() for t in sanitize_base_terms(warranty.terms or []) if str(t).strip()]
     exclusions = [str(e).strip() for e in (warranty.exclusions or []) if str(e).strip()]
     claim_steps = [str(c).strip() for c in (warranty.claim_steps or []) if str(c).strip()]
     evidence = build_evidence_summary(warranty)

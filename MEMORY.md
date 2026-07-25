@@ -1029,3 +1029,14 @@ git ls-remote --heads origin
 - Live Epson L3250 verification after the fix returns clean terms: `12` months base coverage, `30,000 prints` / `whichever comes first` and printhead coverage, without repeated CoverPlus/service-plan noise.
 - Added regression coverage for noisy extended-plan navigation text so future parsers do not reintroduce this problem.
 - Verification passed: focused parser/upload/OEM-knowledge suite passed with `27 passed`; full `python -m pytest -q` passed with `147 passed` and the existing three scikit-learn model-version warnings.
+
+## 61. Base warranty summaries exclude optional plan marketing everywhere - 2026-07-26
+
+- Production testing showed fresh Epson L3250 uploads still displayed CoverPlus/service-plan marketing inside `Full warranty text` and `Easy summary`, even though base duration stayed correct at 12 months.
+- Fixed the shared parser contract globally: optional extended/service/protection plan text is no longer emitted as base warranty `terms` at all.
+- Added `sanitize_base_terms()` and applied it across parsing, terms lookup/cache reuse, fresh invoice pipeline persistence, refresh endpoint persistence, summary prompts, structured summaries, layman summaries and summary API response fields.
+- This handles both new uploads and old saved warranties/cache rows created before the cleanup, without deleting user records or stripping OCR, OpenAI/Mistral/RAG, OEM lookup, telemetry, predictive risk, behavior questions or agent wiring.
+- Base warranty facts still remain: duration, usage limits such as `30,000 prints`, `whichever comes first`, covered components such as printhead and claim/support steps.
+- Optional paid extension marketing such as CoverPlus no longer appears as a current warranty benefit or pro in customer-facing summaries.
+- Added regression coverage proving optional-plan-only text does not create warranty terms and stale saved optional-plan terms are filtered from layman summaries.
+- Verification passed: focused parser tests passed with `12 passed`; focused invoice/behavior tests passed with `11 passed`; full `pytest -q` passed with `148 passed` and the existing three scikit-learn model-version warnings.

@@ -19,6 +19,7 @@ from ..models import CanonicalWarranty
 from .ocr import extract_text_with_meta
 from .ingestion import extract_product_fields
 from .terms_lookup import classify_terms_source_url, lookup_terms
+from .warranty_parser import sanitize_base_terms
 from .oem_domain_verify import verify_or_suggest
 from .notifications import create_oem_notification
 from .review_crawler import crawl_reviews_for_product
@@ -221,7 +222,7 @@ def run_job(job_id: str) -> None:
                 except Exception:
                     pass
             if terms_result:
-                warranty.terms = terms_result.terms
+                warranty.terms = sanitize_base_terms(terms_result.terms or [])
                 warranty.exclusions = terms_result.exclusions
                 warranty.claim_steps = terms_result.claim_steps
             # Persist source hints for UI transparency.

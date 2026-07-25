@@ -85,6 +85,7 @@ from .services.request_context import (
     request_log_record,
 )
 from .services.warranty_status import compute_warranty_status
+from .services.warranty_parser import sanitize_base_terms
 from .services.notifications import run_initial_analysis_and_notifications
 logger = logging.getLogger(__name__)
 
@@ -1805,7 +1806,7 @@ def create_warranty(payload: CanonicalRequest, db=Depends(get_db), current=Depen
                 if result.duration_months and not wdb.coverage_months:
                     wdb.coverage_months = result.duration_months
                 if result.terms:
-                    wdb.terms = result.terms
+                    wdb.terms = sanitize_base_terms(result.terms)
                 if result.exclusions:
                     wdb.exclusions = result.exclusions
                 if result.claim_steps:
@@ -1918,7 +1919,7 @@ def refresh_warranty_terms(
     if result.duration_months and not warranty.coverage_months:
         warranty.coverage_months = result.duration_months
     if result.terms:
-        warranty.terms = result.terms
+        warranty.terms = sanitize_base_terms(result.terms)
     if result.exclusions:
         warranty.exclusions = result.exclusions
     if result.claim_steps:
@@ -2010,6 +2011,7 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db), current: UserDB =
     terms_source_type = ((getattr(warranty, "alternatives", None) or {}).get("terms_source_type"))
     status_info = _build_warranty_status_info(warranty)
     layman = summary_engine.build_layman_summary(warranty)
+    terms = sanitize_base_terms(warranty.terms or [])
     summary_row = invoice_pipeline.get_latest_summary(db, warranty_id)
     if summary_row:
         return {
@@ -2020,7 +2022,7 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db), current: UserDB =
             "summary_tags": summary_row.summary_tags or [],
             "parsed_fields": parsed_fields,
             "confidence": parsed.confidence if parsed else {},
-            "terms": warranty.terms or [],
+            "terms": terms,
             "exclusions": warranty.exclusions or [],
             "claim_steps": warranty.claim_steps or [],
             "layman_summary": layman,
@@ -2041,7 +2043,7 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db), current: UserDB =
         "summary_tags": structured.get("tags"),
         "parsed_fields": parsed_fields,
         "confidence": parsed.confidence if parsed else {},
-        "terms": warranty.terms or [],
+        "terms": terms,
         "exclusions": warranty.exclusions or [],
         "claim_steps": warranty.claim_steps or [],
         "layman_summary": layman,
@@ -3517,7 +3519,7 @@ def _build_warranty_summary_response(payload: SummaryRequest, db, current: UserD
         "Summarize the warranty in under 120 words; list coverage, exclusions, expiry, and claim steps. "
         "Return plain text.\n\n"
         f"Brand: {warranty.brand}\nModel: {warranty.model_code}\nExpiry: {warranty.expiry_date}\n"
-        f"Coverage months: {warranty.coverage_months}\nTerms: {warranty.terms}\nExclusions: {warranty.exclusions}\n"
+        f"Coverage months: {warranty.coverage_months}\nTerms: {sanitize_base_terms(warranty.terms or [])}\nExclusions: {warranty.exclusions}\n"
         f"Claim steps: {warranty.claim_steps}\n"
     )
     text, err = generate_text(prompt, None)
@@ -3527,7 +3529,7 @@ def _build_warranty_summary_response(payload: SummaryRequest, db, current: UserD
         lines = [
             f"Brand: {warranty.brand or 'N/A'} Model: {warranty.model_code or 'N/A'}",
             f"Expiry: {warranty.expiry_date or 'N/A'} Coverage months: {warranty.coverage_months or 'N/A'}",
-            "Terms: " + "; ".join(warranty.terms),
+            "Terms: " + "; ".join(sanitize_base_terms(warranty.terms or [])),
             "Exclusions: " + "; ".join(warranty.exclusions),
             "Claim steps: " + "; ".join(warranty.claim_steps),
         ]

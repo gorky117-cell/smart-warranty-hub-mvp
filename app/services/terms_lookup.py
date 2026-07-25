@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from ..db_models import WarrantyTermsCacheDB, WarrantyDB
 from .warranty_discovery import discover_sources
-from .warranty_parser import parse_terms_from_url, ParsedTerms
+from .warranty_parser import parse_terms_from_url, ParsedTerms, sanitize_base_terms
 from . import regional_policy as regional_policy_service
 from . import oem_source_policy
 from . import oem_product_knowledge
@@ -96,7 +96,7 @@ def _cache_has_real_source(item: WarrantyTermsCacheDB) -> bool:
 def _to_terms_result(parsed: ParsedTerms, source_url: Optional[str]) -> TermsResult:
     return TermsResult(
         duration_months=parsed.duration_months,
-        terms=parsed.terms or [],
+        terms=sanitize_base_terms(parsed.terms or []),
         exclusions=parsed.exclusions or [],
         claim_steps=parsed.claim_steps or [],
         source_url=source_url,
@@ -129,7 +129,7 @@ def _merge_terms_results(results: List[TermsResult]) -> Optional[TermsResult]:
     raw_chunks = [r.raw_text for r in usable if r.raw_text]
     return TermsResult(
         duration_months=max(durations) if durations else None,
-        terms=_dedupe([item for r in usable for item in (r.terms or [])]),
+        terms=sanitize_base_terms(_dedupe([item for r in usable for item in (r.terms or [])])),
         exclusions=_dedupe([item for r in usable for item in (r.exclusions or [])]),
         claim_steps=_dedupe([item for r in usable for item in (r.claim_steps or [])]),
         source_url=source_urls[0] if source_urls else None,
@@ -241,7 +241,7 @@ def lookup_terms(
             if rec and (rec.terms or rec.exclusions or rec.coverage_months):
                 result = TermsResult(
                     duration_months=rec.coverage_months,
-                    terms=rec.terms or [],
+                    terms=sanitize_base_terms(rec.terms or []),
                     exclusions=rec.exclusions or [],
                     claim_steps=rec.claim_steps or [],
                     source_url=_SOURCE_INTERNAL_WARRANTY,
@@ -271,7 +271,7 @@ def lookup_terms(
         if cached and _cache_is_fresh(cached) and _cache_has_real_source(cached):
             result = TermsResult(
                 duration_months=cached.duration_months,
-                terms=cached.terms or [],
+                terms=sanitize_base_terms(cached.terms or []),
                 exclusions=cached.exclusions or [],
                 claim_steps=cached.claim_steps or [],
                 source_url=cached.source_url or _SOURCE_INTERNAL_CACHE,

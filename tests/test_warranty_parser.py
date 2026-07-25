@@ -1,6 +1,8 @@
 from pathlib import Path
 
 from app.db import SessionLocal
+from app.models import CanonicalWarranty
+from app.services.summary_engine import build_layman_summary
 from app.services.warranty_parser import ParsedTerms, parse_terms_from_text, parse_terms_from_url
 from app.services.terms_lookup import lookup_terms
 
@@ -55,8 +57,8 @@ def test_parse_terms_does_not_use_extended_plan_as_base_duration():
     joined_terms = " ".join(parsed.terms).lower()
     assert "30,000 prints" in joined_terms
     assert "printhead" in joined_terms
-    assert "optional extended plan" in joined_terms
-    assert "5 years" in joined_terms
+    assert "optional extended plan" not in joined_terms
+    assert "5 years" not in joined_terms
 
 
 def test_parse_terms_does_not_invent_base_duration_from_extended_plan_only():
@@ -65,7 +67,7 @@ def test_parse_terms_does_not_invent_base_duration_from_extended_plan_only():
     parsed = parse_terms_from_text(text)
 
     assert parsed.duration_months is None
-    assert any("optional extended plan" in term.lower() for term in parsed.terms)
+    assert parsed.terms == []
 
 
 def test_parse_terms_filters_noisy_extended_plan_navigation():
@@ -83,11 +85,37 @@ def test_parse_terms_filters_noisy_extended_plan_navigation():
 
     assert parsed.duration_months == 12
     extended = [term for term in parsed.terms if term.lower().startswith("optional extended plan")]
-    assert len(extended) == 1
-    assert "up to 5 years" in extended[0]
+    assert extended == []
     joined_terms = " ".join(parsed.terms).lower()
     assert "activate your service plan" not in joined_terms
     assert "with coverplus" not in joined_terms
+    assert "coverplus" not in joined_terms
+
+
+def test_layman_summary_filters_stale_optional_extended_plan_terms():
+    warranty = CanonicalWarranty(
+        id="wty_test",
+        brand="Epson",
+        model_code="L3250",
+        coverage_months=12,
+        terms=[
+            "Standard coverage for 12 months from purchase date.",
+            "Optional extended plan: Epson CoverPlus extends the standard warranty on our products for up to 5 years.",
+            "Warranty includes coverage of printhead for high volume printing.",
+        ],
+        alternatives={
+            "terms_source_type": "approved_oem_source",
+            "terms_source_url": "https://www.epson.co.in/product",
+        },
+    )
+
+    summary = build_layman_summary(warranty)
+    joined = " ".join(summary["pros"]).lower()
+
+    assert "12 months" in joined
+    assert "printhead" in joined
+    assert "coverplus" not in joined
+    assert "extended plan" not in joined
 
 
 def test_parse_terms_extracts_non_printer_component_limits():
