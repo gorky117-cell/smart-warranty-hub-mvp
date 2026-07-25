@@ -14,6 +14,7 @@ from .warranty_discovery import discover_sources
 from .warranty_parser import parse_terms_from_url, ParsedTerms
 from . import regional_policy as regional_policy_service
 from . import oem_source_policy
+from . import oem_product_knowledge
 
 
 
@@ -156,6 +157,32 @@ def classify_terms_source_url(source_url: Optional[str], brand: Optional[str] = 
     return "internal"
 
 
+def _upsert_oem_product_knowledge(
+    db: Session,
+    result: TermsResult,
+    *,
+    brand: Optional[str],
+    category: Optional[str],
+    region: Optional[str],
+    model_code: Optional[str],
+    product_name: Optional[str],
+) -> None:
+    try:
+        source_type = classify_terms_source_url(result.source_url, brand)
+        oem_product_knowledge.upsert_product_knowledge_card(
+            db,
+            brand=brand,
+            model_code=model_code,
+            product_name=product_name,
+            category=category,
+            region=region,
+            result=result,
+            source_type=source_type,
+        )
+    except Exception:
+        pass
+
+
 def _apply_region_policy(
     db: Session,
     result: TermsResult,
@@ -293,6 +320,15 @@ def lookup_terms(
                 )
                 db.add(cached)
                 db.commit()
+                _upsert_oem_product_knowledge(
+                    db,
+                    result,
+                    brand=brand,
+                    category=category,
+                    region=region,
+                    model_code=model_code,
+                    product_name=product_name,
+                )
                 return _apply_region_policy(
                     db,
                     result,
@@ -339,6 +375,15 @@ def lookup_terms(
                 )
                 db.add(cached)
                 db.commit()
+                _upsert_oem_product_knowledge(
+                    db,
+                    merged,
+                    brand=brand,
+                    category=category,
+                    region=region,
+                    model_code=model_code,
+                    product_name=product_name,
+                )
                 return _apply_region_policy(
                     db,
                     merged,

@@ -1009,3 +1009,14 @@ git ls-remote --heads origin
 - The warranty fact boundary remains unchanged: behavior questions can guide care/risk context, but they do not confirm coverage, claim eligibility or free repair.
 - Added regression tests proving official OEM print-limit evidence creates an OEM-derived question and unconfirmed terms do not.
 - Verification passed: focused behavior/recommendation/upload suite passed with `25 passed`; full `python -m pytest -q` passed with `143 passed` and the existing three scikit-learn model-version warnings.
+
+## 59. OEM product knowledge cache for RAG reuse - 2026-07-25
+
+- Added `app/services/oem_product_knowledge.py` to create reusable OEM product knowledge cards from confirmed public OEM/synthetic-approved warranty evidence.
+- Cards are keyed by brand, model/product and region, for example `oem_product_knowledge:epson:l3250:in`.
+- Cards include source URLs, source type, base warranty duration, terms, exclusions and claim/support steps, plus an explicit boundary that no customer invoice or behavior data is included.
+- `terms_lookup` now upserts these cards into the RAG document store after controlled manual/auto OEM terms are parsed and cached.
+- The product knowledge cache only accepts `approved_oem_source` or `synthetic_approved` source types; default/internal/unconfirmed/scraped records are not promoted into reusable OEM knowledge.
+- This gives later users a reusable product-level knowledge asset when RAG is enabled, while the existing terms cache remains the non-vector fallback.
+- Added focused tests for card content, rejection of default/unconfirmed terms and RAG upsert metadata without `user_id` or `warranty_id`.
+- Verification passed: focused OEM knowledge/behavior/parser/upload suite passed with `35 passed`; full `python -m pytest -q` passed with `146 passed` and the existing three scikit-learn model-version warnings.
