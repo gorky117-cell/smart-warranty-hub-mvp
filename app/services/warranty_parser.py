@@ -46,6 +46,29 @@ _EXTENDED_PLAN_MARKERS = (
     "add-on warranty",
     "additional warranty",
 )
+_EXTENDED_PLAN_DETAIL_MARKERS = (
+    "up to",
+    "month",
+    "year",
+    "expires",
+    "purchased",
+    "date",
+    "extend",
+    "extends",
+    "additional",
+)
+_EXTENDED_PLAN_REJECT_MARKERS = (
+    "service plans",
+    "your warranty and service plan details",
+    "verify your epson",
+    "activate your service plan",
+    "warranty and service plan verification",
+    "extended service plans",
+    "register your product",
+    "customer service",
+    "with coverplus",
+    "you will never know",
+)
 
 
 def _env_true(name: str, default: str = "0") -> bool:
@@ -190,6 +213,16 @@ def _extract_extended_plan_terms(text: str) -> List[str]:
     terms: List[str] = []
     for sentence in _sentences(text):
         low = sentence.lower()
+        if not any(marker in low for marker in _EXTENDED_PLAN_MARKERS):
+            continue
+        if any(marker in low for marker in _EXTENDED_PLAN_REJECT_MARKERS):
+            continue
+        if not any(marker in low for marker in _EXTENDED_PLAN_DETAIL_MARKERS):
+            continue
+        if len(sentence.split()) < 5:
+            continue
+        if len(terms) >= 2:
+            break
         if any(marker in low for marker in _EXTENDED_PLAN_MARKERS):
             terms.append(f"Optional extended plan: {sentence}")
     return _dedupe_keep_order(terms)

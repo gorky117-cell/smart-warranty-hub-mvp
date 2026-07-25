@@ -68,6 +68,28 @@ def test_parse_terms_does_not_invent_base_duration_from_extended_plan_only():
     assert any("optional extended plan" in term.lower() for term in parsed.terms)
 
 
+def test_parse_terms_filters_noisy_extended_plan_navigation():
+    text = (
+        "Coverage: 12 months warranty from purchase date. "
+        "Service Plans. Extended Warranty. Activate Your Service Plan. "
+        "Your Warranty and Service Plan details are as follows. "
+        "Verify your Epson limited warranty and Service Plans below. "
+        "Epson CoverPlus extends the standard warranty on our products for up to 5 years, "
+        "from the date the product was purchased. "
+        "With CoverPlus."
+    )
+
+    parsed = parse_terms_from_text(text)
+
+    assert parsed.duration_months == 12
+    extended = [term for term in parsed.terms if term.lower().startswith("optional extended plan")]
+    assert len(extended) == 1
+    assert "up to 5 years" in extended[0]
+    joined_terms = " ".join(parsed.terms).lower()
+    assert "activate your service plan" not in joined_terms
+    assert "with coverplus" not in joined_terms
+
+
 def test_parse_terms_extracts_non_printer_component_limits():
     text = (
         "Coverage: 24 months warranty from purchase date. "

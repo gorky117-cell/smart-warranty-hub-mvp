@@ -1020,3 +1020,12 @@ git ls-remote --heads origin
 - This gives later users a reusable product-level knowledge asset when RAG is enabled, while the existing terms cache remains the non-vector fallback.
 - Added focused tests for card content, rejection of default/unconfirmed terms and RAG upsert metadata without `user_id` or `warranty_id`.
 - Verification passed: focused OEM knowledge/behavior/parser/upload suite passed with `35 passed`; full `python -m pytest -q` passed with `146 passed` and the existing three scikit-learn model-version warnings.
+
+## 60. Global OEM extended-plan noise filtering - 2026-07-25
+
+- Fixed the underlying warranty parser so OEM page headings, navigation and marketing snippets do not flood warranty terms as repeated optional extended-plan bullets.
+- The parser now keeps base warranty, usage-limit and covered-component facts while rejecting generic service-plan menu text such as activation links, warranty/service plan headings and marketing copy.
+- This is global parser behavior for any OEM page, not an Epson-only UI cleanup.
+- Live Epson L3250 verification after the fix returns clean terms: `12` months base coverage, `30,000 prints` / `whichever comes first` and printhead coverage, without repeated CoverPlus/service-plan noise.
+- Added regression coverage for noisy extended-plan navigation text so future parsers do not reintroduce this problem.
+- Verification passed: focused parser/upload/OEM-knowledge suite passed with `27 passed`; full `python -m pytest -q` passed with `147 passed` and the existing three scikit-learn model-version warnings.
