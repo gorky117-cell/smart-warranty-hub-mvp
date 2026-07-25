@@ -69,6 +69,22 @@ _EXTENDED_PLAN_REJECT_MARKERS = (
     "with coverplus",
     "you will never know",
 )
+_NAV_MARKETING_REJECT_MARKERS = (
+    "about ",
+    "about us",
+    "about epson",
+    "our purpose",
+    "our people",
+    "exceptional people",
+    "engineered precision",
+    "environmental pursuit",
+    "enduring partnerships",
+    "where to buy",
+    "newsletter",
+    "promotion",
+    "offers",
+    "home",
+)
 
 
 def _env_true(name: str, default: str = "0") -> bool:
@@ -222,8 +238,44 @@ def is_optional_extended_plan_term(text: str) -> bool:
     return any(marker in low for marker in _EXTENDED_PLAN_MARKERS) or low.startswith("optional extended plan")
 
 
+def is_navigation_or_marketing_term(text: str) -> bool:
+    low = _clean_item(text).lower()
+    if not low:
+        return True
+    if any(marker in low for marker in _NAV_MARKETING_REJECT_MARKERS):
+        return True
+    words = low.split()
+    has_warranty_fact = any(
+        marker in low
+        for marker in (
+            "warranty",
+            "coverage",
+            "covered",
+            "covers",
+            "month",
+            "year",
+            "print",
+            "page",
+            "cycle",
+            "hour",
+            "whichever comes first",
+            "support",
+            "claim",
+            "repair",
+        )
+    )
+    # Short title-case/menu labels near OEM warranty pages are usually site navigation.
+    return len(words) <= 3 and not has_warranty_fact
+
+
 def sanitize_base_terms(items: List[str]) -> List[str]:
-    return _dedupe_keep_order([item for item in (items or []) if not is_optional_extended_plan_term(item)])
+    return _dedupe_keep_order(
+        [
+            item
+            for item in (items or [])
+            if not is_optional_extended_plan_term(item) and not is_navigation_or_marketing_term(item)
+        ]
+    )
 
 
 def _extract_covered_parts(text: str) -> List[str]:

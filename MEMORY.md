@@ -1040,3 +1040,12 @@ git ls-remote --heads origin
 - Optional paid extension marketing such as CoverPlus no longer appears as a current warranty benefit or pro in customer-facing summaries.
 - Added regression coverage proving optional-plan-only text does not create warranty terms and stale saved optional-plan terms are filtered from layman summaries.
 - Verification passed: focused parser tests passed with `12 passed`; focused invoice/behavior tests passed with `11 passed`; full `pytest -q` passed with `148 passed` and the existing three scikit-learn model-version warnings.
+
+## 62. OEM navigation/menu labels filtered from warranty terms - 2026-07-26
+
+- Production testing after the optional-plan cleanup showed a second noise class: OEM brand/navigation labels such as `About Epson`, `Our Purpose`, `Exceptional People`, `Engineered Precision`, `Environmental Pursuit` and `Enduring Partnerships` appeared under customer-facing warranty terms.
+- Root cause: the generic fallback section parser could capture nearby short menu labels after a warranty heading when the OEM page mixed content and navigation text.
+- Added a global navigation/marketing term filter inside `warranty_parser.sanitize_base_terms()` so these labels are removed from parser output, cache reuse, saved warranty responses, summaries and layman summaries.
+- This is not an Epson-only fix: the filter targets generic OEM site navigation/marketing labels and preserves real warranty facts such as duration, usage limits, covered components, support, claim and repair terms.
+- Added regression coverage using the exact noisy label pattern while proving `30,000 prints` and `printhead` terms remain intact.
+- Verification passed: focused parser tests passed with `13 passed`; full `pytest -q` passed with `149 passed` and the existing three scikit-learn model-version warnings.

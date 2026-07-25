@@ -118,6 +118,32 @@ def test_layman_summary_filters_stale_optional_extended_plan_terms():
     assert "extended plan" not in joined
 
 
+def test_parse_terms_filters_oem_navigation_marketing_labels():
+    text = (
+        "Warranty coverage of up to 1 year or 30,000 prints, whichever comes first.\n"
+        "Epson warranty includes coverage of printhead for high volume printing.\n"
+        "Warranty\n"
+        "About Epson\n"
+        "Our Purpose\n"
+        "Exceptional People\n"
+        "Engineered Precision\n"
+        "Environmental Pursuit\n"
+        "Enduring Partnerships\n"
+    )
+
+    parsed = parse_terms_from_text(text)
+    joined = " ".join(parsed.terms).lower()
+
+    assert "30,000 prints" in joined
+    assert "printhead" in joined
+    assert "about epson" not in joined
+    assert "our purpose" not in joined
+    assert "exceptional people" not in joined
+    assert "engineered precision" not in joined
+    assert "environmental pursuit" not in joined
+    assert "enduring partnerships" not in joined
+
+
 def test_parse_terms_extracts_non_printer_component_limits():
     text = (
         "Coverage: 24 months warranty from purchase date. "
