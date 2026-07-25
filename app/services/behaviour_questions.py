@@ -123,6 +123,52 @@ def _warranty_context(warranty: object | None) -> Dict:
     }
 
 
+def _official_source_present(warranty: object | None) -> bool:
+    if warranty is None:
+        return False
+    alt = getattr(warranty, "alternatives", None) or {}
+    source_type = str(alt.get("terms_source_type") or "").lower()
+    source_url = str(alt.get("terms_source_url") or "")
+    source_urls = alt.get("terms_source_urls") or []
+    if source_type in {"approved_oem_source", "synthetic_approved"}:
+        return True
+    return any(str(url).startswith(("http://", "https://")) for url in ([source_url] + list(source_urls)))
+
+
+def _official_care_questions(warranty: object | None) -> List[Tuple[str, str, str]]:
+    if not _official_source_present(warranty):
+        return []
+    terms = getattr(warranty, "terms", None) or []
+    exclusions = getattr(warranty, "exclusions", None) or []
+    claim_steps = getattr(warranty, "claim_steps", None) or []
+    text = " ".join(str(item).lower() for item in (terms + exclusions + claim_steps))
+    if not text.strip():
+        return []
+
+    candidates: List[Tuple[str, str, str]] = []
+    keyword_questions = [
+        (("30,000", "prints", "page yield"), "oq_usage_limit", "The OEM source mentions a usage or print limit. Is your product used heavily?"),
+        (("printhead", "nozzle"), "oq_printhead", "The OEM source mentions printhead/nozzle-related terms. Have you noticed print quality or nozzle issues?"),
+        (("filter", "cartridge"), "oq_filter", "The OEM source mentions filter or cartridge care. Is the filter/cartridge recently cleaned or replaced?"),
+        (("voltage", "surge", "power"), "oq_power", "The OEM source mentions power conditions. Have you noticed voltage fluctuation or power trips?"),
+        (("leak", "water", "moisture"), "oq_water", "The OEM source mentions water or leakage-related terms. Have you noticed leakage or moisture exposure?"),
+        (("compressor", "cooling", "temperature"), "oq_cooling", "The OEM source mentions cooling-related terms. Have you noticed unstable cooling or temperature changes?"),
+        (("motor", "drum", "vibration"), "oq_motor", "The OEM source mentions motor/drum-related terms. Have you noticed vibration, slowing, or unusual noise?"),
+        (("battery", "charge", "charging"), "oq_battery", "The OEM source mentions battery or charging terms. Have you noticed backup, charging, or battery issues?"),
+        (("service center", "repair status", "warranty check"), "oq_service_route", "The OEM source includes a support route. Do you already have photos, invoice, and model/serial details ready?"),
+    ]
+    for keywords, qid, text_value in keyword_questions:
+        if any(keyword in text for keyword in keywords):
+            candidates.append(
+                (
+                    qid,
+                    text_value,
+                    "official_oem_care_context_needed",
+                )
+            )
+    return candidates
+
+
 def _product_question_candidates(warranty: object | None) -> List[Tuple[str, str]]:
     category = infer_product_category(_warranty_context(warranty))
     return [(q["id"], f"{category}_behaviour_context_needed") for q in PRODUCT_QUESTION_BANK.get(category, [])]
@@ -246,6 +292,17 @@ def get_next_useful_question(
         candidates.append(("q3_voltage", "voltage_issue_reported"))
     if signals["overheat_shutdown"]:
         candidates.append(("q6_overheat", "overheating_shutdown_signal"))
+    for question_id, text_value, reason in _official_care_questions(warranty):
+        if question_id not in answered:
+            return {
+                "id": question_id,
+                "text": text_value,
+                "answer_type": "choice",
+                "options": ["Yes", "No", "Not sure"],
+                "tags": ["official_oem_context", "product_behaviour"],
+                "reason": reason,
+                "source": "official_oem_terms",
+            }, False, reason
     candidates.extend(_product_question_candidates(warranty))
     if not region:
         candidates.append(("q0_region", "country_region_unknown"))

@@ -11,6 +11,10 @@ class _Warranty:
         product_type=None,
         model_code=None,
         brand=None,
+        terms=None,
+        exclusions=None,
+        claim_steps=None,
+        alternatives=None,
     ):
         self.serial_no = serial_no
         self.region_code = region_code
@@ -18,6 +22,10 @@ class _Warranty:
         self.product_type = product_type
         self.model_code = model_code
         self.brand = brand
+        self.terms = terms or []
+        self.exclusions = exclusions or []
+        self.claim_steps = claim_steps or []
+        self.alternatives = alternatives or {}
 
 
 def test_useful_question_prefers_missing_serial_and_returns_one_question(tmp_path, monkeypatch):
@@ -97,6 +105,53 @@ def test_useful_question_uses_product_specific_printer_context_before_region(tmp
     assert done is False
     assert q["id"] == "pq_printer_dry_ink"
     assert "printer" in q["tags"]
+    assert reason == "printer_behaviour_context_needed"
+
+
+def test_useful_question_prefers_official_oem_care_context_when_available(tmp_path, monkeypatch):
+    monkeypatch.setattr(behaviour_questions, "DATA_PATH", str(tmp_path / "answers.jsonl"))
+
+    q, done, reason = behaviour_questions.get_next_useful_question(
+        "phase5_oem_user",
+        "phase5_oem_warranty",
+        warranty=_Warranty(
+            serial_no="SN-1",
+            region_code="IN",
+            product_name="Epson L3250 Printer",
+            terms=[
+                "Enjoy warranty coverage of up to 1 years or 30,000 prints, whichever comes first.",
+                "Epson warranty includes coverage of printhead.",
+            ],
+            alternatives={"terms_source_type": "approved_oem_source", "terms_source_url": "https://www.epson.co.in/product"},
+        ),
+        telemetry_events=[],
+    )
+
+    assert done is False
+    assert q["id"] == "oq_usage_limit"
+    assert q["source"] == "official_oem_terms"
+    assert reason == "official_oem_care_context_needed"
+
+
+def test_useful_question_does_not_treat_unconfirmed_terms_as_oem_care_context(tmp_path, monkeypatch):
+    monkeypatch.setattr(behaviour_questions, "DATA_PATH", str(tmp_path / "answers.jsonl"))
+
+    q, done, reason = behaviour_questions.get_next_useful_question(
+        "phase5_unconfirmed_user",
+        "phase5_unconfirmed_warranty",
+        warranty=_Warranty(
+            serial_no="SN-1",
+            region_code="IN",
+            product_name="Epson L3250 Printer",
+            terms=["30,000 prints and printhead mentioned in an unconfirmed record."],
+            alternatives={"terms_source_type": "default_rules", "terms_source_url": "internal://default_rules"},
+        ),
+        telemetry_events=[],
+    )
+
+    assert done is False
+    assert q["id"] == "pq_printer_dry_ink"
+    assert "source" not in q
     assert reason == "printer_behaviour_context_needed"
 
 

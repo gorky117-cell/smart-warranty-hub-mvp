@@ -998,3 +998,14 @@ git ls-remote --heads origin
 - Unknown products still fall back to safe generic context; no warranty coverage, claim eligibility or free-repair facts are invented by behavior questions.
 - Added regression tests proving printer and geyser receive product-specific questions before generic region context, voltage signals still take priority and unknown products do not get forced into fake categories.
 - Verification passed: focused behavior/recommendation/upload suite passed with `26 passed`; full `python -m pytest -q` passed with `141 passed` and the existing three scikit-learn model-version warnings.
+
+## 58. Hybrid OEM-first behavior question refinement - 2026-07-25
+
+- Added a hybrid behavior-question layer in the shared `behaviour_questions` service: confirmed official OEM terms are checked first for concrete care/limit/support signals, then the category fallback is used only when OEM-derived context is unavailable.
+- This reuses stored parsed warranty evidence on the warranty record; it does not let the behavior layer browse arbitrary websites.
+- OEM-derived question triggers include usage/print limits, printhead/nozzle terms, filter/cartridge care, power/voltage/surge terms, water/leak/moisture terms, cooling/temperature/compressor terms, motor/drum/vibration terms, battery/charging terms and official support-route terms.
+- OEM-derived questions are only used when the stored terms source is confirmed as approved/synthetic official evidence or has an HTTP source URL; default/internal/unconfirmed terms fall back to product-category questions.
+- Built-in category questions remain the safety fallback for products or OEM pages that do not expose useful care guidance.
+- The warranty fact boundary remains unchanged: behavior questions can guide care/risk context, but they do not confirm coverage, claim eligibility or free repair.
+- Added regression tests proving official OEM print-limit evidence creates an OEM-derived question and unconfirmed terms do not.
+- Verification passed: focused behavior/recommendation/upload suite passed with `25 passed`; full `python -m pytest -q` passed with `143 passed` and the existing three scikit-learn model-version warnings.
