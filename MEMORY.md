@@ -988,3 +988,13 @@ git ls-remote --heads origin
 - Behavior questions should be selected from product category, brand/model, region/location, warranty status, invoice/OCR gaps, user notes, telemetry/events and OEM question-studio signals.
 - User answers should feed explainable predictive care signals while remaining separate from legal warranty status.
 - OEM value should remain privacy-safe aggregation by product/model/region/date range, with minimum cohort suppression and no individual customer exposure unless explicit direct-sharing consent exists.
+
+## 57. Global product-aware behavior questions - 2026-07-25
+
+- Upgraded the shared `behaviour_questions` service used by `/behaviour/next-question`; this is a global Smart Warranty Hub behavior pipeline fix, not an Epson/printer UI patch.
+- Reused the shared product-category inference layer so behavior questions align with printer, phone, laptop, fridge, TV, heater, geyser/water heater, fan, AC, washing machine, microwave, camera, router, wearable, audio, purifier, kitchen appliance, cooler, inverter and appliance categories.
+- Added product-specific next questions such as printer dry-ink/nozzle/printhead-cleaning, geyser leak/tripping/hard-water, AC filter/cooling/leakage, fridge unstable cooling/gasket, washer vibration/drain, router restarts and inverter backup/load.
+- Question priority is now: missing serial first, real telemetry/risk signals such as voltage or overheating next, product-specific behavior context next, then missing region, usage and environment context.
+- Unknown products still fall back to safe generic context; no warranty coverage, claim eligibility or free-repair facts are invented by behavior questions.
+- Added regression tests proving printer and geyser receive product-specific questions before generic region context, voltage signals still take priority and unknown products do not get forced into fake categories.
+- Verification passed: focused behavior/recommendation/upload suite passed with `26 passed`; full `python -m pytest -q` passed with `141 passed` and the existing three scikit-learn model-version warnings.

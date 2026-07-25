@@ -176,7 +176,7 @@ def _risk_band(label: Optional[str], score: Optional[float]) -> str:
         return "MEDIUM"
 
 
-def _category_from_warranty(warranty: Dict) -> str:
+def infer_product_category(warranty: Dict) -> str:
     pt = str(warranty.get("product_type") or "").lower()
     name = (warranty.get("product_name") or "").lower()
     model = (warranty.get("model_code") or "").lower()
@@ -224,6 +224,10 @@ def _category_from_warranty(warranty: Dict) -> str:
     if any(k in joined for k in ["dishwasher", "appliance"]):
         return "appliance"
     return "general"
+
+
+def _category_from_warranty(warranty: Dict) -> str:
+    return infer_product_category(warranty)
 
 
 def build_product_recommendations(
