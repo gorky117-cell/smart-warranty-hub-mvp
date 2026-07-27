@@ -1060,3 +1060,11 @@ git ls-remote --heads origin
 - Preserved the earlier Epson L3250 pipeline: seller/header handling, Epson brand/model extraction, serial extraction, OEM source lookup, terms/RAG/care behavior and summary flow still pass.
 - Added regression coverage for recipient/header/spec misclassification, OCR-note file paths and bad AI enrichment identity fields.
 - Verification passed: focused invoice pipeline tests passed with `16 passed`; full `pytest -q` passed with `152 passed` and the existing three scikit-learn model-version warnings.
+
+## 64. Samsung pipe-spec invoice regression - 2026-07-27
+
+- Production testing with an Amazon-style Samsung mobile invoice showed a second global invoice-shape issue: pipe-separated item specs such as `120 Hz`, `6000 mAh`, `IP54`, quantity and `HSN:85171300` can sit on the same line as the real product.
+- Fixed the shared invoice parser globally so dotted invoice/order dates such as `01.05.2026` are parsed, `HSN` is not mistaken for `SN`/serial, and Samsung Galaxy model names can produce a real model code such as `M17E` instead of spec fragments.
+- The expected parse for the tested shape is now brand `Samsung`, product `Samsung Galaxy M17e 5G Mobile (Vibe Violet, 6GB RAM, 128GB Storage)`, model `M17E`, purchase date `2026-05-01`, invoice number `DEL5-53804`, with no fake serial from HSN.
+- This is an invoice-pipeline hardening fix, not a one-invoice database patch. Existing unconfirmed warranty behavior remains unchanged: if no approved OEM source is found, terms stay estimated/not confirmed.
+- Verification passed: focused invoice pipeline tests passed with `17 passed`; full `pytest -q` passed with `153 passed` and the existing three scikit-learn model-version warnings.

@@ -262,6 +262,11 @@ def _model_from_product_line(line: str, brand: Optional[str]) -> Optional[str]:
     text = line
     if brand:
         text = re.sub(rf"\b{re.escape(brand)}\b", "", text, flags=re.IGNORECASE)
+    galaxy = re.search(r"\bGalaxy\s+([A-Z]\d{1,3}[A-Z]{0,3})\b", line, re.IGNORECASE)
+    if galaxy:
+        candidate = galaxy.group(1).upper()
+        if not _is_spec_only(candidate):
+            return candidate
     product_words = "|".join(re.escape(term) for term in _PRODUCT_TERMS)
     text = re.sub(rf"\b({product_words})\b", " ", text, flags=re.IGNORECASE)
     text = _normalize_spaces(text)
@@ -327,7 +332,7 @@ def sanitize_invoice_identity_fields(
 
 
 def _serial_from_lines(lines: List[str], product_line: Optional[str]) -> Optional[str]:
-    serial_match = re.search(r"(?:serial|s/n|sn|imei)\s*[:\-#]?\s*([a-zA-Z0-9\-]{6,})", "\n".join(lines), re.IGNORECASE)
+    serial_match = re.search(r"\b(?:serial|s/n|sn|imei)\b\s*[:\-#]?\s*([a-zA-Z0-9\-]{6,})", "\n".join(lines), re.IGNORECASE)
     if serial_match:
         return serial_match.group(1).strip().upper()
     if product_line:
@@ -388,12 +393,12 @@ def parse_date_from_text(text: str) -> Optional[str]:
         except ValueError:
             continue
     
-    # Pattern 2: Numeric dates (24-12-2025, 24/12/2025, 2025-12-24)
+    # Pattern 2: Numeric dates (24-12-2025, 24/12/2025, 24.12.2025, 2025-12-24)
     numeric_candidates = re.findall(
-        r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}-\d{2}-\d{2})", text
+        r"(\d{1,2}[./-]\d{1,2}[./-]\d{2,4}|\d{4}-\d{2}-\d{2})", text
     )
     for raw in numeric_candidates:
-        for fmt in ("%d-%m-%Y", "%d/%m/%Y", "%Y-%m-%d", "%d-%m-%y", "%d/%m/%y"):
+        for fmt in ("%d-%m-%Y", "%d/%m/%Y", "%d.%m.%Y", "%Y-%m-%d", "%d-%m-%y", "%d/%m/%y", "%d.%m.%y"):
             try:
                 dt = datetime.strptime(raw, fmt)
                 return dt.date().isoformat()
