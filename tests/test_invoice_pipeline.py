@@ -255,6 +255,37 @@ Shipping Charges
     assert alternatives["product_line"]
 
 
+def test_invoice_parser_handles_wrapped_samsung_mobile_ocr_lines():
+    text = """
+Tax Invoice
+Order Number: 171-8910655-3956348
+Order Date: 01.05.2026
+Invoice Number : DEL5-53804
+Invoice Details : HR-DEL5-1224631255-2627
+Invoice Date : 02.05.2026
+Sl. No Description Unit Price Discount Qty Net Amount Tax Rate Tax Type Tax Amount Total Amount
+1 Samsung Galaxy M17e 5G Mobile (Vibe Violet,
+6GB RAM, 128GB Storage) | Smoothest 120 Hz
+Refresh Rate| Monster 6000 mAh Battery | IP54 | 6
+Gen OS Upgrades | AI | Gemini Live | Without
+Charger | B0GN1NNYXF (
+SMNG-M17e-VIOLET-6+128GB )
+HSN:85171300
+Shipping Charges
+"""
+    fields, confidence, alternatives = extract_product_fields(text)
+
+    assert fields["brand"] == "Samsung"
+    assert fields["model_code"] == "M17E"
+    assert fields["product_name"] == "Samsung Galaxy M17e 5G Mobile (Vibe Violet, 6GB RAM, 128GB Storage)"
+    assert fields["purchase_date"] == "2026-05-01"
+    assert fields["invoice_no"] == "DEL5-53804"
+    assert fields["product_category"] == "mobile"
+    assert fields.get("serial_no") != "85171300"
+    assert alternatives.get("seller") != ["Order Number: 171-8910655-3956348"]
+    assert "Samsung Galaxy M17e 5G Mobile" in alternatives["product_line"][0]
+
+
 def test_invoice_parser_ignores_ocr_note_file_paths_as_product_identity():
     text = "[OCR note] File not found: C:\\Users\\lenovo\\Desktop\\invoice.pdf"
     fields, confidence, alternatives = extract_product_fields(text)

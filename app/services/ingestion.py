@@ -145,16 +145,77 @@ def _clean_seller_candidate(raw: str) -> Optional[str]:
     text = _normalize_spaces(raw).strip(":-|")
     if not text:
         return None
-    text = re.split(r"\b(invoice|bill to|buyer|delivery note|mode/terms|gstin|description of goods|hsn|quantity|rate|amount)\b", text, flags=re.IGNORECASE)[0]
+    text = re.split(
+        r"\b(invoice|order|bill to|buyer|delivery note|mode/terms|gstin|description of goods|hsn|quantity|rate|amount)\b",
+        text,
+        flags=re.IGNORECASE,
+    )[0]
     text = _normalize_spaces(text).strip(":-|")
     low = text.lower()
     if len(text) < 3 or low in ("tax", "tax invoice", "invoice", "bill", "receipt"):
         return None
-    if _is_boilerplate_line(text) or _has_product_signal(text):
+    if _is_boilerplate_line(text) or _is_spec_only(text) or _has_product_signal(text):
         return None
     if any(term in low for term in ("shop no", "state name", "place of supply", "contact", "e-mail", "email")):
         return None
     return text.title()
+
+
+def _logical_invoice_lines(lines: List[str]) -> List[str]:
+    """Join wrapped invoice item descriptions before product identity scoring."""
+    logical: List[str] = []
+    current: Optional[str] = None
+
+    def flush_current() -> None:
+        nonlocal current
+        if current:
+            logical.append(current)
+            current = None
+
+    stop_pattern = re.compile(
+        r"^(?:invoice\s+date|order\s+date|shipping charges?|total|subtotal|taxable|igst|cgst|sgst|amount|grand total)\b",
+        re.IGNORECASE,
+    )
+    continuation_pattern = re.compile(
+        r"\b("
+        r"gb|ram|storage|hz|refresh|battery|mah|charger|os upgrades?|ai|gemini|"
+        r"model|printer|mobile|phone|galaxy|laptop|fridge|refrigerator|washing|"
+        r"microwave|geyser|heater|camera|router|inverter|purifier|speaker|"
+        r"B0[A-Z0-9]+|[A-Z0-9]{2,}[-+][A-Z0-9\-+]+"
+        r")\b",
+        re.IGNORECASE,
+    )
+
+    for raw in lines:
+        clean = _normalize_spaces(raw)
+        if not clean:
+            continue
+
+        starts_item = bool(re.match(r"^\d+[\.\)]?\s+", clean))
+        if starts_item and _has_product_signal(clean):
+            flush_current()
+            current = clean
+            continue
+
+        if current:
+            if stop_pattern.search(clean) and not _has_product_signal(clean):
+                flush_current()
+                logical.append(clean)
+                continue
+            if (
+                "|" in clean
+                or clean.startswith("(")
+                or clean.endswith(("(", ")"))
+                or continuation_pattern.search(clean)
+            ):
+                current = f"{current} {clean}"
+                continue
+            flush_current()
+
+        logical.append(clean)
+
+    flush_current()
+    return logical
 
 
 def _clean_product_name_candidate(raw: str) -> Optional[str]:
@@ -415,12 +476,13 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
     confidence: Dict[str, float] = {}
     alternatives: Dict[str, List[str]] = {}
     lines = text.strip().split('\n')
+    logical_lines = _logical_invoice_lines(lines)
     has_warranty_context = bool(
         re.search(r"\b(warranty|serial|imei|model|product|device)\b", lowered, re.IGNORECASE)
         or any(term in lowered for term in _PRODUCT_TERMS)
     )
 
-    line_items = _line_item_candidates(lines)
+    line_items = _line_item_candidates(logical_lines)
     best_item = _strip_line_item_noise(line_items[0][1]) if line_items else None
     item_brand = _canonical_oem(best_item or "")
     seller_candidates: List[str] = []
@@ -509,7 +571,7 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
                     confidence["model_code"] = 0.4
 
     # === SERIAL NUMBER ===
-    serial_value = _serial_from_lines(lines, line_items[0][1] if line_items else None)
+    serial_value = _serial_from_lines(logical_lines + lines, line_items[0][1] if line_items else None)
     if serial_value:
         fields["serial_no"] = serial_value
         confidence["serial_no"] = 0.7

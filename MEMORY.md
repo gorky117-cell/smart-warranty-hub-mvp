@@ -1068,3 +1068,13 @@ git ls-remote --heads origin
 - The expected parse for the tested shape is now brand `Samsung`, product `Samsung Galaxy M17e 5G Mobile (Vibe Violet, 6GB RAM, 128GB Storage)`, model `M17E`, purchase date `2026-05-01`, invoice number `DEL5-53804`, with no fake serial from HSN.
 - This is an invoice-pipeline hardening fix, not a one-invoice database patch. Existing unconfirmed warranty behavior remains unchanged: if no approved OEM source is found, terms stay estimated/not confirmed.
 - Verification passed: focused invoice pipeline tests passed with `17 passed`; full `pytest -q` passed with `153 passed` and the existing three scikit-learn model-version warnings.
+
+## 65. Wrapped invoice line-item reconstruction - 2026-07-27
+
+- Production testing showed the Samsung Amazon-style invoice still fell back to generic `Product` / `N/A` after deployment because the real PDF/OCR text wrapped the item description across multiple lines, while the previous regression covered only the easier one-line pipe-separated item row.
+- Fixed the shared invoice parser globally by reconstructing logical invoice item rows before identity scoring, joining continuation lines containing model/spec/product fragments while stopping at invoice/order date, shipping, total and tax boundaries.
+- The fix is not Samsung-only and does not write forced data into Smart Warranty Hub. It improves the input identity pipeline so any wrapped invoice row can preserve product context before warranty lookup starts.
+- Seller extraction now rejects order-number metadata and pure spec fragments so continuation lines such as RAM/storage details are not misclassified as seller names.
+- The wrapped Samsung test case now extracts brand `Samsung`, product `Samsung Galaxy M17e 5G Mobile (Vibe Violet, 6GB RAM, 128GB Storage)`, model `M17E`, category `mobile`, purchase date `2026-05-01`, invoice number `DEL5-53804`, and no fake serial from `HSN:85171300`.
+- Warranty fact boundaries remain unchanged: better product extraction can trigger controlled OEM lookup, but if an approved official source is not found the app must still show estimated/not confirmed terms.
+- Verification passed: focused invoice pipeline tests passed with `18 passed`; full `pytest -q` passed with `154 passed` and the existing three scikit-learn model-version warnings.
