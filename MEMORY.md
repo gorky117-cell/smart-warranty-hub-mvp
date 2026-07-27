@@ -1049,3 +1049,14 @@ git ls-remote --heads origin
 - This is not an Epson-only fix: the filter targets generic OEM site navigation/marketing labels and preserves real warranty facts such as duration, usage limits, covered components, support, claim and repair terms.
 - Added regression coverage using the exact noisy label pattern while proving `30,000 prints` and `printhead` terms remain intact.
 - Verification passed: focused parser tests passed with `13 passed`; full `pytest -q` passed with `149 passed` and the existing three scikit-learn model-version warnings.
+
+## 63. Global invoice identity hardening - 2026-07-27
+
+- Production testing with a second invoice showed the invoice parser could treat boilerplate/header/spec text as product identity, for example `Original For Recipient` as brand and `IP54` or quantity fragments as model.
+- Fixed the shared invoice identity layer globally, not as a one-off for one PDF: boilerplate labels, recipient/buyer/seller headers, OCR/file-error notes, invoice metadata and spec-only fragments are rejected before brand/model/product fields reach warranty lookup.
+- Pipe-heavy or table-like invoice item lines are split and scored so the strongest product-bearing segment is preferred while standalone specs such as IP ratings, quantities and rates are not promoted to model codes.
+- Product names are cleaned without deleting useful product facts such as `6000 mAh Battery`; unknown brand/model are left missing rather than invented, so OEM lookup stays bounded and unconfirmed terms remain labeled as estimated/default.
+- Added the same sanitizer after optional OpenAI invoice enrichment so AI output cannot reintroduce bad identity fields after deterministic parsing.
+- Preserved the earlier Epson L3250 pipeline: seller/header handling, Epson brand/model extraction, serial extraction, OEM source lookup, terms/RAG/care behavior and summary flow still pass.
+- Added regression coverage for recipient/header/spec misclassification, OCR-note file paths and bad AI enrichment identity fields.
+- Verification passed: focused invoice pipeline tests passed with `16 passed`; full `pytest -q` passed with `152 passed` and the existing three scikit-learn model-version warnings.

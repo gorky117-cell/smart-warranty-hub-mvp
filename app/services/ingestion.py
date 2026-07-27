@@ -16,14 +16,14 @@ _KNOWN_OEMS = (
 _PRODUCT_TERMS = (
     "ac", "air conditioner", "battery", "camera", "desktop", "dishwasher", "fridge",
     "geyser", "headphone", "laptop", "microwave", "mobile", "monitor", "notebook",
-    "phone", "printer", "refrigerator", "router", "scooter", "speaker", "tablet",
-    "television", "tv", "washing machine",
+    "phone", "power bank", "printer", "refrigerator", "router", "scooter", "speaker",
+    "tablet", "television", "tv", "washing machine",
 )
 
 _LINE_NOISE_TERMS = (
     "amount", "bank", "buyer", "cgst", "declaration", "delivery", "dispatch", "email",
-    "gst", "gstin", "hsn", "ifsc", "invoice", "jurisdiction", "pan", "payment", "rate",
-    "rupees", "sgst", "state", "tax", "terms", "total",
+    "gst", "gstin", "hsn", "ifsc", "invoice", "jurisdiction", "original for recipient",
+    "pan", "payment", "recipient", "rupees", "sgst", "state", "tax", "terms", "total",
 )
 
 _RETAILER_MARKERS = (
@@ -44,6 +44,22 @@ _RETAILER_MARKERS = (
     "trade centre",
 )
 
+_FIELD_LABEL_NOISE = (
+    "ack date", "ack no", "address", "bill from", "bill to", "buyer", "customer",
+    "description", "description of goods", "dispatch", "e-way", "gst", "gstin",
+    "invoice", "irn", "original for recipient", "payment", "recipient", "seller",
+    "ship to", "sold by", "supplier", "tax invoice", "terms", "total",
+)
+
+_SPEC_ONLY_PATTERNS = (
+    r"^ip\s*\d{2,3}$",
+    r"^\d+(?:\.\d+)?\s*(mah|ah|wh|w|kw|v|hz|inch|inches|cm|mm|kg|l|litre|liter|gb|tb)$",
+    r"^\d+(?:\.\d+)?\s*(mp|megapixel|hz|mah|gb|tb)\b",
+    r"^(refresh\s+rate|resolution|capacity|colour|color|size|variant)\b",
+    r"^\d+\s*(no|nos|pcs|piece|pieces|qty|quantity)$",
+    r"^\d{1,3}$",
+)
+
 
 def _normalize_spaces(value: str) -> str:
     return re.sub(r"\s+", " ", (value or "")).strip()
@@ -58,6 +74,31 @@ def _looks_like_seller_text(value: str) -> bool:
     if low.startswith(("seller", "sold by", "merchant", "supplier", "retailer")):
         return True
     return any(marker in low for marker in _RETAILER_MARKERS)
+
+
+def _is_boilerplate_line(value: str) -> bool:
+    low = _normalize_spaces(value).lower()
+    if not low:
+        return True
+    if low.startswith("[ocr note]"):
+        return True
+    if "file not found" in low or "ocr note" in low:
+        return True
+    if any(marker in low for marker in _FIELD_LABEL_NOISE):
+        return True
+    return False
+
+
+def _is_spec_only(value: str) -> bool:
+    text = _normalize_spaces(value).strip(":-|").lower()
+    if not text:
+        return True
+    return any(re.search(pattern, text, re.IGNORECASE) for pattern in _SPEC_ONLY_PATTERNS)
+
+
+def _has_product_signal(value: str) -> bool:
+    low = _normalize_spaces(value).lower()
+    return bool(_canonical_oem(low) or any(term in low for term in _PRODUCT_TERMS))
 
 
 def _canonical_oem(value: str) -> Optional[str]:
@@ -79,6 +120,8 @@ def _clean_brand_candidate(raw: str) -> Optional[str]:
     text = _normalize_spaces(raw).strip(":-|")
     if not text:
         return None
+    if _is_boilerplate_line(text) or _is_spec_only(text):
+        return None
     # Remove noisy prefixes that often appear in OCR.
     text = re.sub(r"^(brand|make)\s*[:\-]\s*", "", text, flags=re.IGNORECASE)
     text = re.sub(r"^(seller|sold by|merchant|supplier|retailer)\s*[:\-]\s*", "", text, flags=re.IGNORECASE)
@@ -93,6 +136,8 @@ def _clean_brand_candidate(raw: str) -> Optional[str]:
     text = re.sub(r"\s*(pvt\.?|ltd\.?|private|limited|inc\.?|llc|corp\.?).*$", "", text, flags=re.IGNORECASE).strip()
     if len(text) < 2:
         return None
+    if _is_boilerplate_line(text) or _is_spec_only(text):
+        return None
     return text.title()
 
 
@@ -105,9 +150,25 @@ def _clean_seller_candidate(raw: str) -> Optional[str]:
     low = text.lower()
     if len(text) < 3 or low in ("tax", "tax invoice", "invoice", "bill", "receipt"):
         return None
+    if _is_boilerplate_line(text) or _has_product_signal(text):
+        return None
     if any(term in low for term in ("shop no", "state name", "place of supply", "contact", "e-mail", "email")):
         return None
     return text.title()
+
+
+def _clean_product_name_candidate(raw: str) -> Optional[str]:
+    text = _normalize_spaces(raw).strip(":-|")
+    if not text or _is_boilerplate_line(text):
+        return None
+    text = re.sub(r"^\d+[\.\)]?\s*", "", text)
+    text = re.sub(r"\bIP\s*\d{2,3}\b", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b\d+\s*(?:no|nos|pcs|piece|pieces|qty|quantity)\b", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s+\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?\b.*$", "", text)
+    text = _normalize_spaces(text).strip(":-|")
+    if not text or _is_spec_only(text):
+        return None
+    return text
 
 
 def _infer_product_category(*, product_name: Optional[str], model_code: Optional[str], lowered_text: str) -> Optional[str]:
@@ -158,6 +219,19 @@ def _line_item_candidates(lines: List[str]) -> List[Tuple[int, str]]:
         if len(clean) < 5:
             continue
         low = clean.lower()
+        if _is_boilerplate_line(clean):
+            continue
+        # Split pipe-heavy item descriptions and score the strongest product-bearing segment.
+        segments = [
+            _normalize_spaces(part)
+            for part in re.split(r"\s+\|\s+|\t+", clean)
+            if _normalize_spaces(part)
+        ]
+        if len(segments) > 1:
+            usable = [part for part in segments if not _is_boilerplate_line(part) and not _is_spec_only(part)]
+            if usable:
+                clean = max(usable, key=lambda part: (1 if _has_product_signal(part) else 0, len(part)))
+                low = clean.lower()
         if sum(1 for term in _LINE_NOISE_TERMS if term in low) >= 2:
             continue
         score = 0
@@ -199,8 +273,57 @@ def _model_from_product_line(line: str, brand: Optional[str]) -> Optional[str]:
     for pat in patterns:
         m = re.search(pat, text)
         if m:
-            return _normalize_spaces(m.group(1)).replace(" ", "").upper()
+            candidate = _normalize_spaces(m.group(1)).replace(" ", "").upper()
+            if _is_spec_only(candidate):
+                continue
+            return candidate
     return None
+
+
+def sanitize_invoice_identity_fields(
+    fields: Dict[str, str],
+    confidence: Dict[str, float],
+    alternatives: Optional[Dict[str, List[str]]] = None,
+) -> Tuple[Dict[str, str], Dict[str, float], Dict[str, List[str]]]:
+    """Reject invoice boilerplate/spec fragments before fields reach warranty lookup."""
+    alternatives = dict(alternatives or {})
+    sanitized_fields = dict(fields or {})
+    sanitized_confidence = dict(confidence or {})
+    removed: List[str] = []
+
+    brand = sanitized_fields.get("brand")
+    if brand and (_is_boilerplate_line(brand) or _is_spec_only(brand) or _looks_like_seller_text(brand)):
+        sanitized_fields.pop("brand", None)
+        sanitized_confidence.pop("brand", None)
+        removed.append(f"brand:{brand}")
+
+    model = sanitized_fields.get("model_code")
+    if model and (_is_boilerplate_line(model) or _is_spec_only(model)):
+        sanitized_fields.pop("model_code", None)
+        sanitized_confidence.pop("model_code", None)
+        removed.append(f"model_code:{model}")
+
+    product = sanitized_fields.get("product_name")
+    if product:
+        if _is_boilerplate_line(product) or _is_spec_only(product):
+            sanitized_fields.pop("product_name", None)
+            sanitized_confidence.pop("product_name", None)
+            removed.append(f"product_name:{product}")
+        else:
+            parts = [
+                _normalize_spaces(part)
+                for part in re.split(r"\s+\|\s+|\t+", product)
+                if _normalize_spaces(part) and not _is_boilerplate_line(part) and not _is_spec_only(part)
+            ]
+            if parts and len(parts) != 1:
+                sanitized_fields["product_name"] = max(parts, key=lambda part: (1 if _has_product_signal(part) else 0, len(part)))
+            cleaned_product = _clean_product_name_candidate(sanitized_fields.get("product_name", ""))
+            if cleaned_product:
+                sanitized_fields["product_name"] = cleaned_product
+
+    if removed:
+        alternatives["discarded_identity_candidates"] = removed
+    return sanitized_fields, sanitized_confidence, alternatives
 
 
 def _serial_from_lines(lines: List[str], product_line: Optional[str]) -> Optional[str]:
@@ -320,7 +443,13 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
         # Strategy 2: First non-empty line (usually company name on invoices)
         for line in lines[:5]:  # Check first 5 lines
             line = line.strip()
-            if len(line) > 3 and not line.lower().startswith(('invoice', 'bill', 'receipt', 'tax', 'gst', 'date')):
+            if (
+                len(line) > 3
+                and not line.lower().startswith(('invoice', 'bill', 'receipt', 'tax', 'gst', 'date'))
+                and not _is_boilerplate_line(line)
+                and not _has_product_signal(line)
+                and not re.match(r"^\d+[\.\)]?\s+", line)
+            ):
                 cleaned = _clean_brand_candidate(line)
                 if cleaned and len(cleaned) >= 3:
                     fields["brand"] = cleaned
@@ -331,23 +460,23 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
     # Strategy 1: Explicit "Product:" or "Item:" label
     product_match = re.search(r"(?:product|item name|device)\s*[:\-]\s*([a-zA-Z0-9 \-\.]{3,60})", text, re.IGNORECASE)
     if product_match:
-        val = product_match.group(1).strip()
+        val = _clean_product_name_candidate(product_match.group(1).strip())
         # Exclude header keywords
-        if val.lower() not in ('description', 'hsn', 'sac', 'qty', 'price', 'tax', 'total'):
+        if val and val.lower() not in ('description', 'hsn', 'sac', 'qty', 'price', 'tax', 'total'):
             fields["product_name"] = val.title()
             confidence["product_name"] = 0.7
     
     # Strategy 2: Look for product patterns in line items (e.g., "1. Samsung Galaxy S24")
     if "product_name" not in fields:
         if best_item:
-            fields["product_name"] = best_item
+            fields["product_name"] = _clean_product_name_candidate(best_item) or best_item
             confidence["product_name"] = 0.75
         else:
             item_pattern = r"(?:^|\n)\s*\d+[\.\)]\s*([A-Z][a-zA-Z0-9 \-]{5,50}?)(?:\s+\d|\s+[A-Z]{2,5}\d|\s*$)"
             item_match = re.search(item_pattern, text)
             if item_match:
-                val = item_match.group(1).strip()
-                if val.lower() not in ('description', 'hsn', 'sac', 'qty', 'price', 'tax', 'total'):
+                val = _clean_product_name_candidate(item_match.group(1).strip())
+                if val and val.lower() not in ('description', 'hsn', 'sac', 'qty', 'price', 'tax', 'total'):
                     fields["product_name"] = val.title()
                     confidence["product_name"] = 0.5
 
@@ -369,7 +498,8 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
                 if token not in (
                     "GST", "HSN", "SAC", "INR", "CGST", "SGST", "IGST",
                     "INVOICE", "BILL", "RETAIL", "TAX", "CUSTOMER", "COPY", "TOTAL",
-                ):
+                    "ORIGINAL", "RECIPIENT", "DESCRIPTION", "QUANTITY", "AMOUNT",
+                ) and re.search(r"\d", token) and not _is_spec_only(token):
                     fields["model_code"] = token
                     confidence["model_code"] = 0.4
 
@@ -449,6 +579,8 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
     if product_category:
         fields["product_category"] = product_category
         confidence["product_category"] = max(confidence.get("product_category", 0.0), 0.55)
+
+    fields, confidence, alternatives = sanitize_invoice_identity_fields(fields, confidence, alternatives)
 
     if not confidence:
         alternatives["notes"] = ["No strong signals found; manual entry may be required."]

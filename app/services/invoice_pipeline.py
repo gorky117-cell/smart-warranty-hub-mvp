@@ -17,7 +17,7 @@ from ..db_models import (
 from ..storage import generate_id, store
 from ..models import CanonicalWarranty
 from .ocr import extract_text_with_meta
-from .ingestion import extract_product_fields
+from .ingestion import extract_product_fields, sanitize_invoice_identity_fields
 from .terms_lookup import classify_terms_source_url, lookup_terms
 from .warranty_parser import sanitize_base_terms
 from .oem_domain_verify import verify_or_suggest
@@ -144,6 +144,7 @@ def run_job(job_id: str) -> None:
             fields, confidence, alternatives = extract_product_fields(text)
             enrichment = enrich_invoice_fields(text, fields, confidence)
             fields, confidence, openai_meta = merge_invoice_enrichment(fields, confidence, enrichment)
+            fields, confidence, alternatives = sanitize_invoice_identity_fields(fields, confidence, alternatives)
             if openai_meta:
                 alternatives = dict(alternatives or {})
                 alternatives["openai_invoice_enrichment"] = openai_meta

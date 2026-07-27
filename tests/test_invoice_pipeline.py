@@ -211,6 +211,59 @@ Warranty services and claims, if any to be settled and borne by the manufactures
     assert confidence["brand"] >= 0.8
 
 
+def test_invoice_parser_rejects_recipient_header_and_spec_as_identity():
+    text = """
+Tax Invoice
+Original For Recipient
+Bill To: Gaurav Customer
+Description | Refresh Rate | Monster 6000 mAh Battery | IP54 | 6
+1 Monster 6000 mAh Battery IP54 1 pcs 1,499.00
+Invoice Date: 01-05-2026
+"""
+    fields, confidence, alternatives = extract_product_fields(text)
+
+    assert "brand" not in fields
+    assert fields.get("brand") not in {"Original For Recipient", "(Original For Recipient)", "Recipient"}
+    assert fields.get("model_code") not in {"IP54", "6", "ORIGINAL"}
+    assert fields.get("product_name")
+    assert fields["product_name"] == "Monster 6000 mAh Battery"
+    assert fields["purchase_date"] == "2026-05-01"
+    assert "discarded_identity_candidates" not in alternatives or all(
+        "Monster 6000 mAh Battery" not in item for item in alternatives["discarded_identity_candidates"]
+    )
+
+
+def test_invoice_parser_ignores_ocr_note_file_paths_as_product_identity():
+    text = "[OCR note] File not found: C:\\Users\\lenovo\\Desktop\\invoice.pdf"
+    fields, confidence, alternatives = extract_product_fields(text)
+
+    assert "brand" not in fields
+    assert "product_name" not in fields
+    assert "model_code" not in fields
+    assert alternatives["notes"] == ["No strong signals found; manual entry may be required."]
+
+
+def test_invoice_enrichment_sanitizer_removes_bad_ai_identity_fields():
+    fields = {"product_name": "Monster 6000 mAh Battery"}
+    confidence = {"product_name": 0.75}
+    enrichment = {
+        "fields": {"brand": "(Original For Recipient)", "model_code": "IP54"},
+        "confidence": {"brand": 0.85, "model_code": 0.85},
+    }
+
+    merged_fields, merged_confidence, _ = merge_invoice_enrichment(fields, confidence, enrichment)
+    sanitized_fields, sanitized_confidence, alternatives = invoice_pipeline.sanitize_invoice_identity_fields(
+        merged_fields,
+        merged_confidence,
+        {},
+    )
+
+    assert sanitized_fields == {"product_name": "Monster 6000 mAh Battery"}
+    assert "brand" not in sanitized_confidence
+    assert "model_code" not in sanitized_confidence
+    assert alternatives["discarded_identity_candidates"]
+
+
 def test_canonical_invoice_does_not_invent_unconfirmed_warranty_terms():
     artifact = ingest_artifact(
         ArtifactType.invoice,
