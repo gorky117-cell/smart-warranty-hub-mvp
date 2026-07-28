@@ -109,6 +109,73 @@ def test_strict_preflight_uses_site_query_when_alive(monkeypatch, tmp_path: Path
     assert results[0].official is True
 
 
+def test_official_domain_deep_discovery_queries_support_manual_and_claim(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(wd, "_PREFLIGHT_STRICT", True)
+    monkeypatch.setattr(wd, "_ALLOW_BROAD_FALLBACK", False)
+    monkeypatch.setattr(wd, "_SITE_SEARCH_MAX_QUERIES", 6)
+    monkeypatch.setattr(wd, "_SEARCH_MAX_RESULTS", 3)
+    monkeypatch.setattr(wd, "_OFFICIAL_ONLY", False)
+    monkeypatch.setattr(wd, "load_oem_domains", lambda: {"Samsung": ["samsung.com"]})
+    monkeypatch.setattr(wd, "load_verified_domains", lambda: {"Samsung": ["samsung.com"]})
+    monkeypatch.setattr(wd, "_domain_alive", lambda _domain, timeout: True)
+
+    calls = []
+
+    def _fake_search(query: str, count: int = 5, timeout: int = 6):
+        calls.append(query)
+        if "manual pdf" in query:
+            return [{"url": "https://www.samsung.com/in/support/model/SM-M17E/manual/"}]
+        if "support warranty" in query:
+            return [{"url": "https://www.samsung.com/in/support/warranty/"}]
+        return []
+
+    monkeypatch.setattr(wd, "search_web", _fake_search)
+
+    results = wd.discover_sources(
+        brand="Samsung",
+        model_code="M17E",
+        product_name="Samsung Galaxy M17e 5G Mobile",
+        region="IN",
+        data_path=_empty_sources(tmp_path),
+    )
+
+    assert results
+    assert all(q.startswith("site:samsung.com ") for q in calls)
+    assert any("support warranty" in q for q in calls)
+    assert any("manual pdf" in q for q in calls)
+    assert any("repair service claim" in q for q in calls)
+    assert results[0].official is True
+
+
+def test_model_specific_official_page_scores_above_generic_warranty_page(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(wd, "_PREFLIGHT_STRICT", True)
+    monkeypatch.setattr(wd, "_ALLOW_BROAD_FALLBACK", False)
+    monkeypatch.setattr(wd, "_SITE_SEARCH_MAX_QUERIES", 2)
+    monkeypatch.setattr(wd, "_SEARCH_MAX_RESULTS", 5)
+    monkeypatch.setattr(wd, "_OFFICIAL_ONLY", False)
+    monkeypatch.setattr(wd, "load_oem_domains", lambda: {"Samsung": ["samsung.com"]})
+    monkeypatch.setattr(wd, "load_verified_domains", lambda: {"Samsung": ["samsung.com"]})
+    monkeypatch.setattr(wd, "_domain_alive", lambda _domain, timeout: True)
+
+    def _fake_search(query: str, count: int = 5, timeout: int = 6):
+        return [
+            {"url": "https://www.samsung.com/in/support/warranty/"},
+            {"url": "https://www.samsung.com/in/support/mobile-devices/galaxy-m17e-warranty/"},
+        ]
+
+    monkeypatch.setattr(wd, "search_web", _fake_search)
+
+    results = wd.discover_sources(
+        brand="Samsung",
+        model_code="M17E",
+        product_name="Samsung Galaxy M17e 5G Mobile",
+        region="IN",
+        data_path=_empty_sources(tmp_path),
+    )
+
+    assert results[0].url == "https://www.samsung.com/in/support/mobile-devices/galaxy-m17e-warranty/"
+
+
 def test_non_strict_can_broad_fallback_when_site_queries_fail(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(wd, "_PREFLIGHT_STRICT", False)
     monkeypatch.setattr(wd, "_ALLOW_BROAD_FALLBACK", True)

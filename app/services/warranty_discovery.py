@@ -35,6 +35,7 @@ _TYPE_SCORES = {
     "retail": 40,
 }
 _SEARCH_MAX_QUERIES = int(os.getenv("TERMS_SEARCH_MAX_QUERIES", "2"))
+_SITE_SEARCH_MAX_QUERIES = int(os.getenv("TERMS_SITE_SEARCH_MAX_QUERIES", "6"))
 _SEARCH_MAX_RESULTS = int(os.getenv("TERMS_SEARCH_MAX_RESULTS", "5"))
 _SEARCH_TIMEOUT = int(os.getenv("TERMS_SEARCH_TIMEOUT_SEC", "6"))
 _OFFICIAL_ONLY = os.getenv("TERMS_OFFICIAL_ONLY", "false").strip().lower() in ("1", "true", "yes")
@@ -126,6 +127,110 @@ def _classify_url(url: str) -> str:
     if "product" in lower or "support" in lower:
         return "oem_product"
     return "retail"
+
+
+def _clean_query_part(value: Optional[str]) -> str:
+    return " ".join((value or "").replace("|", " ").split())
+
+
+def _append_unique_query(queries: List[str], value: str) -> None:
+    q = _clean_query_part(value)
+    if not q:
+        return
+    seen = {_normalize(item) for item in queries}
+    if _normalize(q) not in seen:
+        queries.append(q)
+
+
+def _build_official_site_queries(
+    brand: Optional[str],
+    model_code: Optional[str],
+    product_name: Optional[str],
+    region: Optional[str],
+) -> List[str]:
+    """
+    Bounded deep discovery for approved OEM domains.
+
+    This intentionally searches only official-domain pages selected later by
+    `site:{domain}`. It does not enable arbitrary web crawling.
+    """
+    brand_q = _clean_query_part(brand)
+    model_q = _clean_query_part(model_code)
+    product_q = _clean_query_part(product_name)
+    region_q = _clean_query_part(region)
+    subject = " ".join(part for part in [brand_q, product_q or model_q] if part).strip()
+    model_subject = " ".join(part for part in [brand_q, model_q] if part).strip()
+
+    queries: List[str] = []
+    if subject:
+        _append_unique_query(queries, f"{subject} warranty terms claim process")
+        _append_unique_query(queries, f"{subject} support warranty")
+        _append_unique_query(queries, f"{subject} manual pdf")
+        _append_unique_query(queries, f"{subject} repair service claim")
+        _append_unique_query(queries, f"{subject} care maintenance")
+    if model_subject and _normalize(model_subject) != _normalize(subject):
+        _append_unique_query(queries, f"{model_subject} warranty")
+        _append_unique_query(queries, f"{model_subject} support")
+        _append_unique_query(queries, f"{model_subject} manual pdf")
+    if brand_q:
+        _append_unique_query(queries, f"{brand_q} warranty policy {region_q}".strip())
+        _append_unique_query(queries, f"{brand_q} service center warranty claim {region_q}".strip())
+    return queries
+
+
+def _build_broad_queries(
+    brand: Optional[str],
+    model_code: Optional[str],
+    product_name: Optional[str],
+) -> List[str]:
+    queries: List[str] = []
+    if brand and model_code:
+        _append_unique_query(queries, f"{brand} {model_code} warranty terms claim process")
+        _append_unique_query(queries, f"{brand} {model_code} warranty policy pdf")
+    if brand and product_name:
+        _append_unique_query(queries, f"{brand} {product_name} warranty terms")
+    if brand:
+        _append_unique_query(queries, f"{brand} warranty terms conditions")
+    if (not brand) and model_code:
+        _append_unique_query(queries, f"{model_code} warranty terms")
+        _append_unique_query(queries, f"{model_code} warranty policy pdf")
+    if (not brand) and product_name:
+        _append_unique_query(queries, f"{product_name} warranty terms")
+    return queries
+
+
+def _candidate_signal_score(
+    url: str,
+    brand: Optional[str],
+    model_code: Optional[str],
+    product_name: Optional[str],
+) -> int:
+    lower = url.lower()
+    score = 0
+    if brand and _normalize(brand).replace(" ", "") in lower.replace("-", "").replace("_", ""):
+        score += 4
+    if model_code:
+        model_norm = _normalize(model_code).replace(" ", "").replace("-", "")
+        url_norm = lower.replace("-", "").replace("_", "").replace("%20", "")
+        if model_norm and model_norm in url_norm:
+            score += 18
+    if product_name:
+        tokens = [
+            token
+            for token in _clean_query_part(product_name).lower().replace("-", " ").split()
+            if len(token) >= 4
+        ]
+        token_hits = sum(1 for token in tokens[:8] if token in lower)
+        score += min(token_hits * 3, 18)
+    if any(marker in lower for marker in ("warranty", "guarantee", "terms")):
+        score += 12
+    if any(marker in lower for marker in ("support", "service", "repair", "claim")):
+        score += 8
+    if any(marker in lower for marker in ("manual", "pdf", "download")):
+        score += 6
+    if any(marker in lower for marker in ("product", "p/", "model")):
+        score += 4
+    return score
 
 
 def _load_sources(path: Path) -> List[Dict]:
@@ -293,33 +398,14 @@ def discover_sources(
             )
         )
 
-    # Online search (if API key present)
-    queries: List[str] = []
-    if brand and model_code:
-        queries.append(f"{brand} {model_code} warranty terms claim process")
-        queries.append(f"{brand} {model_code} warranty policy pdf")
-    if brand and product_name:
-        queries.append(f"{brand} {product_name} warranty terms")
-    if brand:
-        queries.append(f"{brand} warranty terms conditions")
-    if (not brand) and model_code:
-        queries.append(f"{model_code} warranty terms")
-        queries.append(f"{model_code} warranty policy pdf")
-    if (not brand) and product_name:
-        queries.append(f"{product_name} warranty terms")
+    # Online search (if API key present). Official-domain searches can be
+    # deeper than broad fallback because they are bounded to approved domains.
+    site_queries = _build_official_site_queries(brand, model_code, product_name, region)[
+        : max(_SITE_SEARCH_MAX_QUERIES, 0)
+    ]
+    broad_queries = _build_broad_queries(brand, model_code, product_name)[: max(_SEARCH_MAX_QUERIES, 0)]
 
-    # Preserve order and uniqueness.
-    uniq_queries: List[str] = []
-    seen_queries = set()
-    for q in queries:
-        k = _normalize(q)
-        if not k or k in seen_queries:
-            continue
-        seen_queries.add(k)
-        uniq_queries.append(q)
-    queries = uniq_queries[: max(_SEARCH_MAX_QUERIES, 0)]
-
-    if queries:
+    if site_queries or broad_queries:
         def _append_search_items(search_query: str) -> int:
             added = 0
             items = search_web(search_query, count=_SEARCH_MAX_RESULTS, timeout=_SEARCH_TIMEOUT)
@@ -336,7 +422,13 @@ def discover_sources(
                 if _OFFICIAL_ONLY and brand and not official:
                     continue
                 base = _TYPE_SCORES.get(source_type, 30)
-                score = base + (10 if official else 0) + (15 if verified else 0) + _region_score(region, url)
+                score = (
+                    base
+                    + (10 if official else 0)
+                    + (15 if verified else 0)
+                    + _region_score(region, url)
+                    + _candidate_signal_score(url, brand, model_code, product_name)
+                )
                 results.append(
                     DiscoverySource(
                         url=url,
@@ -354,7 +446,7 @@ def discover_sources(
 
         site_query_hits = 0
         if preflight_alive_domains:
-            for q in queries:
+            for q in site_queries:
                 for domain in preflight_alive_domains:
                     site_query_hits += _append_search_items(f"site:{domain} {q}")
 
@@ -366,7 +458,7 @@ def discover_sources(
             preflight_strict=_PREFLIGHT_STRICT,
         )
         if should_run_broad:
-            for q in queries:
+            for q in broad_queries:
                 _append_search_items(q)
 
     results = [r for r in results if r.url]

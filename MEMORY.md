@@ -1089,3 +1089,13 @@ git ls-remote --heads origin
 - Dropdown rendering now uses DOM option text instead of string-built HTML, preserving behavior while avoiding label injection issues.
 - Added regression tests for Samsung mixed-category official page normalization and saved warranty display labels.
 - Verification passed: focused invoice/terms suite passed with `20 passed`; full `pytest -q` passed with `156 passed` and the existing three scikit-learn model-version warnings.
+
+## 67. Controlled OEM deep discovery - 2026-07-28
+
+- Expanded the shared OEM discovery pipeline globally so extracted brand/model/product can search deeper inside approved official domains before falling back to default estimated terms.
+- Official-domain search now looks for warranty terms, support/warranty pages, manuals/PDFs, repair/service/claim pages and care/maintenance pages using bounded `site:{domain}` queries.
+- Broad web fallback remains controlled by the existing production safety flags; this does not let an agent browse arbitrary websites.
+- Candidate source ranking now rewards approved/verified hosts plus model-code, product-token, warranty, support, service, claim, manual/PDF and region signals.
+- This is not an Epson-only or Samsung-only patch. Samsung is used in regression tests because it exposed the issue, but the code path is the shared discovery service for any brand with approved domains.
+- If the official source is not found or parsing cannot confirm terms, the customer-facing result must still say estimated/not confirmed and must not invent OEM coverage, claim eligibility or free repair.
+- Verification passed: focused discovery tests passed with `9 passed`; focused invoice pipeline tests passed with `20 passed` and the existing three scikit-learn model-version warnings.
