@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from datetime import datetime
 
 from fastapi.testclient import TestClient
 from fpdf import FPDF
@@ -417,6 +418,110 @@ def test_terms_lookup_merges_multiple_controlled_oem_sources(monkeypatch):
     assert "Liquid damage is excluded." in result.exclusions
     assert "Keep invoice and serial number ready." in result.claim_steps
     assert result.source_urls == urls
+
+
+def test_terms_lookup_normalizes_samsung_mobile_official_page(monkeypatch):
+    samsung_url = "https://www.samsung.com/in/support/warranty/"
+
+    def fake_discover_sources(**kwargs):
+        return [
+            DiscoverySource(
+                url=samsung_url,
+                source_type="oem_warranty",
+                score=95,
+                official=True,
+                brand="Samsung",
+                region="IN",
+            )
+        ]
+
+    def fake_parse_terms_from_url(url):
+        assert url == samsung_url
+        return ParsedTerms(
+            duration_months=60,
+            terms=[
+                "Standard coverage for 60 months from purchase date.",
+                "Limited International One Year Warranty",
+                "Warranty does not cover normal wear and tear, including batteries or displays.",
+            ],
+            exclusions=[
+                "Warranty does not cover repair due to external factors.",
+            ],
+            claim_steps=[
+                "News & Alerts",
+                "Warranty Check",
+                "Check Repair Status",
+            ],
+            raw_text=(
+                "Samsung support warranty. Limited International One Year Warranty. "
+                "The limited warranty period of 1 year applies to mobile products."
+            ),
+        ), None
+
+    monkeypatch.setattr(terms_lookup, "discover_sources", fake_discover_sources)
+    monkeypatch.setattr(terms_lookup, "parse_terms_from_url", fake_parse_terms_from_url)
+
+    with SessionLocal() as db:
+        result = lookup_terms(
+            db,
+            brand="Samsung",
+            category="mobile",
+            region="IN",
+            model_code="M17E",
+            product_name="Samsung Galaxy M17e 5G Mobile",
+            force_refresh=True,
+        )
+
+    assert result.duration_months == 12
+    assert not any("60 months" in term for term in result.terms)
+    assert "Limited International One Year Warranty" in result.terms
+    assert "Warranty Check" in result.claim_steps
+    assert "News & Alerts" not in result.claim_steps
+
+
+def test_warranty_list_includes_invoice_and_upload_display_label():
+    warranty_id = "wty_label_test"
+    with SessionLocal() as db:
+        db.query(ParsedFieldDB).filter_by(warranty_id=warranty_id).delete()
+        db.query(WarrantyDB).filter_by(id=warranty_id).delete()
+        warranty = WarrantyDB(
+            id=warranty_id,
+            product_name="Samsung Galaxy M17e 5G Mobile",
+            brand="Samsung",
+            model_code="M17E",
+            purchase_date=datetime(2026, 5, 1),
+            coverage_months=12,
+            expiry_date=datetime(2027, 5, 1),
+            created_at=datetime(2026, 5, 2, 10, 30),
+        )
+        parsed = ParsedFieldDB(
+            warranty_id=warranty_id,
+            brand="Samsung",
+            model_code="M17E",
+            product_name="Samsung Galaxy M17e 5G Mobile",
+            invoice_no="DEL5-53804",
+            purchase_date=datetime(2026, 5, 1),
+            created_at=datetime(2026, 5, 2, 10, 31),
+        )
+        db.add(warranty)
+        db.add(parsed)
+        db.commit()
+
+    client = TestClient(app)
+    login = client.post(
+        "/auth/login",
+        data={"username": "admin", "password": "admin123"},
+        headers={"accept": "application/json"},
+    )
+    assert login.status_code == 200
+    res = client.get("/warranties/list")
+    assert res.status_code == 200
+    item = next(w for w in res.json()["warranties"] if w["id"] == warranty_id)
+    assert item["invoice_no"] == "DEL5-53804"
+    assert "Samsung Galaxy M17e 5G Mobile" in item["display_label"]
+    assert "Inv DEL5-53804" in item["display_label"]
+    assert "Bought 2026-05-01" in item["display_label"]
+    assert "Uploaded 2026-05-02 10:30" in item["display_label"]
 
 
 def test_pipeline_persists_epson_terms_source_after_lookup():

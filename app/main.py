@@ -1725,6 +1725,18 @@ def list_warranties_sorted(
         WarrantyDB.expiry_date.asc().nullslast()
     ).limit(100).all()
 
+    latest_parsed_by_warranty: Dict[str, ParsedFieldDB] = {}
+    if warranties:
+        parsed_rows = (
+            db.query(ParsedFieldDB)
+            .filter(ParsedFieldDB.warranty_id.in_([w.id for w in warranties]))
+            .order_by(ParsedFieldDB.created_at.desc())
+            .all()
+        )
+        for parsed in parsed_rows:
+            if parsed.warranty_id not in latest_parsed_by_warranty:
+                latest_parsed_by_warranty[parsed.warranty_id] = parsed
+
     latest_risk_by_warranty: Dict[str, Dict[str, object]] = {}
     unread_alert_count: Dict[str, int] = {}
     if uid:
@@ -1749,8 +1761,49 @@ def list_warranties_sorted(
             if n.warranty_id:
                 unread_alert_count[n.warranty_id] = unread_alert_count.get(n.warranty_id, 0) + 1
 
+    def _date_label(value) -> Optional[str]:
+        if not value:
+            return None
+        try:
+            return value.strftime("%Y-%m-%d")
+        except Exception:
+            return str(value)
+
+    def _datetime_label(value) -> Optional[str]:
+        if not value:
+            return None
+        try:
+            return value.strftime("%Y-%m-%d %H:%M")
+        except Exception:
+            return str(value)
+
+    def _clean_part(value: Optional[str]) -> Optional[str]:
+        text = " ".join(str(value or "").split()).strip()
+        if not text or text.lower() in {"n/a", "none", "null", "unknown"}:
+            return None
+        return text
+
+    def _warranty_display_label(w: WarrantyDB, parsed: Optional[ParsedFieldDB]) -> str:
+        product = _clean_part(w.product_name) or _clean_part(getattr(parsed, "product_name", None))
+        brand = _clean_part(w.brand) or _clean_part(getattr(parsed, "brand", None))
+        model = _clean_part(w.model_code) or _clean_part(getattr(parsed, "model_code", None))
+        if not product or product.lower() == "product":
+            product = " ".join([p for p in (brand, model) if p]) or "Product"
+        parts = [product]
+        invoice_no = _clean_part(getattr(parsed, "invoice_no", None))
+        purchase_date = w.purchase_date or getattr(parsed, "purchase_date", None)
+        if invoice_no:
+            parts.append(f"Inv {invoice_no}")
+        if purchase_date:
+            parts.append(f"Bought {_date_label(purchase_date)}")
+        if w.created_at:
+            parts.append(f"Uploaded {_datetime_label(w.created_at)}")
+        parts.append(f"Exp {_date_label(w.expiry_date)}" if w.expiry_date else "Exp No expiry")
+        return " | ".join([p for p in parts if p])
+
     result = []
     for w in warranties:
+        parsed = latest_parsed_by_warranty.get(w.id)
         risk_meta = latest_risk_by_warranty.get(w.id, {})
         st = compute_warranty_status(
             purchase_date=w.purchase_date,
@@ -1767,6 +1820,9 @@ def list_warranties_sorted(
             "expiry_date": w.expiry_date.isoformat() if w.expiry_date else None,
             "coverage_months": w.coverage_months,
             "created_at": w.created_at.isoformat() if w.created_at else None,
+            "uploaded_at": w.created_at.isoformat() if w.created_at else None,
+            "invoice_no": parsed.invoice_no if parsed else None,
+            "display_label": _warranty_display_label(w, parsed),
             "risk_label": risk_meta.get("risk_label"),
             "risk_score": risk_meta.get("risk_score"),
             "alert_count": unread_alert_count.get(w.id, 0),

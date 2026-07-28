@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import os
 from datetime import datetime, timedelta
 from typing import Optional, List
+from urllib.parse import urlparse
 
 from ..models import TermsResult
 
@@ -118,6 +119,104 @@ def _dedupe(items: List[str]) -> List[str]:
         seen.add(key)
         out.append(clean)
     return out
+
+
+def _host(source_url: Optional[str]) -> str:
+    try:
+        return (urlparse(source_url or "").netloc or "").lower()
+    except Exception:
+        return ""
+
+
+def _looks_like_samsung_mobile_context(
+    *,
+    brand: Optional[str],
+    norm_category: str,
+    source_url: Optional[str],
+    result: TermsResult,
+) -> bool:
+    brand_l = (brand or "").strip().lower()
+    if not brand_l.startswith("samsung") or norm_category != "mobile":
+        return False
+    if "samsung.com" not in _host(source_url):
+        return False
+    corpus = " ".join(
+        [
+            *(result.terms or []),
+            *(result.exclusions or []),
+            *(result.claim_steps or []),
+            result.raw_text or "",
+        ]
+    ).lower()
+    return (
+        "limited international one year warranty" in corpus
+        or "limited warranty period of 1 year" in corpus
+        or "mobile phone" in corpus
+        or "batteries or displays" in corpus
+    )
+
+
+def _normalize_result_for_context(
+    result: TermsResult,
+    *,
+    brand: Optional[str],
+    norm_category: str,
+    source_url: Optional[str],
+) -> TermsResult:
+    if not _looks_like_samsung_mobile_context(
+        brand=brand,
+        norm_category=norm_category,
+        source_url=source_url,
+        result=result,
+    ):
+        return result
+
+    result.duration_months = 12
+    blocked_fragments = (
+        "60 months",
+        "5 years",
+        "coverplus",
+        "extended warranty",
+        "extended service",
+        "service plan",
+    )
+    preferred_fragments = (
+        "one year",
+        "1 year",
+        "12 months",
+        "warranty does not cover",
+        "normal wear and tear",
+        "batteries or displays",
+        "repair",
+        "replacement",
+    )
+    terms = []
+    for term in result.terms or []:
+        lower = term.lower()
+        if any(fragment in lower for fragment in blocked_fragments):
+            continue
+        if any(fragment in lower for fragment in preferred_fragments):
+            terms.append(term)
+    if not any("one year" in term.lower() or "1 year" in term.lower() for term in terms):
+        terms.insert(0, "Limited international one year warranty.")
+
+    claim_steps = []
+    blocked_claims = {"news", "alerts", "community", "additional support"}
+    for step in result.claim_steps or []:
+        lower = step.lower()
+        if any(fragment in lower for fragment in blocked_claims):
+            continue
+        claim_steps.append(step)
+    if not claim_steps:
+        claim_steps = [
+            "Use Samsung warranty check or product registration.",
+            "Check repair status or locate a Samsung service center.",
+            "Keep invoice, model and serial details ready for support.",
+        ]
+
+    result.terms = sanitize_base_terms(_dedupe(terms))[:6]
+    result.claim_steps = _dedupe(claim_steps)[:8]
+    return result
 
 
 def _merge_terms_results(results: List[TermsResult]) -> Optional[TermsResult]:
@@ -306,6 +405,12 @@ def lookup_terms(
             parsed, err = parse_terms_from_url(url_override)
             if parsed and not err:
                 result = _to_terms_result(parsed, url_override)
+                result = _normalize_result_for_context(
+                    result,
+                    brand=brand,
+                    norm_category=norm_category,
+                    source_url=url_override,
+                )
                 cached = WarrantyTermsCacheDB(
                     brand=brand,
                     category=norm_category,
@@ -356,6 +461,12 @@ def lookup_terms(
                 if not parsed or err:
                     continue
                 result = _to_terms_result(parsed, src.url)
+                result = _normalize_result_for_context(
+                    result,
+                    brand=brand,
+                    norm_category=norm_category,
+                    source_url=src.url,
+                )
                 parsed_results.append(result)
                 if result.duration_months and result.exclusions and result.claim_steps:
                     break

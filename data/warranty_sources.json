@@ -28,6 +28,18 @@
     "notes": "Synthetic dev/test source only. Not an official OEM warranty document."
   },
   {
+    "id": "samsung_india_official_warranty",
+    "title": "Samsung India official warranty support",
+    "brand": "Samsung",
+    "product_type": "mobile",
+    "region": "IN",
+    "source_type": "oem_warranty",
+    "url": "https://www.samsung.com/in/support/warranty/",
+    "official": true,
+    "synthetic": false,
+    "notes": "Official Samsung India warranty support page used for controlled OEM warranty lookup."
+  },
+  {
     "id": "epson_l3250_in_official_product_warranty",
     "title": "Epson EcoTank L3250 India official product warranty",
     "brand": "Epson",

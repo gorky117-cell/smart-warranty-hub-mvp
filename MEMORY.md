@@ -1078,3 +1078,14 @@ git ls-remote --heads origin
 - The wrapped Samsung test case now extracts brand `Samsung`, product `Samsung Galaxy M17e 5G Mobile (Vibe Violet, 6GB RAM, 128GB Storage)`, model `M17E`, category `mobile`, purchase date `2026-05-01`, invoice number `DEL5-53804`, and no fake serial from `HSN:85171300`.
 - Warranty fact boundaries remain unchanged: better product extraction can trigger controlled OEM lookup, but if an approved official source is not found the app must still show estimated/not confirmed terms.
 - Verification passed: focused invoice pipeline tests passed with `18 passed`; full `pytest -q` passed with `154 passed` and the existing three scikit-learn model-version warnings.
+
+## 66. Samsung OEM lookup and saved warranty identity labels - 2026-07-28
+
+- Added a controlled Samsung India official warranty support source to the approved source library so Samsung mobile invoices can trigger OEM lookup from extracted brand/model/product instead of falling straight to default rules.
+- Kept `oem_verified.json` empty: Samsung remains approved through OEM domain policy, but it is not elevated to admin-verified trust without explicit admin verification.
+- Added category-aware Samsung mobile normalization in `terms_lookup`: Samsung's official warranty page can mix product categories, so mobile/phone lookups now keep one-year mobile warranty facts and reject unrelated 60-month, 5-year and optional-plan terms from other categories.
+- This is global Samsung mobile warranty lookup behavior, not tied to one invoice ID. If another Samsung phone invoice extracts brand/category/model, it uses the same controlled source path and same mixed-category guard.
+- Added invoice-aware saved warranty labels to `/warranties/list` and the Neo dashboard dropdown: product, invoice number, purchase date, uploaded date/time and expiry are shown when available.
+- Dropdown rendering now uses DOM option text instead of string-built HTML, preserving behavior while avoiding label injection issues.
+- Added regression tests for Samsung mixed-category official page normalization and saved warranty display labels.
+- Verification passed: focused invoice/terms suite passed with `20 passed`; full `pytest -q` passed with `156 passed` and the existing three scikit-learn model-version warnings.

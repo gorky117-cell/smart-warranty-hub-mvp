@@ -1355,6 +1355,14 @@
         return id ? `${base} (${id})` : base;
       }
 
+      function warrantyDropdownLabel(w) {
+        if (w && w.display_label) return String(w.display_label);
+        const label = productLabelWithId(w);
+        const expiry = w && w.expiry_date ? new Date(w.expiry_date).toLocaleDateString() : 'No expiry';
+        const model = w && w.model_code ? String(w.model_code) : (w && w.id ? String(w.id) : '');
+        return `${label}${model ? ` - ${model}` : ''} (Exp: ${expiry})`;
+      }
+
       function buildProductLabel({ brand, model, type, warrantyId, product_name }) {
         const base = (product_name || [brand, model].filter(Boolean).join(' ').trim() || 'Product').trim();
         const typeLabel = (type && typeof type === 'string') ? type.trim() : '';
@@ -3099,11 +3107,16 @@
           const warranties = data.warranties || [];
           warranties.forEach((w) => updateWarrantyLabel(w));
 
-          dropdown.innerHTML = '<option value="">-- Select a warranty (' + warranties.length + ' saved) --</option>';
+          dropdown.textContent = '';
+          const placeholder = document.createElement('option');
+          placeholder.value = '';
+          placeholder.textContent = `-- Select a warranty (${warranties.length} saved) --`;
+          dropdown.appendChild(placeholder);
           warranties.forEach(w => {
-            const label = productLabelWithId(w);
-            const expiry = w.expiry_date ? new Date(w.expiry_date).toLocaleDateString() : 'No expiry';
-            dropdown.innerHTML += `<option value="${w.id}">${label} - ${w.model_code || w.id} (Exp: ${expiry})</option>`;
+            const option = document.createElement('option');
+            option.value = w.id;
+            option.textContent = warrantyDropdownLabel(w);
+            dropdown.appendChild(option);
           });
         } catch (e) {
           dropdown.innerHTML = '<option value="">-- No warranties found --</option>';
