@@ -318,6 +318,65 @@ Shipping Charges
     assert "Samsung Galaxy M17e 5G Mobile" in alternatives["product_line"][0]
 
 
+def test_invoice_parser_rejects_address_block_and_extracts_later_wrapped_samsung_item():
+    text = """
+Tax Invoice
+Sold By : Sattva Horizon Private Limited
+Billing Address :
+Gaurav
+Reet/Killa Nos. 38//8/2 min, 192//22/1, 196//2/1/1,
+37//15/1, 15/2,, Adjacent to Starex School, Village
+- Binola, National Highway -8, Tehsil - Manesar
+Gurgaon, Haryana, 122413
+Shipping Address :
+Gaurav
+79/1nashvilla road, Near dastaana factory
+DEHRADUN, UTTARAKHAND, 248001
+Place of supply: UTTARAKHAND
+Place of delivery: UTTARAKHAND
+Order Number: 171-8910655-3956348
+Order Date: 01.05.2026
+Invoice Number : DEL5-53804
+Invoice Details : HR-DEL5-1224631255-2627
+Invoice Date : 02.05.2026
+Sl. No Description Unit Price Discount Qty Net Amount Tax Rate Tax Type Tax Amount Total Amount
+1 Samsung Galaxy M17e 5G Mobile (Vibe Violet,
+6GB RAM, 128GB Storage) | Smoothest 120 Hz
+Refresh Rate| Monster 6000 mAh Battery | IP54 | 6
+Gen OS Upgrades | AI | Gemini Live | Without
+Charger | B0GN1NNYXF (
+SMNG-M17e-VIOLET-6+128GB )
+HSN:85171300
+Shipping Charges
+"""
+    fields, confidence, alternatives = extract_product_fields(text)
+
+    assert fields["brand"] == "Samsung"
+    assert fields["model_code"] == "M17E"
+    assert fields["product_name"] == "Samsung Galaxy M17e 5G Mobile (Vibe Violet, 6GB RAM, 128GB Storage)"
+    assert fields["purchase_date"] == "2026-05-01"
+    assert fields["invoice_no"] == "DEL5-53804"
+    assert fields["product_category"] == "mobile"
+    assert fields.get("serial_no") != "85171300"
+    assert "Sattva" not in fields["product_name"]
+    assert "Survey" not in fields["product_name"]
+    assert "Samsung Galaxy M17e 5G Mobile" in alternatives["product_line"][0]
+
+
+def test_invoice_parser_strips_merged_table_header_before_samsung_item():
+    text = """
+Tax Invoice
+Invoice Date : 02.05.2026
+Sl. No Description Unit Price Discount Qty Net Amount Tax Rate Tax Type Tax Amount Total Amount 1 Samsung Galaxy M17e 5G Mobile (Vibe Violet, 6GB RAM, 128GB Storage) | Smoothest 120 Hz Refresh Rate| Monster 6000 mAh Battery | IP54 | 6 Gen OS Upgrades | AI | Gemini Live | Without Charger | B0GN1NNYXF ( SMNG-M17e-VIOLET-6+128GB ) HSN:85171300
+"""
+    fields, confidence, alternatives = extract_product_fields(text)
+
+    assert fields["brand"] == "Samsung"
+    assert fields["model_code"] == "M17E"
+    assert fields["product_name"] == "Samsung Galaxy M17e 5G Mobile (Vibe Violet, 6GB RAM, 128GB Storage)"
+    assert "Description Unit Price" not in alternatives["product_line"][0]
+
+
 def test_invoice_parser_ignores_ocr_note_file_paths_as_product_identity():
     text = "[OCR note] File not found: C:\\Users\\lenovo\\Desktop\\invoice.pdf"
     fields, confidence, alternatives = extract_product_fields(text)

@@ -1108,3 +1108,12 @@ git ls-remote --heads origin
 - Added a summary fallback so OpenAI/Mistral/template provider errors cannot turn an otherwise successful extraction/upload into an upstream failure.
 - This is global pipeline hardening, not a Samsung-only or invoice-only patch; Epson/OEM lookup, RAG, behavior questions, predictive risk, telemetry and agent surfaces remain intact.
 - Verification passed: focused invoice pipeline tests passed with `24 passed`; full `pytest -q` passed with `162 passed` and the existing three scikit-learn model-version warnings.
+
+## 69. Address-heavy invoice identity rejection - 2026-07-28
+
+- Production testing showed another global invoice-shape bug: seller/billing/shipping/address blocks could be scored before the real product row, so records could show address text such as `Sattva Horizon, Survey No...` as the product name.
+- Fixed the shared invoice parser so address/location/legal/supply blocks are rejected before product identity scoring, even when they contain product-like words elsewhere in the OCR text.
+- Added a table-header stripper for OCR-merged rows such as `Description Unit Price ... Samsung Galaxy ...`, so the actual item can still be extracted when invoice table headers and item descriptions are collapsed into one line.
+- Preserved wrapped ecommerce invoice extraction and the existing Epson and Samsung OEM lookup paths. This fix improves global invoice identity extraction; it does not hard-code one invoice ID or force Samsung/Epson data into the database.
+- Controlled OEM lookup behavior remains bounded: once brand/model/product are extracted, approved official-source lookup can run; if official evidence is not found, the UI must stay estimated/not confirmed.
+- Verification passed: focused invoice pipeline tests passed with `26 passed`; full `pytest -q` passed with `164 passed` and the existing three scikit-learn model-version warnings.

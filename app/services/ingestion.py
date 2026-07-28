@@ -51,6 +51,14 @@ _FIELD_LABEL_NOISE = (
     "ship to", "sold by", "supplier", "tax invoice", "terms", "total",
 )
 
+_ADDRESS_MARKERS = (
+    "adjacent", "billing address", "city", "country", "dehradun", "district",
+    "gurgaon", "haryana", "kattigenahalli", "landmark", "manesar", "nagar",
+    "near", "pincode", "place of delivery", "place of supply", "postal",
+    "road", "ship to", "shipping address", "state code", "state/ut", "street",
+    "survey no", "tehsil", "uttarakhand", "village", "vinayak",
+)
+
 _SPEC_ONLY_PATTERNS = (
     r"^ip\s*\d{2,3}$",
     r"^\d+(?:\.\d+)?\s*(mah|ah|wh|w|kw|v|hz|inch|inches|cm|mm|kg|l|litre|liter|gb|tb)$",
@@ -86,6 +94,8 @@ def _is_boilerplate_line(value: str) -> bool:
         return True
     if any(marker in low for marker in _FIELD_LABEL_NOISE):
         return True
+    if _looks_like_address_text(value):
+        return True
     return False
 
 
@@ -99,6 +109,61 @@ def _is_spec_only(value: str) -> bool:
 def _has_product_signal(value: str) -> bool:
     low = _normalize_spaces(value).lower()
     return bool(_canonical_oem(low) or any(term in low for term in _PRODUCT_TERMS))
+
+
+def _looks_like_address_text(value: str) -> bool:
+    text = _normalize_spaces(value)
+    low = text.lower()
+    if not low:
+        return True
+    hard_markers = (
+        "shipping address", "billing address", "place of supply", "place of delivery",
+        "state/ut", "state code",
+    )
+    if any(marker in low for marker in hard_markers):
+        return True
+    marker_hits = sum(1 for marker in _ADDRESS_MARKERS if marker in low)
+    has_pin = bool(re.search(r"\b\d{5,6}\b", low))
+    has_plot_or_house = bool(re.search(r"\b\d+/\d+(?:/\d+)?\b", low))
+    many_commas = text.count(",") >= 2
+    if marker_hits >= 2:
+        return True
+    if marker_hits and (has_pin or has_plot_or_house or many_commas):
+        return True
+    if has_pin and many_commas:
+        return True
+    if _has_product_signal(text):
+        return False
+    return False
+
+
+def _strip_invoice_table_prefix(value: str) -> str:
+    """Remove OCR-merged table headers before product identity scoring."""
+    text = _normalize_spaces(value)
+    low = text.lower()
+    if "description" not in low:
+        return text
+
+    oem_pattern = "|".join(re.escape(oem) for oem in sorted(_KNOWN_OEMS, key=len, reverse=True))
+    if oem_pattern:
+        for match in re.finditer(rf"\b(?:{oem_pattern})\b", text, re.IGNORECASE):
+            prefix = text[: match.start()].lower()
+            if any(marker in prefix for marker in ("description", "unit price", "net amount", "tax rate")):
+                candidate = text[match.start():].strip(" :-|")
+                if _has_product_signal(candidate):
+                    return candidate
+
+    term_pattern = "|".join(re.escape(term) for term in sorted(_PRODUCT_TERMS, key=len, reverse=True))
+    if term_pattern:
+        for match in re.finditer(rf"\b(?:{term_pattern})\b", text, re.IGNORECASE):
+            prefix = text[: match.start()].lower()
+            if "description" not in prefix:
+                continue
+            candidate = text[match.start():].strip(" :-|")
+            if _has_product_signal(candidate):
+                return candidate
+
+    return text
 
 
 def _canonical_oem(value: str) -> Optional[str]:
@@ -120,7 +185,7 @@ def _clean_brand_candidate(raw: str) -> Optional[str]:
     text = _normalize_spaces(raw).strip(":-|")
     if not text:
         return None
-    if _is_boilerplate_line(text) or _is_spec_only(text):
+    if _is_boilerplate_line(text) or _is_spec_only(text) or _looks_like_address_text(text):
         return None
     # Remove noisy prefixes that often appear in OCR.
     text = re.sub(r"^(brand|make)\s*[:\-]\s*", "", text, flags=re.IGNORECASE)
@@ -130,13 +195,13 @@ def _clean_brand_candidate(raw: str) -> Optional[str]:
     text = _normalize_spaces(text).strip(":-|")
     if len(text) < 2:
         return None
-    if _looks_like_seller_text(text):
+    if _looks_like_seller_text(text) or _looks_like_address_text(text):
         return None
     # Trim common legal suffixes.
     text = re.sub(r"\s*(pvt\.?|ltd\.?|private|limited|inc\.?|llc|corp\.?).*$", "", text, flags=re.IGNORECASE).strip()
     if len(text) < 2:
         return None
-    if _is_boilerplate_line(text) or _is_spec_only(text):
+    if _is_boilerplate_line(text) or _is_spec_only(text) or _looks_like_address_text(text):
         return None
     return text.title()
 
@@ -154,7 +219,7 @@ def _clean_seller_candidate(raw: str) -> Optional[str]:
     low = text.lower()
     if len(text) < 3 or low in ("tax", "tax invoice", "invoice", "bill", "receipt"):
         return None
-    if _is_boilerplate_line(text) or _is_spec_only(text) or _has_product_signal(text):
+    if _is_boilerplate_line(text) or _is_spec_only(text) or _has_product_signal(text) or _looks_like_address_text(text):
         return None
     if any(term in low for term in ("shop no", "state name", "place of supply", "contact", "e-mail", "email")):
         return None
@@ -229,7 +294,7 @@ def _logical_invoice_lines(lines: List[str]) -> List[str]:
 
 
 def _clean_product_name_candidate(raw: str) -> Optional[str]:
-    text = _normalize_spaces(raw).strip(":-|")
+    text = _strip_invoice_table_prefix(raw).strip(":-|")
     if not text or _is_boilerplate_line(text):
         return None
     text = re.sub(r"^\d+[\.\)]?\s*", "", text)
@@ -239,7 +304,7 @@ def _clean_product_name_candidate(raw: str) -> Optional[str]:
     text = re.sub(r"\b\d+\s*(?:no|nos|pcs|piece|pieces|qty|quantity)\b", "", text, flags=re.IGNORECASE)
     text = re.sub(r"\s+\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?\b.*$", "", text)
     text = _normalize_spaces(text).strip(":-|")
-    if not text or _is_spec_only(text):
+    if not text or _is_spec_only(text) or _looks_like_address_text(text):
         return None
     return text
 
@@ -288,11 +353,11 @@ def _infer_product_category(*, product_name: Optional[str], model_code: Optional
 def _line_item_candidates(lines: List[str]) -> List[Tuple[int, str]]:
     candidates: List[Tuple[int, str]] = []
     for line in lines:
-        clean = _normalize_spaces(line)
+        clean = _strip_invoice_table_prefix(line)
         if len(clean) < 5:
             continue
         low = clean.lower()
-        if _is_boilerplate_line(clean):
+        if _is_boilerplate_line(clean) or _looks_like_address_text(clean):
             continue
         # Split pipe-heavy item descriptions and score the strongest product-bearing segment.
         segments = [
@@ -301,7 +366,11 @@ def _line_item_candidates(lines: List[str]) -> List[Tuple[int, str]]:
             if _normalize_spaces(part)
         ]
         if len(segments) > 1:
-            usable = [part for part in segments if not _is_boilerplate_line(part) and not _is_spec_only(part)]
+            usable = [
+                part
+                for part in segments
+                if not _is_boilerplate_line(part) and not _is_spec_only(part) and not _looks_like_address_text(part)
+            ]
             if usable:
                 clean = max(usable, key=lambda part: (1 if _has_product_signal(part) else 0, len(part)))
                 low = clean.lower()
@@ -327,7 +396,7 @@ def _line_item_candidates(lines: List[str]) -> List[Tuple[int, str]]:
 
 
 def _strip_line_item_noise(line: str) -> str:
-    text = re.sub(r"^\d+[\.\)]?\s*", "", _normalize_spaces(line))
+    text = re.sub(r"^\d+[\.\)]?\s*", "", _strip_invoice_table_prefix(line))
     text = re.split(r"\s+\d{6,}\b", text, maxsplit=1)[0]
     text = re.split(r"\s+\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?\b", text, maxsplit=1)[0]
     return _normalize_spaces(text).strip(":-|")
