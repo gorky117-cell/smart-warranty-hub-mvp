@@ -287,6 +287,37 @@ Shipping Charges
     assert "Samsung Galaxy M17e 5G Mobile" in alternatives["product_line"][0]
 
 
+def test_invoice_parser_handles_standalone_row_marker_wrapped_samsung_mobile():
+    text = """
+Tax Invoice
+Order Number: 171-8910655-3956348
+Order Date: 01.05.2026
+Invoice Number : DEL5-53804
+Invoice Details : HR-DEL5-1224631255-2627
+Invoice Date : 02.05.2026
+Sl. No Description Unit Price Discount Qty Net Amount Tax Rate Tax Type Tax Amount Total Amount
+1
+Samsung Galaxy M17e 5G Mobile (Vibe Violet,
+6GB RAM, 128GB Storage) | Smoothest 120 Hz
+Refresh Rate| Monster 6000 mAh Battery | IP54 | 6
+Gen OS Upgrades | AI | Gemini Live | Without
+Charger | B0GN1NNYXF (
+SMNG-M17e-VIOLET-6+128GB )
+HSN:85171300
+Shipping Charges
+"""
+    fields, confidence, alternatives = extract_product_fields(text)
+
+    assert fields["brand"] == "Samsung"
+    assert fields["model_code"] == "M17E"
+    assert fields["product_name"] == "Samsung Galaxy M17e 5G Mobile (Vibe Violet, 6GB RAM, 128GB Storage)"
+    assert fields["purchase_date"] == "2026-05-01"
+    assert fields["invoice_no"] == "DEL5-53804"
+    assert fields["product_category"] == "mobile"
+    assert fields.get("serial_no") != "85171300"
+    assert "Samsung Galaxy M17e 5G Mobile" in alternatives["product_line"][0]
+
+
 def test_invoice_parser_ignores_ocr_note_file_paths_as_product_identity():
     text = "[OCR note] File not found: C:\\Users\\lenovo\\Desktop\\invoice.pdf"
     fields, confidence, alternatives = extract_product_fields(text)
@@ -524,6 +555,48 @@ def test_warranty_list_includes_invoice_and_upload_display_label():
     assert "Uploaded 2026-05-02 10:30" in item["display_label"]
 
 
+def test_warranty_list_prefers_parsed_product_when_warranty_is_placeholder():
+    warranty_id = "wty_label_placeholder"
+    with SessionLocal() as db:
+        db.query(ParsedFieldDB).filter_by(warranty_id=warranty_id).delete()
+        db.query(WarrantyDB).filter_by(id=warranty_id).delete()
+        warranty = WarrantyDB(
+            id=warranty_id,
+            product_name="Product",
+            brand=None,
+            model_code=None,
+            purchase_date=datetime(2026, 5, 1),
+            coverage_months=12,
+            expiry_date=datetime(2027, 5, 1),
+            created_at=datetime(2026, 5, 2, 10, 30),
+        )
+        parsed = ParsedFieldDB(
+            warranty_id=warranty_id,
+            brand="Samsung",
+            model_code="M17E",
+            product_name="Samsung Galaxy M17e 5G Mobile",
+            invoice_no="DEL5-53804",
+            purchase_date=datetime(2026, 5, 1),
+            created_at=datetime(2026, 5, 2, 10, 31),
+        )
+        db.add(warranty)
+        db.add(parsed)
+        db.commit()
+
+    client = TestClient(app)
+    login = client.post(
+        "/auth/login",
+        data={"username": "admin", "password": "admin123"},
+        headers={"accept": "application/json"},
+    )
+    assert login.status_code == 200
+    res = client.get("/warranties/list")
+    assert res.status_code == 200
+    item = next(w for w in res.json()["warranties"] if w["id"] == warranty_id)
+    assert item["display_label"].startswith("Samsung Galaxy M17e 5G Mobile | Inv DEL5-53804")
+    assert "Uploaded 2026-05-02 10:30" in item["display_label"]
+
+
 def test_pipeline_persists_epson_terms_source_after_lookup():
     artifact = ingest_artifact(
         ArtifactType.invoice,
@@ -603,3 +676,65 @@ def test_pipeline_force_refreshes_terms_for_new_upload(monkeypatch):
 
     assert calls
     assert calls[0]["force_refresh"] is True
+
+
+def test_terms_lookup_runs_when_identity_exists_even_with_default_coverage():
+    warranty = WarrantyDB(
+        id="wty_lookup_identity",
+        product_name="Samsung Galaxy M17e 5G Mobile",
+        brand="Samsung",
+        model_code="M17E",
+        coverage_months=12,
+    )
+    placeholder = WarrantyDB(
+        id="wty_lookup_placeholder",
+        product_name="Product",
+        brand=None,
+        model_code=None,
+        coverage_months=12,
+    )
+
+    assert invoice_pipeline._has_terms_lookup_identity(warranty, {}) is True
+    assert invoice_pipeline._has_terms_lookup_identity(placeholder, {}) is False
+
+
+def test_pipeline_summary_upstream_error_does_not_fail_upload(monkeypatch):
+    def fake_lookup_terms(*args, **kwargs):
+        return None
+
+    def fail_summary(*args, **kwargs):
+        raise RuntimeError("upstream error")
+
+    monkeypatch.setattr(invoice_pipeline, "lookup_terms", fake_lookup_terms)
+    monkeypatch.setattr(invoice_pipeline, "summarize_warranty", fail_summary)
+    monkeypatch.setattr(invoice_pipeline, "build_structured_summary", fail_summary)
+
+    artifact = ingest_artifact(
+        ArtifactType.invoice,
+        content=(
+            "Tax Invoice\n"
+            "Order Date: 01.05.2026\n"
+            "Invoice Number : DEL5-53804\n"
+            "Invoice Date : 02.05.2026\n"
+            "1 Samsung Galaxy M17e 5G Mobile (Vibe Violet, 6GB RAM, 128GB Storage)\n"
+        ),
+    )
+    warranty = canonicalize_artifact(artifact, None)
+    with SessionLocal() as db:
+        job = invoice_pipeline.create_job(
+            db,
+            warranty_id=warranty.id,
+            artifact_id=artifact.id,
+            source_path=None,
+        )
+
+    invoice_pipeline.run_job(job.id)
+
+    with SessionLocal() as db:
+        job_row = db.query(PipelineJobDB).filter_by(id=job.id).first()
+        summary = db.query(WarrantySummaryDB).filter_by(warranty_id=warranty.id).first()
+
+    assert job_row.status == "done"
+    assert job_row.error is None
+    assert summary is not None
+    assert summary.source == "template_fallback"

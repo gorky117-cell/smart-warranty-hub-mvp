@@ -74,6 +74,36 @@ def get_job(db: Session, job_id: str) -> Optional[Dict[str, Any]]:
     }
 
 
+def _lookup_identity_text(value: object) -> str:
+    text = " ".join(str(value or "").split()).strip()
+    if text.lower() in {"", "product", "n/a", "none", "null", "unknown"}:
+        return ""
+    return text
+
+
+def _has_terms_lookup_identity(warranty: WarrantyDB, fields: Dict[str, Any]) -> bool:
+    brand = _lookup_identity_text(warranty.brand or fields.get("brand"))
+    model = _lookup_identity_text(warranty.model_code or fields.get("model_code"))
+    product = _lookup_identity_text(warranty.product_name or fields.get("product_name"))
+    return bool(brand and (model or product))
+
+
+def _safe_summary(canonical: CanonicalWarranty) -> tuple[str, str, Dict[str, Any]]:
+    try:
+        summary_text, source = summarize_warranty(canonical)
+    except Exception:
+        summary_text = (
+            f"{canonical.product_name or 'Product'} warranty record saved. "
+            "Warranty terms could not be summarized by the configured intelligence provider."
+        )
+        source = "template_fallback"
+    try:
+        structured = build_structured_summary(canonical)
+    except Exception:
+        structured = {"points": [], "tags": ["summary_fallback"]}
+    return summary_text, source, structured
+
+
 def _parse_date(value: str | None) -> Optional[date]:
     if not value:
         return None
@@ -142,8 +172,15 @@ def run_job(job_id: str) -> None:
 
             _set_job_status(db, job, "parsed_fields")
             fields, confidence, alternatives = extract_product_fields(text)
-            enrichment = enrich_invoice_fields(text, fields, confidence)
-            fields, confidence, openai_meta = merge_invoice_enrichment(fields, confidence, enrichment)
+            try:
+                enrichment = enrich_invoice_fields(text, fields, confidence)
+                fields, confidence, openai_meta = merge_invoice_enrichment(fields, confidence, enrichment)
+            except Exception as exc:
+                openai_meta = {
+                    "provider": "openai_invoice_enrichment",
+                    "error": "upstream_error",
+                    "error_type": exc.__class__.__name__,
+                }
             fields, confidence, alternatives = sanitize_invoice_identity_fields(fields, confidence, alternatives)
             if openai_meta:
                 alternatives = dict(alternatives or {})
@@ -176,17 +213,21 @@ def run_job(job_id: str) -> None:
 
             _set_job_status(db, job, "terms_lookup")
             terms_result = None
-            # Only search if coverage wasn't present in parsed fields
-            if not fields.get("coverage_months"):
-                terms_result = lookup_terms(
-                    db,
-                    brand=warranty.brand,
-                    category=fields.get("product_category"),
-                    region=warranty.region_code,
-                    model_code=warranty.model_code,
-                    product_name=warranty.product_name,
-                    force_refresh=True,
-                )
+            terms_lookup_error = None
+            should_lookup_terms = _has_terms_lookup_identity(warranty, fields) or not fields.get("coverage_months")
+            if should_lookup_terms:
+                try:
+                    terms_result = lookup_terms(
+                        db,
+                        brand=warranty.brand,
+                        category=fields.get("product_category"),
+                        region=warranty.region_code,
+                        model_code=warranty.model_code,
+                        product_name=warranty.product_name,
+                        force_refresh=True,
+                    )
+                except Exception as exc:
+                    terms_lookup_error = exc.__class__.__name__
             # Auto-verify OEM domain on new brand (bounded attempts)
             if os.getenv("OEM_AUTO_VERIFY", "true").lower() == "true" and warranty.brand:
                 try:
@@ -211,7 +252,12 @@ def run_job(job_id: str) -> None:
                             pass
                 except Exception:
                     pass
-            if terms_result and terms_result.duration_months and not warranty.coverage_months:
+            terms_source_type = None
+            if terms_result:
+                terms_source_type = classify_terms_source_url(terms_result.source_url or "", warranty.brand)
+            if terms_result and terms_result.duration_months and (
+                terms_source_type == "approved_oem_source" or not warranty.coverage_months
+            ):
                 warranty.coverage_months = terms_result.duration_months
             if warranty.purchase_date and warranty.coverage_months:
                 try:
@@ -230,11 +276,15 @@ def run_job(job_id: str) -> None:
             meta = dict(warranty.alternatives or {})
             if terms_result:
                 source_url = terms_result.source_url or ""
-                source_type = classify_terms_source_url(source_url, warranty.brand)
                 meta["terms_source_url"] = source_url or None
                 meta["terms_source_urls"] = terms_result.source_urls or ([source_url] if source_url else [])
-                meta["terms_source_type"] = source_type
+                meta["terms_source_type"] = terms_source_type or classify_terms_source_url(source_url, warranty.brand)
                 meta["terms_last_refreshed_at"] = datetime.utcnow().isoformat()
+                meta.pop("terms_lookup_error", None)
+            elif terms_lookup_error:
+                meta["terms_lookup_error"] = terms_lookup_error
+                meta["terms_last_lookup_error_at"] = datetime.utcnow().isoformat()
+                meta.setdefault("terms_source_type", "invoice_only")
             else:
                 meta.setdefault("terms_source_type", "invoice_only")
             warranty.alternatives = meta
@@ -277,8 +327,7 @@ def run_job(job_id: str) -> None:
                     alternatives=warranty.alternatives or {},
                     source_artifact_ids=warranty.source_artifact_ids or [],
                 )
-            summary_text, source = summarize_warranty(canonical)
-            structured = build_structured_summary(canonical)
+            summary_text, source, structured = _safe_summary(canonical)
             db.add(
                 WarrantySummaryDB(
                     warranty_id=job.warranty_id,

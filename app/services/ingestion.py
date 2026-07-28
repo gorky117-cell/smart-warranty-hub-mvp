@@ -172,6 +172,9 @@ def _logical_invoice_lines(lines: List[str]) -> List[str]:
             logical.append(current)
             current = None
 
+    def is_standalone_item_marker(value: str) -> bool:
+        return bool(re.fullmatch(r"\d{1,3}[\.\)]?", value))
+
     stop_pattern = re.compile(
         r"^(?:invoice\s+date|order\s+date|shipping charges?|total|subtotal|taxable|igst|cgst|sgst|amount|grand total)\b",
         re.IGNORECASE,
@@ -191,8 +194,15 @@ def _logical_invoice_lines(lines: List[str]) -> List[str]:
         if not clean:
             continue
 
+        if is_standalone_item_marker(clean):
+            flush_current()
+            current = clean
+            continue
+
         starts_item = bool(re.match(r"^\d+[\.\)]?\s+", clean))
-        if starts_item and _has_product_signal(clean):
+        product_bearing = _has_product_signal(clean)
+        likely_item_start = product_bearing and not stop_pattern.search(clean) and not _is_boilerplate_line(clean)
+        if (starts_item and product_bearing) or (likely_item_start and not current):
             flush_current()
             current = clean
             continue
@@ -224,6 +234,8 @@ def _clean_product_name_candidate(raw: str) -> Optional[str]:
         return None
     text = re.sub(r"^\d+[\.\)]?\s*", "", text)
     text = re.sub(r"\bIP\s*\d{2,3}\b", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bB0[A-Z0-9]{6,}\b.*$", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bHSN\s*:?\s*\d+.*$", "", text, flags=re.IGNORECASE)
     text = re.sub(r"\b\d+\s*(?:no|nos|pcs|piece|pieces|qty|quantity)\b", "", text, flags=re.IGNORECASE)
     text = re.sub(r"\s+\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?\b.*$", "", text)
     text = _normalize_spaces(text).strip(":-|")
@@ -285,7 +297,7 @@ def _line_item_candidates(lines: List[str]) -> List[Tuple[int, str]]:
         # Split pipe-heavy item descriptions and score the strongest product-bearing segment.
         segments = [
             _normalize_spaces(part)
-            for part in re.split(r"\s+\|\s+|\t+", clean)
+            for part in re.split(r"\s*\|\s*|\t+", clean)
             if _normalize_spaces(part)
         ]
         if len(segments) > 1:
@@ -300,6 +312,8 @@ def _line_item_candidates(lines: List[str]) -> List[Tuple[int, str]]:
             score += 2
         if _canonical_oem(clean):
             score += 4
+        if _has_product_signal(clean):
+            score += 2
         if any(term in low for term in _PRODUCT_TERMS):
             score += 3
         if re.search(r"\b[A-Z]{1,4}\s*-?\s*\d{2,5}[A-Z0-9\-]*\b", clean):

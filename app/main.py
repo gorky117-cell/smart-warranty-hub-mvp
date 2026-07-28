@@ -1708,7 +1708,7 @@ def list_warranties_sorted(
     db=Depends(get_db),
     current: UserDB = Depends(require_user),
 ):
-    """List all warranties sorted by expiry date (soonest first)."""
+    """List saved warranties with the most recently created/uploaded first."""
     if current.role != "admin":
         uid = current.username
     else:
@@ -1720,9 +1720,10 @@ def list_warranties_sorted(
             query.join(WarrantyOwnerDB, WarrantyOwnerDB.warranty_id == WarrantyDB.id)
             .filter(WarrantyOwnerDB.user_id == uid)
         )
-    # Sort by expiry_date ascending (soonest first), nulls last
+    # Users re-test by uploading multiple invoices; show the newest saved item first.
     warranties = query.order_by(
-        WarrantyDB.expiry_date.asc().nullslast()
+        WarrantyDB.created_at.desc().nullslast(),
+        WarrantyDB.id.desc(),
     ).limit(100).all()
 
     latest_parsed_by_warranty: Dict[str, ParsedFieldDB] = {}
@@ -1784,7 +1785,9 @@ def list_warranties_sorted(
         return text
 
     def _warranty_display_label(w: WarrantyDB, parsed: Optional[ParsedFieldDB]) -> str:
-        product = _clean_part(w.product_name) or _clean_part(getattr(parsed, "product_name", None))
+        warranty_product = _clean_part(w.product_name)
+        parsed_product = _clean_part(getattr(parsed, "product_name", None))
+        product = parsed_product if not warranty_product or warranty_product.lower() == "product" else warranty_product
         brand = _clean_part(w.brand) or _clean_part(getattr(parsed, "brand", None))
         model = _clean_part(w.model_code) or _clean_part(getattr(parsed, "model_code", None))
         if not product or product.lower() == "product":

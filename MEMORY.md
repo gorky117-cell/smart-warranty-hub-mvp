@@ -1099,3 +1099,12 @@ git ls-remote --heads origin
 - This is not an Epson-only or Samsung-only patch. Samsung is used in regression tests because it exposed the issue, but the code path is the shared discovery service for any brand with approved domains.
 - If the official source is not found or parsing cannot confirm terms, the customer-facing result must still say estimated/not confirmed and must not invent OEM coverage, claim eligibility or free repair.
 - Verification passed: focused discovery tests passed with `9 passed`; focused invoice pipeline tests passed with `20 passed` and the existing three scikit-learn model-version warnings.
+
+## 68. Global invoice identity, dropdown and upload fallback hardening - 2026-07-28
+
+- Fixed shared invoice line reconstruction for standalone row numbers followed by wrapped product descriptions, so Amazon/Samsung-style table rows can preserve the real product before HSN, ASIN and spec noise are removed.
+- Kept saved warranty selection readable and newest-first: placeholder warranty names now prefer the latest parsed product name when available, while labels continue to show invoice number, bought date, uploaded date/time and expiry.
+- Preserved the global controlled OEM lookup gate: when brand plus model/product exists, approved-domain lookup can run even if default coverage exists; without official evidence the UI stays estimated/not confirmed.
+- Added a summary fallback so OpenAI/Mistral/template provider errors cannot turn an otherwise successful extraction/upload into an upstream failure.
+- This is global pipeline hardening, not a Samsung-only or invoice-only patch; Epson/OEM lookup, RAG, behavior questions, predictive risk, telemetry and agent surfaces remain intact.
+- Verification passed: focused invoice pipeline tests passed with `24 passed`; full `pytest -q` passed with `162 passed` and the existing three scikit-learn model-version warnings.
