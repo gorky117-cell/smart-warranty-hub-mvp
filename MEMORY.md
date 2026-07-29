@@ -1117,3 +1117,12 @@ git ls-remote --heads origin
 - Preserved wrapped ecommerce invoice extraction and the existing Epson and Samsung OEM lookup paths. This fix improves global invoice identity extraction; it does not hard-code one invoice ID or force Samsung/Epson data into the database.
 - Controlled OEM lookup behavior remains bounded: once brand/model/product are extracted, approved official-source lookup can run; if official evidence is not found, the UI must stay estimated/not confirmed.
 - Verification passed: focused invoice pipeline tests passed with `26 passed`; full `pytest -q` passed with `164 passed` and the existing three scikit-learn model-version warnings.
+
+## 70. Boundary-aware invoice product signal matching - 2026-07-29
+
+- Continued the shared invoice identity fix after production/context handoff showed one remaining failure class: short product tokens such as `ac`, `tv` and short OEM tokens could still be treated too loosely in product-signal scoring.
+- Replaced raw product-term substring checks in the shared ingestion parser with boundary-aware token/phrase matching, so address/seller/header words do not become product candidates merely because they contain product-like letters.
+- Applied the safer matching to product-signal detection, line-item scoring and warranty-context detection before OEM lookup starts.
+- Added regressions proving address-only text with short-token-looking substrings does not create fake brand/model/product fields, while a real short-token product line such as `LG TV OLED55C4` still extracts brand, model and product correctly.
+- Existing controlled OEM lookup behavior remains unchanged: cleaner identity can trigger approved-domain lookup, but warranty facts still require official evidence and must stay estimated/not confirmed when not proven.
+- Verification passed: focused invoice pipeline tests passed with `28 passed`; full `pytest -q` passed with `166 passed` and the existing three scikit-learn model-version warnings.

@@ -363,6 +363,43 @@ Shipping Charges
     assert "Samsung Galaxy M17e 5G Mobile" in alternatives["product_line"][0]
 
 
+def test_invoice_parser_does_not_treat_short_product_tokens_inside_address_as_product():
+    text = """
+Tax Invoice
+Sold By : Sattva Horizon Private Limited
+Billing Address :
+Gaurav
+Flat No 79/1 Nashvilla Road, Near dastaana factory
+DEHRADUN, UTTARAKHAND, 248001
+Place of delivery: UTTARAKHAND
+Invoice Date : 02.05.2026
+"""
+    fields, confidence, alternatives = extract_product_fields(text)
+
+    assert "product_name" not in fields
+    assert "brand" not in fields
+    assert "model_code" not in fields
+    assert alternatives["notes"] == ["No strong signals found; manual entry may be required."]
+
+
+def test_invoice_parser_short_product_tokens_require_word_boundaries():
+    text = """
+Tax Invoice
+Sold By : Active Trading Company
+Billing Address : 17 Acacia Tower, Sector 48, Gurgaon, Haryana 122018
+Invoice Date : 02.05.2026
+1 LG TV OLED55C4 1 pcs 149,990.00
+"""
+    fields, confidence, alternatives = extract_product_fields(text)
+
+    assert fields["brand"] == "LG"
+    assert fields["product_name"] == "LG TV OLED55C4"
+    assert fields["model_code"] == "OLED55C4"
+    assert "Acacia" not in fields["product_name"]
+    assert "Active" not in fields["product_name"]
+    assert "LG TV OLED55C4" in alternatives["product_line"][0]
+
+
 def test_invoice_parser_strips_merged_table_header_before_samsung_item():
     text = """
 Tax Invoice

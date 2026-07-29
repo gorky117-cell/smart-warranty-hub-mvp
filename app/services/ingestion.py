@@ -106,9 +106,21 @@ def _is_spec_only(value: str) -> bool:
     return any(re.search(pattern, text, re.IGNORECASE) for pattern in _SPEC_ONLY_PATTERNS)
 
 
+def _contains_product_term(value: str) -> bool:
+    text = _normalize_spaces(value).lower()
+    if not text:
+        return False
+    for term in _PRODUCT_TERMS:
+        words = [re.escape(part) for part in term.split()]
+        pattern = r"\b" + r"\s+".join(words) + r"\b"
+        if re.search(pattern, text, re.IGNORECASE):
+            return True
+    return False
+
+
 def _has_product_signal(value: str) -> bool:
     low = _normalize_spaces(value).lower()
-    return bool(_canonical_oem(low) or any(term in low for term in _PRODUCT_TERMS))
+    return bool(_canonical_oem(low) or _contains_product_term(low))
 
 
 def _looks_like_address_text(value: str) -> bool:
@@ -383,7 +395,7 @@ def _line_item_candidates(lines: List[str]) -> List[Tuple[int, str]]:
             score += 4
         if _has_product_signal(clean):
             score += 2
-        if any(term in low for term in _PRODUCT_TERMS):
+        if _contains_product_term(low):
             score += 3
         if re.search(r"\b[A-Z]{1,4}\s*-?\s*\d{2,5}[A-Z0-9\-]*\b", clean):
             score += 2
@@ -562,7 +574,7 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
     logical_lines = _logical_invoice_lines(lines)
     has_warranty_context = bool(
         re.search(r"\b(warranty|serial|imei|model|product|device)\b", lowered, re.IGNORECASE)
-        or any(term in lowered for term in _PRODUCT_TERMS)
+        or _contains_product_term(lowered)
     )
 
     line_items = _line_item_candidates(logical_lines)
