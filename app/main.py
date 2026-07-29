@@ -89,6 +89,16 @@ from .services.warranty_parser import sanitize_base_terms
 from .services.notifications import run_initial_analysis_and_notifications
 logger = logging.getLogger(__name__)
 
+
+def _send_email_later(background_tasks: BackgroundTasks | None, func, **kwargs) -> None:
+    if background_tasks is not None:
+        background_tasks.add_task(func, **kwargs)
+        return
+    try:
+        func(**kwargs)
+    except Exception:
+        pass
+
 # Uploads are evidence files, not arbitrary server files. Keep the allowance
 # deliberately small and compatible with the existing invoice/bill UI.
 _UPLOAD_MAX_BYTES = int(os.getenv("UPLOAD_MAX_BYTES", str(10 * 1024 * 1024)))
@@ -1273,7 +1283,12 @@ def _ensure_users_table_and_admin(db) -> None:
 
 
 @app.post("/auth/signup")
-def signup(payload: SignupRequest, db=Depends(get_db), current=Depends(get_current_user_optional)):
+def signup(
+    payload: SignupRequest,
+    background_tasks: BackgroundTasks = None,
+    db=Depends(get_db),
+    current=Depends(get_current_user_optional),
+):
     if payload.role not in ("user", "oem", "tpa", "admin"):
         raise HTTPException(status_code=400, detail="Role must be user, oem, tpa, or admin")
     try:
@@ -1305,14 +1320,13 @@ def signup(payload: SignupRequest, db=Depends(get_db), current=Depends(get_curre
     )
     db.add(user)
     db.commit()
-    try:
-        emailer_service.send_welcome_email(
-            to_email=user.email,
-            username=user.username,
-            role=user.role,
-        )
-    except Exception:
-        pass
+    _send_email_later(
+        background_tasks,
+        emailer_service.send_welcome_email,
+        to_email=user.email,
+        username=user.username,
+        role=user.role,
+    )
     return {"username": user.username, "role": user.role}
 
 
@@ -1323,6 +1337,7 @@ def signup_form(
     password: str = Form(...),
     email: str | None = Form(None),
     next_url: str | None = Form(None),
+    background_tasks: BackgroundTasks = None,
     db=Depends(get_db),
 ):
     login_params = {"next": next_url or "/ui/neo-dashboard"}
@@ -1363,14 +1378,13 @@ def signup_form(
         )
     )
     db.commit()
-    try:
-        emailer_service.send_welcome_email(
-            to_email=email,
-            username=username,
-            role="user",
-        )
-    except Exception:
-        pass
+    _send_email_later(
+        background_tasks,
+        emailer_service.send_welcome_email,
+        to_email=email,
+        username=username,
+        role="user",
+    )
 
     # Auto-login new user and route to Neo UI (smoother UX for MVP demos).
     cookie_opts = _cookie_options(request)
@@ -1416,6 +1430,7 @@ def login(
     response: Response,
     username: str = Form(...),
     password: str = Form(...),
+    background_tasks: BackgroundTasks = None,
     db=Depends(get_db),
     next_url: str | None = Form(None),
 ):
@@ -1463,10 +1478,12 @@ def login(
         if user.role == "admin"
         else ("/ui/oem-dashboard" if user.role in ("oem", "tpa") else "/ui/neo-dashboard")
     )
-    try:
-        emailer_service.send_login_alert_email(to_email=user.email, username=user.username)
-    except Exception:
-        pass
+    _send_email_later(
+        background_tasks,
+        emailer_service.send_login_alert_email,
+        to_email=user.email,
+        username=user.username,
+    )
     if accepts_json:
         response.status_code = status.HTTP_200_OK
         return {"access_token": token, "token_type": "bearer", "role": user.role, "redirect": target}
@@ -1680,14 +1697,13 @@ async def upload_artifact(
         run_initial_analysis_and_notifications(db, current.username, warranty.id)
     except Exception:
         pass
-    try:
-        emailer_service.send_product_registered_email(
-            to_email=getattr(current, "email", None),
-            username=current.username,
-            warranty_id=warranty.id,
-        )
-    except Exception:
-        pass
+    _send_email_later(
+        background_tasks,
+        emailer_service.send_product_registered_email,
+        to_email=getattr(current, "email", None),
+        username=current.username,
+        warranty_id=warranty.id,
+    )
     return {
         "artifact": artifact,
         "warranty_id": warranty.id,
@@ -1886,14 +1902,13 @@ def create_warranty(payload: CanonicalRequest, db=Depends(get_db), current=Depen
         run_initial_analysis_and_notifications(db, current.username, warranty.id)
     except Exception:
         pass
-    try:
-        emailer_service.send_product_registered_email(
-            to_email=getattr(current, "email", None),
-            username=current.username,
-            warranty_id=warranty.id,
-        )
-    except Exception:
-        pass
+    _send_email_later(
+        background_tasks,
+        emailer_service.send_product_registered_email,
+        to_email=getattr(current, "email", None),
+        username=current.username,
+        warranty_id=warranty.id,
+    )
     try:
         with SessionLocal() as owner_db:
             owner_db.merge(WarrantyOwnerDB(user_id=current.username, warranty_id=warranty.id))
@@ -2347,14 +2362,13 @@ def capture_artifact(
         run_initial_analysis_and_notifications(db, current.username, warranty.id)
     except Exception:
         pass
-    try:
-        emailer_service.send_product_registered_email(
-            to_email=getattr(current, "email", None),
-            username=current.username,
-            warranty_id=warranty.id,
-        )
-    except Exception:
-        pass
+    _send_email_later(
+        background_tasks,
+        emailer_service.send_product_registered_email,
+        to_email=getattr(current, "email", None),
+        username=current.username,
+        warranty_id=warranty.id,
+    )
     return {"artifact": artifact, "warranty_id": warranty.id, "saved_path": str(dest), "job_id": job.id}
 
 

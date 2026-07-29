@@ -1126,3 +1126,12 @@ git ls-remote --heads origin
 - Added regressions proving address-only text with short-token-looking substrings does not create fake brand/model/product fields, while a real short-token product line such as `LG TV OLED55C4` still extracts brand, model and product correctly.
 - Existing controlled OEM lookup behavior remains unchanged: cleaner identity can trigger approved-domain lookup, but warranty facts still require official evidence and must stay estimated/not confirmed when not proven.
 - Verification passed: focused invoice pipeline tests passed with `28 passed`; full `pytest -q` passed with `166 passed` and the existing three scikit-learn model-version warnings.
+
+## 71. Login and upload email latency guard - 2026-07-29
+
+- Production testing after deploy showed the login page could appear to take indefinitely after submitting credentials.
+- The backend login route had a synchronous sign-in alert email call before returning the redirect; if SMTP is slow or misconfigured, the user-facing login can wait even though credentials are already processed.
+- Added a shared `_send_email_later()` helper and moved login alert, signup welcome and product-registered emails to FastAPI background tasks when a background task runner is available.
+- This preserves email behavior but removes SMTP from the critical path for login, signup, artifact upload, manual warranty creation and camera capture responses.
+- Auth, cookies, CSRF, role routing, upload processing and invoice/OEM extraction behavior are unchanged.
+- Verification passed: focused auth/CSRF tests passed with `5 passed`; focused invoice pipeline tests passed with `28 passed`; full `pytest -q` passed with `166 passed` and the existing three scikit-learn model-version warnings.
