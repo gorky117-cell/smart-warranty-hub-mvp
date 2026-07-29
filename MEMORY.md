@@ -1135,3 +1135,12 @@ git ls-remote --heads origin
 - This preserves email behavior but removes SMTP from the critical path for login, signup, artifact upload, manual warranty creation and camera capture responses.
 - Auth, cookies, CSRF, role routing, upload processing and invoice/OEM extraction behavior are unchanged.
 - Verification passed: focused auth/CSRF tests passed with `5 passed`; focused invoice pipeline tests passed with `28 passed`; full `pytest -q` passed with `166 passed` and the existing three scikit-learn model-version warnings.
+
+## 72. Regional OEM source ranking and evidence UI refresh - 2026-07-29
+
+- Production Samsung invoice testing showed two demo-breaking issues: the dashboard could show `Approved OEM source` in the summary header while the full warranty section still showed stale `Not confirmed`, and Samsung India invoices could retain a Samsung US warranty source.
+- Fixed the Neo dashboard so the friendly full-warranty view re-renders after the summary/evidence response arrives, keeping top evidence and full-text evidence labels consistent.
+- Added regional source scoring in shared OEM discovery: URLs with a different country path such as `/us/` are penalized when the warranty region is `IN`, while `/in/` receives the existing region boost.
+- Added regression coverage proving Samsung India warranty pages rank above Samsung US warranty pages for an `IN` invoice.
+- Existing source safety remains unchanged: discovery still stays inside approved OEM domains and warranty facts still require official evidence; wrong-region official pages are only deprioritized, not treated as user invoice facts.
+- Verification passed: focused discovery/source-trust tests passed with `15 passed`; focused invoice pipeline tests passed with `28 passed`; full `pytest -q` passed with `167 passed` and the existing three scikit-learn model-version warnings.

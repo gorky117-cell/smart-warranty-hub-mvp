@@ -2321,6 +2321,7 @@
           document.getElementById('summary').textContent = sum.summary || '';
           renderLaymanSummary(sum.layman_summary);
           renderSummaryMeta(sum);
+          renderWarrantyFriendly();
           const displayName = productLabelWithId(w);
           const compactLine = [
             w.expiry_date ? `Expiry: ${w.expiry_date}` : null,

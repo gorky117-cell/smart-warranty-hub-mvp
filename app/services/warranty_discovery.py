@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, Dict
 import os
+import re
 import socket
 from urllib.parse import urlparse
 
@@ -74,6 +75,7 @@ def _region_score(region: Optional[str], url: str) -> int:
         return 0
     reg = region.strip().lower()
     host = _host(url)
+    path = (urlparse(url).path or "").lower()
     score = 0
     if reg and reg in url.lower():
         score += 8
@@ -81,7 +83,29 @@ def _region_score(region: Optional[str], url: str) -> int:
     country = reg.split("-")[0] if reg else reg
     if country and host.endswith(f".{country}"):
         score += 6
+    common_country_paths = {
+        "au", "br", "ca", "cn", "de", "es", "fr", "id", "in", "it", "jp",
+        "kr", "mx", "my", "ph", "sg", "th", "uk", "us", "vn",
+    }
+    if country in common_country_paths:
+        path_country = _country_path_segment(path)
+        if path_country and path_country != country:
+            score -= 20
     return score
+
+
+def _country_path_segment(path: str) -> Optional[str]:
+    try:
+        parts = [part for part in (path or "").split("/") if part]
+    except Exception:
+        return None
+    if not parts:
+        return None
+    first = parts[0].lower()
+    aliases = {"en-in": "in", "en_us": "us", "en-us": "us"}
+    if first in aliases:
+        return aliases[first]
+    return first if re.fullmatch(r"[a-z]{2}", first) else None
 
 
 def _domains_for_brand(domain_map: Dict[str, List[str]], brand: Optional[str]) -> List[str]:
