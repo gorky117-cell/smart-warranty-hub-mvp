@@ -1189,3 +1189,13 @@ git ls-remote --heads origin
 - Updated Neo dashboard card wording from `Risk` to `Care priority`, keeping the suggestions useful without presenting them as a failure diagnosis or OEM coverage claim.
 - This preserves OEM warranty facts separately in the coverage/terms panels; care cards remain product-category guidance unless an explicit OEM recommendation source is wired in.
 - Verification passed: focused product recommendation tests passed with `4 passed`; full `pytest -q` passed with `173 passed` and the existing three scikit-learn model-version warnings.
+
+## 78. Source-aware OEM-derived care suggestions - 2026-07-30
+
+- Added an OEM-derived care layer ahead of fallback product-category care recommendations.
+- Product recommendations now inspect already-extracted warranty `terms`, `exclusions` and `claim_steps` to create safe, source-labeled care cards such as `OEM claim step`, `OEM warranty exclusion`, `OEM warranty term` and `OEM-derived care`.
+- Samsung phone examples now turn OEM claim routes into document-readiness care and screen/accidental-damage exclusions into source-labeled protection care, while still keeping generic phone battery/charger tips labeled as general product care.
+- Epson printer examples now turn OEM printhead/nozzle/print-count terms into source-labeled printhead/usage-limit care, while preserving existing printer care defaults.
+- Recommendation service and Neo dashboard now pass and display `source_label` so users can distinguish OEM-derived guidance from general care.
+- This uses only facts already extracted from approved/saved OEM sources; it does not alter OEM scraping, warranty extraction, source trust, risk scoring or invoice parsing.
+- Verification passed: focused product recommendation tests passed with `6 passed`; full `pytest -q` passed with `175 passed` and the existing three scikit-learn model-version warnings.

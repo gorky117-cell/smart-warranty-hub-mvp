@@ -245,6 +245,7 @@ def get_recommendations_for_user(db: Session, user_id: str, warranty_id: Optiona
                 "priority": rec.get("priority"),
                 "cta_label": rec.get("cta_label"),
                 "cta_url": rec.get("cta_url"),
+                "source_label": rec.get("source_label"),
             }
         )
 

@@ -25,6 +25,7 @@ class ProductRecommendation(TypedDict, total=False):
     action: str
     description: str
     reason: str
+    source_label: str
 
 
 PRODUCT_CATALOG: List[Dict] = [
@@ -230,6 +231,59 @@ def _category_from_warranty(warranty: Dict) -> str:
     return infer_product_category(warranty)
 
 
+def _text_items(warranty: Dict, key: str) -> List[str]:
+    raw = warranty.get(key) or []
+    if isinstance(raw, str):
+        raw = [raw]
+    return [str(item).strip() for item in raw if str(item).strip()]
+
+
+def _append_oem_care(results: List[ProductRecommendation], *, category: str, region: Optional[str], warranty: Dict) -> None:
+    terms = _text_items(warranty, "terms")
+    exclusions = _text_items(warranty, "exclusions")
+    claim_steps = _text_items(warranty, "claim_steps")
+    text = " ".join(terms + exclusions + claim_steps).lower()
+    source_url = ((warranty.get("alternatives") or {}).get("terms_source_url")) or warranty.get("terms_source_url")
+    if not (source_url or terms or exclusions or claim_steps):
+        return
+
+    def add(product_id: str, title: str, why: str, source_label: str) -> None:
+        if any(rec.get("product_id") == product_id for rec in results):
+            return
+        results.append(
+            {
+                "product_id": product_id,
+                "title": title,
+                "category": category,
+                "region": region,
+                "risk_band": "MEDIUM",
+                "why": why,
+                "priority": len(results) + 1,
+                "cta_label": "View care note",
+                "cta_url": None,
+                "action": "oem_derived_care",
+                "description": why,
+                "reason": why,
+                "source_label": source_label,
+            }
+        )
+
+    if any(k in text for k in ["warranty check", "service center", "service centre", "authorized service", "authorised service"]):
+        add("oem_claim_ready", "Keep claim documents ready", "OEM claim route found: keep invoice, model/serial details and photos ready before contacting support.", "OEM claim step")
+    if any(k in text for k in ["unauthor", "authorized service", "authorised service"]):
+        add("oem_authorized_service", "Use authorized service routes", "OEM terms mention authorized service or repair conditions. Avoid unsupported repair routes before a claim.", "OEM warranty exclusion")
+    if any(k in text for k in ["liquid", "water", "moisture"]) and category in {"smartphone", "laptop", "camera", "wearable", "audio", "tv"}:
+        add("oem_liquid_damage", "Avoid liquid and moisture exposure", "OEM terms mention liquid, water or moisture exclusions. Treat this as care guidance, not added coverage.", "OEM warranty exclusion")
+    if any(k in text for k in ["screen protector", "screen replacement", "accidental damage"]) and category == "smartphone":
+        add("oem_screen_protection", "Protect screen and body from accidental damage", "OEM terms mention screen/accidental-damage limits. Use protection if practical; coverage still follows OEM terms.", "OEM warranty exclusion")
+    if any(k in text for k in ["printhead", "nozzle", "prints", "page yield"]) and category == "printer":
+        add("oem_printer_printhead", "Watch printhead, nozzle and usage limits", "OEM terms mention printhead/nozzle or print-count limits. Track usage and run maintenance only when needed.", "OEM warranty term")
+    if any(k in text for k in ["filter", "cartridge"]) and category in {"printer", "air_conditioner", "washing_machine", "purifier", "cooler"}:
+        add("oem_filter_cartridge", "Track filter or cartridge maintenance", "OEM terms mention filter/cartridge conditions. Keep maintenance notes and replacement dates.", "OEM-derived care")
+    if any(k in text for k in ["voltage", "surge", "power"]) and category in {"tv", "air_conditioner", "fridge", "appliance", "router", "inverter"}:
+        add("oem_power_conditions", "Use stable power where required", "OEM terms mention power conditions. Consider stable power practices and keep issue notes for support.", "OEM-derived care")
+
+
 def build_product_recommendations(
     user_id: str,
     warranty_id: str,
@@ -253,7 +307,10 @@ def build_product_recommendations(
 
     care_items = CARE_CATALOG.get(category) or CARE_CATALOG["general"]
     results: List[ProductRecommendation] = []
+    _append_oem_care(results, category=category, region=region, warranty=warranty)
     for idx, item in enumerate(sorted(care_items, key=lambda i: (i.get("priority", 99), i.get("product_id", "")))[:4]):
+        if any(rec.get("product_id") == item["product_id"] for rec in results):
+            continue
         rec: ProductRecommendation = {
           "product_id": item["product_id"],
           "title": item["title"],
@@ -266,10 +323,11 @@ def build_product_recommendations(
           "cta_url": None,
         }
         rec["action"] = "general_care"
+        rec["source_label"] = "General product care"
         rec["description"] = rec["why"]
         rec["reason"] = rec["why"]
         results.append(rec)
-    return results
+    return results[:4]
 
 
 # -------- Product interest events (OEM demand signals) ----------

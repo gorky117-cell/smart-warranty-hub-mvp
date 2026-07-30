@@ -92,3 +92,55 @@ def test_product_recommendations_do_not_echo_weak_risk_context_as_cause():
     assert "relatively new" not in text
     assert "no maintenance recorded" not in text
     assert "more usage context" in text
+
+
+def test_oem_facts_create_source_labeled_phone_care():
+    recs = build_product_recommendations(
+        user_id="u1",
+        warranty_id="w1",
+        region="IN",
+        warranty={
+            "product_name": "Samsung Galaxy M17e 5G Mobile",
+            "terms": ["Standard coverage for 12 months from purchase date."],
+            "exclusions": ["Screen protector repair/replacement is not covered by Samsung Limited Warranty policy."],
+            "claim_steps": ["Warranty Checker", "Service Centre"],
+            "alternatives": {"terms_source_url": "https://www.samsung.com/in/support/warranty/"},
+        },
+        predictive={"risk_label": "MEDIUM"},
+    )
+
+    titles = " ".join(rec["title"].lower() for rec in recs)
+    labels = {rec.get("source_label") for rec in recs}
+
+    assert recs[0]["source_label"] == "OEM claim step"
+    assert "claim documents" in titles
+    assert "screen" in titles
+    assert "OEM warranty exclusion" in labels
+    assert any(rec.get("source_label") == "General product care" for rec in recs)
+
+
+def test_oem_facts_create_source_labeled_printer_care():
+    recs = build_product_recommendations(
+        user_id="u1",
+        warranty_id="w1",
+        region="IN",
+        warranty={
+            "product_name": "Epson L3250 Printer",
+            "model_code": "L3250",
+            "terms": [
+                "Warranty coverage is up to 1 year or 30,000 prints, whichever comes first.",
+                "Printhead coverage follows Epson warranty terms.",
+            ],
+            "claim_steps": ["Contact Epson service center with invoice and serial number."],
+            "alternatives": {"terms_source_url": "https://www.epson.co.in/support/warranty"},
+        },
+        predictive={"risk_label": "MEDIUM"},
+    )
+
+    titles = " ".join(rec["title"].lower() for rec in recs)
+    labels = {rec.get("source_label") for rec in recs}
+
+    assert "printhead" in titles
+    assert "usage limits" in titles
+    assert "OEM warranty term" in labels
+    assert "OEM claim step" in labels
