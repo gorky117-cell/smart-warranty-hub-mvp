@@ -1180,3 +1180,12 @@ git ls-remote --heads origin
 - OEM/user questions still help by collecting missing usage, maintenance and support-readiness context, but they no longer imply the product is already high risk.
 - Added regressions proving missing context alone does not create high risk, while real error signals can still remain high risk.
 - Verification passed: focused predictive tests passed with `13 passed`; full `pytest -q` passed with `172 passed` and the existing three scikit-learn model-version warnings.
+
+## 77. Care suggestion risk wording cleanup - 2026-07-30
+
+- Production Samsung testing showed product care cards still displayed `Risk: HIGH` and copied weak/generic context into care advice, even though the cards are general product-category care suggestions rather than OEM warranty facts.
+- Updated product recommendation building so weak context gaps such as new device, light usage and no maintenance recorded are not echoed as risk causes in card descriptions.
+- When only context gaps exist, care cards now say more usage context can improve advice instead of implying a proven product issue.
+- Updated Neo dashboard card wording from `Risk` to `Care priority`, keeping the suggestions useful without presenting them as a failure diagnosis or OEM coverage claim.
+- This preserves OEM warranty facts separately in the coverage/terms panels; care cards remain product-category guidance unless an explicit OEM recommendation source is wired in.
+- Verification passed: focused product recommendation tests passed with `4 passed`; full `pytest -q` passed with `173 passed` and the existing three scikit-learn model-version warnings.

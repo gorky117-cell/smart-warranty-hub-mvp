@@ -71,3 +71,24 @@ def test_broader_product_categories_get_specific_safe_care():
         assert expected_word in text
         assert "free repair" not in text
         assert "claim eligible" not in text
+
+
+def test_product_recommendations_do_not_echo_weak_risk_context_as_cause():
+    recs = build_product_recommendations(
+        user_id="u1",
+        warranty_id="w1",
+        region="IN",
+        warranty={"product_name": "Samsung Galaxy M17e 5G Mobile"},
+        predictive={
+            "risk_label": "MEDIUM",
+            "reasons": ["Device is relatively new.", "No maintenance recorded."],
+            "context_gaps": ["No maintenance recorded."],
+        },
+    )
+
+    text = " ".join(rec["why"].lower() for rec in recs)
+
+    assert "smartphone" == recs[0]["category"]
+    assert "relatively new" not in text
+    assert "no maintenance recorded" not in text
+    assert "more usage context" in text

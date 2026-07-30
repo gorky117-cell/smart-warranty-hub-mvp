@@ -242,7 +242,14 @@ def build_product_recommendations(
     band = _risk_band(predictive.get("risk_label"), predictive.get("risk_score"))
     category = _category_from_warranty(warranty)
     reasons = predictive.get("behaviour_reasons") or predictive.get("reasons") or []
-    risk_context = "; ".join(str(r) for r in reasons[:2]) if reasons else ""
+    context_gaps = predictive.get("context_gaps") or []
+    weak_context_markers = ("relatively new", "light to moderate", "no maintenance recorded", "more usage")
+    useful_reasons = [
+        str(r) for r in reasons
+        if not any(marker in str(r).lower() for marker in weak_context_markers)
+    ]
+    risk_context = "; ".join(useful_reasons[:2]) if useful_reasons else ""
+    context_note = "More usage context can improve this advice." if context_gaps and not useful_reasons else ""
 
     care_items = CARE_CATALOG.get(category) or CARE_CATALOG["general"]
     results: List[ProductRecommendation] = []
@@ -253,7 +260,7 @@ def build_product_recommendations(
           "category": category,
           "region": region,
           "risk_band": band,
-          "why": f"{item['why']} {risk_context}".strip(),
+          "why": f"{item['why']} {risk_context or context_note}".strip(),
           "priority": int(item.get("priority", idx + 1)),
           "cta_label": "View care note",
           "cta_url": None,
