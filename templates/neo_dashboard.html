@@ -2319,13 +2319,19 @@
           console.info('neo-dashboard: fetch warranty summary', { warrantyId });
           const sum = await fetchJsonSafe(`/warranties/${encodeURIComponent(warrantyId)}/summary`, { headers: h() }, 'warranty summary');
           document.getElementById('summary').textContent = sum.summary || '';
+          const displayWarranty = mergeSummaryIntoWarranty(w, sum);
+          document.getElementById('warranty').textContent = JSON.stringify(displayWarranty, null, 2);
+          renderCoverage(displayWarranty);
+          updateWarrantyLabel(displayWarranty);
+          updateProductContext(displayWarranty);
+          updateSaveContext(displayWarranty);
           renderLaymanSummary(sum.layman_summary);
           renderSummaryMeta(sum);
           renderWarrantyFriendly();
-          const displayName = productLabelWithId(w);
+          const displayName = productLabelWithId(displayWarranty);
           const compactLine = [
-            w.expiry_date ? `Expiry: ${w.expiry_date}` : null,
-            w.coverage_months ? `Coverage: ${w.coverage_months} months` : null
+            displayWarranty.expiry_date ? `Expiry: ${displayWarranty.expiry_date}` : null,
+            displayWarranty.coverage_months ? `Coverage: ${displayWarranty.coverage_months} months` : null
           ].filter(Boolean).join(' | ');
           document.getElementById('summaryShort').textContent = displayName + (compactLine ? ` - ${compactLine}` : '');
           console.info('neo-dashboard: fetch advisories', { warrantyId, userId });
@@ -2423,6 +2429,29 @@
         }
         el.innerHTML = labels.map((x) => escapeHtml(x)).join(' | ');
         renderEvidenceTrustPanel(sum);
+      }
+
+      function mergeSummaryIntoWarranty(warranty, summary) {
+        const merged = { ...(warranty || {}) };
+        if (!summary || typeof summary !== 'object') return merged;
+        const statusInfo = summary.warranty_status_info || {};
+        if (summary.coverage_months !== undefined && summary.coverage_months !== null) {
+          merged.coverage_months = summary.coverage_months;
+        }
+        if (summary.purchase_date) merged.purchase_date = summary.purchase_date;
+        if (summary.expiry_date) merged.expiry_date = summary.expiry_date;
+        if (!merged.expiry_date && statusInfo.expiry_date_used) merged.expiry_date = statusInfo.expiry_date_used;
+        if (statusInfo.warranty_status) merged.warranty_status = statusInfo.warranty_status;
+        if (statusInfo.claim_eligibility) merged.claim_eligibility = statusInfo.claim_eligibility;
+        if (statusInfo.claim_message) merged.claim_message = statusInfo.claim_message;
+        if (Array.isArray(summary.terms)) merged.terms = summary.terms;
+        if (Array.isArray(summary.exclusions)) merged.exclusions = summary.exclusions;
+        if (Array.isArray(summary.claim_steps)) merged.claim_steps = summary.claim_steps;
+        if (summary.evidence_status) merged.evidence_status = summary.evidence_status;
+        merged.alternatives = { ...(merged.alternatives || {}) };
+        if (summary.terms_source_url) merged.alternatives.terms_source_url = summary.terms_source_url;
+        if (summary.terms_source_type) merged.alternatives.terms_source_type = summary.terms_source_type;
+        return merged;
       }
 
       function evidenceBadgeClass(status) {

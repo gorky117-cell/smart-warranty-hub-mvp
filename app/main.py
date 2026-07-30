@@ -2105,6 +2105,9 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db), current: UserDB =
             "processing_status": latest_job.status if latest_job else None,
             "terms_source_url": terms_source_url,
             "terms_source_type": terms_source_type,
+            "purchase_date": warranty.purchase_date.isoformat() if warranty.purchase_date else None,
+            "expiry_date": warranty.expiry_date.isoformat() if warranty.expiry_date else None,
+            "coverage_months": warranty.coverage_months,
             "warranty_status_info": status_info,
         }
     summary_text, source = summary_engine.summarize_warranty(warranty)
@@ -2126,6 +2129,9 @@ def get_warranty_summary(warranty_id: str, db=Depends(get_db), current: UserDB =
         "processing_status": latest_job.status if latest_job else None,
         "terms_source_url": terms_source_url,
         "terms_source_type": terms_source_type,
+        "purchase_date": warranty.purchase_date.isoformat() if warranty.purchase_date else None,
+        "expiry_date": warranty.expiry_date.isoformat() if warranty.expiry_date else None,
+        "coverage_months": warranty.coverage_months,
         "warranty_status_info": status_info,
     }
 

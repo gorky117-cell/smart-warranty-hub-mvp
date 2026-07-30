@@ -1162,3 +1162,11 @@ git ls-remote --heads origin
 - Preserved the OEM-first behavior: official source terms can still drive useful questions, but only when the question is relevant to the extracted product category.
 - Added regressions proving Samsung phone filter text does not create an OEM filter question, while a purifier with official filter/cartridge guidance still does.
 - Verification passed: focused behavior tests passed with `11 passed`; full `pytest -q` passed with `170 passed` and the existing three scikit-learn model-version warnings.
+
+## 75. Dashboard summary/warranty data merge - 2026-07-30
+
+- Production Samsung testing showed a UI mismatch: the top card could show approved OEM source while the `What is covered?` popup and full warranty text still displayed stale `N/A` coverage/expiry and `Not confirmed` evidence from the base warranty payload.
+- Added purchase date, expiry date and coverage months to the protected warranty summary response so the frontend can use the same normalized summary fields that drive layman/OEM evidence output.
+- Updated the Neo dashboard to merge summary terms, exclusions, claim steps, evidence, source metadata, coverage and status fields back into the displayed warranty object before rendering coverage badges, modals and full warranty text.
+- This is a UI/data-consistency fix only; it does not change OEM lookup, invoice extraction, source trust rules or care-question logic.
+- Verification passed: full `pytest -q` passed with `170 passed` and the existing three scikit-learn model-version warnings.
