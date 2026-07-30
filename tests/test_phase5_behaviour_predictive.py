@@ -271,3 +271,69 @@ def test_predictive_output_keeps_legal_warranty_separate(monkeypatch):
     assert out["base_risk_score"] == 0.5
     assert out["behaviour_delta"] == 0.1
     assert "risk_reason_breakdown" in out
+
+
+def test_predictive_missing_context_does_not_create_high_risk(monkeypatch):
+    monkeypatch.setattr(
+        predictive,
+        "build_feature_vector",
+        lambda user_id, warranty_id, product_type=None: (
+            [0.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 0.0, 0.0, 0.0],
+            [],
+            {"days_left": 300, "maintenance_count": 0, "error_count": 0, "failure_count": 0},
+        ),
+    )
+    monkeypatch.setattr(
+        predictive.predictive_model,
+        "predict",
+        lambda vec: ("HIGH", 0.9, [0.05, 0.05, 0.9]),
+    )
+    monkeypatch.setattr(
+        predictive,
+        "compute_behaviour_risk_signal",
+        lambda user_id, warranty_id: {"behaviour_risk_delta": 0.0, "reasons": []},
+    )
+    monkeypatch.setattr(
+        predictive,
+        "SessionLocal",
+        lambda: (_ for _ in ()).throw(RuntimeError("skip db signals")),
+    )
+
+    out = predictive.score_warranty("phase5_context_user", "phase5_context_warranty")
+
+    assert out["risk_label"] == "MEDIUM"
+    assert out["risk_score"] == 0.66
+    assert "No maintenance recorded." in out["context_gaps"]
+    assert "No maintenance recorded." not in out["reasons"]
+
+
+def test_predictive_real_errors_can_remain_high_risk(monkeypatch):
+    monkeypatch.setattr(
+        predictive,
+        "build_feature_vector",
+        lambda user_id, warranty_id, product_type=None: (
+            [0.0, 18.0, 5.0, 4.0, 0.0, 0.0, 0.5, 0.5, 0.5, 0.0, 0.0, 0.0],
+            [],
+            {"days_left": 300, "maintenance_count": 0, "error_count": 4, "failure_count": 0},
+        ),
+    )
+    monkeypatch.setattr(
+        predictive.predictive_model,
+        "predict",
+        lambda vec: ("HIGH", 0.9, [0.05, 0.05, 0.9]),
+    )
+    monkeypatch.setattr(
+        predictive,
+        "compute_behaviour_risk_signal",
+        lambda user_id, warranty_id: {"behaviour_risk_delta": 0.0, "reasons": []},
+    )
+    monkeypatch.setattr(
+        predictive,
+        "SessionLocal",
+        lambda: (_ for _ in ()).throw(RuntimeError("skip db signals")),
+    )
+
+    out = predictive.score_warranty("phase5_error_user", "phase5_error_warranty")
+
+    assert out["risk_label"] == "HIGH"
+    assert any("Multiple errors" in reason for reason in out["reasons"])

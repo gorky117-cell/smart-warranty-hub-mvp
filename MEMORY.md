@@ -1170,3 +1170,13 @@ git ls-remote --heads origin
 - Updated the Neo dashboard to merge summary terms, exclusions, claim steps, evidence, source metadata, coverage and status fields back into the displayed warranty object before rendering coverage badges, modals and full warranty text.
 - This is a UI/data-consistency fix only; it does not change OEM lookup, invoice extraction, source trust rules or care-question logic.
 - Verification passed: full `pytest -q` passed with `170 passed` and the existing three scikit-learn model-version warnings.
+
+## 76. Risk context gaps separated from true issue signals - 2026-07-30
+
+- Production Samsung testing showed `High risk` could be explained with weak context gaps such as new device, light usage and no maintenance recorded, which reads like an unsupported failure claim.
+- Updated predictive scoring so missing context/no maintenance/new-device notes are returned as `context_gaps` instead of risk causes.
+- If the model score is high but there are no real issue signals such as errors, failures, recalls, expiry pressure, voltage/temperature problems, heavy use or behaviour-risk delta, the displayed risk is capped at medium until stronger evidence appears.
+- The Neo dashboard now shows context gaps under `Need more info` while keeping actual risk reasons separate.
+- OEM/user questions still help by collecting missing usage, maintenance and support-readiness context, but they no longer imply the product is already high risk.
+- Added regressions proving missing context alone does not create high risk, while real error signals can still remain high risk.
+- Verification passed: focused predictive tests passed with `13 passed`; full `pytest -q` passed with `172 passed` and the existing three scikit-learn model-version warnings.

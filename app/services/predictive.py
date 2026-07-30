@@ -415,6 +415,7 @@ def score_warranty(user_id: str, warranty_id: str, product_type: Optional[str] =
     vec, feat_names, extras = build_feature_vector(user_id, warranty_id, product_type)
     label, score_prob, proba = predictive_model.predict(vec)
     reasons: List[str] = []
+    context_gaps: List[str] = []
     proba_map: Dict[str, float] = {}
     if proba:
         labels = ["LOW", "MEDIUM", "HIGH"]
@@ -434,15 +435,21 @@ def score_warranty(user_id: str, warranty_id: str, product_type: Optional[str] =
     base_risk_score = 0.0
     if label and score_prob is not None:
         reasons = predictive_model.explain_reasons(vec, label)
+        context_gaps = [
+            r for r in reasons
+            if any(k in str(r).lower() for k in ["relatively new", "light to moderate", "no maintenance recorded"])
+        ]
+        reasons = [r for r in reasons if r not in context_gaps]
         # Add simple contextual reason from extras
         days_left = extras.get("days_left")
         if days_left is not None:
             if days_left <= 60:
                 reasons.append("Warranty is close to expiry.")
             else:
-                reasons.append("Warranty still has time left.")
+                context_gaps.append("Warranty still has time left.")
         if extras.get("maintenance_count", 0) == 0:
-            reasons.append("No maintenance recorded.")
+            if "No maintenance recorded." not in context_gaps:
+                context_gaps.append("No maintenance recorded.")
         risk_label = label
         risk_score = float(score_prob)
         base_risk_score = risk_score
@@ -536,6 +543,28 @@ def score_warranty(user_id: str, warranty_id: str, product_type: Optional[str] =
         pass
 
     # Final label based on adjusted score
+    real_issue_terms = [
+        "error",
+        "failure",
+        "breakdown",
+        "issue",
+        "recall",
+        "expired",
+        "close to expiry",
+        "voltage",
+        "temperature",
+        "overheat",
+        "high daily use",
+        "heavy use",
+        "limited care",
+    ]
+    has_real_risk_signal = any(
+        any(term in str(reason).lower() for term in real_issue_terms)
+        for reason in reasons
+    ) or behaviour_delta > 0.0 or extras.get("error_count", 0) > 0 or extras.get("failure_count", 0) > 0
+    if risk_score > 0.66 and not has_real_risk_signal:
+        risk_score = 0.66
+        context_gaps.append("More usage or maintenance context is needed before calling this high risk.")
     risk_label = "HIGH" if risk_score > 0.66 else "MEDIUM" if risk_score >= 0.33 else "LOW"
     expiry_reasons = [r for r in reasons if "expiry" in str(r).lower() or "warranty is" in str(r).lower()]
     behaviour_reason_set = list(behaviour_reasons[:4]) if behaviour_reasons else []
@@ -564,11 +593,13 @@ def score_warranty(user_id: str, warranty_id: str, product_type: Optional[str] =
         "base_risk_score": round(float(base_risk_score), 3),
         "behaviour_delta": round(float(behaviour_delta), 3),
         "behaviour_reasons": behaviour_reasons[:4] if behaviour_reasons else [],
+        "context_gaps": context_gaps[:4],
         "risk_reason_breakdown": {
             "base_warranty_age": expiry_reasons[:4],
             "behaviour_delta": behaviour_reason_set,
             "expiry_proximity": expiry_reasons[:4],
             "usage_environment_factors": usage_environment_reasons,
+            "context_gaps": context_gaps[:4],
         },
         "legal_warranty_separate": True,
         "disclaimer": "Care signal, not a guaranteed product failure prediction.",

@@ -2660,7 +2660,13 @@
             html = "We couldn't calculate risk right now. You can still see your coverage details.";
           } else {
             const reasons = pred.reasons || [];
-            html = reasons.length ? `<ul>${reasons.slice(0, 4).map(r => `<li>${r}</li>`).join('')}</ul>` : 'No details yet.';
+            const contextGaps = pred.context_gaps || [];
+            html = reasons.length
+              ? `<ul>${reasons.slice(0, 4).map(r => `<li>${escapeHtml(r)}</li>`).join('')}</ul>`
+              : 'No strong issue signals yet.';
+            if (contextGaps.length) {
+              html += `<div class="helper" style="margin-top:6px;"><strong>Need more info:</strong><ul>${contextGaps.slice(0, 4).map(r => `<li>${escapeHtml(r)}</li>`).join('')}</ul></div>`;
+            }
           }
           const extras = [];
           if (pred && pred.base_risk_score !== undefined) extras.push(`Base risk score: ${pred.base_risk_score}`);
