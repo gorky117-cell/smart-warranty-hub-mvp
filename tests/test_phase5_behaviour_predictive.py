@@ -133,6 +133,61 @@ def test_useful_question_prefers_official_oem_care_context_when_available(tmp_pa
     assert reason == "official_oem_care_context_needed"
 
 
+def test_useful_question_blocks_irrelevant_oem_filter_prompt_for_phone(tmp_path, monkeypatch):
+    monkeypatch.setattr(behaviour_questions, "DATA_PATH", str(tmp_path / "answers.jsonl"))
+
+    q, done, reason = behaviour_questions.get_next_useful_question(
+        "phase5_phone_oem_user",
+        "phase5_phone_oem_warranty",
+        warranty=_Warranty(
+            serial_no="SN-1",
+            region_code="IN",
+            product_name="Samsung Galaxy M17e 5G Mobile",
+            brand="Samsung",
+            model_code="M17E",
+            terms=["Limited warranty period of 1 year applies."],
+            exclusions=[
+                "This Warranty does not cover service costs in replacing consumable parts such as filters, lamps, and other parts."
+            ],
+            alternatives={
+                "terms_source_type": "approved_oem_source",
+                "terms_source_url": "https://www.samsung.com/in/support/warranty/",
+            },
+        ),
+        telemetry_events=[],
+    )
+
+    assert done is False
+    assert q["id"] == "pq_phone_overheat"
+    assert q.get("source") != "official_oem_terms"
+    assert reason == "smartphone_behaviour_context_needed"
+
+
+def test_useful_question_allows_oem_filter_prompt_for_purifier(tmp_path, monkeypatch):
+    monkeypatch.setattr(behaviour_questions, "DATA_PATH", str(tmp_path / "answers.jsonl"))
+
+    q, done, reason = behaviour_questions.get_next_useful_question(
+        "phase5_purifier_oem_user",
+        "phase5_purifier_oem_warranty",
+        warranty=_Warranty(
+            serial_no="SN-1",
+            region_code="IN",
+            product_name="RO water purifier",
+            terms=["Warranty requires filter or cartridge care according to OEM maintenance guidance."],
+            alternatives={
+                "terms_source_type": "approved_oem_source",
+                "terms_source_url": "https://example-oem.test/support/warranty",
+            },
+        ),
+        telemetry_events=[],
+    )
+
+    assert done is False
+    assert q["id"] == "oq_filter"
+    assert q["source"] == "official_oem_terms"
+    assert reason == "official_oem_care_context_needed"
+
+
 def test_useful_question_does_not_treat_unconfirmed_terms_as_oem_care_context(tmp_path, monkeypatch):
     monkeypatch.setattr(behaviour_questions, "DATA_PATH", str(tmp_path / "answers.jsonl"))
 

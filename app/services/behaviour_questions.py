@@ -135,9 +135,69 @@ def _official_source_present(warranty: object | None) -> bool:
     return any(str(url).startswith(("http://", "https://")) for url in ([source_url] + list(source_urls)))
 
 
+_OEM_QUESTION_CATEGORY_ALLOW: Dict[str, set[str]] = {
+    "oq_usage_limit": {"printer", "air_conditioner", "washing_machine", "purifier", "cooler", "appliance"},
+    "oq_printhead": {"printer"},
+    "oq_filter": {"printer", "air_conditioner", "washing_machine", "purifier", "cooler", "appliance"},
+    "oq_power": {
+        "smartphone",
+        "laptop",
+        "tv",
+        "heater",
+        "water_heater",
+        "fan",
+        "air_conditioner",
+        "washing_machine",
+        "microwave",
+        "router",
+        "wearable",
+        "audio",
+        "purifier",
+        "kitchen_appliance",
+        "cooler",
+        "inverter",
+        "appliance",
+    },
+    "oq_water": {"water_heater", "fridge", "air_conditioner", "washing_machine", "camera", "purifier", "cooler", "appliance"},
+    "oq_cooling": {"fridge", "air_conditioner", "cooler", "appliance"},
+    "oq_motor": {"washing_machine", "fan", "kitchen_appliance", "cooler", "appliance"},
+    "oq_battery": {"smartphone", "laptop", "wearable", "audio", "inverter", "appliance"},
+    "oq_service_route": {
+        "printer",
+        "smartphone",
+        "laptop",
+        "fridge",
+        "tv",
+        "heater",
+        "water_heater",
+        "fan",
+        "air_conditioner",
+        "washing_machine",
+        "microwave",
+        "camera",
+        "router",
+        "wearable",
+        "audio",
+        "purifier",
+        "kitchen_appliance",
+        "cooler",
+        "inverter",
+        "appliance",
+    },
+}
+
+
+def _official_question_allowed(category: str, question_id: str) -> bool:
+    allowed_categories = _OEM_QUESTION_CATEGORY_ALLOW.get(question_id)
+    if not allowed_categories:
+        return False
+    return category in allowed_categories
+
+
 def _official_care_questions(warranty: object | None) -> List[Tuple[str, str, str]]:
     if not _official_source_present(warranty):
         return []
+    category = infer_product_category(_warranty_context(warranty))
     terms = getattr(warranty, "terms", None) or []
     exclusions = getattr(warranty, "exclusions", None) or []
     claim_steps = getattr(warranty, "claim_steps", None) or []
@@ -158,6 +218,8 @@ def _official_care_questions(warranty: object | None) -> List[Tuple[str, str, st
         (("service center", "repair status", "warranty check"), "oq_service_route", "The OEM source includes a support route. Do you already have photos, invoice, and model/serial details ready?"),
     ]
     for keywords, qid, text_value in keyword_questions:
+        if not _official_question_allowed(category, qid):
+            continue
         if any(keyword in text for keyword in keywords):
             candidates.append(
                 (

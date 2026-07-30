@@ -1153,3 +1153,12 @@ git ls-remote --heads origin
 - Applied the sanitizer in both parser finalization and terms-result merge/normalization so single-source and multi-source OEM lookup paths cannot reintroduce the same noise.
 - Added regression coverage using the Samsung menu-noise pattern seen in production screenshots.
 - Verification passed: focused parser tests passed with `14 passed`; focused invoice/OEM knowledge tests passed with `31 passed`; full `pytest -q` passed with `168 passed` and the existing three scikit-learn model-version warnings.
+
+## 74. Product-aware OEM behavior questions - 2026-07-30
+
+- Production Samsung phone testing showed an OEM-derived behavior prompt asking about filter/cartridge care because the official Samsung warranty text mentioned consumable parts such as filters and lamps.
+- Fixed the shared behavior-question engine so OEM-derived prompts are gated by inferred product category before they are shown to the user.
+- Printer, purifier, AC, washer and appliance products can still receive filter/cartridge questions when official OEM text supports it, but smartphones now fall back to phone-relevant prompts such as overheating/charging instead of showing printer/purifier maintenance questions.
+- Preserved the OEM-first behavior: official source terms can still drive useful questions, but only when the question is relevant to the extracted product category.
+- Added regressions proving Samsung phone filter text does not create an OEM filter question, while a purifier with official filter/cartridge guidance still does.
+- Verification passed: focused behavior tests passed with `11 passed`; full `pytest -q` passed with `170 passed` and the existing three scikit-learn model-version warnings.
