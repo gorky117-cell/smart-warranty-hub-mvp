@@ -3,7 +3,7 @@ from pathlib import Path
 from app.db import SessionLocal
 from app.models import CanonicalWarranty
 from app.services.summary_engine import build_layman_summary
-from app.services.warranty_parser import ParsedTerms, parse_terms_from_text, parse_terms_from_url
+from app.services.warranty_parser import ParsedTerms, parse_terms_from_text, parse_terms_from_url, sanitize_support_items
 from app.services.terms_lookup import lookup_terms
 
 
@@ -142,6 +142,39 @@ def test_parse_terms_filters_oem_navigation_marketing_labels():
     assert "engineered precision" not in joined
     assert "environmental pursuit" not in joined
     assert "enduring partnerships" not in joined
+
+
+def test_sanitize_support_items_filters_samsung_menu_noise():
+    items = [
+        "Please refer to your user manual or warranty card to determine if your model is covered by additional parts warranty.",
+        "Show More",
+        "Key links",
+        "See our latest products",
+        "Samsung Care+",
+        "Screen Replacement Price",
+        "Mobile, Tablet & Laptop",
+        "Home Appliance, TV & Audio",
+        "How can I find the model number for my product?",
+        "Warranty Checker",
+        "Detailed cost & estimated repair time can be confirmed at a Samsung Authorized Service Center.",
+        "Chat with us to register your product",
+    ]
+
+    clean = sanitize_support_items(items)
+    joined = " ".join(clean).lower()
+
+    assert "additional parts warranty" in joined
+    assert "warranty checker" in joined
+    assert "authorized service center" in joined
+    assert "chat with us" in joined
+    assert "show more" not in joined
+    assert "key links" not in joined
+    assert "latest products" not in joined
+    assert "samsung care" not in joined
+    assert "screen replacement price" not in joined
+    assert "mobile, tablet" not in joined
+    assert "home appliance" not in joined
+    assert "model number" not in joined
 
 
 def test_parse_terms_extracts_non_printer_component_limits():

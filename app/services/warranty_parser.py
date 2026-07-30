@@ -84,6 +84,17 @@ _NAV_MARKETING_REJECT_MARKERS = (
     "promotion",
     "offers",
     "home",
+    "show more",
+    "key links",
+    "latest products",
+    "see our latest products",
+    "samsung care",
+    "screen replacement price",
+    "mobile, tablet",
+    "home appliance",
+    "tv & audio",
+    "how can i find",
+    "which models have",
 )
 
 
@@ -276,6 +287,36 @@ def sanitize_base_terms(items: List[str]) -> List[str]:
             if not is_optional_extended_plan_term(item) and not is_navigation_or_marketing_term(item)
         ]
     )
+
+
+def sanitize_support_items(items: List[str]) -> List[str]:
+    """Clean parsed exclusions/claim steps without removing real support routes."""
+    clean: List[str] = []
+    useful_markers = (
+        "warranty check",
+        "warranty checker",
+        "service center",
+        "service centre",
+        "repair status",
+        "register your product",
+        "product registration",
+        "contact support",
+        "chat with us",
+        "authorized service",
+        "authorised service",
+    )
+    for item in items or []:
+        text = _clean_item(str(item))
+        low = text.lower()
+        if not text:
+            continue
+        if any(marker in low for marker in useful_markers):
+            clean.append(text)
+            continue
+        if is_optional_extended_plan_term(text) or is_navigation_or_marketing_term(text):
+            continue
+        clean.append(text)
+    return _dedupe_keep_order(clean)
 
 
 def _extract_covered_parts(text: str) -> List[str]:
@@ -482,8 +523,8 @@ def _finalize_parsed(parsed: ParsedTerms, raw_text_for_enrich: Optional[str] = N
     normalized = ParsedTerms(
         duration_months=parsed.duration_months,
         terms=_dedupe_keep_order(parsed.terms or []),
-        exclusions=_dedupe_keep_order(parsed.exclusions or []),
-        claim_steps=_dedupe_keep_order(parsed.claim_steps or []),
+        exclusions=sanitize_support_items(parsed.exclusions or []),
+        claim_steps=sanitize_support_items(parsed.claim_steps or []),
         raw_text=parsed.raw_text,
         confidence=parsed.confidence,
     )

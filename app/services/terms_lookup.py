@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from ..db_models import WarrantyTermsCacheDB, WarrantyDB
 from .warranty_discovery import discover_sources
-from .warranty_parser import parse_terms_from_url, ParsedTerms, sanitize_base_terms
+from .warranty_parser import parse_terms_from_url, ParsedTerms, sanitize_base_terms, sanitize_support_items
 from . import regional_policy as regional_policy_service
 from . import oem_source_policy
 from . import oem_product_knowledge
@@ -98,8 +98,8 @@ def _to_terms_result(parsed: ParsedTerms, source_url: Optional[str]) -> TermsRes
     return TermsResult(
         duration_months=parsed.duration_months,
         terms=sanitize_base_terms(parsed.terms or []),
-        exclusions=parsed.exclusions or [],
-        claim_steps=parsed.claim_steps or [],
+        exclusions=sanitize_support_items(parsed.exclusions or []),
+        claim_steps=sanitize_support_items(parsed.claim_steps or []),
         source_url=source_url,
         source_urls=[source_url] if source_url else [],
         raw_text=parsed.raw_text,
@@ -215,7 +215,8 @@ def _normalize_result_for_context(
         ]
 
     result.terms = sanitize_base_terms(_dedupe(terms))[:6]
-    result.claim_steps = _dedupe(claim_steps)[:8]
+    result.exclusions = sanitize_support_items(result.exclusions or [])[:8]
+    result.claim_steps = sanitize_support_items(claim_steps)[:8]
     return result
 
 
@@ -229,8 +230,8 @@ def _merge_terms_results(results: List[TermsResult]) -> Optional[TermsResult]:
     return TermsResult(
         duration_months=max(durations) if durations else None,
         terms=sanitize_base_terms(_dedupe([item for r in usable for item in (r.terms or [])])),
-        exclusions=_dedupe([item for r in usable for item in (r.exclusions or [])]),
-        claim_steps=_dedupe([item for r in usable for item in (r.claim_steps or [])]),
+        exclusions=sanitize_support_items(_dedupe([item for r in usable for item in (r.exclusions or [])])),
+        claim_steps=sanitize_support_items(_dedupe([item for r in usable for item in (r.claim_steps or [])])),
         source_url=source_urls[0] if source_urls else None,
         source_urls=source_urls,
         raw_text="\n\n--- SOURCE ---\n\n".join(raw_chunks)[:12000] if raw_chunks else None,

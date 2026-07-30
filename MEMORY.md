@@ -1144,3 +1144,12 @@ git ls-remote --heads origin
 - Added regression coverage proving Samsung India warranty pages rank above Samsung US warranty pages for an `IN` invoice.
 - Existing source safety remains unchanged: discovery still stays inside approved OEM domains and warranty facts still require official evidence; wrong-region official pages are only deprioritized, not treated as user invoice facts.
 - Verification passed: focused discovery/source-trust tests passed with `15 passed`; focused invoice pipeline tests passed with `28 passed`; full `pytest -q` passed with `167 passed` and the existing three scikit-learn model-version warnings.
+
+## 73. OEM support/menu noise cleanup - 2026-07-30
+
+- Production Samsung warranty view still showed OEM webpage navigation/support-menu labels inside exclusions and claim steps, such as `Show More`, `Key links`, `See our latest products`, `Samsung Care+`, `Screen Replacement Price`, product category tabs and FAQ labels.
+- Added shared `sanitize_support_items()` in the warranty parser so exclusions and claim steps receive cleanup comparable to base warranty terms.
+- Preserved real support routes such as warranty checker, service center, repair status, product registration, contact support and chat support while filtering page chrome/menu noise.
+- Applied the sanitizer in both parser finalization and terms-result merge/normalization so single-source and multi-source OEM lookup paths cannot reintroduce the same noise.
+- Added regression coverage using the Samsung menu-noise pattern seen in production screenshots.
+- Verification passed: focused parser tests passed with `14 passed`; focused invoice/OEM knowledge tests passed with `31 passed`; full `pytest -q` passed with `168 passed` and the existing three scikit-learn model-version warnings.
