@@ -606,6 +606,93 @@ def test_terms_lookup_normalizes_samsung_mobile_official_page(monkeypatch):
     assert "News & Alerts" not in result.claim_steps
 
 
+def test_terms_lookup_does_not_reuse_saved_warranty_from_other_region(monkeypatch):
+    warranty_id = "wty_cross_region_terms"
+    monkeypatch.setattr(terms_lookup, "_SCRAPE_ENABLED", False)
+    with SessionLocal() as db:
+        db.query(WarrantyDB).filter_by(id=warranty_id).delete()
+        db.add(
+            WarrantyDB(
+                id=warranty_id,
+                product_name="Samsung Galaxy M17e 5G Mobile",
+                brand="Samsung",
+                model_code="M17E",
+                region_code="UK",
+                coverage_months=24,
+                terms=["Standard coverage for 24 months from purchase date."],
+            )
+        )
+        db.commit()
+
+        result = lookup_terms(
+            db,
+            brand="Samsung",
+            category="mobile",
+            region="IN",
+            model_code="M17E",
+            product_name="Samsung Galaxy M17e 5G Mobile",
+            force_refresh=False,
+        )
+
+        db.query(WarrantyDB).filter_by(id=warranty_id).delete()
+        db.commit()
+
+    assert result.duration_months == 12
+    assert result.source_url != "internal://warranty_db"
+    assert not any("24 months" in term for term in result.terms)
+
+
+def test_terms_lookup_skips_auto_source_with_conflicting_country_path(monkeypatch):
+    urls = [
+        "https://www.samsung.com/uk/support/mobile-devices/what-is-the-warranty-status-of-my-samsung-mobile-device/",
+        "https://www.samsung.com/in/support/warranty/",
+    ]
+
+    def fake_discover_sources(**kwargs):
+        return [
+            DiscoverySource(url=urls[0], source_type="oem_warranty", score=100, official=True, brand="Samsung", region="UK"),
+            DiscoverySource(url=urls[1], source_type="oem_warranty", score=95, official=True, brand="Samsung", region="IN"),
+        ]
+
+    calls = []
+
+    def fake_parse_terms_from_url(url):
+        calls.append(url)
+        if "/uk/" in url:
+            return ParsedTerms(
+                duration_months=24,
+                terms=["Standard coverage for 24 months from purchase date."],
+                exclusions=[],
+                claim_steps=[],
+                raw_text="UK warranty page",
+            ), None
+        return ParsedTerms(
+            duration_months=12,
+            terms=["Limited warranty period of 1 year applies to mobile products."],
+            exclusions=["Screen protector repair/replacement is not covered."],
+            claim_steps=["Warranty Check"],
+            raw_text="Samsung India mobile warranty. Limited warranty period of 1 year.",
+        ), None
+
+    monkeypatch.setattr(terms_lookup, "discover_sources", fake_discover_sources)
+    monkeypatch.setattr(terms_lookup, "parse_terms_from_url", fake_parse_terms_from_url)
+
+    with SessionLocal() as db:
+        result = lookup_terms(
+            db,
+            brand="Samsung",
+            category="mobile",
+            region="IN",
+            model_code="M17E",
+            product_name="Samsung Galaxy M17e 5G Mobile",
+            force_refresh=True,
+        )
+
+    assert calls == [urls[1]]
+    assert result.duration_months == 12
+    assert result.source_url == urls[1]
+
+
 def test_warranty_list_includes_invoice_and_upload_display_label():
     warranty_id = "wty_label_test"
     with SessionLocal() as db:

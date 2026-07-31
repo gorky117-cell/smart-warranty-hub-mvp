@@ -1199,3 +1199,13 @@ git ls-remote --heads origin
 - Recommendation service and Neo dashboard now pass and display `source_label` so users can distinguish OEM-derived guidance from general care.
 - This uses only facts already extracted from approved/saved OEM sources; it does not alter OEM scraping, warranty extraction, source trust, risk scoring or invoice parsing.
 - Verification passed: focused product recommendation tests passed with `6 passed`; full `pytest -q` passed with `175 passed` and the existing three scikit-learn model-version warnings.
+
+## 79. Unified OEM region validation and care fact pass-through - 2026-07-31
+
+- Production testing showed the right architectural issue: AI/scraping can extract facts from different OEM pages, but deterministic validation must decide whether those facts match the invoice product, region and category before saving/displaying.
+- Added global terms-lookup region guards so saved warranty reuse respects `region_code`, preventing one region's prior warranty row from supplying terms for another region.
+- Added source URL country-path conflict detection for auto-discovered OEM sources, so a known-region lookup such as `IN` skips conflicting country paths such as `/uk/` before parsing/caching terms.
+- Kept the existing Samsung mobile context normalization and expanded it to reject conflicting 24-month/2-year broad terms when the validated mobile context says one-year coverage.
+- Fixed the recommendation service pass-through so saved warranty `terms`, `exclusions`, `claim_steps`, `alternatives` and source URL are actually sent into the care recommendation engine; this allows the already-built OEM-derived care layer to show in production.
+- Preserved previous invoice extraction, OEM discovery, source trust, risk/context separation, Epson printer handling and Samsung menu-noise cleanup.
+- Verification passed: focused OEM/care regressions passed with `9 passed`; full `pytest -q` passed with `177 passed` and the existing three scikit-learn model-version warnings.

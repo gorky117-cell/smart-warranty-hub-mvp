@@ -177,6 +177,11 @@ def get_recommendations_for_user(db: Session, user_id: str, warranty_id: Optiona
             "coverage_months": warranty.coverage_months,
             "purchase_date": warranty.purchase_date,
             "region": getattr(warranty, "region_code", None),
+            "terms": warranty.terms or [],
+            "exclusions": warranty.exclusions or [],
+            "claim_steps": warranty.claim_steps or [],
+            "alternatives": getattr(warranty, "alternatives", None) or {},
+            "terms_source_url": (getattr(warranty, "alternatives", None) or {}).get("terms_source_url"),
         }
 
     context = {

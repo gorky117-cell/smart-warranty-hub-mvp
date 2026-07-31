@@ -128,6 +128,31 @@ def _host(source_url: Optional[str]) -> str:
         return ""
 
 
+def _country_path_segment(source_url: Optional[str]) -> Optional[str]:
+    try:
+        path = (urlparse(source_url or "").path or "").lower()
+        parts = [part for part in path.split("/") if part]
+    except Exception:
+        return None
+    if not parts:
+        return None
+    first = parts[0]
+    aliases = {"en-in": "in", "en_us": "us", "en-us": "us"}
+    if first in aliases:
+        return aliases[first]
+    return first if len(first) == 2 and first.isalpha() else None
+
+
+def _source_region_conflicts(source_url: Optional[str], region: Optional[str]) -> bool:
+    if not source_url or not region:
+        return False
+    country = str(region).strip().lower().split("-")[0]
+    if not country:
+        return False
+    path_country = _country_path_segment(source_url)
+    return bool(path_country and path_country != country)
+
+
 def _looks_like_samsung_mobile_context(
     *,
     brand: Optional[str],
@@ -173,6 +198,8 @@ def _normalize_result_for_context(
 
     result.duration_months = 12
     blocked_fragments = (
+        "24 months",
+        "2 years",
         "60 months",
         "5 years",
         "coverplus",
@@ -199,6 +226,8 @@ def _normalize_result_for_context(
             terms.append(term)
     if not any("one year" in term.lower() or "1 year" in term.lower() for term in terms):
         terms.insert(0, "Limited international one year warranty.")
+    if not any("12 months" in term.lower() for term in terms):
+        terms.insert(0, "Standard coverage for 12 months from purchase date.")
 
     claim_steps = []
     blocked_claims = {"news", "alerts", "community", "additional support"}
@@ -337,6 +366,8 @@ def lookup_terms(
             elif product_name:
                 q = q.filter(WarrantyDB.product_name == product_name)
                 has_filter = True
+            if region:
+                q = q.filter(WarrantyDB.region_code == region)
             rec = q.order_by(WarrantyDB.created_at.desc()).first() if has_filter else None
             if rec and (rec.terms or rec.exclusions or rec.coverage_months):
                 result = TermsResult(
@@ -458,6 +489,8 @@ def lookup_terms(
             for src in sources:
                 if len(parsed_results) >= max(1, _AUTO_MAX_SOURCES):
                     break
+                if _source_region_conflicts(src.url, region):
+                    continue
                 parsed, err = parse_terms_from_url(src.url)
                 if not parsed or err:
                     continue
