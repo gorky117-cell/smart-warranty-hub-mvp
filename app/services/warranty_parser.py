@@ -96,6 +96,24 @@ _NAV_MARKETING_REJECT_MARKERS = (
     "how can i find",
     "which models have",
 )
+_GROUNDING_STOPWORDS = {
+    "and",
+    "are",
+    "can",
+    "for",
+    "from",
+    "have",
+    "into",
+    "not",
+    "the",
+    "this",
+    "that",
+    "with",
+    "will",
+    "your",
+}
+_GROUNDING_TOKEN_RE = re.compile(r"[a-z0-9][a-z0-9\-]{2,}", re.IGNORECASE)
+_GROUNDING_NUMBER_RE = re.compile(r"\b\d+(?:\.\d+)?\b")
 
 
 def _env_true(name: str, default: str = "0") -> bool:
@@ -518,6 +536,81 @@ def _merge_parsed(base: ParsedTerms, enrich: ParsedTerms) -> ParsedTerms:
     )
 
 
+def _grounding_tokens(text: str) -> set[str]:
+    return {
+        token.lower()
+        for token in _GROUNDING_TOKEN_RE.findall(text or "")
+        if token.lower() not in _GROUNDING_STOPWORDS
+    }
+
+
+def _numbers(text: str) -> set[str]:
+    return {match.group(0).lstrip("0") or "0" for match in _GROUNDING_NUMBER_RE.finditer(text or "")}
+
+
+def _source_supports_item(item: str, source_text: str) -> bool:
+    item_clean = _clean_item(item).lower()
+    source_clean = " ".join((source_text or "").lower().split())
+    if not item_clean or not source_clean:
+        return False
+    if item_clean in source_clean:
+        return True
+
+    item_numbers = _numbers(item_clean)
+    if item_numbers and not item_numbers.issubset(_numbers(source_clean)):
+        return False
+
+    item_tokens = _grounding_tokens(item_clean)
+    if not item_tokens:
+        return False
+    source_tokens = _grounding_tokens(source_clean)
+    overlap = len(item_tokens & source_tokens)
+    # Short support labels such as "Warranty Checker" can still be useful, but
+    # they must be directly visible or share every meaningful token.
+    if len(item_tokens) <= 3:
+        return overlap == len(item_tokens)
+    return (overlap / max(1, len(item_tokens))) >= 0.55 and overlap >= 3
+
+
+def _duration_supported_by_source(duration_months: Optional[int], source_text: str) -> bool:
+    if not duration_months:
+        return False
+    best = _best_duration_months(source_text or "")
+    if best == duration_months:
+        return True
+    if duration_months % 12 == 0:
+        years = duration_months // 12
+        return bool(re.search(rf"\b{years}\s*(?:year|years|yr|yrs)\b", source_text or "", re.IGNORECASE))
+    return bool(re.search(rf"\b{duration_months}\s*(?:month|months|mo)\b", source_text or "", re.IGNORECASE))
+
+
+def _ground_enrichment_in_source(enrich: ParsedTerms, source_text: str) -> ParsedTerms:
+    """Keep AI/NLP terms only when supported by the scraped/OCR source text."""
+    grounded_terms = [item for item in enrich.terms or [] if _source_supports_item(item, source_text)]
+    grounded_exclusions = [item for item in enrich.exclusions or [] if _source_supports_item(item, source_text)]
+    grounded_claim_steps = [item for item in enrich.claim_steps or [] if _source_supports_item(item, source_text)]
+    grounded_duration = enrich.duration_months if _duration_supported_by_source(enrich.duration_months, source_text) else None
+
+    confidence = 0.0
+    if grounded_duration:
+        confidence += 0.4
+    if grounded_exclusions:
+        confidence += 0.2
+    if grounded_claim_steps:
+        confidence += 0.2
+    if grounded_terms:
+        confidence += 0.2
+
+    return ParsedTerms(
+        duration_months=grounded_duration,
+        terms=sanitize_base_terms(grounded_terms),
+        exclusions=sanitize_support_items(grounded_exclusions),
+        claim_steps=sanitize_support_items(grounded_claim_steps),
+        raw_text=enrich.raw_text,
+        confidence=min(confidence, enrich.confidence),
+    )
+
+
 def _finalize_parsed(parsed: ParsedTerms, raw_text_for_enrich: Optional[str] = None) -> ParsedTerms:
     # Always normalize deterministic parser output.
     normalized = ParsedTerms(
@@ -536,7 +629,15 @@ def _finalize_parsed(parsed: ParsedTerms, raw_text_for_enrich: Optional[str] = N
     enrich, _err = _mistral_enrich_terms(enrich_text)
     if not enrich:
         return normalized
-    return _merge_parsed(normalized, enrich)
+    grounded_enrich = _ground_enrichment_in_source(enrich, enrich_text)
+    if not (
+        grounded_enrich.duration_months
+        or grounded_enrich.terms
+        or grounded_enrich.exclusions
+        or grounded_enrich.claim_steps
+    ):
+        return normalized
+    return _merge_parsed(normalized, grounded_enrich)
 
 
 def parse_terms_from_text(text: str) -> ParsedTerms:

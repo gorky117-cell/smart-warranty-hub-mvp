@@ -1209,3 +1209,13 @@ git ls-remote --heads origin
 - Fixed the recommendation service pass-through so saved warranty `terms`, `exclusions`, `claim_steps`, `alternatives` and source URL are actually sent into the care recommendation engine; this allows the already-built OEM-derived care layer to show in production.
 - Preserved previous invoice extraction, OEM discovery, source trust, risk/context separation, Epson printer handling and Samsung menu-noise cleanup.
 - Verification passed: focused OEM/care regressions passed with `9 passed`; full `pytest -q` passed with `177 passed` and the existing three scikit-learn model-version warnings.
+
+## 80. Source-grounded AI warranty extraction guard - 2026-07-31
+
+- Added the first global validation layer for AI/NLP warranty extraction candidates in `warranty_parser`.
+- Mistral/AI can still help when OEM page text is messy or the deterministic parser has low confidence, but AI-proposed `duration_months`, `terms`, `exclusions` and `claim_steps` are now merged only when the same fact is grounded in the scraped/OCR source text.
+- Unsupported AI facts such as invented coverage months, exclusions or claim steps are rejected before they can be cached, saved to a warranty row, shown as OEM evidence, or reused by care suggestions.
+- Supported AI facts still pass through when source text contains matching warranty duration, terms, exclusions or support route language.
+- This is global for any invoice/product/OEM source that flows through `parse_terms_from_url`; it is not Samsung-only or Epson-only.
+- Preserved previous invoice extraction, approved-domain discovery, region guards, Samsung mobile normalization, Epson printer lookup, source labels, risk/context separation and OEM-derived care behavior.
+- Verification passed: focused warranty parser tests passed with `15 passed`; focused invoice pipeline tests passed with `32 passed`; full `pytest -q` passed with `180 passed` and the existing three scikit-learn model-version warnings.

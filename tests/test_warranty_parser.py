@@ -255,9 +255,44 @@ def test_lookup_terms_blocks_unapproved_manual_url_in_production(tmp_path: Path,
     assert result.source_url == "internal://manual_url_blocked_by_oem_policy"
 
 
-def test_parse_terms_low_confidence_uses_nlp_enrichment(tmp_path: Path, monkeypatch):
+def test_parse_terms_low_confidence_rejects_ungrounded_nlp_enrichment(tmp_path: Path, monkeypatch):
     html = "<html><body><p>Warranty details available from support team.</p></body></html>"
     path = tmp_path / "low_conf.html"
+    path.write_text(html, encoding="utf-8")
+
+    monkeypatch.setenv("TERMS_NLP_ENRICH_ENABLED", "1")
+    monkeypatch.setenv("TERMS_NLP_MIN_CONFIDENCE", "0.9")
+
+    def _fake_enrich(raw_text: str):
+        return (
+            ParsedTerms(
+                duration_months=24,
+                terms=["Covers manufacturing defects."],
+                exclusions=["Accidental damage is excluded."],
+                claim_steps=["Contact support with invoice."],
+                raw_text=None,
+                confidence=0.8,
+            ),
+            None,
+        )
+
+    monkeypatch.setattr("app.services.warranty_parser._mistral_enrich_terms", _fake_enrich)
+    parsed, err = parse_terms_from_url(str(path))
+    assert err is None
+    assert parsed is not None
+    assert parsed.duration_months is None
+    assert "Covers manufacturing defects." not in parsed.terms
+    assert "Accidental damage is excluded." not in parsed.exclusions
+    assert "Contact support with invoice." not in parsed.claim_steps
+
+
+def test_parse_terms_low_confidence_uses_grounded_nlp_enrichment(tmp_path: Path, monkeypatch):
+    html = (
+        "<html><body><p>Warranty coverage is 24 months from purchase date. "
+        "Covers manufacturing defects. Accidental damage is excluded. "
+        "Contact support with invoice.</p></body></html>"
+    )
+    path = tmp_path / "grounded_low_conf.html"
     path.write_text(html, encoding="utf-8")
 
     monkeypatch.setenv("TERMS_NLP_ENRICH_ENABLED", "1")

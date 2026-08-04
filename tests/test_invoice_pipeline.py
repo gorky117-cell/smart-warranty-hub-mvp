@@ -8,7 +8,7 @@ from fpdf import FPDF
 from app.main import app
 from app.db import SessionLocal
 from app.db_models import PipelineJobDB, WarrantyDB, WarrantySummaryDB, ParsedFieldDB
-from app.services import invoice_pipeline, summary_engine, terms_lookup
+from app.services import invoice_pipeline, summary_engine, terms_lookup, warranty_parser
 from app.services.openai_intelligence import merge_invoice_enrichment
 from app.services.ingestion import extract_product_fields, ingest_artifact
 from app.services.canonical import canonicalize_artifact
@@ -456,6 +456,69 @@ def test_canonical_invoice_does_not_invent_unconfirmed_warranty_terms():
     assert warranty.terms == []
     assert warranty.exclusions == []
     assert any("Verify official OEM warranty terms" in step for step in warranty.claim_steps)
+
+
+def test_ai_terms_enrichment_rejects_unsupported_warranty_facts(monkeypatch):
+    base = ParsedTerms(
+        duration_months=None,
+        terms=[],
+        exclusions=[],
+        claim_steps=[],
+        raw_text="Warranty service requires invoice and serial number. Contact Epson service center for support.",
+        confidence=0.0,
+    )
+    ai_candidate = ParsedTerms(
+        duration_months=24,
+        terms=["Standard coverage for 24 months from purchase date."],
+        exclusions=["Liquid damage and theft are excluded."],
+        claim_steps=["Contact Epson service center for support."],
+        raw_text=None,
+        confidence=1.0,
+    )
+
+    monkeypatch.setattr(warranty_parser, "_nlp_enrich_enabled", lambda: True)
+    monkeypatch.setattr(warranty_parser, "_mistral_enrich_terms", lambda text: (ai_candidate, None))
+
+    result = warranty_parser._finalize_parsed(base, raw_text_for_enrich=base.raw_text)
+
+    assert result.duration_months is None
+    assert "Standard coverage for 24 months from purchase date." not in result.terms
+    assert "Liquid damage and theft are excluded." not in result.exclusions
+    assert result.claim_steps == ["Contact Epson service center for support."]
+
+
+def test_ai_terms_enrichment_keeps_supported_warranty_facts(monkeypatch):
+    source_text = (
+        "This Epson printer warranty is valid for 1 year from purchase date. "
+        "The warranty covers up to 30000 prints, whichever comes first. "
+        "Consumable parts are not covered. Keep invoice and serial number ready for support."
+    )
+    base = ParsedTerms(
+        duration_months=None,
+        terms=[],
+        exclusions=[],
+        claim_steps=[],
+        raw_text=source_text,
+        confidence=0.0,
+    )
+    ai_candidate = ParsedTerms(
+        duration_months=12,
+        terms=["Warranty covers up to 30000 prints, whichever comes first."],
+        exclusions=["Consumable parts are not covered."],
+        claim_steps=["Keep invoice and serial number ready for support."],
+        raw_text=None,
+        confidence=1.0,
+    )
+
+    monkeypatch.setattr(warranty_parser, "_nlp_enrich_enabled", lambda: True)
+    monkeypatch.setattr(warranty_parser, "_mistral_enrich_terms", lambda text: (ai_candidate, None))
+
+    result = warranty_parser._finalize_parsed(base, raw_text_for_enrich=source_text)
+
+    assert result.duration_months == 12
+    assert "Warranty covers up to 30000 prints, whichever comes first." in result.terms
+    assert "Consumable parts are not covered." in result.exclusions
+    assert "Keep invoice and serial number ready for support." in result.claim_steps
 
 
 def test_epson_l3250_discovers_official_source_and_terms():
