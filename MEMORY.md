@@ -1219,3 +1219,12 @@ git ls-remote --heads origin
 - This is global for any invoice/product/OEM source that flows through `parse_terms_from_url`; it is not Samsung-only or Epson-only.
 - Preserved previous invoice extraction, approved-domain discovery, region guards, Samsung mobile normalization, Epson printer lookup, source labels, risk/context separation and OEM-derived care behavior.
 - Verification passed: focused warranty parser tests passed with `15 passed`; focused invoice pipeline tests passed with `32 passed`; full `pytest -q` passed with `180 passed` and the existing three scikit-learn model-version warnings.
+
+## 81. Upload fallback when initial canonicalization fails - 2026-08-10
+
+- Production testing showed bill upload could fail immediately with `Upload failed: upstream error` before the background invoice/OEM pipeline had a chance to process the artifact.
+- Added a narrow upload-route fallback: if synchronous initial canonicalization/persistence fails, the route now creates a minimal placeholder warranty linked to the uploaded artifact and records the failure in `alternatives`.
+- The background invoice pipeline still receives the artifact/job and can perform the normal extraction, OEM lookup, source validation, summary and care refresh.
+- This preserves existing OCR, invoice identity extraction, OEM source validation, AI grounding, region guards, ownership linking and notification behavior; it only prevents the HTTP upload response from dying on a transient upstream parser/persistence error.
+- Added a regression test that forces `canonicalize_artifact` to raise `RuntimeError("upstream error")` and verifies `/artifacts/upload` still returns `200` with a `warranty_id` and `job_id`.
+- Verification passed: focused invoice pipeline tests passed with `33 passed`; full `pytest -q` passed with `181 passed` and the existing three scikit-learn model-version warnings.

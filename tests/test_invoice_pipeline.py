@@ -5,6 +5,7 @@ from datetime import datetime
 from fastapi.testclient import TestClient
 from fpdf import FPDF
 
+from app import main as app_main
 from app.main import app
 from app.db import SessionLocal
 from app.db_models import PipelineJobDB, WarrantyDB, WarrantySummaryDB, ParsedFieldDB
@@ -61,6 +62,45 @@ def test_upload_creates_job(tmp_path):
     with SessionLocal() as db:
         job = db.query(PipelineJobDB).filter_by(id=payload["job_id"]).first()
         assert job is not None
+
+
+def test_upload_returns_warranty_when_initial_canonicalization_fails(tmp_path, monkeypatch):
+    client = TestClient(app)
+    login = client.post(
+        "/auth/login",
+        data={"username": "admin", "password": "admin123"},
+        headers={"accept": "application/json"},
+    )
+    token = login.json().get("access_token")
+    assert token
+
+    def fail_canonicalize(*args, **kwargs):
+        raise RuntimeError("upstream error")
+
+    monkeypatch.setattr(app_main, "canonicalize_artifact", fail_canonicalize)
+
+    sample_path = tmp_path / "invoice.txt"
+    sample_path.write_text("Tax Invoice\n1 Epson L3250 Printer\nInvoice Date 01-05-2026", encoding="utf-8")
+    with sample_path.open("rb") as fh:
+        resp = client.post(
+            "/artifacts/upload",
+            files={"file": ("invoice.txt", fh, "text/plain")},
+            data={"type": "invoice"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload.get("warranty_id")
+    assert payload.get("job_id")
+
+    with SessionLocal() as db:
+        warranty = db.query(WarrantyDB).filter_by(id=payload["warranty_id"]).first()
+        job = db.query(PipelineJobDB).filter_by(id=payload["job_id"]).first()
+
+    assert warranty is not None
+    assert job is not None
+    assert (warranty.alternatives or {}).get("initial_canonicalization_error") == "RuntimeError"
 
 
 def test_pipeline_completes_with_pdf(tmp_path):

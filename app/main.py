@@ -24,7 +24,7 @@ class BaseModel(PydanticBaseModel):
     # Allow fields like model_code without protected namespace warnings
     model_config = {"protected_namespaces": ()}
 
-from .models import ArtifactType, BehaviourEvent
+from .models import ArtifactType, BehaviourEvent, CanonicalWarranty
 from .services.canonical import canonicalize_artifact
 from .services.ingestion import ingest_artifact
 from .services.llm import generate_text
@@ -1597,6 +1597,27 @@ def create_artifact(payload: ArtifactRequest):
     return artifact
 
 
+def _minimal_upload_warranty(artifact, error: Exception) -> CanonicalWarranty:
+    """Keep upload usable even if initial synchronous parsing/persistence fails."""
+    warranty = CanonicalWarranty(
+        id=generate_id("wty"),
+        product_name="Product",
+        claim_steps=[
+            "Keep invoice or receipt ready.",
+            "Share serial/model information with support.",
+            "Verify official OEM warranty terms before relying on claim coverage.",
+        ],
+        confidence={},
+        alternatives={
+            "initial_canonicalization_error": error.__class__.__name__,
+            "initial_canonicalization_error_detail": str(error)[:200],
+            "terms_source_type": "invoice_only",
+        },
+        source_artifact_ids=[artifact.id],
+    )
+    return store.add_warranty(warranty)
+
+
 @app.post("/artifacts/upload", dependencies=[Depends(rbac_dependency)])
 async def upload_artifact(
     request: Request,
@@ -1662,9 +1683,15 @@ async def upload_artifact(
         warranty = store.get_warranty_db(warranty_id)
         if not warranty:
             # Create new if specified ID doesn't exist
-            warranty = canonicalize_artifact(artifact, None)
+            try:
+                warranty = canonicalize_artifact(artifact, None)
+            except Exception as exc:
+                warranty = _minimal_upload_warranty(artifact, exc)
     else:
-        warranty = canonicalize_artifact(artifact, None)
+        try:
+            warranty = canonicalize_artifact(artifact, None)
+        except Exception as exc:
+            warranty = _minimal_upload_warranty(artifact, exc)
 
     # Ownership link for per-user data isolation in the UI.
     # Use a separate DB session so it still succeeds even if the job pipeline transaction fails.
