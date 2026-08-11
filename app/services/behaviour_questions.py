@@ -194,6 +194,39 @@ def _official_question_allowed(category: str, question_id: str) -> bool:
     return category in allowed_categories
 
 
+def _official_question_text(category: str, question_id: str) -> str:
+    product_label = category.replace("_", " ")
+    if question_id == "oq_usage_limit":
+        if category == "printer":
+            return "The OEM source mentions print or usage limits. Has this printer been used heavily?"
+        return f"The OEM source mentions usage limits. Has this {product_label} been used heavily?"
+    if question_id == "oq_printhead":
+        return "The OEM source mentions printhead/nozzle terms. Have you noticed missing lines, faded print, or nozzle issues?"
+    if question_id == "oq_filter":
+        return f"The OEM source mentions filter or cartridge care. Has the {product_label} filter/cartridge been cleaned or replaced recently?"
+    if question_id == "oq_power":
+        if category == "smartphone":
+            return "The OEM source mentions charging or battery terms. Have you noticed charging, battery, heat, or power issues?"
+        return f"The OEM source mentions power conditions. Have you noticed voltage fluctuation, power trips, or adapter issues with this {product_label}?"
+    if question_id == "oq_water":
+        if category in {"camera", "wearable", "audio"}:
+            return f"The OEM source mentions water or moisture limits. Has this {product_label} had any liquid, rain, sweat, or moisture exposure?"
+        return f"The OEM source mentions water or leakage terms. Have you noticed leaks, moisture, or water exposure around this {product_label}?"
+    if question_id == "oq_cooling":
+        return f"The OEM source mentions cooling or temperature terms. Have you noticed unstable cooling, weak airflow, or temperature changes?"
+    if question_id == "oq_motor":
+        return f"The OEM source mentions motor/drum terms. Have you noticed vibration, slowing, burning smell, or unusual noise?"
+    if question_id == "oq_battery":
+        if category == "smartphone":
+            return "The OEM source mentions battery or charging terms. Have you noticed fast drain, slow charging, overheating, or shutdowns?"
+        return f"The OEM source mentions battery or charging terms. Have you noticed backup, charging, or battery issues?"
+    if question_id == "oq_service_route":
+        if category == "smartphone":
+            return "For a phone claim, do you have the invoice, IMEI/serial, photos, and a short issue note ready?"
+        return f"The OEM source includes a support route. Do you have the invoice, model/serial details, photos, and issue notes ready?"
+    return f"The OEM source mentions a {product_label} warranty condition. Is this relevant to your current use or claim?"
+
+
 def _official_care_questions(warranty: object | None) -> List[Tuple[str, str, str]]:
     if not _official_source_present(warranty):
         return []
@@ -207,24 +240,24 @@ def _official_care_questions(warranty: object | None) -> List[Tuple[str, str, st
 
     candidates: List[Tuple[str, str, str]] = []
     keyword_questions = [
-        (("30,000", "prints", "page yield"), "oq_usage_limit", "The OEM source mentions a usage or print limit. Is your product used heavily?"),
-        (("printhead", "nozzle"), "oq_printhead", "The OEM source mentions printhead/nozzle-related terms. Have you noticed print quality or nozzle issues?"),
-        (("filter", "cartridge"), "oq_filter", "The OEM source mentions filter or cartridge care. Is the filter/cartridge recently cleaned or replaced?"),
-        (("voltage", "surge", "power"), "oq_power", "The OEM source mentions power conditions. Have you noticed voltage fluctuation or power trips?"),
-        (("leak", "water", "moisture"), "oq_water", "The OEM source mentions water or leakage-related terms. Have you noticed leakage or moisture exposure?"),
-        (("compressor", "cooling", "temperature"), "oq_cooling", "The OEM source mentions cooling-related terms. Have you noticed unstable cooling or temperature changes?"),
-        (("motor", "drum", "vibration"), "oq_motor", "The OEM source mentions motor/drum-related terms. Have you noticed vibration, slowing, or unusual noise?"),
-        (("battery", "charge", "charging"), "oq_battery", "The OEM source mentions battery or charging terms. Have you noticed backup, charging, or battery issues?"),
-        (("service center", "repair status", "warranty check"), "oq_service_route", "The OEM source includes a support route. Do you already have photos, invoice, and model/serial details ready?"),
+        (("30,000", "prints", "page yield"), "oq_usage_limit"),
+        (("printhead", "nozzle"), "oq_printhead"),
+        (("filter", "cartridge"), "oq_filter"),
+        (("voltage", "surge", "power"), "oq_power"),
+        (("leak", "water", "moisture"), "oq_water"),
+        (("compressor", "cooling", "temperature"), "oq_cooling"),
+        (("motor", "drum", "vibration"), "oq_motor"),
+        (("battery", "charge", "charging"), "oq_battery"),
+        (("service center", "service centre", "repair status", "warranty check", "authorized service", "authorised service"), "oq_service_route"),
     ]
-    for keywords, qid, text_value in keyword_questions:
+    for keywords, qid in keyword_questions:
         if not _official_question_allowed(category, qid):
             continue
         if any(keyword in text for keyword in keywords):
             candidates.append(
                 (
                     qid,
-                    text_value,
+                    _official_question_text(category, qid),
                     "official_oem_care_context_needed",
                 )
             )

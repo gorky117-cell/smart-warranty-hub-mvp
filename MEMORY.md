@@ -1261,3 +1261,11 @@ git ls-remote --heads origin
 - Kept full warranty text and source URL as the evidence layer; only the customer summary wording changed.
 - Preserved useful OEM facts such as Epson printhead coverage/limits while avoiding optional plan noise and raw navigation fragments.
 - Verification passed: focused summary/recommendation tests passed with `22 passed`; full `pytest -q` passed with `185 passed` and the existing three scikit-learn model-version warnings.
+
+## 86. Product-specific OEM diagnostic question wording - 2026-08-11
+
+- Production review showed OEM diagnostic questions must be globally useful for the customer, not raw OEM wording and not one-off Samsung phone text.
+- Added centralized category-aware OEM question templates for usage limits, printhead/nozzle, filter/cartridge, power, water/moisture, cooling, motor/drum, battery/charging and service-route signals.
+- Kept deterministic category allow-lists so irrelevant OEM prompts remain blocked, such as filter/cartridge maintenance for smartphones.
+- Phone service-route questions now ask for invoice, IMEI/serial, photos and a short issue note; printer usage-limit questions ask about heavy printer use; other categories get product-specific language.
+- Verification passed: focused behavior-question tests passed with `15 passed`; full `pytest -q` passed with `187 passed` and the existing three scikit-learn model-version warnings.

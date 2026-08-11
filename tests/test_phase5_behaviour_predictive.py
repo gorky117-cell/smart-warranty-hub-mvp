@@ -133,6 +133,32 @@ def test_useful_question_prefers_official_oem_care_context_when_available(tmp_pa
     assert reason == "official_oem_care_context_needed"
 
 
+def test_useful_question_uses_product_specific_oem_usage_wording(tmp_path, monkeypatch):
+    monkeypatch.setattr(behaviour_questions, "DATA_PATH", str(tmp_path / "answers.jsonl"))
+
+    q, done, reason = behaviour_questions.get_next_useful_question(
+        "phase5_printer_usage_user",
+        "phase5_printer_usage_warranty",
+        warranty=_Warranty(
+            serial_no="SN-1",
+            region_code="IN",
+            product_name="Epson L3250 Printer",
+            terms=["Warranty coverage is up to 1 year or 30,000 prints, whichever comes first."],
+            alternatives={
+                "terms_source_type": "approved_oem_source",
+                "terms_source_url": "https://www.epson.co.in/support/warranty",
+            },
+        ),
+        telemetry_events=[],
+    )
+
+    assert done is False
+    assert q["id"] == "oq_usage_limit"
+    assert "printer" in q["text"].lower()
+    assert "used heavily" in q["text"].lower()
+    assert reason == "official_oem_care_context_needed"
+
+
 def test_useful_question_blocks_irrelevant_oem_filter_prompt_for_phone(tmp_path, monkeypatch):
     monkeypatch.setattr(behaviour_questions, "DATA_PATH", str(tmp_path / "answers.jsonl"))
 
@@ -161,6 +187,35 @@ def test_useful_question_blocks_irrelevant_oem_filter_prompt_for_phone(tmp_path,
     assert q["id"] == "pq_phone_overheat"
     assert q.get("source") != "official_oem_terms"
     assert reason == "smartphone_behaviour_context_needed"
+
+
+def test_useful_question_uses_phone_specific_oem_service_route(tmp_path, monkeypatch):
+    monkeypatch.setattr(behaviour_questions, "DATA_PATH", str(tmp_path / "answers.jsonl"))
+
+    q, done, reason = behaviour_questions.get_next_useful_question(
+        "phase5_phone_service_user",
+        "phase5_phone_service_warranty",
+        warranty=_Warranty(
+            serial_no="SN-1",
+            region_code="IN",
+            product_name="Samsung Galaxy M17e 5G Mobile",
+            brand="Samsung",
+            model_code="M17E",
+            claim_steps=["Warranty Check", "Detailed cost can be confirmed at a Samsung Authorized Service Center."],
+            alternatives={
+                "terms_source_type": "approved_oem_source",
+                "terms_source_url": "https://www.samsung.com/in/support/warranty/",
+            },
+        ),
+        telemetry_events=[],
+    )
+
+    assert done is False
+    assert q["id"] == "oq_service_route"
+    assert q["source"] == "official_oem_terms"
+    assert "phone claim" in q["text"].lower()
+    assert "imei/serial" in q["text"].lower()
+    assert reason == "official_oem_care_context_needed"
 
 
 def test_useful_question_allows_oem_filter_prompt_for_purifier(tmp_path, monkeypatch):
