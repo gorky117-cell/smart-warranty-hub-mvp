@@ -1253,3 +1253,11 @@ git ls-remote --heads origin
 - Added a Samsung mobile product-context guard so pages/text that clearly refer to `Mobile Connected PC`, notebook PC or note-warranty contexts are skipped for phone warranties even if the region signal is missing or messy.
 - Preserved upload fallback, job polling, AI grounding, approved-OEM source validation, saved-cache reuse rules, duration conflict filtering, OEM-derived care suggestions and risk/context wording.
 - Verification passed: focused invoice/OEM regressions passed with `4 passed`; full `pytest -q` passed with `184 passed` and the existing three scikit-learn model-version warnings.
+
+## 85. Customer-friendly warranty summary bullets - 2026-08-11
+
+- Production review showed the approved OEM evidence was being preserved correctly, but the easy summary could still display raw scraped OEM fragments such as partial Samsung claim menu text.
+- Updated the layman summary layer to transform saved OEM facts into short customer-facing bullets for coverage, manufacturing defects, liquid/moisture exclusions, wear/consumables, unauthorized repair, screen/accidental damage, warranty checker, authorized service route and invoice/model/photo readiness.
+- Kept full warranty text and source URL as the evidence layer; only the customer summary wording changed.
+- Preserved useful OEM facts such as Epson printhead coverage/limits while avoiding optional plan noise and raw navigation fragments.
+- Verification passed: focused summary/recommendation tests passed with `22 passed`; full `pytest -q` passed with `185 passed` and the existing three scikit-learn model-version warnings.

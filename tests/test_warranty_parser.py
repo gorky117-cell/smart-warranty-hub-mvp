@@ -118,6 +118,42 @@ def test_layman_summary_filters_stale_optional_extended_plan_terms():
     assert "extended plan" not in joined
 
 
+def test_layman_summary_turns_oem_text_into_customer_guidance():
+    warranty = CanonicalWarranty(
+        id="wty_customer_summary",
+        brand="Samsung",
+        model_code="M17E",
+        coverage_months=12,
+        terms=[
+            "The company's obligation under this warranty shall be limited to repairing or providing replacement of part/s, which are found to be defective.",
+            "Standard coverage for 12 months from purchase date.",
+        ],
+        exclusions=[
+            "C-1. Unless stated otherwise, this Warranty does not extend to loss caused by normal wear and tear, fire, water (liquid spillage or ingression).",
+        ],
+        claim_steps=[
+            "and we’ll guide you through the process. We recommend",
+            "with us, so that we can help you as quickly and efficiently as possible.",
+            "Warranty Checker",
+            "Detailed cost & estimated repair time can be confirmed at a Samsung Authorized Service Center.",
+        ],
+        alternatives={
+            "terms_source_type": "approved_oem_source",
+            "terms_source_url": "https://www.samsung.com/in/support/warranty/",
+        },
+    )
+
+    summary = build_layman_summary(warranty)
+    joined = " ".join(summary["pros"] + summary["cons"] + summary["claim_friction"]).lower()
+
+    assert "standard warranty coverage shown: 12 months" in joined
+    assert "liquid or moisture damage may not be covered" in joined
+    assert "check warranty status" in joined
+    assert "authorized service center" in joined
+    assert "and we’ll guide" not in joined
+    assert "with us, so that" not in joined
+
+
 def test_parse_terms_filters_oem_navigation_marketing_labels():
     text = (
         "Warranty coverage of up to 1 year or 30,000 prints, whichever comes first.\n"

@@ -318,6 +318,55 @@ def build_structured_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
     return {"points": points, "tags": list(dict.fromkeys(tags))}
 
 
+def _dedupe_plain(items: List[str]) -> List[str]:
+    out: List[str] = []
+    seen = set()
+    for item in items:
+        clean = " ".join(str(item).split()).strip()
+        if not clean:
+            continue
+        key = clean.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(clean)
+    return out
+
+
+def _useful_customer_bullets(items: List[str], *, kind: str, coverage: str) -> List[str]:
+    bullets: List[str] = []
+    for item in items:
+        low = item.lower()
+        if kind == "term":
+            if any(k in low for k in ("coverage", "warranty", "month", "year")):
+                bullets.append(f"Standard warranty coverage shown: {coverage}.")
+            if "printhead" in low:
+                bullets.append("Printhead coverage or limits are mentioned in the OEM terms.")
+            elif any(k in low for k in ("repair", "replacement", "defective", "manufacturing")):
+                bullets.append("Manufacturing defects may be repaired or replaced under OEM terms.")
+            elif "international" in low:
+                bullets.append("International support may be limited; check the local OEM support route before a claim.")
+        elif kind == "exclusion":
+            if any(k in low for k in ("liquid", "water", "moisture")):
+                bullets.append("Liquid or moisture damage may not be covered.")
+            elif any(k in low for k in ("wear", "tear", "consumable", "filter", "lamp", "bulb")):
+                bullets.append("Normal wear, consumables or replaceable parts may not be covered.")
+            elif any(k in low for k in ("unauthor", "unauthorized", "authorised", "authorized")):
+                bullets.append("Unauthorized repair can affect claim eligibility.")
+            elif any(k in low for k in ("screen", "accidental", "physical")):
+                bullets.append("Screen, accidental or physical damage may have limits or exclusions.")
+        elif kind == "claim":
+            if any(k in low for k in ("warranty checker", "warranty check", "register")):
+                bullets.append("Check warranty status or register the product on the OEM support page.")
+            elif any(k in low for k in ("service center", "service centre", "authorized service", "authorised service")):
+                bullets.append("Use an authorized service center or official OEM support route.")
+            elif any(k in low for k in ("invoice", "serial", "model", "photo")):
+                bullets.append("Keep invoice, model/serial details and issue photos ready before contacting support.")
+            elif any(k in low for k in ("repair", "book", "troubleshoot")):
+                bullets.append("Use OEM troubleshooting or book repair through the official support route.")
+    return _dedupe_plain(bullets)
+
+
 def build_layman_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
     """
     Human-friendly warranty explanation for non-technical users.
@@ -331,13 +380,15 @@ def build_layman_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
     product = " ".join([x for x in [warranty.brand, warranty.model_code] if x]) or (warranty.product_name or "product")
     coverage = f"{warranty.coverage_months} months" if warranty.coverage_months else "not clearly stated"
 
-    pros = terms[:4] if terms else ["Coverage details are partially available from current records."]
-    cons = exclusions[:4] if exclusions else ["No explicit exclusions were parsed yet. Please verify on OEM page/bill."]
+    pros = _useful_customer_bullets(terms, kind="term", coverage=coverage)[:4]
+    if not pros:
+        pros = ["Coverage details are partially available from current records."]
+    cons = _useful_customer_bullets(exclusions, kind="exclusion", coverage=coverage)[:4]
+    if not cons:
+        cons = ["No explicit exclusions were parsed yet. Please verify on OEM page/bill."]
 
-    claim_friction = []
-    if claim_steps:
-        claim_friction.extend(claim_steps[:3])
-    else:
+    claim_friction = _useful_customer_bullets(claim_steps, kind="claim", coverage=coverage)[:4]
+    if not claim_friction:
         claim_friction.append("Claim process is not fully available yet.")
 
     fine_print = []
