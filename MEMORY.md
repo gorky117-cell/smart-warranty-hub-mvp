@@ -1236,3 +1236,11 @@ git ls-remote --heads origin
 - Preserved non-duration OEM facts such as screen-protector exclusions, liquid/moisture exclusions and service/claim routes; this is a display consistency guard, not a change to OEM discovery or upload flow.
 - Added a regression test proving a merged 24-month Samsung result does not display 12-month or one-year coverage bullets underneath.
 - Verification passed: focused invoice/OEM merge tests passed with `3 passed`; full `pytest -q` passed with `182 passed` and the existing three scikit-learn model-version warnings.
+
+## 83. Wait for invoice pipeline before loading uploaded warranty - 2026-08-11
+
+- Production retesting of the same Samsung/Amazon invoice showed a newly uploaded warranty row could briefly display `Terms: unknown` and `Evidence: Not confirmed` because the Neo dashboard loaded the warranty after a fixed two-second delay while the background invoice/OEM pipeline was still running.
+- Updated the Neo dashboard upload flow to poll `GET /jobs/{job_id}` and show step-specific progress such as reading invoice, extracting product details and checking OEM warranty source.
+- The dashboard now loads/reloads the warranty only after the job reaches `done` or reports a clear failure, reducing false confusion between a safe placeholder state and the final OEM-enriched result.
+- This is a UI timing fix only; it preserves upload fallback, OCR, AI invoice enrichment, OEM lookup, source validation, grounding guards, duration conflict filtering, care suggestions and risk logic.
+- Verification passed: full `pytest -q` passed with `182 passed` and the existing three scikit-learn model-version warnings.

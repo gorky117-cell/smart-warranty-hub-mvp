@@ -2889,22 +2889,45 @@
             const warrantyInput = document.getElementById('warrantyId');
             if (warrantyInput) warrantyInput.value = data.warranty_id;
 
-            // Wait for background job, then reload warranty and dropdown
-            setTimeout(async () => {
-              try {
-                // Refresh the dropdown with new warranty
-                if (typeof loadWarrantyDropdown === 'function') loadWarrantyDropdown();
-                const showBtn = document.getElementById('show-warranty-btn');
-                if (showBtn) showBtn.click();
-                if (msg) msg.textContent = 'Uploaded and extracted successfully!';
-              } catch (e) {
-                if (msg) msg.textContent = 'Uploaded. Refresh to see data.';
+            try {
+              if (data.job_id) {
+                const job = await waitForInvoiceJob(data.job_id, msg);
+                if (job && job.status === 'failed') {
+                  if (msg) msg.textContent = `Uploaded, but extraction needs review: ${job.error || 'pipeline failed'}`;
+                }
               }
-            }, 2000);
+              if (typeof loadWarrantyDropdown === 'function') loadWarrantyDropdown();
+              const showBtn = document.getElementById('show-warranty-btn');
+              if (showBtn) showBtn.click();
+              if (msg) msg.textContent = 'Uploaded and extracted successfully!';
+            } catch (e) {
+              if (msg) msg.textContent = 'Uploaded. Still processing; refresh or load again in a moment.';
+            }
           }
         } catch (e) {
           if (msg) msg.textContent = `Upload error: ${e}`;
         }
+      }
+
+      async function waitForInvoiceJob(jobId, msg) {
+        const terminal = new Set(['done', 'failed']);
+        const labels = {
+          uploaded: 'Uploaded. Waiting for extraction...',
+          extracting_text: 'Reading invoice...',
+          ocr_if_needed: 'Checking OCR text...',
+          parsed_fields: 'Extracting product details...',
+          terms_lookup: 'Checking OEM warranty source...',
+          summarized: 'Preparing summary...'
+        };
+        const maxAttempts = 30;
+        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+          const job = await fetchJsonSafe(`/jobs/${encodeURIComponent(jobId)}`, { headers: h() }, 'invoice job');
+          const status = String(job.status || '').toLowerCase();
+          if (msg) msg.textContent = labels[status] || `Processing invoice... ${status || ''}`.trim();
+          if (terminal.has(status)) return job;
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        return { status: 'timeout' };
       }
 
       async function openCamera() {
