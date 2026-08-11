@@ -1244,3 +1244,12 @@ git ls-remote --heads origin
 - The dashboard now loads/reloads the warranty only after the job reaches `done` or reports a clear failure, reducing false confusion between a safe placeholder state and the final OEM-enriched result.
 - This is a UI timing fix only; it preserves upload fallback, OCR, AI invoice enrichment, OEM lookup, source validation, grounding guards, duration conflict filtering, care suggestions and risk logic.
 - Verification passed: full `pytest -q` passed with `182 passed` and the existing three scikit-learn model-version warnings.
+
+## 84. Use invoice region before OEM terms lookup - 2026-08-11
+
+- Production Samsung/Amazon India retesting showed an India phone invoice could still accept a Samsung UK/global phone-support URL whose parsed text contained `60 months` and `Mobile Connected PC` wording.
+- Added deterministic India invoice-region inference from GST/tax invoice markers, HSN, CGST/SGST/IGST, place-of-supply, INR, Amazon India and Indian PIN-code clues.
+- The invoice pipeline now persists extracted `region_code` onto the warranty before OEM lookup, so existing region guards can reject conflicting country paths such as `/uk/` for an `IN` invoice before parsing, caching or publishing terms.
+- Added a Samsung mobile product-context guard so pages/text that clearly refer to `Mobile Connected PC`, notebook PC or note-warranty contexts are skipped for phone warranties even if the region signal is missing or messy.
+- Preserved upload fallback, job polling, AI grounding, approved-OEM source validation, saved-cache reuse rules, duration conflict filtering, OEM-derived care suggestions and risk/context wording.
+- Verification passed: focused invoice/OEM regressions passed with `4 passed`; full `pytest -q` passed with `184 passed` and the existing three scikit-learn model-version warnings.

@@ -280,6 +280,8 @@ Tax Invoice
 Order Date: 01.05.2026
 Invoice Number : DEL5-53804
 Invoice Date : 02.05.2026
+GSTIN: 29ABCDE1234F1Z5
+Place of Supply: Karnataka
 Sl. No Description Unit Price Discount Qty Net Amount Tax Rate Tax Type Tax Amount Total Amount
 1 Samsung Galaxy M17e 5G Mobile (Vibe Violet, 6GB RAM, 128GB Storage) | Smoothest 120 Hz Refresh Rate| Monster 6000 mAh Battery | IP54 | 6 Gen OS Upgrades | AI | Gemini Live | Without Charger | B0GN1NNYXF ( SMNG-M17e-VIOLET-6+128GB ) HSN:85171300
 Shipping Charges
@@ -291,6 +293,7 @@ Shipping Charges
     assert fields["product_name"] == "Samsung Galaxy M17e 5G Mobile (Vibe Violet, 6GB RAM, 128GB Storage)"
     assert fields["purchase_date"] == "2026-05-01"
     assert fields["invoice_no"] == "DEL5-53804"
+    assert fields["region_code"] == "IN"
     assert fields.get("serial_no") != "85171300"
     assert "IP54" not in fields.values()
     assert alternatives["product_line"]
@@ -419,7 +422,8 @@ Invoice Date : 02.05.2026
     assert "product_name" not in fields
     assert "brand" not in fields
     assert "model_code" not in fields
-    assert alternatives["notes"] == ["No strong signals found; manual entry may be required."]
+    assert fields["region_code"] == "IN"
+    assert "notes" not in alternatives
 
 
 def test_invoice_parser_short_product_tokens_require_word_boundaries():
@@ -820,6 +824,82 @@ def test_terms_lookup_skips_auto_source_with_conflicting_country_path(monkeypatc
     assert calls == [urls[1]]
     assert result.duration_months == 12
     assert result.source_url == urls[1]
+
+
+def test_terms_lookup_skips_samsung_phone_source_for_mobile_connected_pc(monkeypatch):
+    pc_url = "https://www.samsung.com/uk/support/mobile-devices/what-is-the-warranty-status-of-my-samsung-mobile-device/"
+    phone_url = "https://www.samsung.com/in/support/warranty/"
+
+    def fake_discover_sources(**kwargs):
+        return [
+            DiscoverySource(url=pc_url, source_type="oem_warranty", score=100, official=True, brand="Samsung", region="UK"),
+            DiscoverySource(url=phone_url, source_type="oem_warranty", score=95, official=True, brand="Samsung", region="IN"),
+        ]
+
+    calls = []
+
+    def fake_parse_terms_from_url(url):
+        calls.append(url)
+        if url == pc_url:
+            return ParsedTerms(
+                duration_months=60,
+                terms=["Standard coverage for 60 months from purchase date."],
+                exclusions=[],
+                claim_steps=[],
+                raw_text="The limited international warranty applies only to Mobile Connected PC products.",
+            ), None
+        return ParsedTerms(
+            duration_months=12,
+            terms=["Limited warranty period of 1 year applies to mobile products."],
+            exclusions=["Screen protector repair/replacement is not covered."],
+            claim_steps=["Warranty Check"],
+            raw_text="Samsung India mobile warranty. Limited warranty period of 1 year.",
+        ), None
+
+    monkeypatch.setattr(terms_lookup, "discover_sources", fake_discover_sources)
+    monkeypatch.setattr(terms_lookup, "parse_terms_from_url", fake_parse_terms_from_url)
+
+    with SessionLocal() as db:
+        result = lookup_terms(
+            db,
+            brand="Samsung",
+            category="mobile",
+            region=None,
+            model_code="M17E",
+            product_name="Samsung Galaxy M17e 5G Mobile",
+            force_refresh=True,
+        )
+
+    assert calls == [pc_url, phone_url]
+    assert result.duration_months == 12
+    assert not any("60 months" in term for term in result.terms)
+    assert result.source_url == phone_url
+
+
+def test_pipeline_persists_invoice_region_before_terms_lookup():
+    warranty_id = "wty_region_from_invoice"
+    with SessionLocal() as db:
+        db.query(WarrantyDB).filter_by(id=warranty_id).delete()
+        db.add(WarrantyDB(id=warranty_id, product_name="Samsung Galaxy M17e 5G Mobile"))
+        db.commit()
+
+        warranty = invoice_pipeline._update_warranty(
+            db,
+            warranty_id,
+            {
+                "brand": "Samsung",
+                "model_code": "M17E",
+                "product_name": "Samsung Galaxy M17e 5G Mobile",
+                "product_category": "mobile",
+                "region_code": "IN",
+                "purchase_date": "2026-05-01",
+            },
+        )
+        assert warranty is not None
+        assert warranty.region_code == "IN"
+
+        db.query(WarrantyDB).filter_by(id=warranty_id).delete()
+        db.commit()
 
 
 def test_warranty_list_includes_invoice_and_upload_display_label():

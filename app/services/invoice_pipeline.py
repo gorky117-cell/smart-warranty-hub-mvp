@@ -126,6 +126,8 @@ def _update_warranty(db: Session, warranty_id: str, fields: Dict[str, Any]) -> O
         warranty.model_code = fields["model_code"]
     if fields.get("serial_no"):
         warranty.serial_no = fields["serial_no"]
+    if fields.get("region_code"):
+        warranty.region_code = fields["region_code"]
 
     purchase_date = _parse_date(fields.get("purchase_date"))
     if purchase_date:

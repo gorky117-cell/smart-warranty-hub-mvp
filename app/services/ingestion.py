@@ -362,6 +362,28 @@ def _infer_product_category(*, product_name: Optional[str], model_code: Optional
     return None
 
 
+def _infer_invoice_region(text: str) -> Optional[str]:
+    low = (text or "").lower()
+    india_markers = (
+        "tax invoice",
+        "gstin",
+        "cgst",
+        "sgst",
+        "igst",
+        "hsn",
+        "place of supply",
+        "state/ut",
+        "inr",
+        "amazon.in",
+        "india",
+    )
+    marker_hits = sum(1 for marker in india_markers if marker in low)
+    has_indian_pin = bool(re.search(r"\b[1-9]\d{5}\b", low))
+    if marker_hits >= 2 or (marker_hits and has_indian_pin):
+        return "IN"
+    return None
+
+
 def _line_item_candidates(lines: List[str]) -> List[Tuple[int, str]]:
     candidates: List[Tuple[int, str]] = []
     for line in lines:
@@ -741,6 +763,11 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
     if product_category:
         fields["product_category"] = product_category
         confidence["product_category"] = max(confidence.get("product_category", 0.0), 0.55)
+
+    region_code = _infer_invoice_region(text)
+    if region_code:
+        fields["region_code"] = region_code
+        confidence["region_code"] = 0.7
 
     fields, confidence, alternatives = sanitize_invoice_identity_fields(fields, confidence, alternatives)
 

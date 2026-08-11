@@ -220,6 +220,37 @@ def _looks_like_samsung_mobile_context(
     )
 
 
+def _source_conflicts_product_context(
+    source_url: Optional[str],
+    *,
+    brand: Optional[str],
+    norm_category: str,
+    result: TermsResult,
+) -> bool:
+    brand_l = (brand or "").strip().lower()
+    if not brand_l.startswith("samsung") or norm_category != "mobile":
+        return False
+    if "samsung.com" not in _host(source_url):
+        return False
+    corpus = " ".join(
+        [
+            source_url or "",
+            *(result.terms or []),
+            *(result.exclusions or []),
+            *(result.claim_steps or []),
+            result.raw_text or "",
+        ]
+    ).lower()
+    return any(
+        fragment in corpus
+        for fragment in (
+            "mobile connected pc",
+            "notebook pc",
+            "/note-warranty",
+        )
+    )
+
+
 def _normalize_result_for_context(
     result: TermsResult,
     *,
@@ -479,6 +510,22 @@ def lookup_terms(
             parsed, err = parse_terms_from_url(url_override)
             if parsed and not err:
                 result = _to_terms_result(parsed, url_override)
+                if _source_conflicts_product_context(
+                    url_override,
+                    brand=brand,
+                    norm_category=norm_category,
+                    result=result,
+                ):
+                    result = _default_terms(DEFAULT_RULES.get(norm_category, 12))
+                    result.source_url = "internal://manual_url_product_context_conflict"
+                    return _apply_region_policy(
+                        db,
+                        result,
+                        region=region,
+                        brand=brand,
+                        model_code=model_code,
+                        product_type=category,
+                    )
                 result = _normalize_result_for_context(
                     result,
                     brand=brand,
@@ -537,6 +584,13 @@ def lookup_terms(
                 if not parsed or err:
                     continue
                 result = _to_terms_result(parsed, src.url)
+                if _source_conflicts_product_context(
+                    src.url,
+                    brand=brand,
+                    norm_category=norm_category,
+                    result=result,
+                ):
+                    continue
                 result = _normalize_result_for_context(
                     result,
                     brand=brand,
