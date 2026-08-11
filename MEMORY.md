@@ -1228,3 +1228,11 @@ git ls-remote --heads origin
 - This preserves existing OCR, invoice identity extraction, OEM source validation, AI grounding, region guards, ownership linking and notification behavior; it only prevents the HTTP upload response from dying on a transient upstream parser/persistence error.
 - Added a regression test that forces `canonicalize_artifact` to raise `RuntimeError("upstream error")` and verifies `/artifacts/upload` still returns `200` with a `warranty_id` and `job_id`.
 - Verification passed: focused invoice pipeline tests passed with `33 passed`; full `pytest -q` passed with `181 passed` and the existing three scikit-learn model-version warnings.
+
+## 82. Remove conflicting duration bullets after OEM merge - 2026-08-11
+
+- Production Samsung testing showed the canonical coverage field could correctly show `24 months` and expiry `2028-05-01`, while the displayed OEM terms list still included stale/conflicting `12 months` or `one year` bullets from merged scraped text.
+- Added duration-aware filtering after terms-result merge so once a final canonical `duration_months` is selected, base coverage bullets that mention a different duration are removed from displayed terms.
+- Preserved non-duration OEM facts such as screen-protector exclusions, liquid/moisture exclusions and service/claim routes; this is a display consistency guard, not a change to OEM discovery or upload flow.
+- Added a regression test proving a merged 24-month Samsung result does not display 12-month or one-year coverage bullets underneath.
+- Verification passed: focused invoice/OEM merge tests passed with `3 passed`; full `pytest -q` passed with `182 passed` and the existing three scikit-learn model-version warnings.

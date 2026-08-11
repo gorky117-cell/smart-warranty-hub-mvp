@@ -650,6 +650,32 @@ def test_terms_lookup_merges_multiple_controlled_oem_sources(monkeypatch):
     assert result.source_urls == urls
 
 
+def test_terms_lookup_removes_conflicting_duration_terms_from_merged_sources():
+    result = terms_lookup._merge_terms_results(
+        [
+            TermsResult(
+                duration_months=24,
+                terms=[
+                    "Standard coverage for 24 months from purchase date.",
+                    "Standard coverage for 12 months from purchase date.",
+                    "Limited international one year warranty.",
+                    "Screen protector repair/replacement is not covered by Samsung's Limited Warranty policy",
+                ],
+                exclusions=[],
+                claim_steps=[],
+                source_url="https://www.samsung.com/uk/support/mobile-devices/what-is-the-warranty-status-of-my-samsung-mobile-device/",
+            )
+        ]
+    )
+
+    assert result is not None
+    assert result.duration_months == 24
+    assert "Standard coverage for 24 months from purchase date." in result.terms
+    assert not any("12 months" in term.lower() for term in result.terms)
+    assert not any("one year" in term.lower() for term in result.terms)
+    assert any("screen protector" in term.lower() for term in result.terms)
+
+
 def test_terms_lookup_normalizes_samsung_mobile_official_page(monkeypatch):
     samsung_url = "https://www.samsung.com/in/support/warranty/"
 

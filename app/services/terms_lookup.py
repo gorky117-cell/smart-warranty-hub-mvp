@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import os
+import re
 from datetime import datetime, timedelta
 from typing import Optional, List
 from urllib.parse import urlparse
@@ -83,6 +84,44 @@ def _default_terms(duration_months: int) -> TermsResult:
         source_url=_SOURCE_INTERNAL_DEFAULT,
         raw_text=None,
     )
+
+
+def _duration_mentions_months(text: str) -> List[int]:
+    low = (text or "").lower()
+    months: List[int] = []
+    for match in re.finditer(r"\b(\d{1,3})\s*(?:month|months|mo)\b", low):
+        try:
+            months.append(int(match.group(1)))
+        except ValueError:
+            pass
+    for match in re.finditer(r"\b(\d{1,2})\s*(?:year|years|yr|yrs)\b", low):
+        try:
+            months.append(int(match.group(1)) * 12)
+        except ValueError:
+            pass
+    word_years = {
+        "one year": 12,
+        "two years": 24,
+        "three years": 36,
+        "four years": 48,
+        "five years": 60,
+    }
+    for phrase, value in word_years.items():
+        if phrase in low:
+            months.append(value)
+    return months
+
+
+def _drop_conflicting_duration_terms(terms: List[str], duration_months: Optional[int]) -> List[str]:
+    if not duration_months:
+        return terms
+    filtered: List[str] = []
+    for term in terms or []:
+        mentioned = _duration_mentions_months(term)
+        if mentioned and duration_months not in mentioned:
+            continue
+        filtered.append(term)
+    return filtered
 
 
 def _cache_is_fresh(item: WarrantyTermsCacheDB, max_age_days: int = 30) -> bool:
@@ -256,9 +295,12 @@ def _merge_terms_results(results: List[TermsResult]) -> Optional[TermsResult]:
     durations = [r.duration_months for r in usable if r.duration_months]
     source_urls = _dedupe([url for r in usable for url in (r.source_urls or ([r.source_url] if r.source_url else []))])
     raw_chunks = [r.raw_text for r in usable if r.raw_text]
+    duration_months = max(durations) if durations else None
+    merged_terms = sanitize_base_terms(_dedupe([item for r in usable for item in (r.terms or [])]))
+    merged_terms = _drop_conflicting_duration_terms(merged_terms, duration_months)
     return TermsResult(
-        duration_months=max(durations) if durations else None,
-        terms=sanitize_base_terms(_dedupe([item for r in usable for item in (r.terms or [])])),
+        duration_months=duration_months,
+        terms=merged_terms,
         exclusions=sanitize_support_items(_dedupe([item for r in usable for item in (r.exclusions or [])])),
         claim_steps=sanitize_support_items(_dedupe([item for r in usable for item in (r.claim_steps or [])])),
         source_url=source_urls[0] if source_urls else None,
