@@ -328,7 +328,12 @@ def test_predictive_output_keeps_legal_warranty_separate(monkeypatch):
     assert "risk_reason_breakdown" in out
 
 
-def test_predictive_missing_context_does_not_create_high_risk(monkeypatch):
+def test_predictive_no_device_evidence_stays_low_risk(monkeypatch):
+    """A newly onboarded product with no history must not be called risky.
+
+    Absence of telemetry/usage/maintenance history is not evidence of failure, so
+    the label stays LOW and the missing inputs are reported as context gaps.
+    """
     monkeypatch.setattr(
         predictive,
         "build_feature_vector",
@@ -356,10 +361,68 @@ def test_predictive_missing_context_does_not_create_high_risk(monkeypatch):
 
     out = predictive.score_warranty("phase5_context_user", "phase5_context_warranty")
 
-    assert out["risk_label"] == "MEDIUM"
-    assert out["risk_score"] == 0.66
+    assert out["risk_label"] == "LOW"
+    assert out["risk_score"] == predictive.NO_EVIDENCE_MAX_SCORE
+    assert "Not enough usage history yet to assess risk." in out["context_gaps"]
     assert "No maintenance recorded." in out["context_gaps"]
     assert "No maintenance recorded." not in out["reasons"]
+
+
+def test_predictive_usage_history_without_issues_caps_at_medium(monkeypatch):
+    """With real usage history but no issue signals, cap at MEDIUM (not HIGH)."""
+    monkeypatch.setattr(
+        predictive,
+        "build_feature_vector",
+        lambda user_id, warranty_id, product_type=None: (
+            [0.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 0.0, 0.0, 0.0],
+            [],
+            {
+                "days_left": 300,
+                "maintenance_count": 0,
+                "error_count": 0,
+                "failure_count": 0,
+                "usage_hours": 120.0,
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        predictive.predictive_model,
+        "predict",
+        lambda vec: ("HIGH", 0.9, [0.05, 0.05, 0.9]),
+    )
+    monkeypatch.setattr(
+        predictive,
+        "compute_behaviour_risk_signal",
+        lambda user_id, warranty_id: {
+            "behaviour_risk_delta": 0.03,
+            "reasons": ["Moderate usage (40 hrs avg recent)"],
+        },
+    )
+    monkeypatch.setattr(
+        predictive,
+        "SessionLocal",
+        lambda: (_ for _ in ()).throw(RuntimeError("skip db signals")),
+    )
+
+    out = predictive.score_warranty("phase5_moderate_user", "phase5_moderate_warranty")
+
+    # Moderate usage is not an issue signal, so it must not unlock HIGH.
+    assert out["risk_label"] == "MEDIUM"
+    assert out["risk_score"] == 0.66
+
+
+def test_predictive_aggregate_oem_context_alone_does_not_unlock_high(monkeypatch):
+    """Generic 'OEM issue signals present' must not justify HIGH on its own."""
+    assert predictive._reason_is_real_risk_signal(
+        "OEM issue signals present (avg severity 0.50)"
+    ) is False
+    assert predictive._reason_is_real_risk_signal(
+        "RAG signals show recent issues for this product/user."
+    ) is False
+    # Device-specific evidence still counts.
+    assert predictive._reason_is_real_risk_signal("Multiple errors recorded.") is True
+    assert predictive._reason_is_real_risk_signal("Past breakdowns detected.") is True
+    assert predictive._reason_is_real_risk_signal("Warranty is close to expiry.") is True
 
 
 def test_predictive_real_errors_can_remain_high_risk(monkeypatch):

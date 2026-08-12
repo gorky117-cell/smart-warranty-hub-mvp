@@ -795,6 +795,40 @@ def _ensure_warranty_exists(db: Session, warranty_id: str):
     raise HTTPException(status_code=404, detail="Warranty not found")
 
 
+def _risk_label_changed(
+    db: Session, *, user_id: str, warranty_id: str, risk_label: str, risk_score: float = 0.0
+) -> bool:
+    """True when the risk level differs from the last recorded snapshot.
+
+    The dashboard scores on every load, so notifying on each call floods the
+    customer's inbox with duplicate risk alerts. Records the new level so the
+    next identical score stays quiet.
+    """
+    try:
+        last = (
+            db.query(RiskSnapshotDB)
+            .filter_by(user_id=user_id, warranty_id=warranty_id)
+            .order_by(RiskSnapshotDB.created_at.desc())
+            .first()
+        )
+        if last and (last.risk_label or "").upper() == risk_label:
+            return False
+        db.add(
+            RiskSnapshotDB(
+                user_id=user_id,
+                warranty_id=warranty_id,
+                risk_label=risk_label,
+                risk_score=float(risk_score or 0.0),
+            )
+        )
+        db.commit()
+        return True
+    except Exception:
+        db.rollback()
+        # Never block scoring because notification bookkeeping failed.
+        return False
+
+
 def _build_warranty_status_info(warranty) -> Dict[str, object]:
     st = compute_warranty_status(
         purchase_date=getattr(warranty, "purchase_date", None),
@@ -2732,7 +2766,15 @@ def predictive_score(
     data = score_warranty(uid, payload.warranty_id)
     try:
         risk_label = (data.get("risk_label") or "LOW").upper()
-        if risk_label in ("MEDIUM", "HIGH"):
+        # Only notify when the risk level actually changed. The dashboard scores on
+        # every load, so notifying per call floods the customer's inbox.
+        if risk_label in ("MEDIUM", "HIGH") and _risk_label_changed(
+            db,
+            user_id=uid,
+            warranty_id=payload.warranty_id,
+            risk_label=risk_label,
+            risk_score=float(data.get("risk_score") or 0.0),
+        ):
             severity = "warning" if risk_label == "MEDIUM" else "critical"
             notification_service.create_notification(
                 user_id=uid,

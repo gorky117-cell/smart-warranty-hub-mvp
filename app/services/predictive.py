@@ -1,6 +1,7 @@
 from collections import Counter
 from datetime import datetime, timedelta
 import logging
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -405,6 +406,70 @@ def build_feature_vector(
     return vec, FEATURE_NAMES, extras
 
 
+# Risk-claim guards -----------------------------------------------------------------
+# A newly onboarded product has an effectively empty feature vector. Absence of
+# history must never be presented to a customer as evidence of failure risk.
+
+# Ordinary/moderate usage produces a small positive behaviour delta (~+0.03).
+# Only a clearly elevated delta (heavy use, or usage combined with errors) counts
+# as a real risk signal.
+BEHAVIOUR_DELTA_RISK_THRESHOLD = 0.10
+
+# Highest score allowed when there is no device-specific evidence at all.
+# Must stay below the 0.33 MEDIUM boundary so the label resolves to LOW.
+NO_EVIDENCE_MAX_SCORE = 0.32
+
+# Reasons derived from cross-product aggregates rather than this device. They are
+# useful context but must not unlock a HIGH risk claim on their own.
+_AGGREGATE_REASON_MARKERS = (
+    "oem issue signals present",
+    "rag signals show",
+)
+
+# Device-specific risk evidence. Word-boundary matched so that a generic phrase
+# such as "OEM issue signals present" cannot match on the bare word "issue".
+_REAL_ISSUE_PATTERNS = (
+    r"\berrors?\b",
+    r"\bfailures?\b",
+    r"\bbreakdowns?\b",
+    r"\brecall(?:s|ed)?\b",
+    r"\bexpired\b",
+    r"\bclose to expiry\b",
+    r"\bvoltage\b",
+    r"\btemperature\b",
+    r"\boverheat\w*",
+    r"\bhigh daily use\b",
+    r"\bheavy use\b",
+    r"\blimited care\b",
+)
+_REAL_ISSUE_RE = re.compile("|".join(_REAL_ISSUE_PATTERNS), re.IGNORECASE)
+
+
+def _reason_is_real_risk_signal(reason: object) -> bool:
+    """True only for device-specific risk evidence, not aggregate context."""
+    text = str(reason or "").strip().lower()
+    if not text:
+        return False
+    if any(marker in text for marker in _AGGREGATE_REASON_MARKERS):
+        return False
+    return bool(_REAL_ISSUE_RE.search(text))
+
+
+def _has_device_evidence(extras: Dict[str, object], behaviour_reasons: List[str]) -> bool:
+    """True when we hold any real observation about this specific device."""
+    def _num(key: str) -> float:
+        try:
+            return float(extras.get(key, 0) or 0.0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    if _num("error_count") or _num("failure_count") or _num("maintenance_count"):
+        return True
+    if _num("usage_hours") > 0.0:
+        return True
+    return bool(behaviour_reasons)
+
+
 def score_warranty(user_id: str, warranty_id: str, product_type: Optional[str] = None) -> Dict[str, object]:
     """Return structured predictive output for API/ UI.
 
@@ -542,29 +607,29 @@ def score_warranty(user_id: str, warranty_id: str, product_type: Optional[str] =
     except Exception:
         pass
 
-    # Final label based on adjusted score
-    real_issue_terms = [
-        "error",
-        "failure",
-        "breakdown",
-        "issue",
-        "recall",
-        "expired",
-        "close to expiry",
-        "voltage",
-        "temperature",
-        "overheat",
-        "high daily use",
-        "heavy use",
-        "limited care",
-    ]
-    has_real_risk_signal = any(
-        any(term in str(reason).lower() for term in real_issue_terms)
-        for reason in reasons
-    ) or behaviour_delta > 0.0 or extras.get("error_count", 0) > 0 or extras.get("failure_count", 0) > 0
-    if risk_score > 0.66 and not has_real_risk_signal:
+    # Final label based on adjusted score.
+    # Only device-specific evidence may justify an elevated risk claim. Aggregate
+    # OEM/RAG context and ordinary usage must not imply this device is failing.
+    has_real_risk_signal = (
+        any(_reason_is_real_risk_signal(reason) for reason in reasons)
+        or behaviour_delta > BEHAVIOUR_DELTA_RISK_THRESHOLD
+        or extras.get("error_count", 0) > 0
+        or extras.get("failure_count", 0) > 0
+    )
+    has_device_evidence = _has_device_evidence(extras, behaviour_reasons)
+    if not has_device_evidence and not has_real_risk_signal:
+        # Empty feature vector for a newly onboarded product. Absence of history is
+        # not evidence of risk, so keep the label low and explain what is missing.
+        if risk_score > NO_EVIDENCE_MAX_SCORE:
+            risk_score = NO_EVIDENCE_MAX_SCORE
+        # Lead with this: context_gaps is truncated for display, and this line is
+        # the primary explanation the customer needs.
+        context_gaps.insert(0, "Not enough usage history yet to assess risk.")
+    elif risk_score > 0.66 and not has_real_risk_signal:
         risk_score = 0.66
-        context_gaps.append("More usage or maintenance context is needed before calling this high risk.")
+        context_gaps.insert(
+            0, "More usage or maintenance context is needed before calling this high risk."
+        )
     risk_label = "HIGH" if risk_score > 0.66 else "MEDIUM" if risk_score >= 0.33 else "LOW"
     expiry_reasons = [r for r in reasons if "expiry" in str(r).lower() or "warranty is" in str(r).lower()]
     behaviour_reason_set = list(behaviour_reasons[:4]) if behaviour_reasons else []

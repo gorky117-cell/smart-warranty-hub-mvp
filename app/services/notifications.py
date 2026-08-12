@@ -300,6 +300,49 @@ def refresh_expiry_notifications(db: Session) -> Dict[str, int]:
     }
 
 
+RISK_NOTIFICATION_TYPES = ("risk_low", "risk_medium", "risk_high")
+
+
+def _supersede_stale_risk_notifications(
+    db: Session,
+    *,
+    user_id: str,
+    warranty_id: Optional[str],
+    new_type: str,
+    audience: str,
+) -> int:
+    """Mark older risk notifications for the same warranty as read.
+
+    A warranty has exactly one current risk level. Without this, a stale
+    "High risk detected" can sit unread next to a newer "Risk Medium detected"
+    because dedupe is keyed on notification type.
+    """
+    if new_type not in RISK_NOTIFICATION_TYPES or not warranty_id:
+        return 0
+    stale_types = [t for t in RISK_NOTIFICATION_TYPES if t != new_type]
+    try:
+        rows = (
+            db.query(NotificationDB)
+            .filter(
+                NotificationDB.user_id == user_id,
+                NotificationDB.warranty_id == warranty_id,
+                NotificationDB.audience == audience,
+                NotificationDB.type.in_(stale_types),
+                NotificationDB.is_read == 0,
+            )
+            .all()
+        )
+        for row in rows:
+            row.is_read = 1
+            db.add(row)
+        if rows:
+            db.commit()
+        return len(rows)
+    except Exception:
+        db.rollback()
+        return 0
+
+
 def create_notification(
     user_id: str,
     warranty_id: str,
@@ -339,6 +382,13 @@ def create_notification(
         )
         if existing:
             return _to_dict(existing)
+        _supersede_stale_risk_notifications(
+            db,
+            user_id=user_id,
+            warranty_id=warranty_id,
+            new_type=type,
+            audience=audience or "user",
+        )
         n = NotificationDB(
             id=generate_id("ntf"),
             user_id=user_id,

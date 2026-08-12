@@ -1269,3 +1269,21 @@ git ls-remote --heads origin
 - Kept deterministic category allow-lists so irrelevant OEM prompts remain blocked, such as filter/cartridge maintenance for smartphones.
 - Phone service-route questions now ask for invoice, IMEI/serial, photos and a short issue note; printer usage-limit questions ask about heavy printer use; other categories get product-specific language.
 - Verification passed: focused behavior-question tests passed with `15 passed`; full `pytest -q` passed with `187 passed` and the existing three scikit-learn model-version warnings.
+
+## 87. No false risk claims for newly onboarded products - 2026-08-12
+
+- Production testing showed a brand-new Samsung Galaxy M17e (expiry `2027-05-01`, just onboarded, zero usage history) received a customer notification reading `High risk detected - This device shows a high risk of issues. Consider backup or service.`, alongside contradictory `Risk Medium detected` alerts for the same warranty and an 88-item unread badge.
+- Root cause was four separate defects, not one:
+  1. `score_warranty` always returned LOW/MEDIUM/HIGH. For a newly onboarded product the feature vector is effectively empty (usage 0, errors 0, failures 0, maintenance 0, behaviour defaults 0.5), yet the trained model still emitted a label that was converted directly into a customer failure warning.
+  2. The entry #76 medium cap was bypassable. `has_real_risk_signal` matched the bare substring `issue`, so the generic aggregate reasons `OEM issue signals present (avg severity ...)` and `RAG signals show recent issues ...` unlocked HIGH even though neither is evidence about that device. `behaviour_delta > 0.0` also counted, and ordinary moderate usage returns `+0.03`.
+  3. `create_notification` dedupes on notification `type`, and `risk_high`/`risk_medium` are different types, so contradictory risk levels accumulated unread for one warranty.
+  4. `POST /predictive/score` created a risk notification on every call. The Neo dashboard scores on every load, which is the direct cause of the notification flood.
+- Fixes applied:
+  - Added `_has_device_evidence()` and a `NO_EVIDENCE_MAX_SCORE = 0.32` floor in `predictive.py`. With no telemetry, usage hours, maintenance, errors/failures or behaviour reasons, the label stays LOW and `Not enough usage history yet to assess risk.` is inserted as the leading `context_gaps` entry.
+  - Added `_reason_is_real_risk_signal()` using word-boundary regex matching and an aggregate-reason exclusion list, so cross-product OEM/RAG context can no longer unlock a HIGH claim. Raised the behaviour gate to `BEHAVIOUR_DELTA_RISK_THRESHOLD = 0.10` so normal usage does not defeat the cap while heavy use and usage-with-errors still do.
+  - Added `_supersede_stale_risk_notifications()` in `notifications.py` so writing a new `risk_*` level marks prior `risk_*` notifications for that warranty read. Non-risk types such as expiry and onboarding are untouched.
+  - Added `_risk_label_changed()` in `main.py` so `/predictive/score` only notifies when the level differs from the latest `RiskSnapshotDB`, and records the new snapshot.
+- Deliberately did **not** introduce a new `risk_label` enum value. A new product under full warranty with no reported problems genuinely is low risk, and the existing `context_gaps` field already renders as `Need more info` in the Neo dashboard. No route, response-shape, template or UI-ID change was required.
+- Updated the entry #76 test to assert the corrected no-evidence behavior (LOW instead of MEDIUM) and added coverage for the moderate-usage MEDIUM cap, aggregate-reason rejection, risk supersede and non-risk-type preservation.
+- Preserved invoice extraction, OEM discovery/region guards, AI grounding, source trust labels, duration conflict filtering, OEM-derived care suggestions, expiry notifications and diagnostics behavior.
+- Verification passed: focused predictive tests passed with `17 passed`; focused notification tests passed with `6 passed`; full `pytest -q` passed with `191 passed`.

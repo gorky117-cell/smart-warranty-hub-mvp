@@ -136,3 +136,92 @@ def test_list_notifications_upgrades_legacy_warranty_id_text():
         assert items[0]["product_label"] == "Microwave Oven (w_notif_legacy)"
         row = db.query(NotificationDB).filter_by(id="ntf_link_notif_user_legacy").first()
         assert row.message == items[0]["message"]
+
+
+def test_new_risk_notification_supersedes_previous_risk_level():
+    """A warranty has one current risk level.
+
+    A stale "High risk detected" must not sit unread next to a newer
+    "Risk Medium detected", because dedupe is keyed on notification type.
+    """
+    from app.services.notifications import create_notification
+
+    with SessionLocal() as db:
+        _ensure_user(db, "notif_user_risk")
+        _upsert_warranty(db, "w_notif_risk", expiry_days=400)
+
+        high = create_notification(
+            db=db,
+            user_id="notif_user_risk",
+            warranty_id="w_notif_risk",
+            type="risk_high",
+            title="High risk detected",
+            message="This device shows a high risk of issues.",
+            severity="critical",
+        )
+        assert high is not None
+
+        medium = create_notification(
+            db=db,
+            user_id="notif_user_risk",
+            warranty_id="w_notif_risk",
+            type="risk_medium",
+            title="Risk Medium detected",
+            message="Medium risk flagged.",
+            severity="warning",
+        )
+        assert medium is not None
+
+        unread = [
+            n
+            for n in list_notifications("notif_user_risk", only_unread=True, db=db)
+            if n["warranty_id"] == "w_notif_risk"
+        ]
+        risk_types = sorted(n["type"] for n in unread if n["type"].startswith("risk_"))
+        assert risk_types == ["risk_medium"], f"expected only risk_medium, got {risk_types}"
+
+
+def test_risk_supersede_does_not_touch_other_notification_types():
+    """Superseding risk levels must not mark expiry/onboarding alerts as read."""
+    from app.services.notifications import create_notification
+
+    with SessionLocal() as db:
+        _ensure_user(db, "notif_user_risk_mix")
+        _upsert_warranty(db, "w_notif_risk_mix", expiry_days=400)
+
+        create_notification(
+            db=db,
+            user_id="notif_user_risk_mix",
+            warranty_id="w_notif_risk_mix",
+            type="warranty_onboarded",
+            title="Warranty onboarded",
+            message="Registered your device.",
+            severity="info",
+        )
+        create_notification(
+            db=db,
+            user_id="notif_user_risk_mix",
+            warranty_id="w_notif_risk_mix",
+            type="risk_high",
+            title="High risk detected",
+            message="High risk.",
+            severity="critical",
+        )
+        create_notification(
+            db=db,
+            user_id="notif_user_risk_mix",
+            warranty_id="w_notif_risk_mix",
+            type="risk_low",
+            title="Risk Low detected",
+            message="Low risk.",
+            severity="info",
+        )
+
+        unread = {
+            n["type"]
+            for n in list_notifications("notif_user_risk_mix", only_unread=True, db=db)
+            if n["warranty_id"] == "w_notif_risk_mix"
+        }
+        assert "warranty_onboarded" in unread
+        assert "risk_low" in unread
+        assert "risk_high" not in unread
