@@ -2,12 +2,35 @@
 
 **Use with:** `MEMORY.md`, `docs/PROJECT_REFERENCE.md`, `docs/COMPLETE_ARCHITECTURE_AUDIT.md`, `docs/AI_IDE_HANDOFF_PROMPT.md`, and `docs/GOLDEN_PATH_TEST.md`.
 
+> **Staleness warning.** This report was written around commit `7504fe98`. Sections below remain
+> broadly correct for routes and storage, but roughly 100 commits of work followed. For current
+> behavior, read the numbered entry log at the end of `MEMORY.md` (currently through entry 87).
+
 ## Current verified safeguards
 
+Verified 2026-08-12 at commit `5fb93f96`:
+
+- Newly onboarded products cannot be labelled high risk from an empty feature vector. A
+  no-evidence floor keeps the label LOW, only device-specific evidence unlocks HIGH, and one risk
+  notification stays unread per warranty (entry 87).
+- AI/NLP-proposed warranty facts are merged only when grounded in the scraped/OCR source text, so
+  invented coverage months, exclusions or claim steps cannot be cached or displayed (entry 80).
+- OEM terms are validated against invoice region before reuse; conflicting country paths are
+  skipped (entries 79, 84).
 - OCR aliases (`paddleocr`, `paddle`, `pytesseract`) are normalized in `app/services/ocr.py`; Paddle remains lazy and Tesseract is the safe fallback.
 - OCR health checks package availability without loading a model.
 - `/reviews/crawl` and `/reviews/stats` are each registered once by `app/routes/reviews.py`.
 - `tests/test_ocr_and_review_routes.py` covers OCR alias/fallback behavior and review route uniqueness.
+- Full suite: **191 passed**.
+
+## Risk score composition (verified)
+
+`score_warranty()` combines five lanes only: the trained model over 12 features, a telemetry
+behaviour delta (`±0.25`), `RegionalPolicyDB` deltas, `OemIssueSignalDB` severity (up to `+0.2`),
+and an optional RAG delta when `RAG_ENABLED=1`. Peer-review, symptom-search and nudge-engagement
+data is collected and feeds **OEM aggregates only** — it is not scored into customer risk. The
+helpers `_peer_review_features()`, `_search_features()` and `_nudge_features()` in `predictive.py`
+are implemented but called by nothing.
 
 ## 1) Repo layout (key files)
 

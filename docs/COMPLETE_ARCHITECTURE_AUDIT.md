@@ -1,12 +1,20 @@
 # Smart Warranty Hub — Complete Architecture Audit
 
-**Audit date:** 2026-07-10
+**Original audit date:** 2026-07-10
+**Last wiring re-verification:** 2026-08-12 at commit `5fb93f96`
 **Repository root:** `<repository-root>`
 **Active branch:** `master`
 **Primary application:** `app.main:app`
 **Audit scope:** source tree, route registration, templates, database models, services, tests, scripts, runtime data, deployment files, Git topology and existing documentation.
 
 This document is intentionally evidence-based. “Implemented” means code exists in the repository. “Configured” means an external environment variable/credential/connector is still required. “Pilot-ready” does not mean unrestricted enterprise production-ready.
+
+**Re-verification note (2026-08-12).** Sections 1–12 were written around commit `7504fe98`. A wiring
+re-check at `5fb93f96` confirmed router mounting and OCR behavior as documented, corrected the
+predictive/risk input claim in section 8.3, refreshed the section 13 test inventory to the actual
+35 files, and added section 11A covering 14 services that existed only in the `MEMORY.md` entry log.
+For work completed after `7504fe98`, the numbered entry log at the end of `MEMORY.md` is the
+authoritative record.
 
 ---
 
@@ -310,13 +318,44 @@ RAG sources can include warranty summaries, behaviour, telemetry, OEM issues, re
 | File | Function |
 |---|---|
 | `app/services/risk.py` | Base rule-based risk score. |
-| `app/services/predictive.py` | Feature vector/model or heuristic scoring, behaviour delta, regional policy, peer review/search/OEM issue/RAG context and explainable reasons. |
+| `app/services/predictive.py` | Feature vector/model or heuristic scoring, behaviour delta, regional policy, OEM issue/RAG context and explainable reasons. |
 | `app/services/regional_policy.py` | Region/brand/model/product rules. |
 | `app/services/risk_refresh.py` | Recompute/store risk snapshots. |
-| `app/services/peer_review.py`, `app/services/search_log.py` | Review and symptom-search context for risk. |
+| `app/services/peer_review.py`, `app/services/search_log.py` | Peer-review and symptom-search capture. **Not scored into customer risk** — see the wiring note below. |
 | `app/services/ev_battery.py` | EV-specific score logic. |
 
 The output must remain advisory/triage information, not a sole automated claims, safety, credit or replacement decision.
+
+#### Verified risk composition (what actually feeds the score)
+
+`score_warranty()` combines exactly five lanes, in this order:
+
+| # | Lane | Source | Effect |
+|---|---|---|---|
+| 1 | Model base | 12-feature vector → `predictive_model.predict()` | sets `base_risk_score` |
+| 2 | Behaviour delta | `compute_behaviour_risk_signal()` (telemetry usage hours + error burden) | `±0.25` clamped |
+| 3 | Regional policy | `RegionalPolicyDB` rows matched on region/brand/model/product | `+= risk_delta` |
+| 4 | OEM issue signals | `OemIssueSignalDB` aggregate severity | `+= 0.0 … +0.2` |
+| 5 | RAG context | embeddings, only when `RAG_ENABLED=1` | `+0.05` issue keywords, `−0.03` maintenance keywords |
+
+The 12 model features are `product_type, age_months, usage_hours_per_day, error_count, failure_count, maintenance_count, behaviour_score, care_score, responsiveness_score, region_code, climate_band, power_quality_band`. Behaviour question answers reach features 7–9 through `behaviour._apply_scoring()` updating `BehaviourProfile`.
+
+Score is clamped to 0–1 after each lane. Two guards then apply before labelling (see MEMORY entry 87): a no-evidence floor (`NO_EVIDENCE_MAX_SCORE = 0.32`) and a medium cap (`0.66`) when no device-specific issue signal exists. Final thresholds: `>0.66` HIGH, `>=0.33` MEDIUM, else LOW.
+
+#### Wiring note: peer review, symptom search and nudge engagement are NOT scored
+
+`predictive.py` defines `_peer_review_features()`, `_search_features()` and `_nudge_features()`. All three are fully implemented and **called by nothing**. The risk-side wiring was started and never completed. Earlier revisions of this document described them as risk inputs; that was inaccurate.
+
+Where this data actually goes:
+
+| Consumer | Wired |
+|---|---|
+| `POST /peer-reviews/update`, `POST /symptom-search/log` | yes |
+| OEM dashboard aggregates (`main.py` OEM insight routes) | yes |
+| `review_crawler` → `peer_review.record_peer_signal()` populates the table | yes |
+| Customer predictive risk score | **no** |
+
+Treat these as collected signals serving OEM intelligence. Do not describe them as risk inputs. If they are wired in future they must be post-model deltas like lanes 3–5, because the trained model does not carry those features.
 
 ### 8.4 Recommendations
 
@@ -411,6 +450,42 @@ The reviews router is the single source of truth for `/reviews/crawl` and `/revi
 
 ---
 
+## 11A. Runtime safety, source trust and agent services
+
+These services were added after this document's original audit pass and were previously
+recorded only in the `MEMORY.md` entry log. `app/services/` currently contains 71 modules.
+
+### Security and runtime safety (Phase 9)
+
+| File | Function |
+|---|---|
+| `app/services/runtime_safety.py` | Hardened runtime defaults and insecure-configuration guards. |
+| `app/services/rate_limiter.py` | Pilot request rate limits. |
+| `app/services/csrf.py` | CSRF token issue/verify for browser form and fetch flows. |
+| `app/services/ai_quota.py` | Per-user AI/LLM call quotas so optional AI cannot run unbounded. |
+| `app/services/request_context.py` | Request-scoped tracing/correlation context for logs. |
+| `app/services/oem_consent.py` | Direct OEM consent capture and enforcement before OEM-facing use. |
+
+### Source trust and OEM source governance
+
+| File | Function |
+|---|---|
+| `app/services/source_trust.py` | Classifies warranty evidence source trust for customer-visible labels. |
+| `app/services/oem_source_policy.py` | Controlled OEM source policy: which sources may be fetched/parsed. |
+| `app/services/oem_adapters.py` | Registry of approved brand-specific OEM adapters. |
+| `app/services/oem_product_knowledge.py` | Caches OEM product knowledge for reuse and RAG. |
+| `app/services/oem_aggregate.py` | Privacy-safe OEM aggregate insight construction. |
+
+### Intelligence and agent
+
+| File | Function |
+|---|---|
+| `app/services/openai_intelligence.py` | Optional, feature-flagged OpenAI lane. Lazy-loaded; limited to invoice/product field enrichment, never warranty legal terms. |
+| `app/services/telemetry_intelligence.py` | OEM telemetry privacy aggregates. |
+| `app/services/warranty_resolution_agent.py` | Controlled warranty resolution agent producing draft checklists with audit traces. Proposes only; does not execute. |
+
+---
+
 ## 12. Route inventory by business domain
 
 ### Public, SEO and health
@@ -463,19 +538,61 @@ The exact OpenAPI runtime list is available at `/docs` or `/openapi.json` after 
 
 ### Pytest tests
 
+35 test files. Full suite currently passes with **191 passed** (`python -m pytest tests -q`).
+
+Invoice, warranty and evidence:
+
 - `tests/test_invoice_pipeline.py`
+- `tests/test_warranty_discovery.py`
+- `tests/test_warranty_parser.py`
+- `tests/test_warranty_status.py`
+- `tests/test_evidence_status.py`
+- `tests/test_source_trust.py`
+- `tests/test_ocr_and_review_routes.py`
+- `tests/test_oem_product_knowledge.py`
+
+Customer intelligence:
+
+- `tests/test_phase5_behaviour_predictive.py`
+- `tests/test_product_recommendations.py`
+- `tests/test_notifications.py`
+- `tests/test_policy_variant.py`
+- `tests/test_rag_health.py`
+- `tests/test_telemetry_intelligence.py`
+
+OEM:
+
+- `tests/test_oem_communication.py`
+- `tests/test_oem_dispatch.py`
+- `tests/test_phase6_oem_aggregate.py`
+- `tests/test_phase6c_oem_question_loop.py`
+- `tests/test_phase6d_recommendation_loop.py`
+- `tests/test_phase7_oem_adapters.py`
+- `tests/test_phase7d_oem_fetch_preflight.py`
+- `tests/test_phase7e_oem_source_ui.py`
+
+Warranty resolution agent:
+
+- `tests/test_phase8_warranty_resolution_agent.py`
+- `tests/test_phase8b_neo_agent_ui.py`
+
+Security and runtime safety (Phase 9):
+
+- `tests/test_phase9a_runtime_safety.py`
+- `tests/test_phase9b_rate_limiter.py`
+- `tests/test_phase9c_csrf.py`
+- `tests/test_phase9d_request_logging.py`
+- `tests/test_phase9e_ai_quota.py`
+- `tests/test_phase9f_oem_consent.py`
+- `tests/test_phase9g_security_hardening.py`
+- `tests/test_auth_form_routes.py`
+
+KPI lifecycle:
+
 - `tests/test_kpi_execution.py`
 - `tests/test_kpi_remediation.py`
 - `tests/test_kpi_scorecard.py`
 - `tests/test_kpi_watchdog.py`
-- `tests/test_notifications.py`
-- `tests/test_oem_communication.py`
-- `tests/test_oem_dispatch.py`
-- `tests/test_policy_variant.py`
-- `tests/test_rag_health.py`
-- `tests/test_warranty_discovery.py`
-- `tests/test_warranty_parser.py`
-- `tests/test_warranty_status.py`
 
 ### Smoke and operations scripts
 

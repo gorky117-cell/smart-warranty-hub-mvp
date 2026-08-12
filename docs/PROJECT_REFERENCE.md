@@ -6,11 +6,30 @@
 
 This is the single handoff document for a new engineer, investor, or migration assistant. It describes what is in the repository now, how the pieces connect, and which capabilities need real production integrations before commercial rollout.
 
+> **Staleness warning.** This reference was written around commit `7504fe98`. The architecture,
+> file map and flow descriptions remain accurate, but roughly 100 commits of behavioral work
+> followed. For current behavior, read the numbered entry log at the end of `MEMORY.md`
+> (currently through entry 87). Section 11A of `docs/COMPLETE_ARCHITECTURE_AUDIT.md` covers the
+> runtime-safety, source-trust and agent services added after this document.
+
 ### Latest verified safeguards
 
+Verified 2026-08-12 at commit `5fb93f96`:
+
+- Newly onboarded products are not labelled high risk from an empty feature vector; only
+  device-specific evidence unlocks HIGH, and risk notifications supersede rather than accumulate.
+- AI-proposed warranty terms are accepted only when grounded in the scraped/OCR source text.
+- OEM terms are region-validated before reuse.
 - OCR connector aliases (`paddleocr`, `paddle`, `pytesseract`) are normalized; image OCR uses a Tesseract fallback if Paddle cannot run.
 - OCR health checks package availability without loading an OCR model.
 - Review crawl/stat paths are owned by one modular router each, so FastAPI route matching is deterministic.
+
+### Correction: peer review and symptom search are not risk inputs
+
+Section 4.5 below describes peer reviews and symptom searches as inputs to `predictive.py`. That is
+inaccurate. The data is collected and used for OEM aggregate intelligence, but the risk-side
+helpers in `predictive.py` are never called. Risk uses five lanes only: model base, telemetry
+behaviour delta, regional policy, OEM issue signals, and optional RAG.
 
 ## 1. What the product does
 
@@ -164,7 +183,7 @@ The customer journey is not limited to the invoice:
 1. `app/services/behaviour_questions.py` supplies small, deterministic questions such as location of use, usage level, voltage conditions, environment or installation context.
 2. OEM-published questions from `app/services/oem_question_service.py` can be shown first if they match brand/model/product type/region and have not already been answered.
 3. Answers are stored against the user and warranty, avoiding repeat questions.
-4. Telemetry, saved usage notes, nudge outcomes, behaviour answers, regional policy, peer reviews, symptom searches and OEM issue signals become inputs to `app/services/predictive.py`.
+4. Telemetry, behaviour answers, regional policy and OEM issue signals become inputs to `app/services/predictive.py`. Nudge outcomes, peer reviews and symptom searches are captured and serve OEM aggregates, but are **not** scored into customer risk — see the correction note in "Latest verified safeguards" above.
 5. The predictive response exposes a risk label/score plus reasons, base score and behaviour adjustments so the UI can explain **why** it made a recommendation.
 6. Advisories, care suggestions, expiry notices and product recommendations are then selected from the resulting product/risk context.
 

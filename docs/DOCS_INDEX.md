@@ -36,6 +36,22 @@ This index points to the complete section-wise documentation set for product, KP
 12. Phase 10B user journey coverage: `docs/user_journey_phase10b_runbook.md`
 13. Phase 12 execution lifecycle: `docs/kpi_phase12_runbook.md`
 
+## Start here: which document is authoritative
+
+Verified 2026-08-12 at commit `5fb93f96`.
+
+- **Current behavior** — the numbered entry log at the end of `MEMORY.md` (through entry 87). This
+  is append-only and authoritative. Read it before trusting any structured section.
+- **Architecture, file map and flow** — `docs/COMPLETE_ARCHITECTURE_AUDIT.md` and
+  `docs/PROJECT_REFERENCE.md`. Structurally accurate, but their numbered sections were written
+  around commit `7504fe98` and lag the entry log on behavior. Both now carry staleness warnings.
+- **Services added after the original audit** — section 11A of
+  `docs/COMPLETE_ARCHITECTURE_AUDIT.md` (runtime safety, source trust, agent).
+
+Known correction: earlier revisions described peer-review and symptom-search data as predictive
+risk inputs. They are not. Risk uses five lanes only — model base, telemetry behaviour delta,
+regional policy, OEM issue signals, optional RAG.
+
 ## Suggested Reading Order
 
 1. `MEMORY.md`

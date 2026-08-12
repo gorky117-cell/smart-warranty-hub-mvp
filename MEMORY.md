@@ -2,10 +2,24 @@
 
 **Purpose:** This is the first file a new coding assistant, engineer, Kiro, Antigravity/Gemini, or technical reviewer should read before changing Smart Warranty Hub (SWH). It records the verified architecture, feature wiring, deployment/Git facts, evidence limits and safe next steps.
 
-**Last repository audit / baseline:** 2026-07-20
+**Last repository audit / baseline:** 2026-07-20 (structured sections 1–19)
+**Last wiring re-verification:** 2026-08-12 at commit `5fb93f96`
 **Project type:** FastAPI + Jinja templates + SQLAlchemy.
 **Product:** AI-assisted warranty intelligence for customers, OEMs/TPAs and administrators.
-**Latest verified hardening:** OCR connector aliases are normalized with a Tesseract fallback; review crawl/stat routes have one active handler each. Phase 1 upload safety now uses server-generated upload filenames, bounded file sizes/types, safe response paths, and same-origin camera permission.
+
+> **How to read this file.** Sections 1–19 are the structured reference and were written around
+> commit `7504fe98`. The numbered entry log at the end (currently through entry 87) is
+> append-only and is the **authoritative record of current behavior**. Where the two disagree,
+> trust the entry log and the code. A wiring re-verification on 2026-08-12 corrected the
+> predictive/risk input claim in section 8 and refreshed the Git facts in section 2; other
+> structured sections may still lag the entry log.
+
+**Latest verified hardening:** Newly onboarded products no longer receive false risk claims — a
+no-evidence floor keeps the label LOW and only device-specific evidence can unlock HIGH; one risk
+notification stays unread per warranty (entry 87). AI-proposed warranty facts are accepted only
+when grounded in scraped/OCR source text (entry 80). OEM terms are region-validated before reuse
+(entries 79, 84). OCR connector aliases are normalized with a Tesseract fallback; review crawl/stat
+routes have one active handler each.
 
 ---
 
@@ -79,15 +93,22 @@ Before every commit, use `git status -sb` and stage only source, tests, and inte
 
 ### Recent commit progression
 
-Recent active-branch commits show the current product direction:
+Verified at 2026-08-12. `master` is at `5fb93f96`, synchronized with `origin/master`, 209 commits
+total. Current product direction:
 
-1. `3e9ae738` — allows Chart.js/font CDNs in CSP so OEM charts load.
-2. `6f4c5a5c` — OEM product selector and model-level filtering for a one-product demo.
-3. `dd130776`, `71cc1af9` — Railway/custom-domain HTTPS redirect-loop fixes.
-4. `31cc1af9` — email auth flows and password-change UI.
-5. `6ccac4c9` — role-based dashboard routing and logout.
-6. `eea7d822` — complete product/KPI documentation.
-7. Earlier commits added diagnostics, RAG health, KPI lifecycle, ingestion/search/NLP/predictive/nudge/OEM evaluation harnesses and UI refinements.
+1. `5fb93f96` — stop false risk claims on newly onboarded products (entry 87).
+2. `6ad8ee54` — product-specific OEM diagnostic question wording.
+3. `c631e7be` — customer-friendly warranty summary bullets.
+4. `1174d677`, `cc0efab3` — invoice region drives OEM terms lookup; wait for pipeline job before load.
+5. `3ee4ee3d` — source-grounded AI warranty extraction guard (entry 80).
+6. `41029bd9`, `bafe83b6` — OEM terms region validation and regional source preference.
+7. Phases 1–9 before that added upload safety, an optional OpenAI lane, evidence/source-trust
+   labels, OEM aggregate insights, controlled OEM source policy and adapters, the warranty
+   resolution agent, and the runtime-safety/rate-limit/CSRF/AI-quota/OEM-consent layer.
+8. Earlier commits added diagnostics, RAG health, KPI lifecycle, ingestion/search/NLP/predictive/nudge/OEM evaluation harnesses and UI refinements.
+
+The prior baseline commits (`3e9ae738`, `6f4c5a5c`, `dd130776`, `eea7d822`) are roughly 100 commits
+behind current `master` and are retained only as historical context.
 
 ### Railway status: what is and is not confirmed
 
@@ -295,12 +316,16 @@ Customer questions should be minimal and purposeful: serial/model confirmation, 
 | File | Function |
 |---|---|
 | `app/services/risk.py` | Base rules-based risk. |
-| `app/services/predictive.py` | Feature vector, trained-model/heuristic scoring, explanations, behaviour delta, regional policy, issue/review/search/RAG context. |
+| `app/services/predictive.py` | Feature vector, trained-model/heuristic scoring, explanations, behaviour delta, regional policy, OEM issue/RAG context. |
 | `app/services/regional_policy.py` | Region/brand/model/product rules. |
 | `app/services/risk_refresh.py` | Snapshot/refresh support. |
 | `app/services/ev_battery.py` | EV battery-specific score/recommendations. |
 
-Inputs can include warranty age/coverage, telemetry, usage, failures, care/behaviour scores, region/climate/power policy, peer review signals, symptom search activity, OEM issue signals and optional RAG context. Outputs must stay explainable: label, score, base score, behaviour delta and reasons.
+**Verified risk composition.** `score_warranty()` combines exactly five lanes: (1) the trained model over a 12-feature vector, (2) a telemetry behaviour delta clamped to `±0.25`, (3) `RegionalPolicyDB` deltas, (4) `OemIssueSignalDB` aggregate severity up to `+0.2`, and (5) an optional RAG delta when `RAG_ENABLED=1`. Score is clamped 0–1 after each lane, then the entry-87 guards apply (no-evidence floor `0.32`, medium cap `0.66`), then thresholds `>0.66` HIGH / `>=0.33` MEDIUM / else LOW. The 12 features are `product_type, age_months, usage_hours_per_day, error_count, failure_count, maintenance_count, behaviour_score, care_score, responsiveness_score, region_code, climate_band, power_quality_band`; behaviour answers reach features 7–9 via `behaviour._apply_scoring()`.
+
+Outputs must stay explainable: label, score, base score, behaviour delta, reasons and context gaps.
+
+**Not scored into risk (correction).** `predictive.py` defines `_peer_review_features()`, `_search_features()` and `_nudge_features()`. All three are implemented and **called by nothing** — the risk-side wiring was never completed. Earlier revisions of this file listed peer review signals and symptom search activity as risk inputs; that was inaccurate. That data is collected and used for OEM aggregate intelligence (`/peer-reviews/update`, `/symptom-search/log`, OEM dashboard insight routes, `review_crawler` → `record_peer_signal`), but it never reaches the customer risk score. If wired later it must be a post-model delta like lanes 3–5, because the trained model does not carry those features.
 
 ### RAG and Mistral
 
