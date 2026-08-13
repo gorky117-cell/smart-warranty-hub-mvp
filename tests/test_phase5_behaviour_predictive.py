@@ -455,3 +455,55 @@ def test_predictive_real_errors_can_remain_high_risk(monkeypatch):
 
     assert out["risk_label"] == "HIGH"
     assert any("Multiple errors" in reason for reason in out["reasons"])
+
+
+def test_product_type_code_stays_within_trained_model_vocabulary():
+    """The shipped model was trained with product_type in {0, 1, 2} only.
+
+    Widening this encoding would feed the model out-of-distribution input, so the
+    24-category resolver must be narrowed back to {0.0, 1.0, 2.0}.
+    """
+    labels = [
+        "Washing Machine",
+        "Split AC 1.5 Ton",
+        "Refrigerator",
+        "Samsung Galaxy M17e 5G Mobile (Vibe Violet, 6GB RAM, 128GB Storage)",
+        "Epson L3250 Printer",
+        "Air Purifier",
+        "Ceiling Fan",
+        "Backup Inverter",
+        "Compact Microwave Oven",
+        None,
+    ]
+    codes = {predictive._product_type_code(label) for label in labels}
+    assert codes <= {0.0, 1.0, 2.0}, f"model encoding widened: {sorted(codes)}"
+
+
+def test_product_type_code_no_longer_misreads_substrings():
+    """Regression: bare substring matching misclassified common products.
+
+    "Washing Machine" contains "ac" (m-ac-hine) and was encoded as an air
+    conditioner; "Air Purifier" contains "air" and was likewise treated as an AC.
+    """
+    assert predictive._product_type_code("Washing Machine") == 0.0
+    assert predictive._product_type_code("Samsung WA65A4002VS Washing Machine") == 0.0
+    assert predictive._product_type_code("Air Purifier") == 0.0
+    assert predictive._product_type_code("Water Purifier") == 0.0
+    assert predictive._product_type_code("Black Laptop") == 0.0
+
+    # Genuine fridge/AC products must still encode correctly.
+    assert predictive._product_type_code("Refrigerator") == 1.0
+    assert predictive._product_type_code("Double Door Fridge") == 1.0
+    assert predictive._product_type_code("Split AC 1.5 Ton") == 2.0
+    assert predictive._product_type_code("Window AC") == 2.0
+    assert predictive._product_type_code("Air Conditioner") == 2.0
+
+
+def test_resolve_product_category_uses_shared_taxonomy():
+    """Risk must use the same category resolver as care and behaviour questions."""
+    assert predictive.resolve_product_category("Washing Machine") == "washing_machine"
+    assert predictive.resolve_product_category("Epson L3250 Printer") == "printer"
+    assert predictive.resolve_product_category("Samsung Galaxy M17e 5G Mobile") == "smartphone"
+    assert predictive.resolve_product_category("Split AC 1.5 Ton") == "air_conditioner"
+    assert predictive.resolve_product_category(None) == "general"
+    assert predictive.resolve_product_category("") == "general"

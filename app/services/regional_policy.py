@@ -16,13 +16,20 @@ class RegionalPolicyResult:
 
 
 def _match_rule(rule: RegionalPolicyDB, *, region: str, brand: Optional[str], model_code: Optional[str], product_type: Optional[str]) -> bool:
+    """Match a policy rule against warranty context.
+
+    Constraints fail **closed**: if a rule narrows on brand/model/category but the
+    warranty does not carry that value, the rule does not apply. Previously a
+    missing incoming value silently satisfied the constraint, so a rule scoped to
+    one product category could apply to every product with an unknown category.
+    """
     if rule.region and rule.region != region:
         return False
-    if rule.brand and brand and rule.brand != brand:
+    if rule.brand and rule.brand != brand:
         return False
-    if rule.model_code and model_code and rule.model_code != model_code:
+    if rule.model_code and rule.model_code != model_code:
         return False
-    if rule.product_type and product_type and rule.product_type != product_type:
+    if rule.product_type and rule.product_type != product_type:
         return False
     return True
 

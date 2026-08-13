@@ -1312,3 +1312,53 @@ git ls-remote --heads origin
 - Updated the entry #76 test to assert the corrected no-evidence behavior (LOW instead of MEDIUM) and added coverage for the moderate-usage MEDIUM cap, aggregate-reason rejection, risk supersede and non-risk-type preservation.
 - Preserved invoice extraction, OEM discovery/region guards, AI grounding, source trust labels, duration conflict filtering, OEM-derived care suggestions, expiry notifications and diagnostics behavior.
 - Verification passed: focused predictive tests passed with `17 passed`; focused notification tests passed with `6 passed`; full `pytest -q` passed with `191 passed`.
+
+## 88. Risk uses the shared product category taxonomy - 2026-08-13
+
+- Scope was deliberately limited to the risk lane. OCR, scraping/OEM discovery, AI grounding, terms
+  lookup, summary generation, invoice ingestion, canonicalization and care/recommendation logic were
+  **not** modified. Verified with `git diff --name-only` against those paths returning empty.
+- Live data check first established why region contributed nothing: `regional_policies` had **0 rows**
+  and `oem_issue_signals` had **1 row** (whose `product_type` was `NULL`). Of the five documented risk
+  lanes, only the model base and telemetry behaviour delta were actually affecting scores.
+- Root causes found in the risk lane:
+  1. `predictive._product_type_code()` used bare substring matching over a 2-value vocabulary. `"ac" in name`
+     matched `"Washing M-ac-hine"`, `"Black"` and `"Compact"`; `"air" in name` matched `"Air Purifier"`.
+     A washing machine was therefore encoded as an air conditioner in the model's first feature.
+  2. `score_warranty()` passed the raw `product_name` (for example
+     `"Samsung Galaxy M17e 5G Mobile (Vibe Violet, 6GB RAM, 128GB Storage)"`) as `product_type` into
+     both `evaluate_region_policy()` and `summarize_issue_signals()`. Those rows are keyed by product
+     *category*, so a category-scoped rule could never match. Region-by-product risk was impossible.
+  3. `regional_policy._match_rule()` failed **open**: `if rule.product_type and product_type and ...`
+     skipped the constraint when the warranty's value was missing, so a washing-machine rule would
+     apply to any product with an unknown category.
+- Fixes applied:
+  - Added `predictive.resolve_product_category()` delegating to the existing shared 24-category
+    resolver `product_recommendations.infer_product_category()` — the same one already used by care
+    suggestions and behaviour questions. No new taxonomy was created and
+    `product_recommendations.py` was not modified.
+  - `_product_type_code()` now resolves the category first and then narrows to the model's encoding.
+    **The trained model was trained with `product_type` in {0, 1, 2} only** (verified in
+    `scripts/train_predictive.py` fallback rows), so the vocabulary is deliberately preserved:
+    `fridge -> 1.0`, `air_conditioner -> 2.0`, everything else `-> 0.0`. The numeric-passthrough
+    branch for already-coded callers is retained. Widening this encoding would feed the model
+    out-of-distribution input and requires retraining.
+  - Regional policy and OEM issue lookups now receive the resolved category instead of the raw name.
+    This is currently behaviour-neutral because `regional_policies` is empty and the single
+    `oem_issue_signals` row has a `NULL` product_type, but it makes the region-by-category lane
+    usable for the first time.
+  - `_match_rule()` now fails closed on brand, model and category. A rule with no narrowing still
+    applies region-wide as intended.
+- Behavioural effect: washing machines, air purifiers, water purifiers and laptops are no longer
+  encoded as air conditioners in the model feature vector. Genuine fridge and AC products still
+  encode as before. No route, response shape, template or UI ID changed.
+- Added `tests/test_regional_policy_matching.py` (8 tests) covering fail-closed matching, and three
+  predictive tests asserting the model vocabulary stays within `{0.0, 1.0, 2.0}`, that substring
+  misreads are fixed, and that risk uses the shared taxonomy.
+- Verification passed: focused predictive plus regional policy tests passed with `27 passed`; full
+  `pytest -q` passed with `201 passed` (was 191; +10 new tests).
+- Not done in this task, still open: seeding the region-stressor by category-sensitivity profiles so
+  the region lane produces real deltas, and deciding whether RAG should remain a scoring lane at all
+  (its current contribution is a keyword scan that cannot distinguish "no failures reported" from
+  "multiple failures reported"). The three dead helpers `_peer_review_features()`,
+  `_search_features()` and `_nudge_features()` remain uncalled.

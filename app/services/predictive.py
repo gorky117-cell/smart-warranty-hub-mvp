@@ -14,6 +14,9 @@ from ..db_models import BehaviourProfile, NudgeEvents, PeerReviewSignals, Sympto
 from . import regional_policy as regional_policy_service
 from . import oem_issue_signals as oem_issue_service
 from . import behaviour as behaviour_service
+# Shared 24-category resolver, also used by care suggestions and behaviour
+# questions. Imported read-only; this module is not modified by risk changes.
+from .product_recommendations import infer_product_category
 
 FEATURE_NAMES = [
     "product_type",
@@ -315,19 +318,46 @@ def _map_str_to_int(val: Optional[str], default: int = 0, vocab: Optional[List[s
     return default
 
 
+def resolve_product_category(label: Optional[str]) -> str:
+    """Resolve a product label to the shared 24-category taxonomy.
+
+    Delegates to `product_recommendations.infer_product_category`, which is the
+    same resolver already used by care suggestions and behaviour questions. Kept
+    as a thin wrapper so risk-side callers have one entry point.
+    """
+    if not label:
+        return "general"
+    try:
+        return infer_product_category({"product_name": str(label)})
+    except Exception:
+        return "general"
+
+
 def _product_type_code(label: Optional[str]) -> float:
+    """Encode product type for the trained model's first feature.
+
+    IMPORTANT: the shipped model was trained with `product_type` in {0, 1, 2}
+    only (0 = other, 1 = fridge, 2 = air conditioner). Do not widen this
+    vocabulary without retraining, or the model receives out-of-distribution
+    input. Category resolution now uses the shared 24-category resolver and is
+    then narrowed to that same {0, 1, 2} encoding, which fixes substring
+    misclassification (for example "Washing Machine" previously matched the
+    bare substring "ac" and was encoded as an air conditioner).
+    """
     if label is None:
         return 0.0
-    name = str(label).lower()
-    if "fridge" in name or name == "refrigerator":
-        return 1.0
-    if "ac" in name or "air" in name:
-        return 2.0
+    name = str(label).strip()
     if name.isdigit():
+        # Already a numeric code from an upstream caller; preserve as-is.
         try:
             return float(int(name))
         except Exception:
             return 0.0
+    category = resolve_product_category(name)
+    if category == "fridge":
+        return 1.0
+    if category == "air_conditioner":
+        return 2.0
     return 0.0
 
 
@@ -539,7 +569,12 @@ def score_warranty(user_id: str, warranty_id: str, product_type: Optional[str] =
             region = getattr(wdb, "region_code", None) if wdb else None
             brand = getattr(wdb, "brand", None) if wdb else None
             model_code = getattr(wdb, "model_code", None) if wdb else None
-            pt = getattr(wdb, "product_name", None) if wdb else None
+            # Regional policy and OEM issue rows are keyed by product *category*
+            # (for example "washing_machine"), not by the raw display name. Passing
+            # the raw product_name meant a category-scoped rule could never match.
+            pt = resolve_product_category(
+                getattr(wdb, "product_name", None) if wdb else None
+            )
             policy_res = regional_policy_service.evaluate_region_policy(
                 db,
                 region=region,
