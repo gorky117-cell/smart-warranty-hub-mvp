@@ -26,6 +26,7 @@ from .review_crawler import crawl_reviews_for_product
 from .summary_engine import summarize_warranty, build_structured_summary
 from .openai_intelligence import enrich_invoice_fields, merge_invoice_enrichment
 from .grounded_extraction import apply_grounded_extraction
+from .vision_extraction import apply_vision_tier, enabled as vision_enabled, needs_vision
 
 
 def _set_job_status(db: Session, job: PipelineJobDB, status: str, detail: str | None = None, error: str | None = None) -> None:
@@ -162,6 +163,16 @@ def _update_warranty(
             incoming.pop("serial_suggestion", None)
         elif not new_suggestion and previous.get("status") == "pending":
             meta.pop("serial_suggestion", None)
+        if "vision_suggestions" in incoming:
+            # Keep the user's confirmed/dismissed vision suggestions; refresh only pending ones (fix run B10).
+            merged_vision = {
+                key: value
+                for key, value in (meta.get("vision_suggestions") or {}).items()
+                if (value or {}).get("status") in ("confirmed", "dismissed")
+            }
+            for key, value in (incoming.get("vision_suggestions") or {}).items():
+                merged_vision.setdefault(key, value)
+            incoming["vision_suggestions"] = merged_vision
         if (meta.get("serial_suggestion") or incoming.get("serial_suggestion") or {}).get("status") == "pending" and fields.get("serial_no"):
             incoming.pop("serial_suggestion", None)  # a properly labelled serial was found after all
             meta.pop("serial_suggestion", None)
@@ -229,7 +240,9 @@ def run_job(job_id: str) -> None:
                 if meta.get("ocr_used"):
                     ocr_detail = str(meta.get("method"))
             _set_job_status(db, job, "ocr_if_needed", detail=ocr_detail)
-            if not text:
+            ocr_only_text = (text or "").split("[OCR note]")[0].strip()
+            vision_due = bool(job.source_path) and vision_enabled() and needs_vision(ocr_only_text)
+            if not text and not vision_due:
                 _set_job_status(db, job, "failed", error="no_text")
                 return
 
@@ -251,6 +264,15 @@ def run_job(job_id: str) -> None:
             except Exception as exc:
                 alternatives = dict(alternatives or {})
                 alternatives["grounded_ai"] = {"error": exc.__class__.__name__}
+            # AI vision tier for photos OCR could not read; no-op unless VISION_AI_EXTRACTION=1 (fix run B10).
+            if vision_due:
+                try:
+                    fields, confidence, alternatives = apply_vision_tier(
+                        job.source_path, ocr_only_text, fields, confidence, alternatives
+                    )
+                except Exception as exc:
+                    alternatives = dict(alternatives or {})
+                    alternatives["ai_vision"] = {"sent": False, "error": exc.__class__.__name__}
             if ocr_meta:
                 alternatives = dict(alternatives or {})
                 alternatives["ocr"] = ocr_meta

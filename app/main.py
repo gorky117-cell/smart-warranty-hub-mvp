@@ -2043,6 +2043,61 @@ def resolve_serial_suggestion(
     return {"warranty_id": warranty_id, "serial_no": row.serial_no, "serial_suggestion": suggestion}
 
 
+@app.post("/warranties/{warranty_id}/vision-suggestion", dependencies=[Depends(rbac_dependency)])
+def resolve_vision_suggestion(
+    warranty_id: str,
+    payload: Dict[str, Any] = Body(...),
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    """Confirm (optionally corrected) or dismiss a value read only by the AI vision tier (fix run B10)."""
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
+    row = db.query(WarrantyDB).filter_by(id=warranty_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Warranty not found")
+    field = str(payload.get("field") or "")
+    meta = dict(row.alternatives or {})
+    suggestions = dict(meta.get("vision_suggestions") or {})
+    suggestion = dict(suggestions.get(field) or {})
+    if not suggestion:
+        raise HTTPException(status_code=404, detail="No vision suggestion for this field")
+    action = str(payload.get("action") or "").strip().lower()
+    if action == "confirm":
+        value = " ".join(str(payload.get("value") or suggestion.get("value") or "").split())
+        if not value or len(value) > 120:
+            raise HTTPException(status_code=422, detail="Enter the value as printed on the invoice.")
+        confidence = dict(row.confidence or {})
+        if field == "purchase_date":
+            from .services.ingestion import parse_date_from_text
+
+            iso = parse_date_from_text(value)
+            if not iso:
+                raise HTTPException(status_code=422, detail="Enter the purchase date as printed (e.g. 12-03-2026).")
+            row.purchase_date = datetime.fromisoformat(iso)
+            value = iso
+        elif field in ("brand", "product_name", "model_code", "serial_no"):
+            setattr(row, field, value.upper() if field in ("model_code", "serial_no") else value)
+        elif field == "invoice_no":
+            meta["invoice_no"] = value
+        else:
+            raise HTTPException(status_code=422, detail="Unsupported field")
+        confidence[field] = 0.95  # user-confirmed: never cleared by re-processing
+        row.confidence = confidence
+        suggestion.update({"status": "confirmed", "confirmed_value": value})
+    elif action == "dismiss":
+        suggestion["status"] = "dismissed"
+    else:
+        raise HTTPException(status_code=422, detail="action must be 'confirm' or 'dismiss'")
+    suggestion["resolved_at"] = datetime.utcnow().isoformat()
+    suggestions[field] = suggestion
+    meta["vision_suggestions"] = suggestions
+    row.alternatives = meta
+    db.add(row)
+    db.commit()
+    store.warranties.pop(warranty_id, None)
+    return {"warranty_id": warranty_id, "field": field, "suggestion": suggestion}
+
+
 @app.post("/warranties/{warranty_id}/process", dependencies=[Depends(rbac_dependency)])
 def process_warranty(
     warranty_id: str,

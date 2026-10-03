@@ -1001,6 +1001,10 @@
               </div>
               <div id="serialSuggestionStatus" class="helper"></div>
             </div>
+            <div id="visionSuggestions" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px dashed #b98900;border-radius:8px;">
+              <div><strong>Please check these details.</strong> They were read from your photo by AI and need your confirmation.</div>
+              <div id="visionSuggestionList"></div>
+            </div>
             <div class="helper"><a href="javascript:void(0)" data-role="open-fullview" data-target="coverageDetails"
                 data-title="What is covered">Open in full view</a></div>
           </details>
@@ -2652,6 +2656,48 @@
         box.style.display = 'block';
       }
 
+      function renderVisionSuggestions(w) {
+        const box = document.getElementById('visionSuggestions');
+        const list = document.getElementById('visionSuggestionList');
+        if (!box || !list) return;
+        const all = (w && w.alternatives && w.alternatives.vision_suggestions) || {};
+        const labels = { brand: 'Brand', product_name: 'Product', model_code: 'Model', serial_no: 'Serial', invoice_no: 'Invoice no.', purchase_date: 'Purchase date' };
+        const pending = Object.entries(all).filter(([, s]) => s && s.status === 'pending');
+        list.innerHTML = '';
+        if (!pending.length) { box.style.display = 'none'; return; }
+        pending.forEach(([field, s]) => {
+          const row = document.createElement('div');
+          row.style.marginTop = '6px';
+          row.innerHTML = `<div>${escapeHtml(labels[field] || field)}: <code></code> <span class="helper">from "<em></em>"</span></div>
+            <input type="text" maxlength="120"> <button type="button" class="btn">Confirm</button>
+            <button type="button" class="btn secondary">Not right</button> <span class="helper vs-status"></span>`;
+          row.querySelector('code').textContent = s.value || '';
+          row.querySelector('em').textContent = s.source_line || '';
+          const input = row.querySelector('input');
+          input.value = s.value || '';
+          const [confirmBtn, dismissBtn] = row.querySelectorAll('button');
+          const statusEl = row.querySelector('.vs-status');
+          const send = async (action) => {
+            try {
+              const res = await fetch(`/warranties/${encodeURIComponent(w.id)}/vision-suggestion`, {
+                method: 'POST',
+                headers: h({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ field, action, value: input.value.trim() }),
+              });
+              const data = await res.json();
+              if (!res.ok) { statusEl.textContent = data.detail || 'Could not save.'; return; }
+              all[field] = data.suggestion;
+              row.remove();
+              if (!list.children.length) box.style.display = 'none';
+            } catch (e) { statusEl.textContent = 'Could not save.'; }
+          };
+          confirmBtn.onclick = () => send('confirm');
+          dismissBtn.onclick = () => send('dismiss');
+          list.appendChild(row);
+        });
+        box.style.display = 'block';
+      }
+
       function renderCoverage(w) {
         const expiryInfo = document.getElementById('expiryLine');
         const coverageMonths = w.coverage_months || 0;
@@ -2672,6 +2718,7 @@
         }
         if (expiryInfo) expiryInfo.classList.remove('hidden');
         renderSerialSuggestion(w);
+        renderVisionSuggestions(w);
         document.getElementById('coverageDetails').textContent = [
           `Brand: ${w.brand || 'N/A'}`,
           `Model: ${w.model_code || 'N/A'}`,

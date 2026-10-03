@@ -1909,7 +1909,7 @@ until the user approves at the end. Resume from the first unchecked box.
 - [x] B7 Remove only the redundant Samsung 12-month forcing.
 - [x] B8 New domain verification; write passing domains to verified list.
 - [x] B9 One risk scorer (ML; heuristic fallback inside; nudge features).
-- [ ] B10 AI vision tier for low-text images (redacted image, quoted lines, needs confirmation).
+- [x] B10 AI vision tier for low-text images (redacted image, quoted lines, needs confirmation).
 - [ ] B11 Expiry recalculation never triggers notifications/emails; count affected records.
 - [ ] C  Real measurement — SKIPPED: no API keys in local `.env` or shell (checked names only:
        `.env` has OCR_ENGINE, OEM_REFRESH_MINUTES, OEM_REVIEW_REQUIRED, DISABLE_MODEL_SOURCE_CHECK).
@@ -2155,6 +2155,36 @@ the flags are unknown, so conditionally:
   `Orient Fans` (`orientfan.com`) failed HTTPS. Not changed.
 - Tests: new `tests/test_domain_verification.py` (7, network mocked); `tests/test_source_trust.py` (+1).
 
+### 91.B10 AI vision tier for low-text images (2026-10-03)
+
+- New `app/services/vision_extraction.py`, off unless `VISION_AI_EXTRACTION=1` **and** the OpenAI lane is
+  configured (no key set anywhere here). Runs in `invoice_pipeline.run_job` when the source is an image and
+  OCR text (OCR notes excluded) is < `VISION_MIN_TEXT_CHARS` (60); a job with no text no longer fails
+  `no_text` when the vision tier is due.
+- **Image redaction before sending**: Tesseract word boxes from the better of two pre-processings (whole
+  page 2x autocontrast; or crop to dark-text region, 5x, unsharp mask, `--psm 4`), lines rebuilt, B1 buyer
+  rules applied, black boxes painted. If mean word confidence < 70 (`VISION_STRICT_REDACTION_BELOW_CONF`)
+  **strict mode**: every line that is not invoice/product-like (keywords, letter+digit codes, dates,
+  registry brands; address-like lines never kept) is blacked out entirely, because garbled OCR can miss a
+  "Bill To" label. No locatable words → **not sent** (`no_locatable_text`).
+- Provider (OpenAI Responses, `input_image` PNG data URL, strict JSON schema) returns
+  `{value, source_line, confidence}` for brand, product_name, model_code, serial_no, invoice_no,
+  purchase_date. Kept only if value is inside its quoted line, line not from a redacted area, confidence
+  ≥ 0.5. Value also present in the OCR text → field (0.6, only if empty); otherwise **pending suggestion**
+  in `alternatives.vision_suggestions` — vision-only values never become fields on their own. User decisions
+  survive re-processing.
+- New `POST /warranties/{id}/vision-suggestion {field, action, value?}` (confirm sets the column, or
+  `alternatives.invoice_no`; purchase date parsed; confidence 0.95) and a "Please check these details"
+  box in the Neo dashboard.
+- **Measured on the 10 `hard_ocr` synthetic images**: first version (2x only) located 0 words on all 10 →
+  0 sendable. With the crop/5x variant: **9/10 sendable** (S037 still 0 words), all in strict mode, mean OCR
+  confidence 33.5–46.8, 8–25 of ~31 words masked per image (some invoice lines are masked too — privacy
+  first). AI extraction accuracy **not measured: no API key** (Part C skipped).
+- Tests: new `tests/test_vision_tier.py` (6; real Tesseract for redaction, provider mocked): buyer
+  hidden/identifiers kept; unlocatable → never sent; validation grounds/suggests/rejects; pipeline only with
+  flag, vision-only values are suggestions, sent image OCRs without buyer data; confirm/dismiss endpoint;
+  strict mode masks a garbled buyer label and an address line and keeps the invoice line.
+
 ### 91.y Step log (each hash recorded by the next step's commit)
 
 | Step | Commit | Tests | Notes |
@@ -2168,7 +2198,8 @@ the flags are unknown, so conditionally:
 | B6 | `c86d77c6` | 349 passed (+19) | Five bugs; Epson was a display artefact. |
 | B7 | `e5c9e489` | 349 passed | Samsung duration force removed. |
 | B9 | `2b62e8ed` | 359 passed (+10 incl. B8 tests) | One scorer; nudges connected. |
-| B8 | (next) | 360 passed (+1) | 169 domains verified and written. |
+| B8 | `40ecb293` | 360 passed (+1) | 169 domains verified and written. |
+| B10 | (next) | 367 passed (+7) | Vision tier, off by default. |
 
 ### 91.x Open questions
 - Pin `paddlepaddle` (unpinned in requirements; production pulls 3.x and Paddle cannot read with
@@ -2181,3 +2212,5 @@ the flags are unknown, so conditionally:
   `requires_oem_verification` true for all scraped terms?
 - B8: registry `Orient` → `orientbell.com` (tiles) looks wrong; LG/Sony/Dell/Panasonic/Whirlpool block the
   verifier with 403 — add them manually after a human check?
+- B10: the crop/5x pre-processing that makes hard images locatable might also help normal OCR of blurry
+  photos (it reads garbled-but-partial text on S031/S035/S040). Not wired into OCR — try and measure?
