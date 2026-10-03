@@ -1362,3 +1362,184 @@ git ls-remote --heads origin
   (its current contribution is a keyword scan that cannot distinguish "no failures reported" from
   "multiple failures reported"). The three dead helpers `_peer_review_features()`,
   `_search_features()` and `_nudge_features()` remain uncalled.
+
+## 89. Read-only extraction/discovery audit — measured baseline, no code changed - 2026-08-18
+
+**This entry records measurements only. No application file was modified.** Two throwaway audit
+scripts were used and deleted; `git status --short` was empty before and after. Every number below
+came from executing the real code paths on this machine, not from reading code.
+
+### 89.1 PaddleOCR has never run — silent fallback, dishonest health check
+
+- `.env` sets `OCR_ENGINE=paddle`. `ocr.health()` reports `(True, 'PaddleOCR available (lazy)')`.
+  That report is **wrong**, because `health()` only calls `find_spec("paddleocr")` and never
+  initializes the engine.
+- Running `extract_text_with_meta()` over the 50 labeled samples in
+  `test_data/ingestion_ocr_50_labeled.csv`: method usage was `tesseract_fallback: 40`, `paddle: 10`,
+  and **all 10 paddle attempts were failures**. Paddle succeeded zero times.
+- Cause is a dependency conflict, not the code: `protobuf 5.29.6` with `paddlepaddle 2.6.2` raises
+  `PaddleOCR init failed: Descriptors cannot be created directly`. The Tesseract fallback added by
+  the entry noted in section 2 works and is masking this completely.
+- The 10 samples that produced **no text at all** were all `case_type=hard_ocr` — skewed/low-quality
+  scans. Tesseract also returns nothing for those. So real-world phone photos of crumpled invoices
+  are the exact class that currently fails.
+- Before pinning protobuf down, check the rest of the venv. A blind downgrade can break other
+  packages. Dropping Paddle and standardizing on Tesseract plus a document-AI tier is the other
+  valid option.
+
+### 89.2 Measured invoice field accuracy — three fields are at 0%
+
+Real `extract_text_with_meta()` + `extract_product_fields()` over the same 50 samples, exact match
+against the CSV ground truth (30 samples carry labels):
+
+| Field | Correct | Wrong | Missing |
+|---|---|---|---|
+| `brand` | 26/30 (86.7%) | 0 | 4 |
+| `product_category` | 26/30 (86.7%) | 0 | 4 |
+| `purchase_date` | 24/30 (80.0%) | 6 | 0 |
+| `coverage_months` | 16/30 (53.3%) | 14 | 0 |
+| `model_code` | **0/30 (0.0%)** | 1 | 29 |
+| `serial_no` | **0/30 (0.0%)** | 15 | 15 |
+| `invoice_no` | **0/30 (0.0%)** | 0 | 30 |
+
+- `serial_no` is worse than absent: 15 samples wrote the literal value `takinvoice` into the record.
+  A confidently wrong serial is more damaging than a blank, because `_update_warranty()` only writes
+  truthy values and **never clears a field**, so re-processing cannot remove it.
+- Note the contrast with the section 11 KPI table, which records "OCR success 100%, model F1 0.6667"
+  for phase 1C. That table does not match what the code does today on the same dataset. Trust these
+  numbers; the phase 1C row is stale.
+
+### 89.3 The 27-brand ceiling is the real "any OEM" blocker
+
+- `ingestion._KNOWN_OEMS` contains **27** brands and `_PRODUCT_TERMS` contains **25** words, while
+  `data` domain registry loads **197** brands via `load_oem_domains()`.
+- `_canonical_oem()` only matches those 27. For any other brand — Havells, IFB, boAt, Ather,
+  Crompton, all present in the 197 — `item_brand` is `None`, so brand falls through to the
+  "scan the first 5 lines" heuristic and picks up **the retailer or the seller's legal name**.
+- That wrong brand then becomes the lookup key for OEM discovery, so the whole downstream chain
+  queries the wrong company. Fixing extraction without fixing this does not deliver "any OEM".
+
+### 89.4 Web search is configured but dead; verified-domain registry is empty
+
+- Live check: `_provider_configured()` returned `False` for all five providers (serper, serpapi,
+  brave, google, bing). `search_web("samsung galaxy warranty terms")` returned **0 results**.
+- Consequence measured through `discover_sources(region="IN")`:
+  `Samsung SM-S921B -> 1 source` (curated file only), `LG OLED55C4 -> 0`, `Whirlpool WM8KG -> 0`.
+  Zero sources means `DEFAULT_RULES`, i.e. a flat category default presented as coverage.
+- `data/warranty_sources.json` holds only **4** entries, and two are `test_data/` synthetic files
+  that are correctly skipped because `TERMS_ALLOW_LOCAL_DEV_SOURCES` defaults to false. Effective
+  real curated coverage is one Samsung page and one Epson page.
+- `load_verified_domains()` returns **0 brands**. The discovery scorer awards `+15` for verified, so
+  the strongest trust signal in ranking is switched off. Populating this via `oem_domain_verify` is
+  cheap and improves source selection immediately.
+
+### 89.5 `max(durations)` picks the wrong number, and the Samsung hardcode proves it
+
+- Live scrape of the curated `https://www.samsung.com/in/support/warranty/` returned
+  `duration_months: 60` with `confidence: 1.0` for what is a mobile-phone warranty page.
+- `_merge_terms_results()` uses `max(durations)`, so the longest number on the page wins — usually an
+  extended plan or an appliance compressor term, not the product.
+- `terms_lookup._normalize_result_for_context()` compensates by hardcoding "if brand starts with
+  samsung and category is mobile, force 12 months and drop terms containing `24 months`, `2 years`,
+  `coverplus`". `_source_conflicts_product_context()` is the same pattern. These are per-brand
+  band-aids over the `max()` defect and should be deleted once duration selection is
+  product-scoped (require the duration sentence to sit near the model/category mention).
+
+### 89.6 No LLM is reachable anywhere in the system
+
+- `OPENAI_ENABLED` is unset (defaults to `"0"`), `OPENAI_INVOICE_ENRICHMENT` unset, no
+  `OPENAI_API_KEY`, **and the `openai` package is not installed** (`find_spec` returned `None`).
+  So the phase 2 lane described in section 0 cannot run even if the flags are flipped.
+- `LLM_PROVIDER` defaults to `ollama`, no connector is registered, and `http://localhost:11434`
+  refuses the connection. `playwright` is also missing, so `warranty_parser._fetch_headless()` is
+  dead and JS-heavy OEM pages cannot be read.
+- Net effect: invoice parsing is 100% regex today, and `summarize_warranty` always lands on
+  `template_fallback`. The `.env` in this workspace contains only `OCR_ENGINE`,
+  `OEM_REFRESH_MINUTES`, `OEM_REVIEW_REQUIRED` and `DISABLE_MODEL_SOURCE_CHECK`.
+
+### 89.7 Duplicate extraction pass
+
+`upload_artifact()` runs `canonicalize_artifact()` → `extract_product_fields()`, which creates the
+warranty row. Then `invoice_pipeline.run_job()` runs `extract_product_fields()` **again** on the same
+text. OCR runs once (the job only re-OCRs when `len(text) < 200`). The DB row is therefore born from
+the pass that has no enrichment applied.
+
+### 89.8 Agreed direction — LLM extracts, regex validates
+
+The root cause across 89.2, 89.3 and 89.5 is one decision: regex is doing the *extracting*. It
+cannot generalize over layouts, so every new invoice shape means another pattern in the ~700-line
+`ingestion.py` and another brand in a hardcoded tuple. Agreed fix order, honouring rule 5 in
+section 1 (deterministic fallbacks stay):
+
+1. Fix OCR (protobuf decision) and make `health()` initialize the engine instead of calling
+   `find_spec`. Nothing downstream can work on invoices that yield no text.
+2. Install `openai`, set the flags/key, and **add span grounding**: the model must return the exact
+   source substring for every field, and any value that does not appear verbatim in the OCR text is
+   dropped. This is what kills the `takinvoice` class of error. Make the LLM primary for
+   `model_code`/`serial_no`/`invoice_no` (regex scores 0%), keep regex as a validator for format,
+   range and plausibility. This is consistent with the entry 80 source-grounding rule.
+3. Add one search provider key and populate `verified_domains`.
+4. Replace `_KNOWN_OEMS` with a resolver over the 197-brand registry plus an LLM call whose only job
+   is brand-vs-seller disambiguation.
+5. Replace `max(durations)` with product-scoped, quote-backed duration selection, then delete the
+   Samsung hardcodes.
+6. Wire `test_data/ingestion_ocr_50_labeled.csv` into CI with a per-field floor. The file already
+   exists but nothing enforces it, which is how three fields sat at 0% unnoticed.
+
+Also outstanding: let `_update_warranty()` clear a field when a higher-confidence pass says it is
+absent; add per-domain rate limiting and a contact User-Agent before broad OEM fetching (current UA
+is `SmartWarrantyHub/1.0` with no contact).
+
+### 89.9 Statement boundary
+
+Nothing in this entry validates business outcomes. It measures extraction and discovery correctness
+on a synthetic 50-sample set plus two live OEM fetches. The section 11 external statement still
+applies unchanged, and the phase 1C row in that table should be treated as stale until re-measured.
+
+## 90. Work plan — consolidated fix run (started 2026-10-03)
+
+Source: user-approved consolidated work plan, 2026-10-03. Rules for this run: local commits only (no
+push), one commit per step, full `pytest -q` after every step, MEMORY.md ticked and committed with
+each step, measured numbers only, synthetic results labelled synthetic, no Samsung- or
+printer/Epson-specific logic removed. Resume from the first unchecked box.
+
+- [x] Step 0 — Checklist entry, corrected Paddle diagnosis, `.kiro` skill updated.
+- [ ] Step 1 — Repo hygiene (cookies.txt tracking report, unpushed commits, .gitignore, untrack).
+- [ ] Step 2 — Regression tests that lock in today's Samsung and printer/Epson outputs.
+- [ ] Step 3 — Extraction safety (serial fallback, field clearing, duplicate first pass).
+- [ ] Step 4 — OCR honesty (real health check, logged Paddle errors, engine in metadata, real-image test).
+- [ ] Step 5 — Truthful docs.
+- [ ] Step 6 — Honest 50-sample baseline and CI floors.
+- [ ] Step 7 — Brand registry and domain preflight.
+- [ ] Step 8 — Product-scoped warranty duration.
+- [ ] Step 9 — Prepare (not activate) grounded AI extraction.
+
+### 90.0 Corrected Paddle diagnosis (supersedes 89.1 cause)
+
+Re-measured 2026-10-02. The venv no longer matches entry 89.1: installed versions are now
+`protobuf 6.33.2`, `paddlepaddle 3.2.2`, `paddleocr 2.8.0`.
+
+- `ocr.get_paddle()` **now initializes successfully** — the protobuf `Descriptors cannot be created
+  directly` error is gone.
+- Every `run_paddle_ocr()` call fails at inference with
+  `NotFoundError: OneDnnContext does not have the input Filter ... [operator < fused_conv2d > error]`.
+  Cause: the paddleocr 2.x model files are run on the paddle 3.x CPU/oneDNN runtime — a
+  framework/model version mismatch, **not** protobuf.
+- `_run_image_ocr()` then falls back to Tesseract and discards the Paddle error, so the failure is
+  still silent. `ocr.health()` still reports `(True, 'PaddleOCR available (lazy)')` from `find_spec`.
+- Reproduced on `S001.png` and `S002.png`: method `tesseract_fallback`.
+- Do not pin protobuf as a fix. Options remain: PaddleOCR 3.x (paddleocr 3 + matching models) in an
+  isolated environment, or Tesseract plus a document-AI tier. Decision is the user's.
+
+### 90.y Step log
+
+A commit cannot contain its own hash, so each step's hash is written here by the next step's commit.
+
+| Step | Commit | Tests | Notes |
+|---|---|---|---|
+| 0 | (recorded in Step 1) | 201 passed | Entry 90 added; the uncommitted entry 89 audit text was committed with it. |
+
+### 90.x Open questions
+
+- `.kiro/skills/swh-extraction-audit/SKILL.md` is untracked. It was updated in Step 0 but left
+  untracked, because adding `.kiro/` to the repo was not explicitly requested.
