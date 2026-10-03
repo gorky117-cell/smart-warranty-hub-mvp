@@ -5,8 +5,8 @@ Prepared, **not active**: runs only when `GROUNDED_AI_EXTRACTION=1` and a provid
 `OPENAI_ENABLED=1` and `OPENAI_API_KEY`). No key or provider is enabled by this module.
 
 Flow:
-1. `redact_invoice_text()` removes customer name/address blocks, address-like lines, phone numbers,
-   e-mail addresses and PIN codes before any text leaves the machine.
+1. `redact_invoice_text()` (= `privacy.redact_text`) masks buyer name/address/phone/e-mail/GSTIN
+   tokens before any text leaves the machine; seller lines are kept.
 2. The provider returns, per field, `{"value", "source_line", "confidence"}`.
 3. `validate_ai_fields()` keeps a value only if: the source line appears verbatim in the text that was
    sent, the value appears in that line and in the original OCR text, confidence >= the minimum, and
@@ -26,7 +26,6 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 AI_FIELDS = ("model_code", "serial_no", "invoice_no")
 MIN_CONFIDENCE = float(os.getenv("GROUNDED_AI_MIN_CONFIDENCE", "0.5"))
 MAX_INPUT_CHARS = int(os.getenv("GROUNDED_AI_MAX_INPUT_CHARS", "6000"))
-REDACTED = "[REDACTED]"
 
 Provider = Callable[[str], Optional[Dict[str, Any]]]
 
@@ -37,56 +36,12 @@ def enabled() -> bool:
 
 # --------------------------------------------------------------------------- redaction
 
-_PARTY_LABEL_RE = re.compile(
-    r"^\s*(bill(?:ed)?\s*to|ship(?:ped)?\s*to|sold\s*to|deliver(?:y)?\s*to|buyer|consignee|customer(?:\s*name)?|"
-    r"name|billing\s*address|shipping\s*address|address)\b\s*[:\-]?",
-    re.IGNORECASE,
-)
-_BLOCK_END_RE = re.compile(
-    r"\b(invoice|inv\b|date|gstin|order|item|description|sl\b|s\.?\s*no|qty|quantity|hsn|sac|product|model|serial|"
-    r"imei|warranty|amount|total|rate|seller|sold\s*by)\b",
-    re.IGNORECASE,
-)
-_EMAIL_RE = re.compile(r"\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b")
-_PHONE_RE = re.compile(r"(?<![\w])(?:\+?91[\s\-]?)?(?:0\d{2,4}[\s\-]?\d{6,8}|[6-9]\d{4}[\s\-]?\d{5})(?![\w])")
-_PIN_RE = re.compile(r"(?<!\d)\d{3}\s?\d{3}(?!\d)")
+from .privacy import PHONE_RE as _PHONE_RE, REDACTED, redact_text  # noqa: E402
 
 
 def redact_invoice_text(text: str) -> Tuple[str, Dict[str, int]]:
-    """Strip customer name, address and phone details. Returns (redacted_text, counts)."""
-    from .ingestion import _has_product_signal, _looks_like_address_text  # local import: ingestion is heavy
-
-    counts = {"party_lines": 0, "address_lines": 0, "phones": 0, "emails": 0, "pins": 0}
-    out: List[str] = []
-    in_block = 0
-    for line in (text or "").splitlines():
-        stripped = line.strip()
-        if _PARTY_LABEL_RE.match(stripped):
-            label = _PARTY_LABEL_RE.match(stripped).group(0)
-            out.append(f"{label} {REDACTED}".strip())
-            counts["party_lines"] += 1
-            in_block = 4  # following lines up to 4 belong to the name/address block
-            continue
-        block_ends = _BLOCK_END_RE.search(stripped) or _has_product_signal(stripped)
-        if in_block and stripped and not block_ends:
-            out.append(REDACTED)
-            counts["party_lines"] += 1
-            in_block -= 1
-            continue
-        in_block = 0
-        if stripped and _looks_like_address_text(stripped):
-            out.append(REDACTED)
-            counts["address_lines"] += 1
-            continue
-        line, n = _EMAIL_RE.subn(REDACTED, line)
-        counts["emails"] += n
-        line, n = _PHONE_RE.subn(REDACTED, line)
-        counts["phones"] += n
-        if re.search(r"\b(pin|pincode|postal|zip)\b", line, re.IGNORECASE):
-            line, n = _PIN_RE.subn(REDACTED, line)
-            counts["pins"] += n
-        out.append(line)
-    return "\n".join(out), counts
+    """Buyer-detail redaction (shared with every AI boundary, see `privacy.redact_text`)."""
+    return redact_text(text)
 
 
 # --------------------------------------------------------------------------- validation

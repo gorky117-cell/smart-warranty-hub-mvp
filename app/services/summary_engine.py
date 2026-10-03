@@ -8,6 +8,7 @@ from typing import Optional, Tuple, Dict, Any
 import requests
 
 from ..models import CanonicalWarranty
+from .privacy import ai_safe
 from .source_trust import classify_terms_source
 from .warranty_parser import sanitize_base_terms
 
@@ -275,6 +276,7 @@ def summarize_warranty(warranty: CanonicalWarranty) -> Tuple[str, str]:
                     prompt = prompt + "\nRelevant context:\n" + ctx
         except Exception:
             pass
+    prompt = ai_safe(prompt)  # buyer details never reach a provider (fix run B1)
     if _LLM_PROVIDER == "mistral":
         text, err = _summarize_with_mistral(prompt)
         return (text or _template_summary(warranty)), "mistral" if text else "template"

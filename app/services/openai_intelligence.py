@@ -4,6 +4,8 @@ import json
 import os
 from typing import Any, Dict, Iterable, Optional, Tuple
 
+from .privacy import ai_safe
+
 
 _OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 _OPENAI_TIMEOUT_SEC = float(os.getenv("OPENAI_TIMEOUT_SEC", "20"))
@@ -65,6 +67,7 @@ def _response_text(response: Any) -> str:
 
 
 def summarize_warranty(prompt: str) -> Tuple[Optional[str], Optional[str]]:
+    prompt = ai_safe(prompt)
     client, err = _get_client()
     if err or client is None:
         return None, err
@@ -153,10 +156,8 @@ def enrich_invoice_fields(
         },
         "required": ["fields", "confidence", "reasoning", "missing_fields"],
     }
-    from .grounded_extraction import redact_invoice_text
-
-    # Customer name/address/phone/e-mail never leave the machine (work plan step 9).
-    redacted_text, _counts = redact_invoice_text(raw_text)
+    # Buyer name/address/phone/e-mail/GSTIN never leave the machine (fix run B1).
+    redacted_text = ai_safe(raw_text)
     prompt = (
         "Extract only invoice/product facts that are visible in the text. "
         "Do not infer warranty coverage or legal terms. Empty string means not found.\n\n"

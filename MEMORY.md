@@ -1900,7 +1900,7 @@ numbers only, never print/log/commit secret values, do not change Railway settin
 until the user approves at the end. Resume from the first unchecked box.
 
 - [x] A  Production check (this section).
-- [ ] B1 Redaction before any text/image reaches any AI provider (buyer details only, token masking).
+- [x] B1 Redaction before any text/image reaches any AI provider (buyer details only, token masking).
 - [ ] B2 OCR: skip failed Paddle for OCR_ENGINE_TTL_SEC; Tesseract eng in build; Playwright decision.
 - [ ] B3 RAG out of the risk score; fix "no failures" vs "multiple failures" bug.
 - [ ] B4 Insecure-settings warning on the admin health page.
@@ -1980,10 +1980,29 @@ the flags are unknown, so conditionally:
 - Mistral terms enrichment (`TERMS_NLP_ENRICH_ENABLED` default 1) sends OEM page text, not invoices.
 - `/llm/generate` (main.py:2355) forwards a user-typed prompt as is.
 
+### 91.B1 Redaction at every AI boundary (2026-10-03)
+
+- New `app/services/privacy.py`: `redact_text()` / `ai_safe()`. Unconditional (no flag). Masks **tokens**,
+  keeps labels: buyer block (Bill/Ship/Sold/Deliver to, Buyer, Consignee, Recipient, Customer — not
+  "customer care", Billing/Shipping/Delivery address, Name) + up to 5 following lines; buyer phone,
+  e-mail, GSTIN; phones/e-mails elsewhere unless on a seller/support line or in the seller header above
+  the buyer label; `user=`/`user_id=`/`username=` values. Seller name/address/GSTIN/phone kept.
+- Applied at every outbound AI call: `openai_intelligence.summarize_warranty` and `enrich_invoice_fields`;
+  `llm.generate_with_mistral` and `generate_with_ollama` (`/llm/generate` and LLM routes; the logged
+  prompt is the redacted one); `summary_engine.summarize_warranty` before any provider (mistral, openai,
+  ollama_remote, llamacpp); `warranty_parser._mistral_enrich_terms`; `rag._embed` (all RAG documents:
+  summaries, telemetry, behaviour, reviews, OEM knowledge); `grounded_extraction` (its own redaction
+  replaced by the shared one). `ollama_questions.generate_questions` sends a fixed prompt with no data.
+- Replaces Step 9's redaction, which masked whole address-like lines including the seller's.
+- Tests: new `tests/test_privacy_redaction.py` (9): buyer masked/seller kept; unlabelled phone/e-mail;
+  user ids; Mistral chat + Ollama; Mistral terms; RAG embeddings; summary for 4 providers; OpenAI summary
+  and enrichment with flags on. Grounded test updated for the new counts.
+
 ### 91.y Step log (each hash recorded by the next step's commit)
 
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
-| A | (next) | 299 passed | Production check; docs only. |
+| A | `5a8b8be4` | 299 passed | Production check; docs only. |
+| B1 | (next) | 307 passed (+8) | Redaction everywhere. |
 
 ### 91.x Open questions

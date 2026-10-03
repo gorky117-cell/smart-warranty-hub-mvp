@@ -5,6 +5,7 @@ import requests
 
 from .connection_registry import registry
 from .audit import log_redacted
+from .privacy import ai_safe
 
 _LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama").strip().lower()
 _MISTRAL_API = os.getenv("MISTRAL_API_URL", "https://api.mistral.ai/v1")
@@ -13,6 +14,7 @@ _MISTRAL_MODEL = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
 
 
 def generate_with_ollama(prompt: str, model: str, endpoint: str) -> Tuple[Optional[str], Optional[str]]:
+    prompt = ai_safe(prompt)
     try:
         resp = requests.post(
             f"{endpoint.rstrip('/')}/api/generate",
@@ -44,6 +46,7 @@ def _friendly_prompt(prompt: str) -> str:
 def generate_with_mistral(prompt: str, model: str) -> Tuple[Optional[str], Optional[str]]:
     if not _MISTRAL_KEY:
         return None, "MISTRAL_API_KEY not set"
+    prompt = ai_safe(prompt)
     try:
         resp = requests.post(
             f"{_MISTRAL_API.rstrip('/')}/chat/completions",

@@ -501,7 +501,9 @@ def _mistral_enrich_terms(raw_text: str) -> Tuple[Optional[ParsedTerms], Optiona
     text = (raw_text or "").strip()
     if not text:
         return None, "No text to enrich"
-    clipped = text[: max(200, _nlp_max_chars())]
+    from .privacy import ai_safe
+
+    clipped = ai_safe(text[: max(200, _nlp_max_chars())])
     prompt = (
         "Extract warranty details from text. Return JSON only with keys: "
         "duration_months (number or null), terms (array), exclusions (array), claim_steps (array). "

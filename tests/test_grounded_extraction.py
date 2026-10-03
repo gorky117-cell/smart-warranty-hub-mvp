@@ -60,8 +60,8 @@ def test_redaction_removes_customer_details_and_keeps_identifiers():
         assert secret not in redacted, secret
     for kept in ("SE/2026/0417", "SM-M175E", "356938035643809", "85171300", "Samsung Galaxy M17e"):
         assert kept in redacted, kept
-    assert counts["party_lines"] + counts["address_lines"] >= 2
-    assert counts["phones"] == 1 and counts["emails"] == 1
+    assert counts["buyer_values"] >= 2
+    assert "Sharma Electronics Pvt Ltd" in redacted  # seller line kept (fix run B1)
 
 
 def test_provider_only_ever_sees_redacted_text():

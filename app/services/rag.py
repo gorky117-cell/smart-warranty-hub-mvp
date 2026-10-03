@@ -23,6 +23,9 @@ def rag_enabled() -> bool:
 def _embed(text: str) -> Optional[List[float]]:
     if not _MISTRAL_KEY:
         return None
+    from .privacy import ai_safe
+
+    text = ai_safe(text)  # buyer details and user ids never reach the embedding provider
     try:
         resp = requests.post(
             f"{_MISTRAL_API.rstrip('/')}/embeddings",
