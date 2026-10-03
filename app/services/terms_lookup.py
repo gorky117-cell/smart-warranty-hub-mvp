@@ -272,7 +272,8 @@ def _normalize_result_for_context(
     ):
         return result
 
-    result.duration_months = 12
+    # Duration is no longer forced to 12 here: product-scoped selection in _merge_terms_results picks it
+    # from the page's own base-warranty sentence (fix run B7; redundancy measured in MEMORY 90.8).
     blocked_fragments = (
         "24 months",
         "2 years",
@@ -300,10 +301,6 @@ def _normalize_result_for_context(
             continue
         if any(fragment in lower for fragment in preferred_fragments):
             terms.append(term)
-    if not any("one year" in term.lower() or "1 year" in term.lower() for term in terms):
-        terms.insert(0, "Limited international one year warranty.")
-    if not any("12 months" in term.lower() for term in terms):
-        terms.insert(0, "Standard coverage for 12 months from purchase date.")
 
     claim_steps = []
     blocked_claims = {"news", "alerts", "community", "additional support"}

@@ -181,11 +181,10 @@ def test_samsung_mobile_normalisation_fills_claim_steps_when_page_has_none():
 
     out = tl._normalize_result_for_context(result, brand="Samsung", norm_category="mobile", source_url=SAMSUNG_IN)
 
-    assert out.duration_months == 12
-    assert out.terms == [
-        "Standard coverage for 12 months from purchase date.",
-        "Limited International One Year Warranty",
-    ]
+    # Fix run B7: the 12-month force was removed; duration is chosen from evidence at merge time
+    # (the end-to-end locks above still give 12). Term and claim-step filtering are unchanged.
+    assert out.duration_months == 60
+    assert out.terms == ["Limited International One Year Warranty"]
     assert out.claim_steps == [
         "Use Samsung warranty check or product registration.",
         "Check repair status or locate a Samsung service center.",

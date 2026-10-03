@@ -1906,7 +1906,7 @@ until the user approves at the end. Resume from the first unchecked box.
 - [x] B4 Insecure-settings warning on the admin health page.
 - [x] B5 Serial from misread labels → unconfirmed suggestion confirmed in UI (keep Epson exception).
 - [x] B6 Bugs: MG Road→MG, device→EV 36m, 120 months→20, Epson broken chars, kia.com/in.
-- [ ] B7 Remove only the redundant Samsung 12-month forcing.
+- [x] B7 Remove only the redundant Samsung 12-month forcing.
 - [ ] B8 New domain verification; write passing domains to verified list.
 - [ ] B9 One risk scorer (ML; heuristic fallback inside; nudge features).
 - [ ] B10 AI vision tier for low-text images (redacted image, quoted lines, needs confirmation).
@@ -2094,6 +2094,19 @@ the flags are unknown, so conditionally:
   now normalises every entry to a bare lower-case host (scheme/path/port/`www.` dropped, deduped).
 - Tests: new `tests/test_bug_fixes_b6.py` (19). Field floors (cached + real OCR) unchanged and passing.
 
+### 91.B7 Samsung: only the redundant 12-month forcing removed (2026-10-03)
+
+- `terms_lookup._normalize_result_for_context()`: removed `result.duration_months = 12` and the two
+  inserted duration lines ("Standard coverage for 12 months from purchase date.", "Limited international
+  one year warranty."). Kept: the Samsung/mobile/samsung.com gate, the blocked-term filter
+  (24m/2y/60m/5y/CoverPlus/extended/service plan), preferred-term filter, news/alerts/community/additional
+  support claim-step filter and the default Samsung claim steps. `_source_conflicts_product_context()` kept.
+- All 15 Step 2 Samsung/Epson end-to-end locks pass unchanged (12 months, exact terms/claim steps, source
+  status). Live saved Samsung India page: still **12 months**, same 6 terms, evidence "The limited warranty
+  period of 1 year will apply ...". The one unit test that asserted the forcing itself was rewritten to
+  lock the new contract (duration left as parsed, 60; filtered terms `["Limited International One Year
+  Warranty"]`).
+
 ### 91.y Step log (each hash recorded by the next step's commit)
 
 | Step | Commit | Tests | Notes |
@@ -2104,7 +2117,8 @@ the flags are unknown, so conditionally:
 | B3 | `ad242961` | 321 passed (+10) | RAG never moves score by default. |
 | B4 | `46a2cab4` | 326 passed (+5) | Admin security banner; HTTPS redirect implemented. |
 | B5 | `e50fa3d0` | 330 passed (+4) | Serial suggestions confirmed in UI. |
-| B6 | (next) | 349 passed (+19) | Five bugs; Epson was a display artefact. |
+| B6 | `c86d77c6` | 349 passed (+19) | Five bugs; Epson was a display artefact. |
+| B7 | (next) | 349 passed | Samsung duration force removed. |
 
 ### 91.x Open questions
 - Pin `paddlepaddle` (unpinned in requirements; production pulls 3.x and Paddle cannot read with
