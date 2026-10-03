@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import tempfile
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict, Any
 
@@ -31,6 +31,9 @@ class ParsedTerms:
     claim_steps: List[str]
     raw_text: Optional[str]
     confidence: float = 0.0
+    # Every duration statement on the page: {"months": int, "sentence": str}. Used for
+    # product-scoped duration selection in terms_lookup (work plan step 8).
+    duration_candidates: List[Dict[str, Any]] = field(default_factory=list)
 
 
 _YEAR_RE = re.compile(r"(\d{1,2})\s*(?:year|years|yr|yrs)", re.IGNORECASE)
@@ -179,6 +182,31 @@ def _best_duration_months(text: str) -> Optional[int]:
     if not candidates:
         return None
     return max(candidates)
+
+
+_CANDIDATE_YEAR_RE = re.compile(r"\b(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)[\s\-]*(?:year|years|yr|yrs)\b", re.IGNORECASE)
+_CANDIDATE_MONTH_RE = re.compile(r"\b(\d{1,3})[\s\-]*(?:month|months|mo|mos)\b", re.IGNORECASE)
+_NUMBER_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10}
+
+
+def duration_candidates(text: str) -> List[Dict[str, Any]]:
+    """All duration statements in ``text`` with the sentence that carries them.
+
+    Unlike ``_best_duration_months`` this reads 3-digit month counts ("120 months") and number
+    words ("one year"), and keeps every value instead of the maximum.
+    """
+    out: List[Dict[str, Any]] = []
+    # Own split: `_sentences()` strips leading digits as bullet numbers ("60 months ..." -> "months ...").
+    chunks = re.split(r"(?<=[.!?])\s+|[\n\r]+", text or "")
+    sentences = list(dict.fromkeys(" ".join(c.split()) for c in chunks if 4 <= len(c.strip()) <= 280))
+    for sentence in sentences:
+        for m in _CANDIDATE_YEAR_RE.finditer(sentence):
+            raw = m.group(1).lower()
+            years = _NUMBER_WORDS.get(raw) or int(raw)
+            out.append({"months": years * 12, "sentence": sentence})
+        for m in _CANDIDATE_MONTH_RE.finditer(sentence):
+            out.append({"months": int(m.group(1)), "sentence": sentence})
+    return [c for c in out if 0 < c["months"] <= 360]
 
 
 def _split_lines(text: str) -> List[str]:
@@ -533,6 +561,7 @@ def _merge_parsed(base: ParsedTerms, enrich: ParsedTerms) -> ParsedTerms:
         claim_steps=claim_steps,
         raw_text=base.raw_text or enrich.raw_text,
         confidence=min(conf, 1.0),
+        duration_candidates=list(base.duration_candidates or []),
     )
 
 
@@ -620,6 +649,7 @@ def _finalize_parsed(parsed: ParsedTerms, raw_text_for_enrich: Optional[str] = N
         claim_steps=sanitize_support_items(parsed.claim_steps or []),
         raw_text=parsed.raw_text,
         confidence=parsed.confidence,
+        duration_candidates=list(parsed.duration_candidates or []),
     )
     if not _nlp_enrich_enabled():
         return normalized
@@ -682,6 +712,7 @@ def parse_terms_from_text(text: str) -> ParsedTerms:
         claim_steps=claim_steps or [],
         raw_text=raw_text,
         confidence=confidence,
+        duration_candidates=duration_candidates(text),
     )
 
 

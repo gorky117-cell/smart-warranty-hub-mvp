@@ -127,3 +127,8 @@ class TermsResult(AppBaseModel):
     source_url: Optional[str] = None
     source_urls: List[str] = Field(default_factory=list)
     raw_text: Optional[str] = None
+    # Sentence (and source) the selected duration came from; extended/optional plan statements kept apart.
+    duration_evidence: Optional[str] = None
+    optional_plan_terms: List[str] = Field(default_factory=list)
+    # Parser duration statements for product-scoped selection; internal, not serialised.
+    duration_candidates: List[Dict[str, Any]] = Field(default_factory=list, exclude=True)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import os
 import re
 from datetime import datetime, timedelta
@@ -17,6 +17,7 @@ from .warranty_parser import parse_terms_from_url, ParsedTerms, sanitize_base_te
 from . import regional_policy as regional_policy_service
 from . import oem_source_policy
 from . import oem_product_knowledge
+from .duration_selection import DurationContext, select_duration
 
 
 
@@ -142,6 +143,7 @@ def _to_terms_result(parsed: ParsedTerms, source_url: Optional[str]) -> TermsRes
         source_url=source_url,
         source_urls=[source_url] if source_url else [],
         raw_text=parsed.raw_text,
+        duration_candidates=list(getattr(parsed, "duration_candidates", None) or []),
     )
 
 
@@ -319,16 +321,29 @@ def _normalize_result_for_context(
     return result
 
 
-def _merge_terms_results(results: List[TermsResult]) -> Optional[TermsResult]:
+_GENERATED_COVERAGE_RE = re.compile(r"^Standard coverage for \d+ months from purchase date", re.IGNORECASE)
+
+
+def _merge_terms_results(
+    results: List[TermsResult],
+    context: Optional[DurationContext] = None,
+) -> Optional[TermsResult]:
+    """Merge ranked source results (best first). Duration is chosen by product-scoped evidence
+    (``duration_selection.select_duration``), not by taking the largest number."""
     usable = [r for r in results if r and (r.duration_months or r.terms or r.exclusions or r.claim_steps)]
     if not usable:
         return None
-    durations = [r.duration_months for r in usable if r.duration_months]
     source_urls = _dedupe([url for r in usable for url in (r.source_urls or ([r.source_url] if r.source_url else []))])
     raw_chunks = [r.raw_text for r in usable if r.raw_text]
-    duration_months = max(durations) if durations else None
+    choice = select_duration(usable, context)
+    duration_months = choice.months
     merged_terms = sanitize_base_terms(_dedupe([item for r in usable for item in (r.terms or [])]))
     merged_terms = _drop_conflicting_duration_terms(merged_terms, duration_months)
+    if not duration_months:
+        # No product-scoped evidence: do not keep a parser "Standard coverage for N months" echo.
+        merged_terms = [term for term in merged_terms if not _GENERATED_COVERAGE_RE.match(term)]
+    if duration_months and not any(f"{duration_months} months" in term.lower() for term in merged_terms):
+        merged_terms.insert(0, f"Standard coverage for {duration_months} months from purchase date.")
     return TermsResult(
         duration_months=duration_months,
         terms=merged_terms,
@@ -337,6 +352,8 @@ def _merge_terms_results(results: List[TermsResult]) -> Optional[TermsResult]:
         source_url=source_urls[0] if source_urls else None,
         source_urls=source_urls,
         raw_text="\n\n--- SOURCE ---\n\n".join(raw_chunks)[:12000] if raw_chunks else None,
+        duration_evidence=choice.evidence,
+        optional_plan_terms=choice.optional_plans,
     )
 
 
@@ -425,6 +442,12 @@ def lookup_terms(
     force_refresh: bool = False,
 ) -> TermsResult:
     norm_category = _normalize_category(category)
+    duration_context = DurationContext(
+        category=norm_category,
+        model_code=model_code,
+        product_name=product_name,
+        region=region,
+    )
     # 1) Try internal warranty records first (brand + model/product_name)
     if not force_refresh:
         try:
@@ -532,6 +555,8 @@ def lookup_terms(
                     norm_category=norm_category,
                     source_url=url_override,
                 )
+                manual_context = replace(duration_context, require_source_context=False)
+                result = _merge_terms_results([result], manual_context) or result
                 cached = WarrantyTermsCacheDB(
                     brand=brand,
                     category=norm_category,
@@ -600,7 +625,7 @@ def lookup_terms(
                 parsed_results.append(result)
                 if result.duration_months and result.exclusions and result.claim_steps:
                     break
-            merged = _merge_terms_results(parsed_results)
+            merged = _merge_terms_results(parsed_results, duration_context)
             if merged:
                 cached = WarrantyTermsCacheDB(
                     brand=brand,

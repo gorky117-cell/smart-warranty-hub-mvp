@@ -1511,7 +1511,7 @@ printer/Epson-specific logic removed. Resume from the first unchecked box.
 - [x] Step 5 — Truthful docs.
 - [x] Step 6 — Honest 50-sample baseline and CI floors.
 - [x] Step 7 — Brand registry and domain preflight.
-- [ ] Step 8 — Product-scoped warranty duration.
+- [x] Step 8 — Product-scoped warranty duration.
 - [ ] Step 9 — Prepare (not activate) grounded AI extraction.
 
 ### 90.0 Corrected Paddle diagnosis (supersedes 89.1 cause)
@@ -1715,7 +1715,7 @@ synthetic images.** Runtime 33 s.
   below the table, any wrong count rises above it, `TAKINVOICE` reappears, or a non-warranty bill yields
   a field. Runs on the captured OCR text (`tests/fixtures/ocr_text_50.json`, deterministic) and again
   with real OCR when Tesseract is installed (~30 s; Docker image has `tesseract-ocr`).
-| 7 | (recorded in Step 8) | 271 passed (+20) | See 90.7. |
+| 7 | `210da634` | 271 passed (+20) | See 90.7. |
 
 ### 90.7 Step 7 — brand registry and domain preflight (2026-10-03)
 
@@ -1776,6 +1776,53 @@ synthetic images.** Runtime 33 s.
   (`tests/test_brand_registry.py`): brand correct **2/8 before → 8/8 after**; seller name stored as brand
   **4/8 → 0/8** (Sri Lakshmi Electronics, Poorvika Mobiles, Ather Space Koramangala, Sangeetha Mobiles);
   no brand 2/8 → 0/8. New tests: 20.
+| 8 | (recorded in Step 9) | 283 passed (+12) | See 90.8. All Step 2 locks pass unchanged. |
+
+### 90.8 Step 8 — product-scoped warranty duration (2026-10-03)
+
+- `max(durations)` removed from `terms_lookup._merge_terms_results()`. New
+  `app/services/duration_selection.py::select_duration(results, DurationContext)` picks the duration
+  from a **sentence**, not a page number. A sentence qualifies only if it: has base-warranty wording
+  (warranty/guarantee/coverage, or a "<product> - N months" row naming the product); is not an
+  extended/optional/additional/Care+/paid plan (those go to `TermsResult.optional_plan_terms`); is not an
+  installation/demo/exchange period; is not a component/part-only warranty; does not name a different
+  product family than the lookup (watches/buds/TV/accessory rows for a phone); does not name another
+  country than the lookup region; and its source mentions the product family, model or category
+  (waived for a manual URL the user chose). Ranking: names the exact model (+5) > names the product
+  family (+3), strong base wording (+2), then the value most qualifying sentences agree on, then the
+  higher-ranked source. The evidence sentence + URL is returned as `TermsResult.duration_evidence`.
+  No qualifying sentence → duration left blank (and the parser's echo line "Standard coverage for N
+  months" is dropped), except a source with no duration sentences at all falls back to its parser value.
+  Callers without context (legacy) get the highest-ranked source's value, not the maximum.
+- Parser: `ParsedTerms.duration_candidates` (every duration sentence on the page, full text, not the 4 KB
+  `raw_text`) via new `warranty_parser.duration_candidates()`, which reads 3-digit months and number
+  words. The legacy `ParsedTerms.duration_months` (page maximum) is unchanged and only used as the
+  no-evidence fallback.
+- Measured on the live Samsung India page (saved HTML from 2026-10-03, phone context
+  `SM-M175E / Samsung Galaxy M17e 5G Mobile / IN`): legacy page max **60**; 34 duration candidates;
+  selected **12** from "The limited warranty period of 1 year will apply, regardless of the warranty
+  period of the country where the product was first sold."; 1 optional-plan sentence separated
+  ("3 Year Warranty (1 Year Standard + 2 Year additional ... TV Models)"). The same generic sentence
+  also wins for TV, refrigerator and watch contexts (12) — it is page-level evidence, not
+  product-specific; the page has no phone-specific duration row.
+- Defects found in the legacy parser (not changed; only bypassed by the selector):
+  `_YEAR_RE`/`_MONTH_RE` capture 1-2 digits, so "120 months" → 20 and "240 months" → 40; `_sentences()`
+  strips leading digits as bullet numbers, so "60 months (only Part warranty)" loses its number. On the
+  live page the old 60 came from "...60 months (Only part warranty)" via the `�`-prefixed rows.
+- **Samsung patch redundancy** (not removed). Ran the Step 2 locks and invoice-pipeline Samsung tests with
+  both patches disabled:
+  - `_normalize_result_for_context()` — the **duration force to 12 is now redundant**: duration stays 12
+    on the fixture and on the live page without it. Its term filter (drops 24m/2y/60m/5y/CoverPlus/
+    extended lines and e.g. "In case of defect arising out of installation ...") and its default Samsung
+    claim steps / news-alerts-community claim filter are **not** redundant (the exact-terms lock fails
+    without them).
+  - `_looks_like_samsung_mobile_context()` — only gates the function above; still needed while that is.
+  - `_source_conflicts_product_context()` (notebook/PC page for a mobile) — duration side is redundant
+    (the notebook "24 months" sentence is rejected as another product family → no wrong 24), but it is
+    **not** redundant overall: without it the notebook page's terms/exclusions/claim steps are merged,
+    the source becomes the PC page instead of default rules, and duration is blank instead of 12.
+- Tests: new `tests/test_duration_selection.py` (12, synthetic multi-product page). All 15 Step 2
+  Samsung/Epson locks and the existing merge/lookup tests pass unchanged.
 
 ### 90.x Open questions
 
@@ -1798,3 +1845,7 @@ synthetic images.** Runtime 33 s.
   even with a search provider. Fix the verifier (visible text, warranty page probe, contact UA) before
   populating `oem_verified.json`? Not in plan; nothing written.
 - Registry entry `Kia: kia.com/in` is a path, not a domain.
+- Legacy parser defects (90.8): `_YEAR_RE`/`_MONTH_RE` 1-2 digit capture, `_sentences()` stripping leading
+  digits. The selector bypasses them for lookup duration; other users of `ParsedTerms.duration_months`
+  and of `_sentences()` still see them. Fix in a later step?
+- Remove the now-redundant Samsung duration force (user decision, per plan).
