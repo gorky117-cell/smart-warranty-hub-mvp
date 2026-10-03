@@ -1908,7 +1908,7 @@ until the user approves at the end. Resume from the first unchecked box.
 - [x] B6 Bugs: MG Road→MG, device→EV 36m, 120 months→20, Epson broken chars, kia.com/in.
 - [x] B7 Remove only the redundant Samsung 12-month forcing.
 - [ ] B8 New domain verification; write passing domains to verified list.
-- [ ] B9 One risk scorer (ML; heuristic fallback inside; nudge features).
+- [x] B9 One risk scorer (ML; heuristic fallback inside; nudge features).
 - [ ] B10 AI vision tier for low-text images (redacted image, quoted lines, needs confirmation).
 - [ ] B11 Expiry recalculation never triggers notifications/emails; count affected records.
 - [ ] C  Real measurement — SKIPPED: no API keys in local `.env` or shell (checked names only:
@@ -2107,6 +2107,24 @@ the flags are unknown, so conditionally:
   lock the new contract (duration left as parsed, 60; filtered terms `["Limited International One Year
   Warranty"]`).
 
+### 91.B9 One risk scorer (2026-10-03; committed before B8 because B8's network run was still going)
+
+- New `predictive.unified_risk(user_id, warranty_id) -> RiskScore`: the ML scorer `score_warranty()` is the
+  single source; `risk.compute_risk()` (behaviour-event heuristic) is used **only** when the ML scorer
+  raises or returns no LOW/MEDIUM/HIGH label (`source="heuristic_fallback"`). `RiskScore` gained `source`
+  and `reasons`.
+- `/risk/score`, `/advisories/{id}` and the warranty bundle endpoint now call `unified_risk`; the Neo
+  dashboard already used `/predictive/score` → `score_warranty`, so all four now agree (test asserts equal
+  value and band). `risk.compute_risk` is no longer imported by `main.py`.
+- Nudge features connected: new `predictive._engagement_signals()` uses `_nudge_features()` (DB
+  NudgeEvents: shown/acted/ignored — previously never called) plus in-memory behaviour events
+  (`nudge_dismissed`, `task_completed`, `issue_reported`): +0.03 per dismissed/ignored reminder (max 0.09),
+  −0.03 per completed care step (max 0.09), +0.1 per user-reported issue (max 0.3). Ignored reminders are
+  not device evidence (cannot unlock HIGH); a user-reported issue is (new real-signal pattern
+  "reported an issue/problem/fault"). Returned as `engagement` in the score output.
+- Still not connected (unchanged, noted): `_peer_review_features`, `_search_features`.
+- Tests: new `tests/test_unified_risk.py` (3).
+
 ### 91.y Step log (each hash recorded by the next step's commit)
 
 | Step | Commit | Tests | Notes |
@@ -2118,7 +2136,8 @@ the flags are unknown, so conditionally:
 | B4 | `46a2cab4` | 326 passed (+5) | Admin security banner; HTTPS redirect implemented. |
 | B5 | `e50fa3d0` | 330 passed (+4) | Serial suggestions confirmed in UI. |
 | B6 | `c86d77c6` | 349 passed (+19) | Five bugs; Epson was a display artefact. |
-| B7 | (next) | 349 passed | Samsung duration force removed. |
+| B7 | `e5c9e489` | 349 passed | Samsung duration force removed. |
+| B9 | (next) | 359 passed (+10 incl. B8 tests) | One scorer; nudges connected. |
 
 ### 91.x Open questions
 - Pin `paddlepaddle` (unpinned in requirements; production pulls 3.x and Paddle cannot read with

@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Tuple
 
 import joblib
 
-from ..models import PredictiveScore, TelemetryEvent
+from ..models import PredictiveScore, RiskScore, TelemetryEvent
 from ..storage import store
 from .rag_signals import parse_rag_signals
 
@@ -478,6 +478,7 @@ _REAL_ISSUE_PATTERNS = (
     r"\bhigh daily use\b",
     r"\bheavy use\b",
     r"\blimited care\b",
+    r"\breported (?:an? )?(?:issue|problem|fault)s?\b",
 )
 _REAL_ISSUE_RE = re.compile("|".join(_REAL_ISSUE_PATTERNS), re.IGNORECASE)
 
@@ -505,6 +506,39 @@ def _has_device_evidence(extras: Dict[str, object], behaviour_reasons: List[str]
     if _num("usage_hours") > 0.0:
         return True
     return bool(behaviour_reasons)
+
+
+def _engagement_signals(user_id: str, warranty_id: str) -> Dict[str, object]:
+    """Nudge engagement and user-reported issues (fix run B9; previously only the separate heuristic
+    scorer read behaviour events, and `_nudge_features` was never called).
+
+    Ignored/dismissed care reminders nudge the score up a little and acted-on reminders down a little;
+    neither is device evidence. A user-reported issue is device evidence.
+    """
+    shown, acted, ignored, _rate = _nudge_features(user_id, warranty_id)
+    try:
+        events = store.get_behaviour_events(user_id, warranty_id)
+    except Exception:
+        events = []
+    dismissed = ignored + sum(1 for e in events if e.event_type == "nudge_dismissed")
+    completed = acted + sum(1 for e in events if e.event_type == "task_completed")
+    issues = sum(1 for e in events if e.event_type == "issue_reported")
+    delta = min(0.03 * dismissed, 0.09) - min(0.03 * completed, 0.09) + min(0.1 * issues, 0.3)
+    reasons: List[str] = []
+    if issues:
+        reasons.append(f"You reported an issue with this product ({issues}).")
+    if dismissed:
+        reasons.append(f"Care reminders dismissed or not acted on ({dismissed}).")
+    if completed:
+        reasons.append(f"Care steps completed ({completed}).")
+    return {
+        "delta": round(delta, 3),
+        "reasons": reasons,
+        "nudges_shown": shown,
+        "nudges_acted": completed,
+        "nudges_dismissed": dismissed,
+        "issues_reported": issues,
+    }
 
 
 def score_warranty(user_id: str, warranty_id: str, product_type: Optional[str] = None) -> Dict[str, object]:
@@ -570,6 +604,10 @@ def score_warranty(user_id: str, warranty_id: str, product_type: Optional[str] =
         adjusted_score = max(0.0, min(1.0, base_risk_score + behaviour_delta))
         risk_score = adjusted_score
         reasons = behaviour_reasons + reasons
+    engagement = _engagement_signals(user_id, warranty_id)
+    if engagement["delta"]:
+        risk_score = max(0.0, min(1.0, float(risk_score) + float(engagement["delta"])))
+    reasons = list(engagement["reasons"]) + reasons
     # Region policy + OEM issue signals
     try:
         with SessionLocal() as db:
@@ -712,6 +750,7 @@ def score_warranty(user_id: str, warranty_id: str, product_type: Optional[str] =
             "context_gaps": context_gaps[:4],
         },
         "rag_context": rag_context,
+        "engagement": engagement,
         "legal_warranty_separate": True,
         "disclaimer": "Care signal, not a guaranteed product failure prediction.",
     }
@@ -746,3 +785,38 @@ def health() -> Tuple[bool, str]:
 def score_warranty_from_db(db, user_id: str, warranty_id: str):
     # Thin wrapper to match helper signature; reuses score_warranty.
     return score_warranty(user_id, warranty_id)
+
+
+def unified_risk(user_id: str, warranty_id: str) -> RiskScore:
+    """The single risk score for the dashboard, /risk/score and /advisories (fix run B9).
+
+    The ML scorer (`score_warranty`, which now also reads nudge engagement and user-reported issues) is
+    the source. The old behaviour-event heuristic (`risk.compute_risk`) is only a fallback when the ML
+    scorer cannot produce a label.
+    """
+    try:
+        out = score_warranty(user_id, warranty_id)
+    except Exception:
+        out = None
+    label = str((out or {}).get("risk_label") or "UNKNOWN").upper()
+    if out and label in ("LOW", "MEDIUM", "HIGH"):
+        engagement = out.get("engagement") or {}
+        contributors = {
+            "model_base": float(out.get("base_risk_score") or 0.0),
+            "behaviour_delta": float(out.get("behaviour_delta") or 0.0),
+            "engagement_delta": float(engagement.get("delta") or 0.0),
+        }
+        return RiskScore(
+            warranty_id=warranty_id,
+            user_id=user_id,
+            value=round(float(out.get("risk_score") or 0.0), 3),
+            band=label.lower(),
+            contributors=contributors,
+            source="predictive",
+            reasons=list(out.get("reasons") or [])[:4],
+        )
+    from .risk import compute_risk
+
+    fallback = compute_risk(user_id, warranty_id)
+    fallback.source = "heuristic_fallback"
+    return fallback

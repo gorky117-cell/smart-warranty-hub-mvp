@@ -29,9 +29,8 @@ from .services.canonical import canonicalize_artifact
 from .services.ingestion import ingest_artifact
 from .services.llm import generate_text
 from .services.nudge import generate_nudges
-from .services.predictive import compute_predictive_score, predictive_model, build_feature_vector, score_warranty
+from .services.predictive import compute_predictive_score, predictive_model, build_feature_vector, score_warranty, unified_risk
 from .services.oem import fetch_oem_page, preflight_oem_fetch
-from .services.risk import compute_risk
 from .services.service import create_ticket
 from .storage import store, generate_id
 from .services.connection_registry import registry, Connector
@@ -2315,7 +2314,7 @@ def risk_score(
     uid = _subject_user_id(current, payload.user_id)
     _ensure_warranty_exists(db, payload.warranty_id)
     _require_warranty_access(db, user=current, warranty_id=payload.warranty_id)
-    return compute_risk(uid, payload.warranty_id)
+    return unified_risk(uid, payload.warranty_id)
 
 
 @app.get("/advisories/{warranty_id}", dependencies=[Depends(rbac_dependency)])
@@ -2328,7 +2327,7 @@ def advisories(
     uid = _subject_user_id(current, user_id)
     warranty = _ensure_warranty_exists(db, warranty_id)
     _require_warranty_access(db, user=current, warranty_id=warranty_id)
-    risk = compute_risk(uid, warranty_id)
+    risk = unified_risk(uid, warranty_id)
     status_info = _build_warranty_status_info(warranty)
     variant = policy.assign_variant(uid, warranty_id, experiment="fogg_nudge", variants=("A", "B"))
     nudges = generate_nudges(risk, variant)
@@ -2515,8 +2514,8 @@ def warranty_ui(
         # Summary
         summary_resp = _build_warranty_summary_response(SummaryRequest(warranty_id=warranty_id), db, current)
         adv = advisories(warranty_id, uid, db, current) if current else {
-            "risk": compute_risk(uid, warranty_id),
-            "nudges": generate_nudges(compute_risk(uid, warranty_id), "A"),
+            "risk": unified_risk(uid, warranty_id),
+            "nudges": generate_nudges(unified_risk(uid, warranty_id), "A"),
             "variant": "A",
         }
     summary_text = summary_resp.get("summary", "")

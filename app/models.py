@@ -61,6 +61,9 @@ class RiskScore(AppBaseModel):
     band: str
     contributors: Dict[str, float] = Field(default_factory=dict)
     last_updated: datetime = Field(default_factory=datetime.utcnow)
+    # "predictive" (ML scorer) or "heuristic_fallback" (fix run B9: one scorer for every endpoint)
+    source: str = "heuristic"
+    reasons: List[str] = Field(default_factory=list)
 
 
 class Nudge(AppBaseModel):
