@@ -1,15 +1,14 @@
-"""Read-only preflight of every domain in data/oem_domains.json.
+"""Verify every domain in data/oem_domains.json with the app's domain verification.
 
-For each brand/domain it runs the app's own checks without saving anything:
-  1. `warranty_discovery._domain_alive()`  - DNS + HTTP(S) status < 500 (what terms discovery uses).
-  2. `oem_domain_verify._verify_domain()`  - homepage fetch, brand name and a support keyword present
-     (what would be written to data/oem_verified.json; NOT written here).
-  3. India signal - `.in` domain, else GET https://<domain>/in/ and accept status < 400 when the final
-     URL stays on an India path or `.in` host.
+Uses `oem_domain_verify.verify_domain_detail()` (fix run B8): registry mapping, DNS, HTTPS, same-brand
+redirects, brand in <title>/metadata or a reachable same-brand support/warranty page. Also records an
+India signal (`.in` domain, or https://<domain>/in/ reachable on an India path).
 
-Politeness: at most 3 requests per domain, 4 domains in parallel, a pause between requests.
+Politeness: 4 domains in parallel, a pause between requests, at most ~9 requests per domain.
+Nothing is written unless --write-verified is given; then passing domains are merged into
+data/oem_verified.json (existing entries kept).
 
-Usage: python scripts/preflight_oem_registry.py --out data/oem_domain_preflight_<date>.json
+Usage: python scripts/preflight_oem_registry.py --out data/oem_domain_preflight_<date>.json [--write-verified]
 """
 from __future__ import annotations
 
@@ -27,45 +26,36 @@ import requests
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from app.services.oem_domain_verify import _verify_domain  # noqa: E402
-from app.services.oem_domains import load_oem_domains  # noqa: E402
-from app.services.warranty_discovery import _domain_alive  # noqa: E402
+from app.services.oem_domain_verify import USER_AGENT, verify_domain_detail  # noqa: E402
+from app.services.oem_domains import load_oem_domains, load_verified_domains, save_verified_domains  # noqa: E402
 
 PAUSE_SEC = 0.5
-TIMEOUT_SEC = 6
-USER_AGENT = "SmartWarrantyHub/1.0"
 
 
 def _india_signal(domain: str) -> str:
     if domain.endswith(".in"):
         return "india_domain"
     try:
-        resp = requests.get(
-            f"https://{domain}/in/", timeout=TIMEOUT_SEC, headers={"User-Agent": USER_AGENT}, allow_redirects=True
-        )
+        resp = requests.get(f"https://{domain}/in/", timeout=6, headers={"User-Agent": USER_AGENT}, allow_redirects=True)
     except requests.exceptions.RequestException:
         return "none"
     final = urlparse(resp.url)
-    on_india = final.path.lower().startswith(("/in/", "/in")) or (final.hostname or "").endswith(".in")
+    on_india = final.path.lower().startswith("/in") or (final.hostname or "").endswith(".in")
     return "india_path" if resp.status_code < 400 and on_india else "none"
 
 
 def check(brand: str, domain: str) -> dict:
-    alive = _domain_alive(domain, timeout=TIMEOUT_SEC)
+    detail = verify_domain_detail(brand, domain)
     time.sleep(PAUSE_SEC)
-    if alive:
-        verified, reason = _verify_domain(brand, domain)
-        time.sleep(PAUSE_SEC)
-        india = _india_signal(domain)
-    else:
-        verified, reason, india = False, "not_alive", "none"
-    return {"brand": brand, "domain": domain, "alive": alive, "would_verify": verified, "reason": reason, "india": india}
+    detail["india"] = _india_signal(detail["domain"]) if detail.get("steps", {}).get("dns") == "ok" else "none"
+    return detail
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Read-only preflight of the OEM domain registry")
+    parser = argparse.ArgumentParser(description="Verify the OEM domain registry")
     parser.add_argument("--out", required=True)
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--write-verified", action="store_true")
     args = parser.parse_args()
 
     registry = load_oem_domains()
@@ -74,27 +64,35 @@ def main() -> None:
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
         results = list(pool.map(lambda job: check(*job), jobs))
 
+    passing = {}
+    for row in results:
+        if row["verified"]:
+            passing.setdefault(row["brand"], []).append(row["domain"])
     by_brand = {}
     for row in results:
-        entry = by_brand.setdefault(row["brand"], {"alive": False, "would_verify": False, "india": set()})
-        entry["alive"] |= row["alive"]
-        entry["would_verify"] |= row["would_verify"]
+        entry = by_brand.setdefault(row["brand"], {"verified": False, "india": set()})
+        entry["verified"] |= bool(row["verified"])
         if row["india"] != "none":
             entry["india"].add(row["india"])
     summary = {
         "brands": len(registry),
         "domains": len(jobs),
-        "domains_alive": sum(r["alive"] for r in results),
-        "domains_would_verify": sum(r["would_verify"] for r in results),
-        "domain_reasons": dict(Counter(r["reason"] for r in results)),
-        "brands_alive": sum(e["alive"] for e in by_brand.values()),
-        "brands_would_verify": sum(e["would_verify"] for e in by_brand.values()),
+        "domains_verified": sum(1 for r in results if r["verified"]),
+        "brands_verified": sum(1 for e in by_brand.values() if e["verified"]),
+        "reasons": dict(Counter(r.get("reason") for r in results)),
+        "evidence": dict(Counter(r.get("steps", {}).get("brand_evidence") for r in results if r["verified"])),
         "brands_with_india_domain": sorted(b for b, e in by_brand.items() if "india_domain" in e["india"]),
         "brands_with_india_path_only": sorted(b for b, e in by_brand.items() if e["india"] == {"india_path"}),
         "elapsed_sec": round(time.time() - started, 1),
     }
-    report = {"_note": "Read-only preflight; nothing written to data/oem_verified.json.", "summary": summary, "results": results}
-    Path(args.out).write_text(json.dumps(report, indent=1), encoding="utf-8")
+    if args.write_verified:
+        verified = load_verified_domains()
+        for brand, domains in passing.items():
+            merged = list(dict.fromkeys(list(verified.get(brand, [])) + domains))
+            verified[brand] = merged
+        save_verified_domains(dict(sorted(verified.items())))
+        summary["written_to_verified_list"] = sum(len(v) for v in passing.values())
+    Path(args.out).write_text(json.dumps({"summary": summary, "passing": passing, "results": results}, indent=1), encoding="utf-8")
     print(json.dumps(summary, indent=1))
 
 

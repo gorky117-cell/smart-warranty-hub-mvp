@@ -1,0 +1,3723 @@
+{
+ "summary": {
+  "brands": 200,
+  "domains": 231,
+  "domains_verified": 169,
+  "brands_verified": 153,
+  "reasons": {
+   "verified": 169,
+   "https_failed": 25,
+   "no_brand_evidence": 22,
+   "dns_failed": 11,
+   "redirect_to_other_brand": 3,
+   "https_status_402": 1
+  },
+  "evidence": {
+   "title_or_metadata": 159,
+   "support_page:/support": 7,
+   "support_page:/support/warranty": 1,
+   "support_page:/warranty": 2
+  },
+  "brands_with_india_domain": [
+   "Amaron",
+   "BPL",
+   "Bajaj Finserv",
+   "Canon",
+   "Cello",
+   "Crompton",
+   "Crompton Greaves",
+   "Daikin",
+   "Dyson",
+   "Epson",
+   "Fastrack",
+   "Havells Lloyd",
+   "Hyundai",
+   "Hyundai India",
+   "Kenstar",
+   "Kent",
+   "Kia",
+   "Kia India",
+   "Lloyd",
+   "MG",
+   "MG Motor India",
+   "Morphy Richards",
+   "Pigeon",
+   "Preethi",
+   "Prestige",
+   "Surya",
+   "Syska",
+   "Titan",
+   "V-Guard",
+   "Vidiem",
+   "iBall",
+   "iBall India",
+   "pTron"
+  ],
+  "brands_with_india_path_only": [
+   "Apple",
+   "Apple India",
+   "Asus",
+   "Asus India",
+   "BYD",
+   "Belkin",
+   "Fitbit",
+   "Google",
+   "Google India",
+   "HP",
+   "HP India",
+   "HPL",
+   "Haier",
+   "Haier India",
+   "Hitachi",
+   "Honor",
+   "Inalsa",
+   "Kenmore",
+   "Lenovo",
+   "Lenovo India",
+   "OnePlus",
+   "OnePlus India",
+   "Oppo",
+   "Oppo India",
+   "Philips",
+   "Philips India",
+   "Realme",
+   "Realme India",
+   "Redmi",
+   "Redmi India",
+   "Samsung",
+   "Samsung India",
+   "Symphony",
+   "TCL",
+   "TCL India",
+   "Tata",
+   "Tata Motors",
+   "Tecno",
+   "Tecno India",
+   "Vivo",
+   "Vivo India",
+   "Xiaomi",
+   "Xiaomi India",
+   "iQOO",
+   "iQOO India"
+  ],
+  "elapsed_sec": 312.0,
+  "written_to_verified_list": 169
+ },
+ "passing": {
+  "Samsung": [
+   "samsung.com"
+  ],
+  "Apple": [
+   "apple.com"
+  ],
+  "HP": [
+   "hp.com"
+  ],
+  "Lenovo": [
+   "lenovo.com"
+  ],
+  "Honor": [
+   "honor.com"
+  ],
+  "Microsoft": [
+   "microsoft.com"
+  ],
+  "Google": [
+   "google.com",
+   "store.google.com"
+  ],
+  "Xiaomi": [
+   "mi.com",
+   "xiaomi.com"
+  ],
+  "Redmi": [
+   "mi.com",
+   "xiaomi.com"
+  ],
+  "OnePlus": [
+   "oneplus.com"
+  ],
+  "Realme": [
+   "realme.com"
+  ],
+  "Vivo": [
+   "vivo.com"
+  ],
+  "Oppo": [
+   "oppo.com"
+  ],
+  "Motorola": [
+   "motorola.com"
+  ],
+  "Nokia": [
+   "nokia.com"
+  ],
+  "Asus": [
+   "asus.com"
+  ],
+  "Nothing": [
+   "nothing.tech"
+  ],
+  "iQOO": [
+   "iqoo.com"
+  ],
+  "Infinix": [
+   "infinixmobility.com"
+  ],
+  "Tecno": [
+   "tecnomobile.com"
+  ],
+  "iBall": [
+   "iball.co.in"
+  ],
+  "Daikin": [
+   "daikinindia.com"
+  ],
+  "Voltas": [
+   "voltas.com"
+  ],
+  "Blue Star": [
+   "bluestarindia.com"
+  ],
+  "Hitachi": [
+   "hitachiaircon.com"
+  ],
+  "Carrier": [
+   "carrier.com",
+   "carrierindia.com"
+  ],
+  "Lloyd": [
+   "lloydindia.in"
+  ],
+  "Haier": [
+   "haier.com"
+  ],
+  "Hisense": [
+   "hisense.com"
+  ],
+  "TCL": [
+   "tcl.com"
+  ],
+  "Onida": [
+   "onida.com"
+  ],
+  "BPL": [
+   "bpl.in"
+  ],
+  "Bosch": [
+   "bosch.com"
+  ],
+  "IFB": [
+   "ifbappliances.com"
+  ],
+  "Philips": [
+   "philips.com"
+  ],
+  "Havells": [
+   "havells.com"
+  ],
+  "Crompton": [
+   "crompton.co.in"
+  ],
+  "Preethi": [
+   "preethi.in"
+  ],
+  "Morphy Richards": [
+   "morphyrichards.co.in"
+  ],
+  "Bajaj": [
+   "bajaj.com",
+   "bajajauto.com"
+  ],
+  "Kent": [
+   "kent.co.in"
+  ],
+  "AO Smith": [
+   "aosmithindia.com",
+   "aosmith.com"
+  ],
+  "Kenstar": [
+   "kenstar.in"
+  ],
+  "Singer": [
+   "singerindia.net"
+  ],
+  "Orient": [
+   "orientbell.com"
+  ],
+  "V-Guard": [
+   "vguard.in"
+  ],
+  "Toshiba": [
+   "toshiba.com"
+  ],
+  "Sharp": [
+   "global.sharp"
+  ],
+  "Borosil": [
+   "borosil.com"
+  ],
+  "Cello": [
+   "cello.in"
+  ],
+  "Butterfly": [
+   "butterflyindia.com"
+  ],
+  "Inalsa": [
+   "inalsaappliances.com"
+  ],
+  "Wonderchef": [
+   "wonderchef.com"
+  ],
+  "iBELL": [
+   "ibellstore.com"
+  ],
+  "Bajaj Electricals": [
+   "bajajelectricals.com"
+  ],
+  "Bajaj Finserv": [
+   "bajajfinserv.in"
+  ],
+  "Syska": [
+   "syska.co.in"
+  ],
+  "Wipro": [
+   "wipro.com"
+  ],
+  "HPL": [
+   "hplindia.com"
+  ],
+  "Surya": [
+   "surya.co.in"
+  ],
+  "Luminous": [
+   "luminousindia.com"
+  ],
+  "Orient Electric": [
+   "orientelectric.com"
+  ],
+  "Hindware": [
+   "hindware.com"
+  ],
+  "Jaquar": [
+   "jaquar.com"
+  ],
+  "Vidiem": [
+   "vidiem.in"
+  ],
+  "Racold": [
+   "racold.com"
+  ],
+  "Symphony": [
+   "symphonylimited.com"
+  ],
+  "Hindware Appliances": [
+   "hindware.com"
+  ],
+  "Crompton Greaves": [
+   "crompton.co.in"
+  ],
+  "IFB Appliances": [
+   "ifbappliances.com"
+  ],
+  "Kenmore": [
+   "kenmore.com"
+  ],
+  "Onida India": [
+   "onida.com"
+  ],
+  "Bosch India": [
+   "bosch.com"
+  ],
+  "Haier India": [
+   "haier.com"
+  ],
+  "Samsung India": [
+   "samsung.com"
+  ],
+  "Toshiba India": [
+   "toshiba.com"
+  ],
+  "Sharp India": [
+   "global.sharp"
+  ],
+  "Philips India": [
+   "philips.com"
+  ],
+  "TCL India": [
+   "tcl.com"
+  ],
+  "Hisense India": [
+   "hisense.com"
+  ],
+  "HP India": [
+   "hp.com"
+  ],
+  "Lenovo India": [
+   "lenovo.com"
+  ],
+  "Asus India": [
+   "asus.com"
+  ],
+  "iBall India": [
+   "iball.co.in"
+  ],
+  "Zebronics India": [
+   "zebronics.com"
+  ],
+  "Portronics India": [
+   "portronics.com"
+  ],
+  "boAt India": [
+   "boat-lifestyle.com"
+  ],
+  "Noise India": [
+   "noise.com"
+  ],
+  "pTron": [
+   "ptron.in"
+  ],
+  "Boult": [
+   "boultaudio.com"
+  ],
+  "Sennheiser India": [
+   "sennheiser.com"
+  ],
+  "Bose India": [
+   "bose.com"
+  ],
+  "Marshall India": [
+   "marshall.com"
+  ],
+  "Yamaha India": [
+   "yamaha.com"
+  ],
+  "Denon India": [
+   "denon.com"
+  ],
+  "Pioneer India": [
+   "pioneerelectronics.com"
+  ],
+  "Realme India": [
+   "realme.com"
+  ],
+  "Vivo India": [
+   "vivo.com"
+  ],
+  "Oppo India": [
+   "oppo.com"
+  ],
+  "OnePlus India": [
+   "oneplus.com"
+  ],
+  "Xiaomi India": [
+   "mi.com",
+   "xiaomi.com"
+  ],
+  "Redmi India": [
+   "mi.com",
+   "xiaomi.com"
+  ],
+  "iQOO India": [
+   "iqoo.com"
+  ],
+  "Nothing India": [
+   "nothing.tech"
+  ],
+  "Infinix India": [
+   "infinixmobility.com"
+  ],
+  "Tecno India": [
+   "tecnomobile.com"
+  ],
+  "Nokia India": [
+   "nokia.com"
+  ],
+  "Motorola India": [
+   "motorola.com"
+  ],
+  "Apple India": [
+   "apple.com"
+  ],
+  "Google India": [
+   "store.google.com",
+   "google.com"
+  ],
+  "Ola Electric": [
+   "olaelectric.com"
+  ],
+  "TVS Motor": [
+   "tvsmotor.com"
+  ],
+  "Bajaj Auto": [
+   "bajajauto.com"
+  ],
+  "Hero MotoCorp": [
+   "heromotocorp.com"
+  ],
+  "Tata Motors": [
+   "tatamotors.com"
+  ],
+  "MG Motor India": [
+   "mgmotor.co.in"
+  ],
+  "Hyundai India": [
+   "hyundai.co.in"
+  ],
+  "Kia India": [
+   "kia.co.in"
+  ],
+  "Maruti Suzuki": [
+   "marutisuzuki.com"
+  ],
+  "boAt": [
+   "boat-lifestyle.com"
+  ],
+  "Noise": [
+   "noise.com"
+  ],
+  "Bose": [
+   "bose.com"
+  ],
+  "Sonos": [
+   "sonos.com"
+  ],
+  "Marshall": [
+   "marshall.com"
+  ],
+  "Skullcandy": [
+   "skullcandy.com"
+  ],
+  "Yamaha": [
+   "yamaha.com"
+  ],
+  "Denon": [
+   "denon.com"
+  ],
+  "Pioneer": [
+   "pioneerelectronics.com"
+  ],
+  "Zebronics": [
+   "zebronics.com"
+  ],
+  "Portronics": [
+   "portronics.com"
+  ],
+  "Sennheiser": [
+   "sennheiser.com"
+  ],
+  "Ambrane": [
+   "ambraneindia.com"
+  ],
+  "Belkin": [
+   "belkin.com"
+  ],
+  "Anker": [
+   "anker.com"
+  ],
+  "Razer": [
+   "razer.com"
+  ],
+  "Garmin": [
+   "garmin.com"
+  ],
+  "Amazfit": [
+   "amazfit.com"
+  ],
+  "Tata": [
+   "tata.com",
+   "tatamotors.com"
+  ],
+  "Mahindra": [
+   "mahindra.com"
+  ],
+  "MG": [
+   "mgmotor.co.in"
+  ],
+  "Hyundai": [
+   "hyundai.com",
+   "hyundai.co.in"
+  ],
+  "Kia": [
+   "kia.com",
+   "kia.co.in"
+  ],
+  "BYD": [
+   "byd.com"
+  ],
+  "TVS": [
+   "tvsmotor.com"
+  ],
+  "Hero": [
+   "heromotocorp.com"
+  ],
+  "Exide": [
+   "exideindustries.com"
+  ],
+  "Amaron": [
+   "amaron.in"
+  ],
+  "Toyota": [
+   "toyota-global.com",
+   "toyotabharat.com"
+  ],
+  "Honda": [
+   "honda.com",
+   "hondacarindia.com"
+  ],
+  "Epson": [
+   "epson.co.in",
+   "epson.com"
+  ],
+  "Brother": [
+   "brother.com"
+  ],
+  "Canon": [
+   "canon.co.in"
+  ],
+  "Dyson": [
+   "dyson.in",
+   "dyson.com"
+  ]
+ },
+ "results": [
+  {
+   "brand": "Samsung",
+   "domain": "samsung.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Samsung",
+   "domain": "samsungmobile.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "SSLError"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "LG",
+   "domain": "lg.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 403,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "none"
+  },
+  {
+   "brand": "LG",
+   "domain": "lgmobiles.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "fail"
+   },
+   "reason": "dns_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Sony",
+   "domain": "sony.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 403,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "none"
+  },
+  {
+   "brand": "Apple",
+   "domain": "apple.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "HP",
+   "domain": "hp.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Dell",
+   "domain": "dell.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 403,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "none"
+  },
+  {
+   "brand": "Lenovo",
+   "domain": "lenovo.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Acer",
+   "domain": "acer.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "ReadTimeout"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "MSI",
+   "domain": "msi.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 403,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "none"
+  },
+  {
+   "brand": "Huawei",
+   "domain": "huawei.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "SSLError"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Honor",
+   "domain": "honor.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Microsoft",
+   "domain": "microsoft.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "support_page:/support"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Google",
+   "domain": "google.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Google",
+   "domain": "store.google.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Xiaomi",
+   "domain": "mi.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Xiaomi",
+   "domain": "xiaomi.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Redmi",
+   "domain": "mi.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "support_page:/support/warranty"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Redmi",
+   "domain": "xiaomi.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "support_page:/warranty"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "OnePlus",
+   "domain": "oneplus.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Realme",
+   "domain": "realme.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Vivo",
+   "domain": "vivo.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Oppo",
+   "domain": "oppo.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Motorola",
+   "domain": "motorola.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Nokia",
+   "domain": "nokia.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Asus",
+   "domain": "asus.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Nothing",
+   "domain": "nothing.tech",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "iQOO",
+   "domain": "iqoo.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Infinix",
+   "domain": "infinixmobility.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Tecno",
+   "domain": "tecnomobile.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "iBall",
+   "domain": "iball.co.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Daikin",
+   "domain": "daikin.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "fail"
+   },
+   "reason": "dns_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Daikin",
+   "domain": "daikinindia.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Daikin",
+   "domain": "daikin.co.in",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Voltas",
+   "domain": "voltas.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Blue Star",
+   "domain": "bluestarindia.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Blue Star",
+   "domain": "bluestar.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "ConnectTimeout"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Hitachi",
+   "domain": "hitachi.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "SSLError"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Hitachi",
+   "domain": "hitachiaircon.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Carrier",
+   "domain": "carrier.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Carrier",
+   "domain": "carrierindia.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Lloyd",
+   "domain": "lloydindia.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "fail"
+   },
+   "reason": "dns_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Lloyd",
+   "domain": "lloydindia.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Lloyd",
+   "domain": "mylloyd.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": [
+     "mylloyd.com",
+     "havells.com"
+    ]
+   },
+   "reason": "redirect_to_other_brand",
+   "india": "none"
+  },
+  {
+   "brand": "Haier",
+   "domain": "haier.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Panasonic",
+   "domain": "panasonic.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 403,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "none"
+  },
+  {
+   "brand": "Hisense",
+   "domain": "hisense.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "TCL",
+   "domain": "tcl.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Onida",
+   "domain": "onida.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "BPL",
+   "domain": "bpl.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Videocon",
+   "domain": "videoconindustries.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "ConnectionError"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Whirlpool",
+   "domain": "whirlpool.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 403,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "none"
+  },
+  {
+   "brand": "Godrej",
+   "domain": "godrej.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "SSLError"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Bosch",
+   "domain": "bosch.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "IFB",
+   "domain": "ifbappliances.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Philips",
+   "domain": "philips.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Havells",
+   "domain": "havells.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Crompton",
+   "domain": "crompton.co.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Usha",
+   "domain": "ushainternational.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "ReadTimeout"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Prestige",
+   "domain": "prestige.in",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "SSLError"
+   },
+   "reason": "https_failed",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Preethi",
+   "domain": "preethi.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Morphy Richards",
+   "domain": "morphyrichards.co.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Bajaj",
+   "domain": "bajaj.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Bajaj",
+   "domain": "bajajauto.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Eureka Forbes",
+   "domain": "eurekaforbes.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "SSLError"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Aquaguard",
+   "domain": "eurekaforbes.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "SSLError"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Kent",
+   "domain": "kent.co.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "AO Smith",
+   "domain": "aosmithindia.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "AO Smith",
+   "domain": "aosmith.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Kenstar",
+   "domain": "kenstar.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Singer",
+   "domain": "singerindia.net",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Orient",
+   "domain": "orientbell.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Orient",
+   "domain": "orientfan.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "SSLError"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "V-Guard",
+   "domain": "vguard.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Sansui",
+   "domain": "sansui-world.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "fail"
+   },
+   "reason": "dns_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Toshiba",
+   "domain": "toshiba.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Sharp",
+   "domain": "global.sharp",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Glen",
+   "domain": "glengroup.co.in",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "fail"
+   },
+   "reason": "dns_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Pigeon",
+   "domain": "pigeon.in",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Borosil",
+   "domain": "borosil.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Cello",
+   "domain": "cello.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Butterfly",
+   "domain": "butterflyindia.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Inalsa",
+   "domain": "inalsa.in",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "fail"
+   },
+   "reason": "dns_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Inalsa",
+   "domain": "inalsaappliances.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Inalsa",
+   "domain": "inalsa.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "ConnectTimeout"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Wonderchef",
+   "domain": "wonderchef.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "iBELL",
+   "domain": "ibellstore.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Bajaj Electricals",
+   "domain": "bajajelectricals.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Khaitan",
+   "domain": "khaitanindia.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "fail"
+   },
+   "reason": "dns_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Bajaj Finserv",
+   "domain": "bajajfinserv.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Syska",
+   "domain": "syska.co.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Wipro",
+   "domain": "wipro.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "HPL",
+   "domain": "hplindia.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Surya",
+   "domain": "surya.co.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Luminous",
+   "domain": "luminousindia.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "support_page:/support"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Candes",
+   "domain": "candesworld.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 402,
+    "redirects": "same_brand"
+   },
+   "reason": "https_status_402",
+   "india": "none"
+  },
+  {
+   "brand": "Croma",
+   "domain": "croma.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 403,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "none"
+  },
+  {
+   "brand": "Orient Electric",
+   "domain": "orientelectric.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Hindware",
+   "domain": "hindware.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Jaquar",
+   "domain": "jaquar.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Vidiem",
+   "domain": "vidiem.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Cera",
+   "domain": "cera-india.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "SSLError"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Racold",
+   "domain": "racold.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Havells Lloyd",
+   "domain": "lloydindia.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "fail"
+   },
+   "reason": "dns_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Havells Lloyd",
+   "domain": "lloydindia.in",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Havells Lloyd",
+   "domain": "mylloyd.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": [
+     "mylloyd.com",
+     "havells.com"
+    ]
+   },
+   "reason": "redirect_to_other_brand",
+   "india": "none"
+  },
+  {
+   "brand": "USHA",
+   "domain": "ushainternational.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "ReadTimeout"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Orient Fans",
+   "domain": "orientfan.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "SSLError"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Khaitan Fans",
+   "domain": "khaitanindia.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "fail"
+   },
+   "reason": "dns_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Polar",
+   "domain": "polarindia.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "fail"
+   },
+   "reason": "dns_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Symphony",
+   "domain": "symphonylimited.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Hindware Appliances",
+   "domain": "hindware.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "support_page:/warranty"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Crompton Greaves",
+   "domain": "crompton.co.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Godrej Appliances",
+   "domain": "godrej.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "SSLError"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "IFB Appliances",
+   "domain": "ifbappliances.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Videocon Appliances",
+   "domain": "videoconindustries.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "ConnectionError"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Kelvinator",
+   "domain": "kelvinator.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "SSLError"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Kenmore",
+   "domain": "kenmore.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Sansui India",
+   "domain": "sansui-world.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "fail"
+   },
+   "reason": "dns_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Onida India",
+   "domain": "onida.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Bosch India",
+   "domain": "bosch.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Panasonic India",
+   "domain": "panasonic.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 403,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "none"
+  },
+  {
+   "brand": "Haier India",
+   "domain": "haier.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Samsung India",
+   "domain": "samsung.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "LG India",
+   "domain": "lg.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 403,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "none"
+  },
+  {
+   "brand": "Toshiba India",
+   "domain": "toshiba.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Sharp India",
+   "domain": "global.sharp",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Philips India",
+   "domain": "philips.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Sony India",
+   "domain": "sony.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 403,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "none"
+  },
+  {
+   "brand": "TCL India",
+   "domain": "tcl.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Hisense India",
+   "domain": "hisense.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Acer India",
+   "domain": "acer.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "ReadTimeout"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "HP India",
+   "domain": "hp.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Dell India",
+   "domain": "dell.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 403,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "none"
+  },
+  {
+   "brand": "Lenovo India",
+   "domain": "lenovo.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Asus India",
+   "domain": "asus.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "MSI India",
+   "domain": "msi.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 403,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "none"
+  },
+  {
+   "brand": "iBall India",
+   "domain": "iball.co.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Zebronics India",
+   "domain": "zebronics.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Portronics India",
+   "domain": "portronics.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "boAt India",
+   "domain": "boat-lifestyle.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Noise India",
+   "domain": "noise.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "pTron",
+   "domain": "ptron.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Boult",
+   "domain": "boultaudio.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "JBL India",
+   "domain": "jbl.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "SSLError"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Sennheiser India",
+   "domain": "sennheiser.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Bose India",
+   "domain": "bose.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Marshall India",
+   "domain": "marshall.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Yamaha India",
+   "domain": "yamaha.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Denon India",
+   "domain": "denon.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Pioneer India",
+   "domain": "pioneerelectronics.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Realme India",
+   "domain": "realme.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Vivo India",
+   "domain": "vivo.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Oppo India",
+   "domain": "oppo.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "OnePlus India",
+   "domain": "oneplus.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Xiaomi India",
+   "domain": "mi.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Xiaomi India",
+   "domain": "xiaomi.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Redmi India",
+   "domain": "mi.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "support_page:/support"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Redmi India",
+   "domain": "xiaomi.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "support_page:/support"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "iQOO India",
+   "domain": "iqoo.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Nothing India",
+   "domain": "nothing.tech",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Infinix India",
+   "domain": "infinixmobility.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Tecno India",
+   "domain": "tecnomobile.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "support_page:/support"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Nokia India",
+   "domain": "nokia.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Motorola India",
+   "domain": "motorola.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Apple India",
+   "domain": "apple.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Google India",
+   "domain": "store.google.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Google India",
+   "domain": "google.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Ather Energy",
+   "domain": "atherenergy.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 403,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "none"
+  },
+  {
+   "brand": "Ola Electric",
+   "domain": "olaelectric.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "TVS Motor",
+   "domain": "tvsmotor.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Bajaj Auto",
+   "domain": "bajajauto.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Hero MotoCorp",
+   "domain": "heromotocorp.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Mahindra Electric",
+   "domain": "mahindra.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "none"
+  },
+  {
+   "brand": "Tata Motors",
+   "domain": "tatamotors.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "MG Motor India",
+   "domain": "mgmotor.co.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Hyundai India",
+   "domain": "hyundai.co.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Kia India",
+   "domain": "kia.co.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "support_page:/support"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Maruti Suzuki",
+   "domain": "marutisuzuki.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "boAt",
+   "domain": "boat-lifestyle.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Noise",
+   "domain": "noise.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "JBL",
+   "domain": "jbl.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "SSLError"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Bose",
+   "domain": "bose.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Sonos",
+   "domain": "sonos.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Harman Kardon",
+   "domain": "harmankardon.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "SSLError"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Marshall",
+   "domain": "marshall.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Skullcandy",
+   "domain": "skullcandy.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Yamaha",
+   "domain": "yamaha.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Denon",
+   "domain": "denon.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Pioneer",
+   "domain": "pioneerelectronics.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Zebronics",
+   "domain": "zebronics.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Portronics",
+   "domain": "portronics.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Sennheiser",
+   "domain": "sennheiser.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Ambrane",
+   "domain": "ambraneindia.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Ambrane",
+   "domain": "ambrane.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "SSLError"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Belkin",
+   "domain": "belkin.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Anker",
+   "domain": "anker.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Razer",
+   "domain": "razer.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Garmin",
+   "domain": "garmin.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Fitbit",
+   "domain": "fitbit.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": [
+     "fitbit.com",
+     "www.fitbit.com",
+     "www.fitbit.com",
+     "store.google.com",
+     "store.google.com",
+     "store.google.com"
+    ]
+   },
+   "reason": "redirect_to_other_brand",
+   "india": "india_path"
+  },
+  {
+   "brand": "Amazfit",
+   "domain": "amazfit.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Fastrack",
+   "domain": "fastrack.in",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 403,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Titan",
+   "domain": "titan.co.in",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 403,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Casio",
+   "domain": "casio.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 403,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "none"
+  },
+  {
+   "brand": "Fossil",
+   "domain": "fossil.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 403,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "none"
+  },
+  {
+   "brand": "Tata",
+   "domain": "tata.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Tata",
+   "domain": "tatamotors.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Mahindra",
+   "domain": "mahindra.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "MG",
+   "domain": "mgmotor.co.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Hyundai",
+   "domain": "hyundai.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Hyundai",
+   "domain": "hyundai.co.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Kia",
+   "domain": "kia.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Kia",
+   "domain": "kia.co.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "support_page:/support"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "BYD",
+   "domain": "byd.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_path"
+  },
+  {
+   "brand": "Ather",
+   "domain": "atherenergy.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 403,
+    "redirects": "same_brand"
+   },
+   "reason": "no_brand_evidence",
+   "india": "none"
+  },
+  {
+   "brand": "TVS",
+   "domain": "tvsmotor.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Hero",
+   "domain": "heromotocorp.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Exide",
+   "domain": "exideindustries.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Amaron",
+   "domain": "amaron.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Toyota",
+   "domain": "toyota-global.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Toyota",
+   "domain": "toyotabharat.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Honda",
+   "domain": "honda.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Honda",
+   "domain": "hondacarindia.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Epson",
+   "domain": "epson.co.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Epson",
+   "domain": "epson.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Brother",
+   "domain": "brother.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  },
+  {
+   "brand": "Canon",
+   "domain": "canon.co.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Canon",
+   "domain": "canon.com",
+   "verified": false,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": "ConnectTimeout"
+   },
+   "reason": "https_failed",
+   "india": "none"
+  },
+  {
+   "brand": "Dyson",
+   "domain": "dyson.in",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "india_domain"
+  },
+  {
+   "brand": "Dyson",
+   "domain": "dyson.com",
+   "verified": true,
+   "steps": {
+    "registry": "listed",
+    "dns": "ok",
+    "https": 200,
+    "redirects": "same_brand",
+    "brand_evidence": "title_or_metadata"
+   },
+   "reason": "verified",
+   "india": "none"
+  }
+ ]
+}

@@ -1,8 +1,17 @@
+import pytest
+
+from app.services import source_trust
 from app.services.source_trust import classify_terms_source
 from app.services.terms_lookup import classify_terms_source_url
 
 
-def test_known_oem_domain_is_official():
+@pytest.fixture
+def no_verified_domains(monkeypatch):
+    # data/oem_verified.json is populated since fix run B8; these tests pin the unverified behaviour.
+    monkeypatch.setattr(source_trust, "load_verified_domains", lambda: {})
+
+
+def test_known_oem_domain_is_official(no_verified_domains):
     trust = classify_terms_source(
         brand="HP",
         source_url="https://support.hp.com/warranty",
@@ -39,7 +48,7 @@ def test_synthetic_approved_source_is_test_only():
     assert trust["requires_oem_verification"] is True
 
 
-def test_approved_oem_source_has_distinct_trust_label():
+def test_approved_oem_source_has_distinct_trust_label(no_verified_domains):
     source_type = classify_terms_source_url("https://www.samsung.com/in/support/warranty/", "Samsung")
     trust = classify_terms_source(
         brand="Samsung",
@@ -57,3 +66,10 @@ def test_unapproved_http_source_remains_scraped():
     source_type = classify_terms_source_url("https://example.com/warranty", "Samsung")
 
     assert source_type == "scraped"
+
+
+def test_verified_domain_is_labelled_verified_official(monkeypatch):
+    monkeypatch.setattr(source_trust, "load_verified_domains", lambda: {"HP": ["hp.com"]})
+    trust = classify_terms_source(brand="HP", source_url="https://support.hp.com/warranty", source_type="scraped")
+    assert trust["status"] == "verified_official"
+    assert trust["verified"] is True and trust["official"] is True

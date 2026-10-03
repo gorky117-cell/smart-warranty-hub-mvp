@@ -1907,7 +1907,7 @@ until the user approves at the end. Resume from the first unchecked box.
 - [x] B5 Serial from misread labels → unconfirmed suggestion confirmed in UI (keep Epson exception).
 - [x] B6 Bugs: MG Road→MG, device→EV 36m, 120 months→20, Epson broken chars, kia.com/in.
 - [x] B7 Remove only the redundant Samsung 12-month forcing.
-- [ ] B8 New domain verification; write passing domains to verified list.
+- [x] B8 New domain verification; write passing domains to verified list.
 - [x] B9 One risk scorer (ML; heuristic fallback inside; nudge features).
 - [ ] B10 AI vision tier for low-text images (redacted image, quoted lines, needs confirmation).
 - [ ] B11 Expiry recalculation never triggers notifications/emails; count affected records.
@@ -2125,6 +2125,36 @@ the flags are unknown, so conditionally:
 - Still not connected (unchanged, noted): `_peer_review_features`, `_search_features`.
 - Tests: new `tests/test_unified_risk.py` (3).
 
+### 91.B8 Domain verification replaced; verified list written (2026-10-03; committed after B9)
+
+- `oem_domain_verify.verify_domain_detail()` replaces the 6,000-character homepage check. A domain passes
+  only if: (1) it is mapped to the brand in `data/oem_domains.json` (or the brand name is in the host);
+  (2) DNS resolves; (3) HTTPS answers (< 400; 401/403/429 bot-blocking goes to step 5); (4) every redirect
+  stays on a same-brand host (the domain, another registry domain of the brand, or the brand name in the
+  host); (5) the brand appears in `<title>` or brand meta tags (og:site_name, og:title, application-name,
+  description, author, copyright...) — **never the page body** — or a same-brand support/warranty page is
+  reachable (`/support`, `/warranty`, `/support/warranty`, `/in/support`, `/in/support/warranty`,
+  `/service`, `/in/service`). UA `SmartWarrantyHub/1.0 (warranty source verification)`. `_verify_domain()`
+  kept as a wrapper, so `verify_or_suggest()` (upload pipeline) uses the new rules.
+- `scripts/preflight_oem_registry.py` rewritten to use it, `--write-verified` merges passing domains into
+  `data/oem_verified.json` (existing entries kept). Report: `data/oem_domain_verification_2026-10-03.json`.
+- **Measured** (200 brands / 231 domains, 312 s, 4 parallel, 0.5 s pauses): **169 domains / 153 brands
+  verified** (old check: 33 domains / 32 brands). Evidence: title/metadata 159,
+  support page 10. Failures: https_failed 25,
+  no_brand_evidence 22 (all 403 bot-blocks: LG, Sony, Dell, Panasonic, Whirlpool...),
+  dns_failed 11, redirect_to_other_brand 3 (mylloyd.com, fitbit.com → Google),
+  https_status_402 1 (candesworld.com). India: 33 brands with a `.in` domain,
+  45 with an India path only.
+- **Written to `data/oem_verified.json` (169 domains):** Amaron: amaron.in; Amazfit: amazfit.com; Ambrane: ambraneindia.com; Anker: anker.com; AO Smith: aosmithindia.com, aosmith.com; Apple: apple.com; Apple India: apple.com; Asus: asus.com; Asus India: asus.com; Bajaj: bajaj.com, bajajauto.com; Bajaj Auto: bajajauto.com; Bajaj Electricals: bajajelectricals.com; Bajaj Finserv: bajajfinserv.in; Belkin: belkin.com; Blue Star: bluestarindia.com; boAt: boat-lifestyle.com; boAt India: boat-lifestyle.com; Borosil: borosil.com; Bosch: bosch.com; Bosch India: bosch.com; Bose: bose.com; Bose India: bose.com; Boult: boultaudio.com; BPL: bpl.in; Brother: brother.com; Butterfly: butterflyindia.com; BYD: byd.com; Canon: canon.co.in; Carrier: carrier.com, carrierindia.com; Cello: cello.in; Crompton: crompton.co.in; Crompton Greaves: crompton.co.in; Daikin: daikinindia.com; Denon: denon.com; Denon India: denon.com; Dyson: dyson.in, dyson.com; Epson: epson.co.in, epson.com; Exide: exideindustries.com; Garmin: garmin.com; Google: google.com, store.google.com; Google India: store.google.com, google.com; Haier: haier.com; Haier India: haier.com; Havells: havells.com; Hero: heromotocorp.com; Hero MotoCorp: heromotocorp.com; Hindware: hindware.com; Hindware Appliances: hindware.com; Hisense: hisense.com; Hisense India: hisense.com; Hitachi: hitachiaircon.com; Honda: honda.com, hondacarindia.com; Honor: honor.com; HP: hp.com; HP India: hp.com; HPL: hplindia.com; Hyundai: hyundai.com, hyundai.co.in; Hyundai India: hyundai.co.in; iBall: iball.co.in; iBall India: iball.co.in; iBELL: ibellstore.com; IFB: ifbappliances.com; IFB Appliances: ifbappliances.com; Inalsa: inalsaappliances.com; Infinix: infinixmobility.com; Infinix India: infinixmobility.com; iQOO: iqoo.com; iQOO India: iqoo.com; Jaquar: jaquar.com; Kenmore: kenmore.com; Kenstar: kenstar.in; Kent: kent.co.in; Kia: kia.com, kia.co.in; Kia India: kia.co.in; Lenovo: lenovo.com; Lenovo India: lenovo.com; Lloyd: lloydindia.in; Luminous: luminousindia.com; Mahindra: mahindra.com; Marshall: marshall.com; Marshall India: marshall.com; Maruti Suzuki: marutisuzuki.com; MG: mgmotor.co.in; MG Motor India: mgmotor.co.in; Microsoft: microsoft.com; Morphy Richards: morphyrichards.co.in; Motorola: motorola.com; Motorola India: motorola.com; Noise: noise.com; Noise India: noise.com; Nokia: nokia.com; Nokia India: nokia.com; Nothing: nothing.tech; Nothing India: nothing.tech; Ola Electric: olaelectric.com; OnePlus: oneplus.com; OnePlus India: oneplus.com; Onida: onida.com; Onida India: onida.com; Oppo: oppo.com; Oppo India: oppo.com; Orient: orientbell.com; Orient Electric: orientelectric.com; Philips: philips.com; Philips India: philips.com; Pioneer: pioneerelectronics.com; Pioneer India: pioneerelectronics.com; Portronics: portronics.com; Portronics India: portronics.com; Preethi: preethi.in; pTron: ptron.in; Racold: racold.com; Razer: razer.com; Realme: realme.com; Realme India: realme.com; Redmi: mi.com, xiaomi.com; Redmi India: mi.com, xiaomi.com; Samsung: samsung.com; Samsung India: samsung.com; Sennheiser: sennheiser.com; Sennheiser India: sennheiser.com; Sharp: global.sharp; Sharp India: global.sharp; Singer: singerindia.net; Skullcandy: skullcandy.com; Sonos: sonos.com; Surya: surya.co.in; Symphony: symphonylimited.com; Syska: syska.co.in; Tata: tata.com, tatamotors.com; Tata Motors: tatamotors.com; TCL: tcl.com; TCL India: tcl.com; Tecno: tecnomobile.com; Tecno India: tecnomobile.com; Toshiba: toshiba.com; Toshiba India: toshiba.com; Toyota: toyota-global.com, toyotabharat.com; TVS: tvsmotor.com; TVS Motor: tvsmotor.com; V-Guard: vguard.in; Vidiem: vidiem.in; Vivo: vivo.com; Vivo India: vivo.com; Voltas: voltas.com; Wipro: wipro.com; Wonderchef: wonderchef.com; Xiaomi: mi.com, xiaomi.com; Xiaomi India: mi.com, xiaomi.com; Yamaha: yamaha.com; Yamaha India: yamaha.com; Zebronics: zebronics.com; Zebronics India: zebronics.com
+- Failing domains: https_failed — Samsung:samsungmobile.com, Acer:acer.com, Huawei:huawei.com, Blue Star:bluestar.com, Hitachi:hitachi.com, Videocon:videoconindustries.com, Godrej:godrej.com, Usha:ushainternational.com, Prestige:prestige.in, Eureka Forbes:eurekaforbes.com, Aquaguard:eurekaforbes.com, Orient:orientfan.com, Inalsa:inalsa.com, Cera:cera-india.com, USHA:ushainternational.com, Orient Fans:orientfan.com, Godrej Appliances:godrej.com, Videocon Appliances:videoconindustries.com, Kelvinator:kelvinator.com, Acer India:acer.com, JBL India:jbl.com, JBL:jbl.com, Harman Kardon:harmankardon.com, Ambrane:ambrane.com, Canon:canon.com; no_brand_evidence — LG:lg.com, Sony:sony.com, Dell:dell.com, MSI:msi.com, Daikin:daikin.co.in, Panasonic:panasonic.com, Whirlpool:whirlpool.com, Pigeon:pigeon.in, Croma:croma.com, Havells Lloyd:lloydindia.in, Panasonic India:panasonic.com, LG India:lg.com, Sony India:sony.com, Dell India:dell.com, MSI India:msi.com, Ather Energy:atherenergy.com, Mahindra Electric:mahindra.com, Fastrack:fastrack.in, Titan:titan.co.in, Casio:casio.com, Fossil:fossil.com, Ather:atherenergy.com; dns_failed — LG:lgmobiles.com, Daikin:daikin.com, Lloyd:lloydindia.com, Sansui:sansui-world.com, Glen:glengroup.co.in, Inalsa:inalsa.in, Khaitan:khaitanindia.com, Havells Lloyd:lloydindia.com, Khaitan Fans:khaitanindia.com, Polar:polarindia.com, Sansui India:sansui-world.com; redirect_to_other_brand — Lloyd:mylloyd.com, Havells Lloyd:mylloyd.com, Fitbit:fitbit.com; https_status_402 — Candes:candesworld.com
+- Consequence (existing code, now active): terms from a verified domain are labelled "Verified official
+  source" (`source_trust`), `requires_oem_verification` follows the existing rules, and discovery ranking
+  gives verified domains +15. Two source-trust tests pinned the empty-list behaviour; they now monkeypatch
+  an empty list, plus a new test for the verified label.
+- Registry data question: `Orient` maps to `orientbell.com` (a tiles company) and verifies on its title;
+  `Orient Fans` (`orientfan.com`) failed HTTPS. Not changed.
+- Tests: new `tests/test_domain_verification.py` (7, network mocked); `tests/test_source_trust.py` (+1).
+
 ### 91.y Step log (each hash recorded by the next step's commit)
 
 | Step | Commit | Tests | Notes |
@@ -2137,7 +2167,8 @@ the flags are unknown, so conditionally:
 | B5 | `e50fa3d0` | 330 passed (+4) | Serial suggestions confirmed in UI. |
 | B6 | `c86d77c6` | 349 passed (+19) | Five bugs; Epson was a display artefact. |
 | B7 | `e5c9e489` | 349 passed | Samsung duration force removed. |
-| B9 | (next) | 359 passed (+10 incl. B8 tests) | One scorer; nudges connected. |
+| B9 | `2b62e8ed` | 359 passed (+10 incl. B8 tests) | One scorer; nudges connected. |
+| B8 | (next) | 360 passed (+1) | 169 domains verified and written. |
 
 ### 91.x Open questions
 - Pin `paddlepaddle` (unpinned in requirements; production pulls 3.x and Paddle cannot read with
@@ -2145,3 +2176,8 @@ the flags are unknown, so conditionally:
 - Playwright in the image: needs a real Docker build to measure size.
 - B4: confirm the production value of FORCE_HTTPS_REDIRECT before deploy — when truthy, plain-HTTP
   requests (as reported by Railway's proxy) will now get a 308 to HTTPS.
+- B8: with the verified list populated, 153 brands' terms show as "Verified official source". Domain
+  verification proves the site belongs to the brand, not that scraped terms are correct — keep, or keep
+  `requires_oem_verification` true for all scraped terms?
+- B8: registry `Orient` → `orientbell.com` (tiles) looks wrong; LG/Sony/Dell/Panasonic/Whirlpool block the
+  verifier with 403 — add them manually after a human check?
