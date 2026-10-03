@@ -1510,7 +1510,7 @@ printer/Epson-specific logic removed. Resume from the first unchecked box.
 - [x] Step 4 — OCR honesty (real health check, logged Paddle errors, engine in metadata, real-image test).
 - [x] Step 5 — Truthful docs.
 - [x] Step 6 — Honest 50-sample baseline and CI floors.
-- [ ] Step 7 — Brand registry and domain preflight.
+- [x] Step 7 — Brand registry and domain preflight.
 - [ ] Step 8 — Product-scoped warranty duration.
 - [ ] Step 9 — Prepare (not activate) grounded AI extraction.
 
@@ -1681,7 +1681,7 @@ Inventory of brand- or printer-specific logic (none removed or changed):
 - Not changed (outside the listed scope): the 100% rows of other phase runbooks (nip/service/oem/kpi
   phases), which already carry a synthetic note; the MEMORY.md section 11 table and entries ~914/925
   (historical log — superseded by this entry).
-| 6 | (recorded in Step 7) | 251 passed (+2) | See 90.6. |
+| 6 | `851d734b` | 251 passed (+2) | See 90.6. |
 
 ### 90.6 Step 6 — honest image-OCR baseline and CI floors (2026-10-03)
 
@@ -1715,6 +1715,67 @@ synthetic images.** Runtime 33 s.
   below the table, any wrong count rises above it, `TAKINVOICE` reappears, or a non-warranty bill yields
   a field. Runs on the captured OCR text (`tests/fixtures/ocr_text_50.json`, deterministic) and again
   with real OCR when Tesseract is installed (~30 s; Docker image has `tesseract-ocr`).
+| 7 | (recorded in Step 8) | 271 passed (+20) | See 90.7. |
+
+### 90.7 Step 7 — brand registry and domain preflight (2026-10-03)
+
+**How a domain becomes "verified" today.**
+- `warranty_discovery._preflight_domains(brand)` takes verified domains + registry domains for the brand
+  (max `TERMS_PREFLIGHT_MAX_DOMAINS`=4) and keeps those `_domain_alive()`: DNS resolves and an HTTPS (then
+  HTTP) GET returns status < 500 within `TERMS_PREFLIGHT_TIMEOUT_SEC`=4 s. Alive is **not** verified; it
+  only gates `site:` searches.
+- `oem_domain_verify._verify_domain(brand, domain)` = GET `https://<domain>` with UA `SmartWarrantyHub/1.0`,
+  status < 400, then the **first 6,000 characters** of HTML must contain the brand name (case-insensitive
+  substring) and one of `warranty|support|service|manual|register|terms`. Pass → `verify_or_suggest()`
+  appends it to `data/oem_verified.json` (the only writer). With no domain given it searches the web
+  (`search_web`, no provider configured → no candidates) — this is what the pipeline calls on every
+  upload (`OEM_AUTO_VERIFY` default true), which is why the list is still `{}`.
+
+**Read-only preflight of the registry** (`scripts/preflight_oem_registry.py`, report
+`data/oem_domain_preflight_2026-10-03.json`, 265 s, 4 parallel, ≤3 requests/domain, 0.5 s pauses;
+`data/oem_verified.json` checksum unchanged):
+- 197 brands / 227 domains. Alive: **204/227 domains, 183/197 brands**. Would pass `_verify_domain`:
+  **33 domains, 32 brands**.
+- Domain reasons: `verified` 33, `keywords_not_found` 86, `brand_not_found` 50, `unreachable` (alive but
+  homepage status ≥ 400 or fetch error, mostly bot-blocking of the bare UA: lg.com, sony.com, dell.com,
+  panasonic.com, whirlpool.com, godrej.com, atherenergy.com...) 35, `not_alive` 23.
+- The verifier is structurally weak: samsung.com, apple.com, lenovo.com, oneplus.com... fail because the
+  first 6 KB of modern homepages is `<head>`/script, not visible text. Changing the verifier is not in the plan.
+- Brands with no alive domain (14): Acer (+India), Prestige, Sansui (+India), Glen, Khaitan, Khaitan Fans,
+  Polar, Kelvinator, Hisense India, JBL (+India), Harman Kardon. Registry data bug: Kia lists
+  `kia.com/in` (a path) as a domain.
+- India signals: **30 brands with a `.in` domain** (Amaron, BPL, Bajaj Finserv, Cello, Crompton(+Greaves),
+  Daikin, Epson, Fastrack, Havells Lloyd, Hyundai(+India), Kenstar, Kent, Kia(+India), Lloyd, MG(+Motor
+  India), Morphy Richards, Pigeon, Preethi, Surya, Syska, Titan, V-Guard, Vidiem, iBall(+India), pTron);
+  **45 more brands with only an India path** (`https://<domain>/in/` < 400 and stays on /in): 29 domains —
+  apple, asus, belkin, byd, fitbit, haier, hitachiaircon, honor, hp, hplindia, hyundai, inalsaappliances,
+  iqoo, kenmore, kia, lenovo, mi, oneplus, oppo, philips, realme, samsung, store.google, symphonylimited,
+  tatamotors, tcl, tecnomobile, vivo, xiaomi.
+
+**`_KNOWN_OEMS` replaced** by `app/services/brand_registry.py` over `data/oem_domains.json`:
+- `" India"` duplicates and case duplicates collapse; longest multi-word name wins; tiny alias map
+  (`mi`→Xiaomi, `one plus`, `i phone`); ordinary-word / 2-letter names (`AMBIGUOUS`: Nothing, Carrier,
+  Sharp, Hero, HP, LG, Tata...) match only in Title Case/ALL CAPS and not as a field label (`Carrier:`);
+  `RETAILERS` (Croma) never resolve as manufacturer from a seller line.
+- Seller-vs-brand in `ingestion.py`: shop/seller lines (store, retail, mall, dealer, Pvt/Ltd/LLP, traders,
+  digital...) are no longer product-line candidates; the "first 5 lines" brand fallback skips them; a
+  registry brand named only in a shop line ("LG Authorized Store") is used at confidence 0.7; a labelled
+  `Brand:` wins if it resolves to the registry, otherwise the shop-line registry brand beats an
+  unresolved (OCR-garbled) label.
+- Registry gained the three tuple brands it lacked: **Brother** (`brother.com`; `brother.in` not alive),
+  **Canon** (`canon.co.in`, `canon.com`), **Dyson** (`dyson.in`, `dyson.com`) → 200 brands.
+- Behaviour change worth knowing: `Mi` now resolves to `Xiaomi`; `OnePlus` keeps registry casing (was
+  `Oneplus`); S001's product name is no longer the retailer header `Apple Authorized Store`.
+
+**Measured change:**
+- 50-sample real-OCR re-run (synthetic images, same engines: 40 tesseract_fallback, 10 no text):
+  identical to 90.6 except **model_code 0 → 2 correct** (27 missing, 1 wrong). Brand stays 26/30 — the 4
+  misses are OCR reading `LG` as `Lc`; all brands in this set except Ather/Tata were already in the tuple,
+  so this set cannot show the registry gain. Floor raised to model_code ≥ 2.
+- 8 synthetic invoices for brands outside the old tuple, each headed by a retailer
+  (`tests/test_brand_registry.py`): brand correct **2/8 before → 8/8 after**; seller name stored as brand
+  **4/8 → 0/8** (Sri Lakshmi Electronics, Poorvika Mobiles, Ather Space Koramangala, Sangeetha Mobiles);
+  no brand 2/8 → 0/8. New tests: 20.
 
 ### 90.x Open questions
 
@@ -1733,3 +1794,7 @@ synthetic images.** Runtime 33 s.
 - Serial values read next to an OCR-variant label (`seriat`, confidence 0.5) are garbled on all 30
   synthetic `normal` images (30 wrong, 0 correct). Should values from OCR-variant labels be left blank
   (giving 0 wrong / 30 missing) until OCR improves? Kept per plan wording for now.
+- `_verify_domain` only reads 6 KB of homepage HTML and uses a bare UA, so 165/197 brands cannot verify
+  even with a search provider. Fix the verifier (visible text, warranty page probe, contact UA) before
+  populating `oem_verified.json`? Not in plan; nothing written.
+- Registry entry `Kia: kia.com/in` is a path, not a domain.

@@ -5,13 +5,7 @@ from typing import Dict, List, Optional, Tuple
 from ..models import Artifact, ArtifactType
 from ..storage import generate_id, store
 from .ocr import extract_text_with_meta
-
-_KNOWN_OEMS = (
-    "acer", "apple", "asus", "bajaj", "bosch", "brother", "canon", "dell", "dyson",
-    "epson", "godrej", "haier", "hp", "lenovo", "lg", "mi", "microsoft", "oneplus",
-    "oppo", "panasonic", "philips", "samsung", "sony", "vivo", "voltas", "whirlpool",
-    "xiaomi",
-)
+from . import brand_registry
 
 _PRODUCT_TERMS = (
     "ac", "air conditioner", "battery", "camera", "desktop", "dishwasher", "fridge",
@@ -119,8 +113,8 @@ def _contains_product_term(value: str) -> bool:
 
 
 def _has_product_signal(value: str) -> bool:
-    low = _normalize_spaces(value).lower()
-    return bool(_canonical_oem(low) or _contains_product_term(low))
+    text = _normalize_spaces(value)
+    return bool(_canonical_oem(text) or _contains_product_term(text.lower()))
 
 
 def _looks_like_address_text(value: str) -> bool:
@@ -156,7 +150,11 @@ def _strip_invoice_table_prefix(value: str) -> str:
     if "description" not in low:
         return text
 
-    oem_pattern = "|".join(re.escape(oem) for oem in sorted(_KNOWN_OEMS, key=len, reverse=True))
+    named = brand_registry.find_brands(text)
+    oem_pattern = "|".join(
+        r"[\s\-]*".join(re.escape(part) for part in re.findall(r"[A-Za-z0-9]+", name))
+        for name in sorted(named, key=len, reverse=True)
+    )
     if oem_pattern:
         for match in re.finditer(rf"\b(?:{oem_pattern})\b", text, re.IGNORECASE):
             prefix = text[: match.start()].lower()
@@ -179,18 +177,8 @@ def _strip_invoice_table_prefix(value: str) -> str:
 
 
 def _canonical_oem(value: str) -> Optional[str]:
-    low = (value or "").lower()
-    tokens = set(re.findall(r"[a-z0-9]+", low))
-    for brand in _KNOWN_OEMS:
-        if brand in tokens:
-            if brand == "hp":
-                return "HP"
-            if brand == "lg":
-                return "LG"
-            if brand == "mi":
-                return "Mi"
-            return brand.title()
-    return None
+    """Manufacturer named in ``value``, resolved over the OEM domain registry."""
+    return brand_registry.resolve_brand(value)
 
 
 def _clean_brand_candidate(raw: str) -> Optional[str]:
@@ -409,6 +397,9 @@ def _line_item_candidates(lines: List[str]) -> List[Tuple[int, str]]:
                 clean = max(usable, key=lambda part: (1 if _has_product_signal(part) else 0, len(part)))
                 low = clean.lower()
         if sum(1 for term in _LINE_NOISE_TERMS if term in low) >= 2:
+            continue
+        # A shop/seller line ("LG Authorized Store") is not a product line.
+        if brand_registry.is_seller_line(clean) and not _contains_product_term(low):
             continue
         score = 0
         if re.match(r"^\d+[\.\)]?\s+", clean):
@@ -651,15 +642,22 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
     # === BRAND EXTRACTION ===
     # Strategy 1: Explicit "Brand:" label
     brand_match = re.search(r"brand\s*[:\-]\s*([a-zA-Z0-9 \-]{2,40})", text, re.IGNORECASE)
+    # Registry brand named only in the shop/header lines, e.g. "LG Authorized Store".
+    shop_lines = [line for line in lines[:8] if brand_registry.is_seller_line(line)]
+    header_brand = None if item_brand else brand_registry.resolve_brand(None, seller_lines=shop_lines)
     if item_brand:
         fields["brand"] = item_brand
         confidence["brand"] = 0.85
         alternatives["product_line"] = [best_item] if best_item else []
-    elif brand_match:
+    elif brand_match and (_canonical_oem(brand_match.group(1)) or not header_brand):
+        # A labelled brand wins when it is a registry brand, or when nothing better exists.
         cleaned = _clean_brand_candidate(brand_match.group(1))
         if cleaned:
-            fields["brand"] = cleaned
+            fields["brand"] = _canonical_oem(cleaned) or cleaned
             confidence["brand"] = 0.8
+    elif header_brand:
+        fields["brand"] = header_brand
+        confidence["brand"] = 0.7
     elif has_warranty_context:
         # Strategy 2: First non-empty line (usually company name on invoices)
         for line in lines[:5]:  # Check first 5 lines
@@ -669,6 +667,7 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
                 and not line.lower().startswith(('invoice', 'bill', 'receipt', 'tax', 'gst', 'date'))
                 and not _is_boilerplate_line(line)
                 and not _has_product_signal(line)
+                and not brand_registry.is_seller_line(line)
                 and not re.match(r"^\d+[\.\)]?\s+", line)
             ):
                 cleaned = _clean_brand_candidate(line)

@@ -619,5 +619,16 @@
   "Epson": [
     "epson.co.in",
     "epson.com"
+  ],
+  "Brother": [
+    "brother.com"
+  ],
+  "Canon": [
+    "canon.co.in",
+    "canon.com"
+  ],
+  "Dyson": [
+    "dyson.in",
+    "dyson.com"
   ]
 }

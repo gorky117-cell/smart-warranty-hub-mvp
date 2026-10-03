@@ -29,7 +29,7 @@ CACHED = json.loads((ROOT / "tests" / "fixtures" / "ocr_text_50.json").read_text
 # Minimum correct per field, `normal` case (30 labelled synthetic images), measured 2026-10-03.
 MIN_CORRECT = {
     "brand": 26,
-    "model_code": 0,
+    "model_code": 2,  # was 0 before step 7 (seller lines no longer taken as product lines)
     "purchase_date": 24,
     "serial_no": 0,
     "invoice_no": 0,
