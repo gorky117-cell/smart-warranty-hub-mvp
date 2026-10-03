@@ -1901,7 +1901,7 @@ until the user approves at the end. Resume from the first unchecked box.
 
 - [x] A  Production check (this section).
 - [x] B1 Redaction before any text/image reaches any AI provider (buyer details only, token masking).
-- [ ] B2 OCR: skip failed Paddle for OCR_ENGINE_TTL_SEC; Tesseract eng in build; Playwright decision.
+- [x] B2 OCR: skip failed Paddle for OCR_ENGINE_TTL_SEC; Tesseract eng in build; Playwright decision.
 - [ ] B3 RAG out of the risk score; fix "no failures" vs "multiple failures" bug.
 - [ ] B4 Insecure-settings warning on the admin health page.
 - [ ] B5 Serial from misread labels → unconfirmed suggestion confirmed in UI (keep Epson exception).
@@ -1998,11 +1998,33 @@ the flags are unknown, so conditionally:
   user ids; Mistral chat + Ollama; Mistral terms; RAG embeddings; summary for 4 providers; OpenAI summary
   and enrichment with flags on. Grounded test updated for the new counts.
 
+### 91.B2 OCR: Paddle back-off, Tesseract in build, Playwright decision (2026-10-03)
+
+- `ocr.run_paddle_ocr()`: any Paddle failure (init **or** inference) sets a back-off of
+  `OCR_ENGINE_TTL_SEC` (default 900 s); while it runs Paddle is skipped without re-init and Tesseract is
+  used directly; one WARNING per failure, not per upload; the engine is dropped so a fresh init is tried
+  after the back-off. `paddle_backoff_remaining()` added; `/health/ocr` reports `paddle_backoff_sec`; the
+  health probe always really tries Paddle.
+- Measured (50 synthetic images, real OCR): accuracy identical to 90.6/90.7 (brand 26, model 2,
+  date 24, coverage 16, category 26, serial 0, invoice 0); engines 40 tesseract_fallback / 10 no text.
+  Runtime 35.5 s vs 33 s in Step 6 — **no measurable local speed-up**: locally Paddle loads once and
+  then fails fast. The gain is no repeated Paddle attempts/log noise per upload for 15 minutes.
+- `Dockerfile`: `tesseract-ocr-eng` now listed explicitly (the Debian `tesseract-ocr` package already
+  depends on it). Image not built here — **Docker is not installed on this machine**.
+- Playwright **not added**: wheel 48.2 MB (PyPI metadata, playwright 1.63.0 manylinux x86_64) plus a
+  Chromium download and its system libraries that cannot be measured without Docker; the image already
+  carries `paddlepaddle` (latest 3.3.1, 195 MB wheel, unpinned). `HEADLESS_SCRAPE` stays dead in production.
+- Tests: new `tests/test_ocr_paddle_backoff.py` (4).
+
 ### 91.y Step log (each hash recorded by the next step's commit)
 
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
 | A | `5a8b8be4` | 299 passed | Production check; docs only. |
-| B1 | (next) | 307 passed (+8) | Redaction everywhere. |
+| B1 | `8d7865b3` | 307 passed (+8) | Redaction everywhere. |
+| B2 | (next) | 311 passed (+4) | Paddle back-off; tesseract-ocr-eng. |
 
 ### 91.x Open questions
+- Pin `paddlepaddle` (unpinned in requirements; production pulls 3.x and Paddle cannot read with
+  paddleocr 2.8 models) or drop Paddle from the image (saves the 195 MB wheel)? User decision (OCR engine).
+- Playwright in the image: needs a real Docker build to measure size.

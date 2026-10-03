@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     poppler-utils \
     tesseract-ocr \
+    tesseract-ocr-eng \
     git \
  && rm -rf /var/lib/apt/lists/*
 

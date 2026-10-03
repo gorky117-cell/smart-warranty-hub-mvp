@@ -28,6 +28,9 @@ _OCR_ENGINE_TTL_SEC = int(os.getenv("OCR_ENGINE_TTL_SEC", "900"))
 
 _paddle_engine: Optional[object] = None
 _paddle_last_used: float = 0.0
+# After Paddle fails (init or inference) it is skipped for OCR_ENGINE_TTL_SEC and Tesseract is used.
+_paddle_failed_at: float = 0.0
+_paddle_failure: Optional[str] = None
 
 logger = logging.getLogger(__name__)
 
@@ -121,21 +124,48 @@ def _ocr_tesseract(img: Image.Image) -> str:
         return f"[Tesseract Error: {e}]"
 
 
+def paddle_backoff_remaining() -> float:
+    """Seconds Paddle will still be skipped after its last failure (0 when it may be tried)."""
+    if not _paddle_failed_at:
+        return 0.0
+    return max(0.0, _OCR_ENGINE_TTL_SEC - (_now() - _paddle_failed_at))
+
+
+def _mark_paddle_failed(error: str) -> None:
+    global _paddle_failed_at, _paddle_failure, _paddle_engine
+    _paddle_failed_at = _now()
+    _paddle_failure = _short_error(error) or error
+    _paddle_engine = None  # retry a fresh init once the back-off expires
+    logger.warning("PaddleOCR disabled for %ss after failure: %s", _OCR_ENGINE_TTL_SEC, _paddle_failure)
+
+
+def _clear_paddle_backoff() -> None:
+    global _paddle_failed_at, _paddle_failure
+    _paddle_failed_at = 0.0
+    _paddle_failure = None
+
+
 def run_paddle_ocr(image_path: Path) -> Tuple[Optional[str], Optional[str]]:
+    remaining = paddle_backoff_remaining()
+    if remaining:
+        return None, f"PaddleOCR skipped for {int(remaining)}s after failure: {_paddle_failure}"
     engine, err = get_paddle()
     if err:
+        _mark_paddle_failed(err)
         return None, err
     try:
         result = engine.ocr(str(image_path), cls=True)
         lines = []
-        for page in result:
-            for line in page:
+        for page in result or []:
+            for line in page or []:
                 if line and len(line) > 1 and line[1]:
                     lines.append(line[1][0])
         text = "\n".join(lines).strip()
         return text if text else None, None
     except Exception as exc:  # pragma: no cover - runtime safeguard
-        return None, f"PaddleOCR failed: {exc}"
+        message = f"PaddleOCR failed: {exc}"
+        _mark_paddle_failed(message)
+        return None, message
 
 
 def run_tesseract_ocr(image_path: Path) -> Tuple[Optional[str], Optional[str]]:
@@ -178,7 +208,8 @@ def _run_image_ocr_with_meta(path_obj: Path, engine: str) -> Tuple[Optional[str]
         return text, None, {"method": "paddle", "engine": "paddle"}
 
     paddle_short = _short_error(paddle_err) or "PaddleOCR returned no text"
-    logger.warning("PaddleOCR failed for %s; trying Tesseract fallback: %s", path_obj.name, paddle_short)
+    if not (paddle_err or "").startswith("PaddleOCR skipped"):
+        logger.warning("PaddleOCR failed for %s; trying Tesseract fallback: %s", path_obj.name, paddle_short)
     fallback_text, fallback_err = run_tesseract_ocr(path_obj)
     if fallback_text:
         return fallback_text, None, {"method": "tesseract_fallback", "engine": "tesseract", "paddle_error": paddle_short}
@@ -368,6 +399,8 @@ def _probe_engine(name: str) -> Dict[str, Any]:
     if name == "paddle" and find_spec("paddleocr") is None:
         return {"ok": False, "error": "PaddleOCR package missing"}
     runner = run_paddle_ocr if name == "paddle" else run_tesseract_ocr
+    if name == "paddle":
+        _clear_paddle_backoff()  # the health probe always really tries Paddle
     try:
         text, err = runner(_HEALTH_IMAGE)
     except Exception as exc:  # pragma: no cover - runtime safeguard
@@ -403,6 +436,7 @@ def health_report(force: bool = False) -> Dict[str, Any]:
         "configured_engine": configured,
         "active_engine": active,
         "engines": engines,
+        "paddle_backoff_sec": int(paddle_backoff_remaining()),
     }
     _health_cache = (_now(), report)
     return report
