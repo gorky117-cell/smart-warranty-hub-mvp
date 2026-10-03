@@ -1506,7 +1506,7 @@ printer/Epson-specific logic removed. Resume from the first unchecked box.
 - [x] Step 0 — Checklist entry, corrected Paddle diagnosis, `.kiro` skill updated.
 - [x] Step 1 — Repo hygiene (cookies.txt tracking report, unpushed commits, .gitignore, untrack).
 - [x] Step 2 — Regression tests that lock in today's Samsung and printer/Epson outputs.
-- [ ] Step 3 — Extraction safety (serial fallback, field clearing, duplicate first pass).
+- [x] Step 3 — Extraction safety (serial fallback, field clearing, duplicate first pass).
 - [ ] Step 4 — OCR honesty (real health check, logged Paddle errors, engine in metadata, real-image test).
 - [ ] Step 5 — Truthful docs.
 - [ ] Step 6 — Honest 50-sample baseline and CI floors.
@@ -1554,7 +1554,7 @@ A commit cannot contain its own hash, so each step's hash is written here by the
 - Deploy check: the `Dockerfile` does not build the frontend and `frontend/dist` is not tracked, so
   untracking `node_modules` does not affect the image. A fresh clone needs `npm install` in `frontend/`
   to run Vite.
-| 2 | (recorded in Step 3) | 216 passed (+15) | See 90.2. No behaviour change. |
+| 2 | `c251e6e0` | 216 passed (+15) | See 90.2. No behaviour change. |
 
 ### 90.2 Step 2 — Samsung and printer/Epson logic inventory and lock (2026-10-03)
 
@@ -1590,6 +1590,47 @@ Inventory of brand- or printer-specific logic (none removed or changed):
 - Already covered before this step (left as is): Samsung Galaxy M17e invoice parsing
   (`test_invoice_pipeline.py:286-350`), Epson L3250 invoice parsing (`:233`), printer/phone question
   gating (`test_phase5_behaviour_predictive.py:95-221`), printer care (`test_product_recommendations.py`).
+| 3 | (recorded in Step 4) | 243 passed (+27) | See 90.3. |
+
+### 90.3 Step 3 — extraction safety (2026-10-03)
+
+- `ingestion._serial_from_lines()` now returns `(serial, confidence)`:
+  - Labelled: value on the same line as `serial`/`s/n`/`sn`/`imei` (optionally `no`/`number`/`#`), or on
+    the next non-empty line when the label stands alone → confidence 0.7. OCR label variants
+    (`seri` + up to 3 chars, e.g. `seriat`, `seria:`, `seri`; `series` excluded) → confidence 0.5.
+  - Value must be 6-24 chars, contain a letter **and** a digit, must not be a date, and must not
+    contain invoice-header fragments (`INVOIC`, `NVOICE`, `RECEIPT`, `BILL`, `CUSTOMER`, `ORIGINAL`,
+    `DUPLICATE`, `TOTAL`). Otherwise blank.
+  - **Deviation from the plan wording, needs a decision:** a strict "label only" rule would blank the real
+    Epson L3250 invoice serial `XAHT699208` (unlabelled, on the line directly under the item row), which
+    the existing entry 63 production regression test locks. Kept a narrowed unlabelled fallback: only the
+    single line directly under a numbered line-item row, letters+digits, 8-18 chars, header fragments
+    rejected, confidence 0.5. Previously it scanned 3 lines after any chosen "product line" (which was
+    the retailer header on S001) and accepted letters-only tokens.
+- Measured on S001-S012 Tesseract OCR text (synthetic images; fixture `tests/fixtures/ocr_text_S001_S012.json`):
+  `TAKINVOICE` written as serial **8/12 before → 0/12 after**. All 12 now take the value from the
+  `seriat`/`seria:`/`seri` label line with confidence 0.5. Exact serial match is still **0/12**, because
+  Tesseract reads `0` as `O` (e.g. `SNO01X1001` vs truth `SN001X1001`). Paddle did not run (still fails, 90.0).
+- `invoice_pipeline._update_warranty(db, id, fields, confidence=None, alternatives=None, absent_confidence=0.8)`:
+  when the pass confidence is supplied (the pipeline always supplies it now), a stored `brand`/`model_code`/
+  `serial_no` that the pass did not find is cleared if its stored confidence is < 0.8 (regex guesses are
+  0.4-0.85; user overrides via `/warranties/from-artifact` are 0.9 and are never cleared). Pass confidences
+  are written to `warranty.confidence`, extraction alternatives are merged into `warranty.alternatives`,
+  and cleared fields are listed in `alternatives["cleared_on_reprocess"]`. Legacy calls without
+  confidence never clear. Note: brand found by the line-item OEM match (0.85) is not cleared by absence.
+- Duplicate first pass removed: `/artifacts/upload` and `/artifacts/capture` no longer call
+  `canonicalize_artifact()`. They create a placeholder row (`_placeholder_upload_warranty`, product name
+  `Product`, `terms_source_type=invoice_only`) and the pipeline job is the only extraction. The old
+  `_minimal_upload_warranty` error fallback is gone because there is no first pass left to fail.
+  `/warranties/from-artifact` (manual create with overrides, no pipeline job) still uses `canonicalize_artifact`.
+- `run_initial_analysis_and_notifications` now runs **after** the job (as a second background task, or
+  synchronously after `run_job` when no task runner) so onboarding/risk/expiry notifications see the
+  extracted fields rather than the placeholder. `/artifacts/capture` now also runs the job synchronously
+  when no background runner exists (it previously skipped it).
+- Tests: new `tests/test_extraction_safety.py` (26 tests: 12 OCR samples, label/blank cases, Epson
+  fallback, clear-on-reprocess, override kept). `test_upload_returns_warranty_when_initial_canonicalization_fails`
+  was rewritten as `test_upload_runs_extraction_once_in_pipeline` (asserts exactly one extraction call,
+  job `done`, brand `Epson`).
 
 ### 90.x Open questions
 
@@ -1603,3 +1644,5 @@ Inventory of brand- or printer-specific logic (none removed or changed):
   `device` (e.g. "electronic device") normalises to `ev` → 36-month default. Not in plan; not changed.
 - `_normalize_category("printer")` returns `general`, not `electronics`; the curated Epson source is
   stored as `electronics`. Behaviour today is 12 months either way.
+- Step 3 deviation: keep or drop the narrowed unlabelled serial fallback (see 90.3)? Dropping it blanks
+  the Epson L3250 production invoice serial and requires changing the entry 63 test.

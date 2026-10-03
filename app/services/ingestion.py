@@ -509,20 +509,50 @@ def sanitize_invoice_identity_fields(
     return sanitized_fields, sanitized_confidence, alternatives
 
 
-def _serial_from_lines(lines: List[str], product_line: Optional[str]) -> Optional[str]:
-    serial_match = re.search(r"\b(?:serial|s/n|sn|imei)\b\s*[:\-#]?\s*([a-zA-Z0-9\-]{6,})", "\n".join(lines), re.IGNORECASE)
-    if serial_match:
-        return serial_match.group(1).strip().upper()
+# Serial labels, including common OCR misreads of "serial" (seriat, seria:, seri, serlal).
+_SERIAL_LABEL_RE = re.compile(
+    r"\b(?:(?!series\b)seri[a-z0-9]{0,3}|s/n|sn|imei)\b(?:\s*(?:no\.?|number|num|#))?\s*[:\-#.]?",
+    re.IGNORECASE,
+)
+_SERIAL_VALUE_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9\-/]{5,23}")
+_SERIAL_HEADER_FRAGMENTS = ("INVOIC", "NVOICE", "RECEIPT", "BILL", "CUSTOMER", "ORIGINAL", "DUPLICATE", "TOTAL")
+
+
+def _plausible_serial(value: str) -> bool:
+    upper = value.upper()
+    if not (re.search(r"\d", upper) and re.search(r"[A-Z]", upper)):
+        return False
+    letters = re.sub(r"[^A-Z]", "", upper)
+    if any(fragment in letters for fragment in _SERIAL_HEADER_FRAGMENTS):
+        return False
+    if parse_date_from_text(value):
+        return False
+    return True
+
+
+def _serial_from_lines(lines: List[str], product_line: Optional[str]) -> Tuple[Optional[str], float]:
+    """Return (serial, confidence). Blank when no labelled or clearly placed serial exists."""
+    clean_lines = [_normalize_spaces(line) for line in lines]
+    for i, line in enumerate(clean_lines):
+        for label in _SERIAL_LABEL_RE.finditer(line):
+            exact = label.group(0).strip(" :-#.").lower().split()[0] in {"serial", "s/n", "sn", "imei"}
+            rest = line[label.end():].strip()
+            if not rest:
+                # Label alone on its line: the value may sit on the next non-empty line.
+                rest = next((nxt for nxt in clean_lines[i + 1:i + 3] if nxt), "")
+            value = _SERIAL_VALUE_RE.match(rest)
+            if value and _plausible_serial(value.group(0)):
+                return value.group(0).upper(), 0.7 if exact else 0.5
     if product_line:
-        try:
-            idx = next(i for i, line in enumerate(lines) if _normalize_spaces(line) == product_line)
-        except StopIteration:
-            idx = -1
-        for line in lines[idx + 1: idx + 4] if idx >= 0 else []:
-            clean = _normalize_spaces(line)
-            if re.fullmatch(r"[A-Z0-9]{8,18}", clean) and not clean.isdigit():
-                return clean.upper()
-    return None
+        # Unlabelled fallback: a single code on the line directly under a real line item
+        # (e.g. "1 Epson L 3250 Printer ..." followed by "XAHT699208").
+        target = _normalize_spaces(product_line)
+        idx = next((i for i, line in enumerate(clean_lines) if line == target), -1)
+        if idx >= 0 and re.match(r"^\d+[\.\)]?\s+\S", target) and idx + 1 < len(clean_lines):
+            candidate = clean_lines[idx + 1]
+            if re.fullmatch(r"[A-Z0-9]{8,18}", candidate) and _plausible_serial(candidate):
+                return candidate, 0.5
+    return None, 0.0
 
 
 def ingest_artifact(
@@ -688,10 +718,10 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
                     confidence["model_code"] = 0.4
 
     # === SERIAL NUMBER ===
-    serial_value = _serial_from_lines(logical_lines + lines, line_items[0][1] if line_items else None)
+    serial_value, serial_confidence = _serial_from_lines(logical_lines + lines, line_items[0][1] if line_items else None)
     if serial_value:
         fields["serial_no"] = serial_value
-        confidence["serial_no"] = 0.7
+        confidence["serial_no"] = serial_confidence
 
     # === PURCHASE DATE ===
     # Look specifically for "Date:" labeled date first

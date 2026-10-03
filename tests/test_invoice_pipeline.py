@@ -64,7 +64,7 @@ def test_upload_creates_job(tmp_path):
         assert job is not None
 
 
-def test_upload_returns_warranty_when_initial_canonicalization_fails(tmp_path, monkeypatch):
+def test_upload_runs_extraction_once_in_pipeline(tmp_path, monkeypatch):
     client = TestClient(app)
     login = client.post(
         "/auth/login",
@@ -74,10 +74,19 @@ def test_upload_returns_warranty_when_initial_canonicalization_fails(tmp_path, m
     token = login.json().get("access_token")
     assert token
 
+    # Work plan step 3: upload creates a placeholder row and extraction runs only in the job.
     def fail_canonicalize(*args, **kwargs):
-        raise RuntimeError("upstream error")
+        raise AssertionError("upload must not run first-pass extraction")
 
     monkeypatch.setattr(app_main, "canonicalize_artifact", fail_canonicalize)
+    extraction_calls = []
+    real_extract = invoice_pipeline.extract_product_fields
+
+    def counting_extract(text):
+        extraction_calls.append(text)
+        return real_extract(text)
+
+    monkeypatch.setattr(invoice_pipeline, "extract_product_fields", counting_extract)
 
     sample_path = tmp_path / "invoice.txt"
     sample_path.write_text("Tax Invoice\n1 Epson L3250 Printer\nInvoice Date 01-05-2026", encoding="utf-8")
@@ -100,7 +109,10 @@ def test_upload_returns_warranty_when_initial_canonicalization_fails(tmp_path, m
 
     assert warranty is not None
     assert job is not None
-    assert (warranty.alternatives or {}).get("initial_canonicalization_error") == "RuntimeError"
+    assert job.status == "done"
+    assert len(extraction_calls) == 1
+    assert warranty.brand == "Epson"
+    assert "initial_canonicalization_error" not in (warranty.alternatives or {})
 
 
 def test_pipeline_completes_with_pdf(tmp_path):

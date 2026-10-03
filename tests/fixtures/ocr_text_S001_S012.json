@@ -1,0 +1,75 @@
+{
+  "_note": "Tesseract OCR text of test_data/ingestion_ocr_samples/S001-S012.png (synthetic invoices), captured 2026-10-03 with OCR_ENGINE=tesseract. Truth = labelled serial from ingestion_ocr_50_labeled.csv.",
+  "S001": {
+    "case_type": "normal",
+    "truth_serial": "SN001X1001",
+    "method": "tesseract_fallback",
+    "text": "‘Apple Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2026-0001\n\nDate: 06-Jan-2025\n\nProduct iPhone 15\n\nBand: Apple\n\nMad IPHONEOO1\n\nseriat SNO01X1001\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy"
+  },
+  "S002": {
+    "case_type": "normal",
+    "truth_serial": "SN002X1002",
+    "method": "tesseract_fallback",
+    "text": "Lc Authorized Store\nTAKINVOICE\n\nInvoice Ne INV-2025-0002\n\nDate: 11-Jan-2025\n\nProduct OLEDS5C3\n\nBrand: L\n\nMadet OLED55:002\n\nseriat sNo02xt1002\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy"
+  },
+  "S003": {
+    "case_type": "normal",
+    "truth_serial": "SN003X1003",
+    "method": "tesseract_fallback",
+    "text": "sony Authorized Store\nTAKINVOICE\n\nInvoice Ne INV-2026-0003,\n\nDate 16-Jan-2025\n\nProduct BRAVIA.80\n\nBand Sony\n\nMad BRAVIA.OO3\n\nseriat sNoosxt003\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy"
+  },
+  "S004": {
+    "case_type": "normal",
+    "truth_serial": "SN004X1004",
+    "method": "tesseract_fallback",
+    "text": "Whirlpool Authorized Store\nTAKINVOICE\n\nInvoice Ne INV-2025-0004\n\nDate: 21-Jan-2025\n\nProduct WM-8KG-PRO\n\nBrand: Whitlpet\n\nModet WMeKG-004\n\nseriat sNooax1004\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy"
+  },
+  "S005": {
+    "case_type": "normal",
+    "truth_serial": "SN005X1005",
+    "method": "tesseract_fallback",
+    "text": "Beach Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2026-0005,\n\nDate: 26-Jan-2025\n\nProduct FRS2OL-INV\n\nBand: Bosch\n\nMad 320-005,\n\nseria: sNO0Sx1005\n\nWarranty 24 months manufacturer warranty\n\nCustomer Copy"
+  },
+  "S006": {
+    "case_type": "normal",
+    "truth_serial": "SN006X1006",
+    "method": "tesseract_fallback",
+    "text": "‘her Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2025-0008,\n\nDate 31-Jan-2025\n\nProduct 450 BATT\n\nBrand: Ather\n\nMad 450X808,\n\nseriat sNoosxt008\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy"
+  },
+  "S007": {
+    "case_type": "normal",
+    "truth_serial": "SN007X1007",
+    "method": "tesseract_fallback",
+    "text": "Tata Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2026-0007\n\nDate 05-Feb 2025\n\nProduct NEXON-EV-BATT\n\nBrand: Tata\n\nMadet NEXON-007\n\nseriat sNO07x1007\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy"
+  },
+  "S008": {
+    "case_type": "normal",
+    "truth_serial": "SN008X1008",
+    "method": "tesseract_fallback",
+    "text": "samsung Authorized Sore\nTAKINVOICE\n\nInvoice Ne INV:2025-0008,\n\nDate: 10-Feb 2025\n\nProduct Galaxy $24\n\nBrand: Samsung\n\nMadet GALAKY-008\n\nseriat sNooaxt008\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy"
+  },
+  "S009": {
+    "case_type": "normal",
+    "truth_serial": "SN009X1009",
+    "method": "tesseract_fallback",
+    "text": "‘Apple Authorized Store\nTAKINVOICE\n\nInvoice Ne INV-2026-0009\n\nDate 16-Feb 2025\n\nProduct iPhone 15\n\nBand: Apple\n\nMade IPHONE-009\n\nseriat sNo09x1009\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy"
+  },
+  "S010": {
+    "case_type": "normal",
+    "truth_serial": "SN010X1010",
+    "method": "tesseract_fallback",
+    "text": "Lc Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2025-0010\n\nDate: 20-Feb 2025\n\nProduct OLEDS5C3\n\nBrand: L\n\nMade OLEDS5:010\n\nseriat sNoTox1010\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy"
+  },
+  "S011": {
+    "case_type": "normal",
+    "truth_serial": "SN011X1011",
+    "method": "tesseract_fallback",
+    "text": "sony Authorized Store\nTAKINVOICE\n\nInvoice Ne INV2026-0011\n\nDate: 25-Feb 2025\n\nProduct BRAVIA.80\n\nBand Sony\n\nMade BRAVIAOTT\n\nseri sNO11X1011\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy"
+  },
+  "S012": {
+    "case_type": "normal",
+    "truth_serial": "SN012X1012",
+    "method": "tesseract_fallback",
+    "text": "Whirlpool Authorized Store\nTAKINVOICE\n\nInvoice Ne INV-2025-0012\n\nDate: 02-Mar-2025\n\nProduct WM-8KG-PRO\n\nBrand: Whitlpet\n\nMadet WMeKG-012\n\nseriat sNO12x1012\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy"
+  }
+}

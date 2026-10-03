@@ -113,10 +113,52 @@ def _parse_date(value: str | None) -> Optional[date]:
         return None
 
 
-def _update_warranty(db: Session, warranty_id: str, fields: Dict[str, Any]) -> Optional[WarrantyDB]:
+# Identity fields a later extraction pass may clear when it no longer finds them.
+_CLEARABLE_FIELDS = ("brand", "model_code", "serial_no")
+# Confidence the pipeline pass holds that an unfound field is absent. It has the full OCR text and
+# identity sanitisation, so it outranks regex guesses (<= 0.75) but never user overrides (>= 0.9).
+PIPELINE_ABSENT_CONFIDENCE = 0.8
+
+
+def _update_warranty(
+    db: Session,
+    warranty_id: str,
+    fields: Dict[str, Any],
+    confidence: Optional[Dict[str, float]] = None,
+    alternatives: Optional[Dict[str, Any]] = None,
+    absent_confidence: float = PIPELINE_ABSENT_CONFIDENCE,
+) -> Optional[WarrantyDB]:
+    """Write extracted fields onto the warranty row.
+
+    When the pass's ``confidence`` is given, stored identity values this pass did not find are
+    cleared if their stored confidence is below ``absent_confidence``, so a wrong value from an
+    earlier, weaker pass does not survive re-processing.
+    """
     warranty = db.query(WarrantyDB).filter_by(id=warranty_id).first()
     if not warranty:
         return None
+
+    if confidence is not None:
+        stored_confidence = dict(warranty.confidence or {})
+        cleared = []
+        for key in _CLEARABLE_FIELDS:
+            if fields.get(key) or not getattr(warranty, key):
+                continue
+            if float(stored_confidence.get(key) or 0.0) < absent_confidence:
+                setattr(warranty, key, None)
+                stored_confidence.pop(key, None)
+                cleared.append(key)
+        for key, value in confidence.items():
+            if fields.get(key):
+                stored_confidence[key] = value
+        warranty.confidence = stored_confidence
+        meta = dict(warranty.alternatives or {})
+        meta.update(alternatives or {})
+        if cleared:
+            meta["cleared_on_reprocess"] = cleared
+        else:
+            meta.pop("cleared_on_reprocess", None)
+        warranty.alternatives = meta
 
     if fields.get("product_name"):
         warranty.product_name = fields["product_name"]
@@ -208,7 +250,7 @@ def run_job(job_id: str) -> None:
                     created_at=datetime.utcnow(),
                 )
             )
-            warranty = _update_warranty(db, job.warranty_id, fields)
+            warranty = _update_warranty(db, job.warranty_id, fields, confidence, alternatives)
             if not warranty:
                 _set_job_status(db, job, "failed", error="warranty_not_found")
                 return

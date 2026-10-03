@@ -1631,8 +1631,12 @@ def create_artifact(payload: ArtifactRequest):
     return artifact
 
 
-def _minimal_upload_warranty(artifact, error: Exception) -> CanonicalWarranty:
-    """Keep upload usable even if initial synchronous parsing/persistence fails."""
+def _placeholder_upload_warranty(artifact) -> CanonicalWarranty:
+    """Create the warranty row for an upload; the invoice pipeline job fills in its fields.
+
+    Extraction runs once, in ``invoice_pipeline.run_job``, so the stored row comes from the pass
+    that has OCR fallback, identity sanitisation and optional enrichment applied.
+    """
     warranty = CanonicalWarranty(
         id=generate_id("wty"),
         product_name="Product",
@@ -1642,14 +1646,19 @@ def _minimal_upload_warranty(artifact, error: Exception) -> CanonicalWarranty:
             "Verify official OEM warranty terms before relying on claim coverage.",
         ],
         confidence={},
-        alternatives={
-            "initial_canonicalization_error": error.__class__.__name__,
-            "initial_canonicalization_error_detail": str(error)[:200],
-            "terms_source_type": "invoice_only",
-        },
+        alternatives={"terms_source_type": "invoice_only"},
         source_artifact_ids=[artifact.id],
     )
     return store.add_warranty(warranty)
+
+
+def _initial_analysis_after_job(user_id: str, warranty_id: str) -> None:
+    """Run onboarding/risk/expiry notifications once the pipeline has filled the warranty."""
+    try:
+        with SessionLocal() as analysis_db:
+            run_initial_analysis_and_notifications(analysis_db, user_id, warranty_id)
+    except Exception:
+        pass
 
 
 @app.post("/artifacts/upload", dependencies=[Depends(rbac_dependency)])
@@ -1712,20 +1721,10 @@ async def upload_artifact(
             "guardrail": guardrail,
         }
     
-    # Use existing warranty if provided, otherwise create new one
-    if warranty_id:
-        warranty = store.get_warranty_db(warranty_id)
-        if not warranty:
-            # Create new if specified ID doesn't exist
-            try:
-                warranty = canonicalize_artifact(artifact, None)
-            except Exception as exc:
-                warranty = _minimal_upload_warranty(artifact, exc)
-    else:
-        try:
-            warranty = canonicalize_artifact(artifact, None)
-        except Exception as exc:
-            warranty = _minimal_upload_warranty(artifact, exc)
+    # Use existing warranty if provided, otherwise create a placeholder row for the job to fill.
+    warranty = store.get_warranty_db(warranty_id) if warranty_id else None
+    if not warranty:
+        warranty = _placeholder_upload_warranty(artifact)
 
     # Ownership link for per-user data isolation in the UI.
     # Use a separate DB session so it still succeeds even if the job pipeline transaction fails.
@@ -1747,17 +1746,14 @@ async def upload_artifact(
     job_error = None
     if background_tasks is not None:
         background_tasks.add_task(invoice_pipeline.run_job, job.id)
+        background_tasks.add_task(_initial_analysis_after_job, current.username, warranty.id)
     else:
         # Fallback: Run synchronously if no background task runner
         try:
             invoice_pipeline.run_job(job.id)
         except Exception as e:
             job_error = str(e)
-    
-    try:
-        run_initial_analysis_and_notifications(db, current.username, warranty.id)
-    except Exception:
-        pass
+        _initial_analysis_after_job(current.username, warranty.id)
     _send_email_later(
         background_tasks,
         emailer_service.send_product_registered_email,
@@ -2416,7 +2412,7 @@ def capture_artifact(
     cv2.imwrite(str(dest), frame)
 
     artifact = ingest_artifact(type, file_path=str(dest), use_ocr=True, source="camera")
-    warranty = canonicalize_artifact(artifact, None)
+    warranty = _placeholder_upload_warranty(artifact)
     job = invoice_pipeline.create_job(
         db,
         warranty_id=warranty.id,
@@ -2425,10 +2421,10 @@ def capture_artifact(
     )
     if background_tasks is not None:
         background_tasks.add_task(invoice_pipeline.run_job, job.id)
-    try:
-        run_initial_analysis_and_notifications(db, current.username, warranty.id)
-    except Exception:
-        pass
+        background_tasks.add_task(_initial_analysis_after_job, current.username, warranty.id)
+    else:
+        invoice_pipeline.run_job(job.id)
+        _initial_analysis_after_job(current.username, warranty.id)
     _send_email_later(
         background_tasks,
         emailer_service.send_product_registered_email,
