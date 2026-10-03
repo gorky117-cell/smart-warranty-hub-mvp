@@ -1508,7 +1508,7 @@ printer/Epson-specific logic removed. Resume from the first unchecked box.
 - [x] Step 2 — Regression tests that lock in today's Samsung and printer/Epson outputs.
 - [x] Step 3 — Extraction safety (serial fallback, field clearing, duplicate first pass).
 - [x] Step 4 — OCR honesty (real health check, logged Paddle errors, engine in metadata, real-image test).
-- [ ] Step 5 — Truthful docs.
+- [x] Step 5 — Truthful docs.
 - [ ] Step 6 — Honest 50-sample baseline and CI floors.
 - [ ] Step 7 — Brand registry and domain preflight.
 - [ ] Step 8 — Product-scoped warranty duration.
@@ -1631,7 +1631,7 @@ Inventory of brand- or printer-specific logic (none removed or changed):
   fallback, clear-on-reprocess, override kept). `test_upload_returns_warranty_when_initial_canonicalization_fails`
   was rewritten as `test_upload_runs_extraction_once_in_pipeline` (asserts exactly one extraction call,
   job `done`, brand `Epson`).
-| 4 | (recorded in Step 5) | 249 passed (+6) | See 90.4. OCR engine unchanged. |
+| 4 | `c12105b5` | 249 passed (+6) | See 90.4. OCR engine unchanged. |
 
 ### 90.4 Step 4 — OCR honesty (2026-10-03)
 
@@ -1660,6 +1660,27 @@ Inventory of brand- or printer-specific logic (none removed or changed):
   verification are mocked (network). Skips if Tesseract is not installed. On S001 today the pipeline also
   stores product name `�Apple Authorized Store` (retailer header — wrong), coverage `38` (truth 36,
   OCR digit error), no model code, no invoice number; not asserted, measured in Step 6.
+| 5 | (recorded in Step 6) | 249 passed | See 90.5. Docs only. |
+
+### 90.5 Step 5 — truthful docs (2026-10-03)
+
+- Partner KPI values (39.29% / 26.04% / 2.6% / 20.4%) and "4/4 partner KPIs passing" removed from
+  `README.md` and `docs/INVESTOR_DEMO_KPI_BASELINE.md`; both now say partner KPIs are **not yet measured**
+  and why (`eval_partner_kpi_phase10a.py` draws baseline and "with SWH" values from `random.Random(101)`
+  multipliers and imports no `app` code). `data/partner_kpi_phase10a_eval_50.json` and the script are
+  unchanged.
+- "100% OCR success" / F1 claims relabelled "selectable-text PDFs only; image OCR not yet measured" in
+  `README.md`, `INVESTOR_DEMO_KPI_BASELINE.md` (OCR serial 0.925 row dropped, refinement item 1 rewritten),
+  `kpi_master_scorecard.md`, `complete_product_specification_and_kpi.md`, `ingestion_ocr_kpi_runbook.md`,
+  `COMPLETE_ARCHITECTURE_AUDIT.md`.
+- Predictive accuracy marked "unverified after scoring changes in MEMORY.md entries 87-88" in the same
+  files plus `predictive_phase4_runbook.md`.
+- README test count `122` → `249 passed` (2026-10-03).
+- Top-of-file disclaimer "Synthetic/controlled results - not production evidence." added to
+  `kpi_master_scorecard.md` and `complete_product_specification_and_kpi.md`.
+- Not changed (outside the listed scope): the 100% rows of other phase runbooks (nip/service/oem/kpi
+  phases), which already carry a synthetic note; the MEMORY.md section 11 table and entries ~914/925
+  (historical log — superseded by this entry).
 
 ### 90.x Open questions
 

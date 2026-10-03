@@ -612,10 +612,10 @@ KPI lifecycle:
 
 The source documents record the following controlled outcomes:
 
-- Ingestion/OCR 50-case dataset: OCR success 100%; field F1 varies by field.
+- Ingestion 50-case PDF dataset: text extraction success 100%; field F1 varies by field (selectable-text PDFs only; image OCR not yet measured).
 - Preflight/scraping 50-case dataset: 88% lookup/parse success; 100% official-source rate in the controlled set.
 - Terms NLP 50-case dataset: 100% duration exact/section completeness in the controlled set.
-- Predictive 50-case dataset: 100% label/delta accuracy in the controlled set.
+- Predictive 50-case dataset: 100% label/delta accuracy in the controlled set (unverified after scoring changes in MEMORY.md entries 87-88).
 - Nudge/service/OEM/KPI phase runbooks: scenario-level success/guardrail outcomes recorded.
 
 Allowed statement:

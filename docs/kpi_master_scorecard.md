@@ -1,5 +1,7 @@
 # Smart Warranty Hub - KPI Master Scorecard
 
+> **Synthetic/controlled results - not production evidence.**
+
 Date context: current project state as of February 22, 2026.  
 Primary evidence files: `data/*phase*eval*_50.json`
 
@@ -8,10 +10,10 @@ Primary evidence files: `data/*phase*eval*_50.json`
 Source: `data/ingestion_eval_current_50_pdf.json`
 
 1. Dataset rows: 50
-2. OCR success: 100.0%
+2. Text extraction success: 100.0% (selectable-text PDFs only; image OCR not yet measured; OCR did not run)
 3. OCR empty rate: 0.0%
 4. Latency P50/P95: 7.18 / 125.54 ms
-5. Field F1:
+5. Field F1 (selectable-text PDFs only; image OCR not yet measured):
    - brand: 0.8889
    - model_code: 0.6667
    - purchase_date: 0.8889
@@ -58,8 +60,8 @@ Source: `data/terms_nlp_eval_50.json`
 
 Source: `data/predictive_phase4_eval_50.json`
 
-1. Label accuracy: 100.0%
-2. Behaviour delta direction accuracy: 100.0%
+1. Label accuracy: 100.0% (unverified after scoring changes in MEMORY.md entries 87-88)
+2. Behaviour delta direction accuracy: 100.0% (unverified after scoring changes in MEMORY.md entries 87-88)
 3. Score monotonicity: true
 4. Latency P50/P95: 4.64 / 8.93 ms
 5. Risk refresh scored: 50 (first), 50 (second)

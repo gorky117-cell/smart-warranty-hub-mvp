@@ -15,7 +15,7 @@
 python scripts/eval_predictive_phase4.py --rows 50 --db data/predictive_phase4_eval.db --out data/predictive_phase4_eval_50.json --cases-out test_data/predictive_phase4_cases_50.json
 ```
 
-## Current KPI (50 cases)
+## Recorded KPI (50 cases, synthetic; unverified after scoring changes in MEMORY.md entries 87-88)
 - Label accuracy: `100%`
 - Behaviour delta direction accuracy: `100%`
 - Score separation:

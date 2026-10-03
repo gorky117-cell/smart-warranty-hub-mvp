@@ -12,8 +12,9 @@
 python scripts/eval_ingestion_ocr.py --csv test_data/ingestion_ocr_50_labeled_pdf.csv --out data/ingestion_eval_after_patch_v2_50_pdf.json
 ```
 
-## Current KPI result (50 samples)
-- OCR success: `100%`
+## Recorded KPI result (50 samples, selectable-text PDFs only; image OCR not yet measured)
+The PDFs embed selectable text (`scripts/generate_ingestion_ocr_dataset_pdf.py`), so extraction reads the text layer and OCR does not run. These F1 values say nothing about image OCR.
+- Text extraction success: `100%`
 - Brand F1: `1.00`
 - Model code F1: `1.00`
 - Purchase date F1: `1.00`

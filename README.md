@@ -14,16 +14,12 @@ The current repo is positioned for MVP/investor review, not full production scal
 
 ## Current Evidence Snapshot
 
-- Full local regression: `122 passed`
-- Phase 1C OCR PDF synthetic set: 50/50 processed, 100.0% OCR success
+- Full local regression: `249 passed` (2026-10-03)
+- Phase 1C ingestion set: 50 synthetic PDFs processed. These are selectable-text PDFs only; image OCR not yet measured: text came from the PDF text layer and OCR did not run.
+- Predictive risk accuracy (Phase 4): unverified after scoring changes in MEMORY.md entries 87-88.
 - Phase 8 KPI automation: 10/10 instrumented KPIs passing
-- Phase 10A partner KPI synthetic coverage: 4/4 partner KPIs passing
 - Phase 10B user journey synthetic coverage: 8/8 journey checks passing
-- Partner KPI synthetic values:
-  - TPA claim TAT improvement: 39.29%
-  - Retailer escalation reduction: 26.04%
-  - Supplier stockout rate: 2.6%
-  - Supplier excess inventory reduction: 20.4%
+- Partner KPIs (TPA claim turnaround, retailer escalations, supplier stockouts and excess inventory): **not yet measured**. `scripts/eval_partner_kpi_phase10a.py` generates both the baseline and the "with SWH" values from a seeded random generator and runs no SWH code, so its outputs are not evidence.
 
 Important claim boundary: these KPI numbers are controlled synthetic evaluation results, not live customer or partner production outcomes.
 

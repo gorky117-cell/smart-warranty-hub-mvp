@@ -1,5 +1,7 @@
 # Smart Warranty Hub - Complete Product Specification and KPI Record
 
+> **Synthetic/controlled results - not production evidence.**
+
 Date context: February 24, 2026  
 Primary sources: `docs/product_manual_smart_warranty_hub.md`, `docs/feature_catalog_exhaustive.md`, `docs/kpi_master_scorecard.md`, `docs/oem_dashboard_and_integration_manual.md`
 
@@ -109,10 +111,10 @@ Note: Metrics below are benchmark/evaluation artifacts from 50-case runs.
 
 ### 5.1 Phase 1C - Ingestion + OCR
 
-1. OCR success: 100.0%
+1. Text extraction success: 100.0% (selectable-text PDFs only; image OCR not yet measured; OCR did not run)
 2. OCR empty rate: 0.0%
 3. Latency P50/P95: 7.18 ms / 125.54 ms
-4. Field F1 highlights:
+4. Field F1 highlights (selectable-text PDFs only; image OCR not yet measured):
    - brand: 0.8889
    - model_code: 0.6667
    - purchase_date: 0.8889
@@ -138,8 +140,8 @@ Note: Metrics below are benchmark/evaluation artifacts from 50-case runs.
 
 ### 5.4 Phase 4 - Predictive
 
-1. Label accuracy: 100.0%
-2. Behavior delta direction accuracy: 100.0%
+1. Label accuracy: 100.0% (unverified after scoring changes in MEMORY.md entries 87-88)
+2. Behavior delta direction accuracy: 100.0% (unverified after scoring changes in MEMORY.md entries 87-88)
 3. Score monotonicity: true
 4. Latency P50/P95: 4.64 ms / 8.93 ms
 
