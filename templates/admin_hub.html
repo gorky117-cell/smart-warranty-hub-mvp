@@ -102,6 +102,12 @@
       <p>User: <strong>__SWH_CURRENT_USER__</strong> | Role: <strong>__SWH_CURRENT_ROLE__</strong></p>
     </section>
 
+    <section id="securityStatus" class="card" hidden style="border:2px solid #b42318;background:#fff4f2;margin-bottom:16px">
+      <h2 style="color:#b42318;margin-top:0">Security settings need attention</h2>
+      <ul id="securityWarnings"></ul>
+      <p style="font-size:13px">Settings are reported by name only; values are never shown. Nothing is changed automatically.</p>
+    </section>
+
     <section class="grid">
       <article class="card">
         <h2>User View (Neo)</h2>
@@ -151,6 +157,19 @@
         if (csrf) headers["X-CSRF-Token"] = decodeURIComponent(csrf);
         return headers;
       }
+      fetch("/admin/security-status", { credentials: "same-origin" })
+        .then(r => (r.ok ? r.json() : null))
+        .then(data => {
+          if (!data || !data.warnings || !data.warnings.length) return;
+          const list = document.getElementById("securityWarnings");
+          data.warnings.forEach(w => {
+            const li = document.createElement("li");
+            li.textContent = (w.level === "critical" ? "Critical: " : "Warning: ") + w.message;
+            list.appendChild(li);
+          });
+          document.getElementById("securityStatus").hidden = false;
+        })
+        .catch(() => {});
       const btn = document.getElementById("logoutBtn");
       const changeBtn = document.getElementById("changePasswordBtn");
       if (!btn) return;

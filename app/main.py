@@ -74,6 +74,7 @@ from .services import emailer as emailer_service
 from .services import telemetry_intelligence
 from .services import oem_aggregate as oem_aggregate_service
 from .services.runtime_safety import insecure_defaults_allowed
+from .services.security_status import https_redirect_target, security_report
 from .services.csrf import CSRF_COOKIE_NAME, new_csrf_token, validate_csrf
 from .services.rate_limiter import check_rate_limit
 from .services.ai_quota import check_and_consume as consume_ai_quota, usage_for as ai_usage_for
@@ -463,6 +464,25 @@ def dashboard_dev():
     if not dev_url:
         raise HTTPException(status_code=404, detail="Set VITE_DEV_URL to use the dev dashboard.")
     return RedirectResponse(dev_url)
+
+
+@app.middleware("http")
+async def force_https_redirect(request: Request, call_next):
+    # FORCE_HTTPS_REDIRECT was set in production but read by no code before fix run B4.
+    target = https_redirect_target(
+        request.headers.get("x-forwarded-proto"),
+        request.headers.get("host"),
+        request.url.path + (f"?{request.url.query}" if request.url.query else ""),
+    )
+    if target:
+        return RedirectResponse(target, status_code=308)
+    return await call_next(request)
+
+
+@app.get("/admin/security-status", dependencies=[Depends(require_admin)])
+def admin_security_status(db=Depends(get_db)):
+    """Admin-only: weak or risky security settings (names only, never values)."""
+    return security_report(db)
 
 
 @app.middleware("http")

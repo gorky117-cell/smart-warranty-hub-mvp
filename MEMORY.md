@@ -1903,7 +1903,7 @@ until the user approves at the end. Resume from the first unchecked box.
 - [x] B1 Redaction before any text/image reaches any AI provider (buyer details only, token masking).
 - [x] B2 OCR: skip failed Paddle for OCR_ENGINE_TTL_SEC; Tesseract eng in build; Playwright decision.
 - [x] B3 RAG out of the risk score; fix "no failures" vs "multiple failures" bug.
-- [ ] B4 Insecure-settings warning on the admin health page.
+- [x] B4 Insecure-settings warning on the admin health page.
 - [ ] B5 Serial from misread labels → unconfirmed suggestion confirmed in UI (keep Epson exception).
 - [ ] B6 Bugs: MG Road→MG, device→EV 36m, 120 months→20, Epson broken chars, kia.com/in.
 - [ ] B7 Remove only the redundant Samsung 12-month forcing.
@@ -2031,6 +2031,24 @@ the flags are unknown, so conditionally:
   (identical score for none / "no failures" / "multiple failures"), with flag "no failures" = baseline
   and "multiple failures" = baseline + 0.05.
 
+### 91.B4 Insecure-settings warning on the admin hub (2026-10-03)
+
+- New `app/services/security_status.py::security_report()` and admin-only `GET /admin/security-status`
+  (401/403 for others; `/health/full` stays public and unchanged so weaknesses are not advertised).
+  Reports by **name and kind only, never values**: ALLOW_INSECURE_DEFAULTS on (critical); insecure
+  defaults allowed because production is not detected; JWT_SECRET missing/short(<32)/common; JWT_SALT
+  missing; ADMIN_USER/ADMIN_PASS missing or ADMIN_PASS short(<12)/common; an admin account that still
+  accepts the built-in default password (critical, checked against the DB hash); COOKIE_SECURE off
+  (critical in production); COOKIE_SAMESITE invalid or `none`; FORCE_HTTPS_REDIRECT off in production;
+  ALLOWED_HOSTS empty in production; RATE_LIMIT_ENABLED off; SMTP without SSL/STARTTLS. Never raises.
+- `templates/admin_hub.html`: red "Security settings need attention" banner listing the messages; hidden
+  when there are none. Nothing is changed automatically; the app does not crash on any value.
+- `FORCE_HTTPS_REDIRECT` (set in production, previously read by **no** code) is now implemented as a
+  middleware: 308 to `https://<host><path>` only when the proxy sends `X-Forwarded-Proto: http`; requests
+  without the header (internal health checks) are never redirected. **Behaviour change on deploy** if the
+  production value is truthy.
+- Tests: new `tests/test_security_status.py` (5).
+
 ### 91.y Step log (each hash recorded by the next step's commit)
 
 | Step | Commit | Tests | Notes |
@@ -2038,9 +2056,12 @@ the flags are unknown, so conditionally:
 | A | `5a8b8be4` | 299 passed | Production check; docs only. |
 | B1 | `8d7865b3` | 307 passed (+8) | Redaction everywhere. |
 | B2 | `80adf7df` | 311 passed (+4) | Paddle back-off; tesseract-ocr-eng. |
-| B3 | (next) | 321 passed (+10) | RAG never moves score by default. |
+| B3 | `ad242961` | 321 passed (+10) | RAG never moves score by default. |
+| B4 | (next) | 326 passed (+5) | Admin security banner; HTTPS redirect implemented. |
 
 ### 91.x Open questions
 - Pin `paddlepaddle` (unpinned in requirements; production pulls 3.x and Paddle cannot read with
   paddleocr 2.8 models) or drop Paddle from the image (saves the 195 MB wheel)? User decision (OCR engine).
 - Playwright in the image: needs a real Docker build to measure size.
+- B4: confirm the production value of FORCE_HTTPS_REDIRECT before deploy — when truthy, plain-HTTP
+  requests (as reported by Railway's proxy) will now get a 308 to HTTPS.
