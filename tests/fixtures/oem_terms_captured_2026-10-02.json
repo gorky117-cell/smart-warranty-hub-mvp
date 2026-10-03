@@ -1,0 +1,54 @@
+{
+  "_note": "Parsed output of parse_terms_from_url() on the two curated official OEM pages, captured live on 2026-10-02. raw_text omitted. Used to lock in Samsung/Epson terms behaviour (work plan step 2).",
+  "samsung": {
+    "url": "https://www.samsung.com/in/support/warranty/",
+    "parsed": {
+      "duration_months": 60,
+      "terms": [
+        "Standard coverage for 60 months from purchase date.",
+        "Limited International One Year Warranty",
+        "Warranty does not cover normal wear and tear (including, without limitation, wear and tear of camera lenses, batteries or displays).",
+        "The limited warranty period of 1 year will apply, regardless of the warranty period of the country where the product was first sold.",
+        "The company's obligation under this warranty shall be limited to repair or providing replacement of part/s only.",
+        "The company's obligation under this warranty shall be limited to repairing or providing replacement of part/s, which are found to be defective.",
+        "In case of defect arising out of installation done by a party other than Samsung authorized party, the limited warranty will be applicable as per revised T&C as Samsung shall deem fit."
+      ],
+      "exclusions": [
+        "Warranty does not cover repair due to external factors/medium/data types.",
+        "If the product is not used as per its usage specifications(example: Personal, Commercial etc.)",
+        "If the product has failed under certain conditions/types(example: Waterlogging, Misuse etc.)",
+        "The original serial number is removed, obliterated or altered from the machine or cabinet.",
+        "Defects due to cause beyond control like lightning, abnormal voltage, acts of God or while in transit to service Center or purchaser's residence."
+      ],
+      "claim_steps": [
+        "Out of Warranty Repair Charges",
+        "Additional Support",
+        "Digital Service Center",
+        "Service Center",
+        "Type of Service (Handset) - Repair service carried at Samsung authorized service center.",
+        "Exchange warranty applicable at Samsung authorized service center. Warranty applicable from customer purchase date"
+      ],
+      "confidence": 1.0
+    }
+  },
+  "epson": {
+    "url": "https://www.epson.co.in/For-Home/Printers/EcoTank-Printers/Epson-EcoTank-L3250-A4-Wi-Fi-All-in-One-Ink-Tank-Printer/p/C11CJ67508",
+    "parsed": {
+      "duration_months": 12,
+      "terms": [
+        "Standard coverage for 12 months from purchase date.",
+        "Enjoy warranty coverage of up to 1 years or 30,000 prints, whichever comes first, for maximum value from your printer and freedom from worries over its maintenance.",
+        "Epson’s warranty includes coverage of printhead, which is most important for a printer designed for high volume printing."
+      ],
+      "exclusions": [],
+      "claim_steps": [
+        "Product Registration",
+        "Warranty Check",
+        "Check Repair Status",
+        "Service Center Locator",
+        "FOR SERVICE SUPPORT, CALL"
+      ],
+      "confidence": 0.8
+    }
+  }
+}

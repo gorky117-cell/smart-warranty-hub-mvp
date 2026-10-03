@@ -1505,7 +1505,7 @@ printer/Epson-specific logic removed. Resume from the first unchecked box.
 
 - [x] Step 0 — Checklist entry, corrected Paddle diagnosis, `.kiro` skill updated.
 - [x] Step 1 — Repo hygiene (cookies.txt tracking report, unpushed commits, .gitignore, untrack).
-- [ ] Step 2 — Regression tests that lock in today's Samsung and printer/Epson outputs.
+- [x] Step 2 — Regression tests that lock in today's Samsung and printer/Epson outputs.
 - [ ] Step 3 — Extraction safety (serial fallback, field clearing, duplicate first pass).
 - [ ] Step 4 — OCR honesty (real health check, logged Paddle errors, engine in metadata, real-image test).
 - [ ] Step 5 — Truthful docs.
@@ -1538,7 +1538,7 @@ A commit cannot contain its own hash, so each step's hash is written here by the
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
 | 0 | `d1be48c0` | 201 passed | Entry 90 added; the uncommitted entry 89 audit text was committed with it. |
-| 1 | (recorded in Step 2) | 201 passed | See 90.1. |
+| 1 | `d24d1f00` | 201 passed | See 90.1. |
 
 ### 90.1 Step 1 — repo hygiene (2026-10-03)
 
@@ -1554,8 +1554,52 @@ A commit cannot contain its own hash, so each step's hash is written here by the
 - Deploy check: the `Dockerfile` does not build the frontend and `frontend/dist` is not tracked, so
   untracking `node_modules` does not affect the image. A fresh clone needs `npm install` in `frontend/`
   to run Vite.
+| 2 | (recorded in Step 3) | 216 passed (+15) | See 90.2. No behaviour change. |
+
+### 90.2 Step 2 — Samsung and printer/Epson logic inventory and lock (2026-10-03)
+
+Inventory of brand- or printer-specific logic (none removed or changed):
+
+| File:line | What it corrects |
+|---|---|
+| `terms_lookup.py:195` `_looks_like_samsung_mobile_context()` | Detects a samsung.com page in a Samsung + mobile context. |
+| `terms_lookup.py:223` `_source_conflicts_product_context()` | Rejects Samsung notebook/PC warranty pages for a mobile product (auto and manual URL paths). |
+| `terms_lookup.py:254` `_normalize_result_for_context()` | Forces Samsung mobile to 12 months, drops 24m/2y/60m/5y/CoverPlus/extended/service-plan terms, drops news/alerts/community claim steps, inserts default Samsung claim steps when none remain. Patches the `max(durations)` defect. |
+| `warranty_parser.py:38-100` `_EXTENDED_PLAN_*` / `_NAV_MARKETING_REJECT_MARKERS` | CoverPlus, "verify your Epson", "about Epson", "Samsung Care" and similar marketing/extended-plan noise kept out of base terms and duration. |
+| `warranty_parser.py:166, 343-352` | Printhead/print head treated as a covered component, not a base duration. |
+| `ingestion.py:262, 327-329, 443-445, 653` | Galaxy/printer product-line keywords, Galaxy → mobile, printer category, Galaxy model code (e.g. `M17E`). |
+| `oem_adapters.py:58` | Samsung-only approved adapter (`samsung.com`, `samsungmobile.com`). |
+| `oem_parsers.py:29, 65` | Samsung compressor/panel/digital-inverter cues and CSS selectors. |
+| `product_recommendations.py:53-57, 185, 197, 279-282` | Printer care items, printer/phone category detection (`ecotank`, `galaxy`, `sm-`), OEM printhead/filter care. |
+| `behaviour_questions.py:28-31, 139-141, 200-206, 244-245` | Printer questions; printhead/filter prompts gated by category (filter blocked for phones). |
+| `summary_engine.py:343` | Printhead coverage bullet. |
+| `recommendation.py:80` | Galaxy/`sm-` → phone. |
+| `data/warranty_sources.json` | The only two real curated sources: Samsung India warranty page, Epson L3250 India product page. |
+
+- Live capture 2026-10-02 (`parse_terms_from_url`, one fetch each): Samsung India page → **60 months,
+  confidence 1.0**, 7 terms, 5 exclusions, 6 claim steps. Epson L3250 page → **12 months, confidence
+  0.8**, 3 terms, 0 exclusions, 5 claim steps. Stored without raw_text as
+  `tests/fixtures/oem_terms_captured_2026-10-02.json`.
+- New `tests/test_regression_samsung_epson_lock.py` (15 tests) runs `lookup_terms()` end to end with
+  network mocked and locks: Samsung IN → 12 months, exact terms/exclusions/claim steps, source
+  `approved_oem_source`; US Samsung source skipped for region IN; Samsung notebook page rejected
+  (auto → `internal://default_rules`, manual → `internal://manual_url_product_context_conflict`);
+  normalisation only for Samsung + mobile + samsung.com; Epson L3250 → 12 months, printhead and
+  30,000-prints terms, exact claim steps, `approved_oem_source`; CoverPlus never sets duration;
+  summary wording; Samsung adapter domains; category normalisation.
+- Already covered before this step (left as is): Samsung Galaxy M17e invoice parsing
+  (`test_invoice_pipeline.py:286-350`), Epson L3250 invoice parsing (`:233`), printer/phone question
+  gating (`test_phase5_behaviour_predictive.py:95-221`), printer care (`test_product_recommendations.py`).
 
 ### 90.x Open questions
 
 - `.kiro/skills/swh-extraction-audit/SKILL.md` is untracked. It was updated in Step 0 but left
   untracked, because adding `.kiro/` to the repo was not explicitly requested.
+- Live Epson parse contains U+FFFD (`Epson�s warranty includes ...`): the page is decoded with the
+  wrong charset somewhere in `parse_terms_from_url`. Not locked as an exact string; fix not in plan.
+- `oem_parsers.parse_oem_text()` Samsung/LG/Bosch/Whirlpool part-warranty regexes use `\s*:?(\d+)`, so
+  `"Compressor warranty: 10 years"` (space after colon) is not matched. Not in plan; not changed.
+- `terms_lookup._normalize_category()` checks `"ev"` before `"device"`, so any category containing
+  `device` (e.g. "electronic device") normalises to `ev` → 36-month default. Not in plan; not changed.
+- `_normalize_category("printer")` returns `general`, not `electronics`; the curated Epson source is
+  stored as `electronics`. Behaviour today is 12 months either way.
