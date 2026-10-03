@@ -25,6 +25,7 @@ from .notifications import create_oem_notification
 from .review_crawler import crawl_reviews_for_product
 from .summary_engine import summarize_warranty, build_structured_summary
 from .openai_intelligence import enrich_invoice_fields, merge_invoice_enrichment
+from .grounded_extraction import apply_grounded_extraction
 
 
 def _set_job_status(db: Session, job: PipelineJobDB, status: str, detail: str | None = None, error: str | None = None) -> None:
@@ -233,6 +234,12 @@ def run_job(job_id: str) -> None:
                     "error_type": exc.__class__.__name__,
                 }
             fields, confidence, alternatives = sanitize_invoice_identity_fields(fields, confidence, alternatives)
+            # Grounded AI for model/serial/invoice number; no-op unless GROUNDED_AI_EXTRACTION=1.
+            try:
+                fields, confidence, alternatives = apply_grounded_extraction(text, fields, confidence, alternatives)
+            except Exception as exc:
+                alternatives = dict(alternatives or {})
+                alternatives["grounded_ai"] = {"error": exc.__class__.__name__}
             if ocr_meta:
                 alternatives = dict(alternatives or {})
                 alternatives["ocr"] = ocr_meta

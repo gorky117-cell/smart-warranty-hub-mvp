@@ -153,12 +153,16 @@ def enrich_invoice_fields(
         },
         "required": ["fields", "confidence", "reasoning", "missing_fields"],
     }
+    from .grounded_extraction import redact_invoice_text
+
+    # Customer name/address/phone/e-mail never leave the machine (work plan step 9).
+    redacted_text, _counts = redact_invoice_text(raw_text)
     prompt = (
         "Extract only invoice/product facts that are visible in the text. "
         "Do not infer warranty coverage or legal terms. Empty string means not found.\n\n"
         f"Current deterministic fields: {json.dumps(current_fields, default=str)}\n"
         f"Current confidence: {json.dumps(current_confidence, default=str)}\n\n"
-        f"Invoice text:\n{raw_text[:_OPENAI_MAX_INPUT_CHARS]}"
+        f"Invoice text:\n{redacted_text[:_OPENAI_MAX_INPUT_CHARS]}"
     )
     try:
         response = client.responses.create(

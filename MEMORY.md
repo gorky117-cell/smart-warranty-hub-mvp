@@ -1512,7 +1512,7 @@ printer/Epson-specific logic removed. Resume from the first unchecked box.
 - [x] Step 6 — Honest 50-sample baseline and CI floors.
 - [x] Step 7 — Brand registry and domain preflight.
 - [x] Step 8 — Product-scoped warranty duration.
-- [ ] Step 9 — Prepare (not activate) grounded AI extraction.
+- [x] Step 9 — Prepare (not activate) grounded AI extraction.
 
 ### 90.0 Corrected Paddle diagnosis (supersedes 89.1 cause)
 
@@ -1776,7 +1776,7 @@ synthetic images.** Runtime 33 s.
   (`tests/test_brand_registry.py`): brand correct **2/8 before → 8/8 after**; seller name stored as brand
   **4/8 → 0/8** (Sri Lakshmi Electronics, Poorvika Mobiles, Ather Space Koramangala, Sangeetha Mobiles);
   no brand 2/8 → 0/8. New tests: 20.
-| 8 | (recorded in Step 9) | 283 passed (+12) | See 90.8. All Step 2 locks pass unchanged. |
+| 8 | `060fc91e` | 283 passed (+12) | See 90.8. All Step 2 locks pass unchanged. |
 
 ### 90.8 Step 8 — product-scoped warranty duration (2026-10-03)
 
@@ -1823,6 +1823,47 @@ synthetic images.** Runtime 33 s.
     the source becomes the PC page instead of default rules, and duration is blank instead of 12.
 - Tests: new `tests/test_duration_selection.py` (12, synthetic multi-product page). All 15 Step 2
   Samsung/Epson locks and the existing merge/lookup tests pass unchanged.
+| 9 | commit titled "Step 9: ..." (cannot self-reference; next entry records it) | 299 passed (+16) | See 90.9. Flag off; no key or provider enabled. |
+
+### 90.9 Step 9 — grounded AI extraction, prepared and OFF (2026-10-03)
+
+- New `app/services/grounded_extraction.py`, flag `GROUNDED_AI_EXTRACTION` (default `0`). When on, the
+  provider (default: the existing optional OpenAI lane, which still needs `OPENAI_ENABLED=1` +
+  `OPENAI_API_KEY`; neither is set, `openai` package still not installed) returns
+  `{value, source_line, confidence}` for `model_code`, `serial_no`, `invoice_no`.
+- Validation (`validate_ai_fields`) keeps a value only if the source line is verbatim in the text sent,
+  the value is in that line and in the original OCR text, confidence ≥ `GROUNDED_AI_MIN_CONFIDENCE`
+  (0.5), and plausibility passes: serial = letters+digits (`_plausible_serial`) or a Luhn-valid 15-digit
+  IMEI; invoice number has a digit and is not a date, HSN/SAC code, GSTIN or phone number; model code has
+  a digit and is not a date, HSN/SAC or spec fragment. Accepted values overlay the regex values (capped
+  at 0.9 confidence); rejected/absent → regex value or blank. Accepted/rejected reasons and redaction
+  counts go to `alternatives["grounded_ai"]`.
+- Redaction (`redact_invoice_text`) before anything leaves the machine: `Bill to / Ship to / Buyer /
+  Customer / Name / Address` blocks (label line + up to 4 following lines, stopping at invoice/product
+  lines), any address-like line (`ingestion._looks_like_address_text`), Indian mobile/landline numbers,
+  e-mail addresses, PIN codes on PIN/postal lines. Also applied to the **existing**
+  `openai_intelligence.enrich_invoice_fields()` prompt (still off by default) — it previously sent raw
+  invoice text. Trade-off: all address-like lines are redacted, including the seller's; on merged-column
+  PDF text a seller-address line can carry the invoice number and date (e.g. the Epson "SHOP NO-1 ...
+  TPM/4313/25-26 1-Jul-25" line), which the AI then cannot see.
+- Wired into `invoice_pipeline.run_job` after identity sanitisation; a no-op while the flag is off
+  (pipeline test asserts the provider is never called with the flag unset).
+- Tests: new `tests/test_grounded_extraction.py` (16, all AI responses mocked, synthetic invoice with
+  fictitious customer): flag default off; redaction removes name/address/phone/e-mail and keeps
+  invoice no/model/IMEI/HSN; provider sees only redacted text; grounded values accepted;
+  **hallucination**: invoice without a serial + AI-invented serial (invented source line, or real line
+  without the value) → serial blank; AI-reported absence stays blank; date/HSN/bad-IMEI/header/low
+  confidence/GSTIN rejected; pipeline uses AI values only with the flag on; existing enrichment prompt
+  redacted.
+- Side finding: `brand_registry` matches "MG Road" (address) as brand `MG` (ambiguous name in capitals).
+  Harmless in ingestion today because address detection runs first; noted.
+
+### 90.10 Final state of this run (2026-10-03)
+
+All nine steps done; nothing pushed. Test suite 201 → **299 passed** (1 Paddle ccache warning).
+Awaiting user decisions: OCR engine (PaddleOCR 3.x isolated env vs Tesseract + document AI), AI
+provider and key, pushing to GitHub, merging the two risk scorers, removing redundant Samsung patches,
+and the open questions below.
 
 ### 90.x Open questions
 
@@ -1849,3 +1890,5 @@ synthetic images.** Runtime 33 s.
   digits. The selector bypasses them for lookup duration; other users of `ParsedTerms.duration_months`
   and of `_sentences()` still see them. Fix in a later step?
 - Remove the now-redundant Samsung duration force (user decision, per plan).
+- Grounded AI redaction removes seller address lines too; acceptable, or limit to customer blocks?
+- `brand_registry`: "MG Road" → brand `MG`. Add road/street context to the ambiguity rule?
