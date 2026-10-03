@@ -225,6 +225,8 @@ def create_expiry_notifications(
     ntype, title, message = _expiry_payload(days_left, expiry_dt)
     if not ntype:
         return []
+    if ntype in ((getattr(w, "alternatives", None) or {}).get("expiry_suppressed_types") or []):
+        return []  # stage became due only because the expiry date was recalculated (fix run B11)
     if _notification_exists(db, user_id, warranty_id, ntype):
         return []
     severity = "critical" if ntype in ("expiry_due", "expiry_expired") else "warning"

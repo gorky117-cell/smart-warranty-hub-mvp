@@ -26,3 +26,8 @@ class Base(DeclarativeBase):
 
 engine = create_engine(DB_URL, echo=False, future=True, connect_args=connect_args)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False, future=True)
+
+# Recalculated expiry dates never trigger expiry reminders (fix run B11).
+from .services.expiry_guard import register as _register_expiry_guard  # noqa: E402
+
+_register_expiry_guard()
