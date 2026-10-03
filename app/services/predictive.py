@@ -1,6 +1,7 @@
 from collections import Counter
 from datetime import datetime, timedelta
 import logging
+import os
 import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -9,6 +10,12 @@ import joblib
 
 from ..models import PredictiveScore, TelemetryEvent
 from ..storage import store
+from .rag_signals import parse_rag_signals
+
+
+def _rag_risk_scoring_enabled() -> bool:
+    # Retrieved RAG text never changes the score unless explicitly enabled (fix run B3).
+    return os.getenv("RAG_RISK_SCORING", "0").strip().lower() in ("1", "true", "yes")
 from ..db import SessionLocal
 from ..db_models import BehaviourProfile, NudgeEvents, PeerReviewSignals, SymptomSearch, WarrantyDB
 from . import regional_policy as regional_policy_service
@@ -511,6 +518,7 @@ def score_warranty(user_id: str, warranty_id: str, product_type: Optional[str] =
     label, score_prob, proba = predictive_model.predict(vec)
     reasons: List[str] = []
     context_gaps: List[str] = []
+    rag_context: Optional[Dict[str, object]] = None
     proba_map: Dict[str, float] = {}
     if proba:
         labels = ["LOW", "MEDIUM", "HIGH"]
@@ -624,19 +632,21 @@ def score_warranty(user_id: str, warranty_id: str, product_type: Optional[str] =
 
                     ctx = "\n".join([c for c in [user_ctx, product_ctx] if c])
                     if ctx:
-                        ctx_low = ctx.lower()
-                        rag_delta = 0.0
-                        rag_reasons = []
-                        if any(k in ctx_low for k in ["failure", "error", "issue", "recall"]):
-                            rag_delta += 0.05
-                            rag_reasons.append("RAG signals show recent issues for this product/user.")
-                        if user_ctx and any(k in ctx_low for k in ["maintenance", "care", "clean"]):
-                            rag_delta -= 0.03
-                            rag_reasons.append("RAG signals show recent maintenance/care activity.")
-                        if rag_delta:
-                            risk_score = max(0.0, min(1.0, float(risk_score) + rag_delta))
-                        if rag_reasons:
-                            reasons = rag_reasons + reasons
+                        # Retrieved text is context, not device evidence. It is parsed with negations
+                        # and counts ("no failures" is not an issue) and reported separately; it moves
+                        # the score only when RAG_RISK_SCORING is explicitly enabled (fix run B3).
+                        rag_context = parse_rag_signals(ctx)
+                        user_signals = parse_rag_signals(user_ctx or "")
+                        if _rag_risk_scoring_enabled():
+                            rag_delta = 0.0
+                            if rag_context["issue_reports"]:
+                                rag_delta += 0.05
+                                reasons = ["RAG signals show recent issues for this product/user."] + reasons
+                            if user_signals["care_reports"]:
+                                rag_delta -= 0.03
+                                reasons = ["RAG signals show recent maintenance/care activity."] + reasons
+                            if rag_delta:
+                                risk_score = max(0.0, min(1.0, float(risk_score) + rag_delta))
             except Exception:
                 pass
     except Exception:
@@ -701,6 +711,7 @@ def score_warranty(user_id: str, warranty_id: str, product_type: Optional[str] =
             "usage_environment_factors": usage_environment_reasons,
             "context_gaps": context_gaps[:4],
         },
+        "rag_context": rag_context,
         "legal_warranty_separate": True,
         "disclaimer": "Care signal, not a guaranteed product failure prediction.",
     }

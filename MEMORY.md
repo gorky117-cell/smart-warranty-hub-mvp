@@ -1902,7 +1902,7 @@ until the user approves at the end. Resume from the first unchecked box.
 - [x] A  Production check (this section).
 - [x] B1 Redaction before any text/image reaches any AI provider (buyer details only, token masking).
 - [x] B2 OCR: skip failed Paddle for OCR_ENGINE_TTL_SEC; Tesseract eng in build; Playwright decision.
-- [ ] B3 RAG out of the risk score; fix "no failures" vs "multiple failures" bug.
+- [x] B3 RAG out of the risk score; fix "no failures" vs "multiple failures" bug.
 - [ ] B4 Insecure-settings warning on the admin health page.
 - [ ] B5 Serial from misread labels → unconfirmed suggestion confirmed in UI (keep Epson exception).
 - [ ] B6 Bugs: MG Road→MG, device→EV 36m, 120 months→20, Epson broken chars, kia.com/in.
@@ -2016,13 +2016,29 @@ the flags are unknown, so conditionally:
   carries `paddlepaddle` (latest 3.3.1, 195 MB wheel, unpinned). `HEADLESS_SCRAPE` stays dead in production.
 - Tests: new `tests/test_ocr_paddle_backoff.py` (4).
 
+### 91.B3 RAG out of the risk score; negation/count bug fixed (2026-10-03)
+
+- Bug (predictive.py RAG block): `any(k in ctx_low for k in ["failure","error","issue","recall"])` added
+  +0.05 for "no failures reported" exactly as for "multiple failures reported"; "maintenance/care/clean"
+  likewise matched "No maintenance recorded".
+- New `app/services/rag_signals.py::parse_rag_signals()` classifies each retrieved sentence: issue report
+  (with count: digits or several/multiple/many/repeated...), no-issue statement (no/zero/none/without/
+  not/never/free of within 3 words), care report (negation-aware).
+- `score_warranty()` now returns `rag_context` (`issue_reports`, `no_issue_statements`, `care_reports`,
+  `evidence`) and **never changes the score from RAG** unless `RAG_RISK_SCORING=1` (default off; not set in
+  production). With the flag, only real issue reports add +0.05 and only user-scoped care reports −0.03.
+- Tests: new `tests/test_rag_risk_signals.py` (10): 7 parse cases, care negation, default no score effect
+  (identical score for none / "no failures" / "multiple failures"), with flag "no failures" = baseline
+  and "multiple failures" = baseline + 0.05.
+
 ### 91.y Step log (each hash recorded by the next step's commit)
 
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
 | A | `5a8b8be4` | 299 passed | Production check; docs only. |
 | B1 | `8d7865b3` | 307 passed (+8) | Redaction everywhere. |
-| B2 | (next) | 311 passed (+4) | Paddle back-off; tesseract-ocr-eng. |
+| B2 | `80adf7df` | 311 passed (+4) | Paddle back-off; tesseract-ocr-eng. |
+| B3 | (next) | 321 passed (+10) | RAG never moves score by default. |
 
 ### 91.x Open questions
 - Pin `paddlepaddle` (unpinned in requirements; production pulls 3.x and Paddle cannot read with
