@@ -1504,7 +1504,7 @@ each step, measured numbers only, synthetic results labelled synthetic, no Samsu
 printer/Epson-specific logic removed. Resume from the first unchecked box.
 
 - [x] Step 0 — Checklist entry, corrected Paddle diagnosis, `.kiro` skill updated.
-- [ ] Step 1 — Repo hygiene (cookies.txt tracking report, unpushed commits, .gitignore, untrack).
+- [x] Step 1 — Repo hygiene (cookies.txt tracking report, unpushed commits, .gitignore, untrack).
 - [ ] Step 2 — Regression tests that lock in today's Samsung and printer/Epson outputs.
 - [ ] Step 3 — Extraction safety (serial fallback, field clearing, duplicate first pass).
 - [ ] Step 4 — OCR honesty (real health check, logged Paddle errors, engine in metadata, real-image test).
@@ -1537,7 +1537,23 @@ A commit cannot contain its own hash, so each step's hash is written here by the
 
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
-| 0 | (recorded in Step 1) | 201 passed | Entry 90 added; the uncommitted entry 89 audit text was committed with it. |
+| 0 | `d1be48c0` | 201 passed | Entry 90 added; the uncommitted entry 89 audit text was committed with it. |
+| 1 | (recorded in Step 2) | 201 passed | See 90.1. |
+
+### 90.1 Step 1 — repo hygiene (2026-10-03)
+
+- `cookies.txt` is **not tracked** and appears in **no commit on any ref** (`git log --all -- cookies.txt`
+  is empty after `git fetch origin`). It was already in `.gitignore`. The file was not opened.
+- Unpushed commits after `git fetch origin`: `origin/main..HEAD` = **168 commits** (origin/main is the
+  GitHub default branch and is far behind). `origin/master..HEAD` = **1 commit** (Step 0 only); local
+  `master` otherwise matches `origin/master`. Nothing was pushed.
+- `.gitignore` gained `frontend/node_modules/`, `pytest-cache-files-*/`, `tmp_*.py`, `.env*`
+  (`*.log`, `cookies.txt`, `.env` were already present).
+- Untracked with `git rm --cached` (local files kept): `frontend/node_modules/` (2,366 files),
+  `tmp_fix.py`, `vite-dev.log`. The `pytest-cache-files-*` folders and `cookies.txt` were never tracked.
+- Deploy check: the `Dockerfile` does not build the frontend and `frontend/dist` is not tracked, so
+  untracking `node_modules` does not affect the image. A fresh clone needs `npm install` in `frontend/`
+  to run Vite.
 
 ### 90.x Open questions
 
