@@ -1,6 +1,8 @@
 import os
+import re
 import time
 import io
+import logging
 import shutil
 import tempfile
 from importlib.util import find_spec
@@ -26,6 +28,14 @@ _OCR_ENGINE_TTL_SEC = int(os.getenv("OCR_ENGINE_TTL_SEC", "900"))
 
 _paddle_engine: Optional[object] = None
 _paddle_last_used: float = 0.0
+
+logger = logging.getLogger(__name__)
+
+# Health check OCRs this bundled image and expects the token below in the output.
+_HEALTH_IMAGE = Path(__file__).resolve().parents[1] / "assets" / "ocr_health_check.png"
+_HEALTH_EXPECTED_TOKEN = "2468"
+_HEALTH_TTL_SEC = int(os.getenv("OCR_HEALTH_TTL_SEC", "600"))
+_health_cache: Optional[Tuple[float, Dict[str, Any]]] = None
 
 
 def _now() -> float:
@@ -143,22 +153,44 @@ def run_tesseract_ocr(image_path: Path) -> Tuple[Optional[str], Optional[str]]:
         return None, f"Tesseract OCR failed: {exc}"
 
 
-def _run_image_ocr(path_obj: Path, engine: str) -> Tuple[Optional[str], Optional[str], str]:
-    """Run the configured image engine, preserving Tesseract as a safe fallback."""
+def _short_error(message: Optional[str], limit: int = 300) -> Optional[str]:
+    """Condense an engine error (Paddle returns whole tracebacks) to its decisive line."""
+    if not message:
+        return None
+    lines = [line.strip() for line in str(message).splitlines() if line.strip()]
+    decisive = [line for line in lines if re.search(r"\w*(Error|Exception)\s*:", line)]
+    operator = [line for line in lines if line.startswith("[operator")]
+    picked = " ".join((decisive[-1:] or lines[:1]) + operator[-1:])
+    prefix = lines[0].split(":", 1)[0] if ":" in lines[0] else ""
+    if prefix and not picked.startswith(prefix):
+        picked = f"{prefix}: {picked}"
+    return picked[:limit]
+
+
+def _run_image_ocr_with_meta(path_obj: Path, engine: str) -> Tuple[Optional[str], Optional[str], Dict[str, Any]]:
+    """Run the configured image engine with Tesseract as fallback; report which engine produced text."""
     if engine != "paddle":
         text, err = run_tesseract_ocr(path_obj)
-        return text, err, "tesseract"
+        return text, err, {"method": "tesseract", "engine": "tesseract" if text else None}
 
     text, paddle_err = run_paddle_ocr(path_obj)
     if text:
-        return text, None, "paddle"
+        return text, None, {"method": "paddle", "engine": "paddle"}
 
+    paddle_short = _short_error(paddle_err) or "PaddleOCR returned no text"
+    logger.warning("PaddleOCR failed for %s; trying Tesseract fallback: %s", path_obj.name, paddle_short)
     fallback_text, fallback_err = run_tesseract_ocr(path_obj)
     if fallback_text:
-        return fallback_text, None, "tesseract_fallback"
+        return fallback_text, None, {"method": "tesseract_fallback", "engine": "tesseract", "paddle_error": paddle_short}
 
-    errors = [message for message in (paddle_err, fallback_err) if message]
-    return None, "; ".join(errors) or "OCR produced no text", "paddle"
+    errors = [message for message in (paddle_short, _short_error(fallback_err)) if message]
+    return None, "; ".join(errors) or "OCR produced no text", {"method": "paddle", "engine": None, "paddle_error": paddle_short}
+
+
+def _run_image_ocr(path_obj: Path, engine: str) -> Tuple[Optional[str], Optional[str], str]:
+    """Run the configured image engine, preserving Tesseract as a safe fallback."""
+    text, err, meta = _run_image_ocr_with_meta(path_obj, engine)
+    return text, err, meta["method"]
 
 
 def _extract_pdf_text(path_obj: Path) -> Tuple[Optional[str], Optional[str]]:
@@ -202,6 +234,13 @@ def _extract_docx_text(path_obj: Path) -> Tuple[Optional[str], Optional[str]]:
 
 
 def _maybe_ocr_pdf(path_obj: Path) -> Tuple[Optional[str], Optional[str]]:
+    text, err, _info = _maybe_ocr_pdf_with_meta(path_obj)
+    return text, err
+
+
+def _maybe_ocr_pdf_with_meta(path_obj: Path) -> Tuple[Optional[str], Optional[str], Dict[str, Any]]:
+    """OCR rendered PDF pages; ``info`` records the engine that produced text and any Paddle error."""
+    info: Dict[str, Any] = {"engine": None}
     # Try pymupdf (fitz) first, then fall back to pdf2image
     try:
         import fitz  # pymupdf
@@ -222,10 +261,13 @@ def _maybe_ocr_pdf(path_obj: Path) -> Tuple[Optional[str], Optional[str]]:
                 pix.save(tmp_path)
                 
                 engine = _resolve_engine()
-                text, err, _used_engine = _run_image_ocr(Path(tmp_path), engine)
-                
+                text, err, page_meta = _run_image_ocr_with_meta(Path(tmp_path), engine)
+                if page_meta.get("paddle_error"):
+                    info["paddle_error"] = page_meta["paddle_error"]
+
                 if text:
                     all_text.append(text)
+                    info["engine"] = info["engine"] or page_meta.get("engine")
             finally:
                 try:
                     _os.unlink(tmp_path)
@@ -234,31 +276,33 @@ def _maybe_ocr_pdf(path_obj: Path) -> Tuple[Optional[str], Optional[str]]:
         
         doc.close()
         combined = "\n".join(all_text).strip()
-        return (combined if combined else None), None
+        return (combined if combined else None), None, info
     except ImportError:
         pass  # Fall through to pdf2image
     except Exception as exc:
-        return None, f"PDF OCR via pymupdf failed: {exc}"
-    
+        return None, f"PDF OCR via pymupdf failed: {exc}", info
+
     # Fallback to pdf2image (requires poppler)
     try:
         from pdf2image import convert_from_path  # type: ignore
     except Exception:
-        return None, "PDF OCR unavailable (install pdf2image/poppler or pymupdf)."
+        return None, "PDF OCR unavailable (install pdf2image/poppler or pymupdf).", info
     try:
         images = convert_from_path(str(path_obj), first_page=1, last_page=1)
         if not images:
-            return None, "PDF OCR failed: no pages rendered."
+            return None, "PDF OCR failed: no pages rendered.", info
         image = images[0]
         try:
             import pytesseract  # type: ignore
         except Exception as exc:
-            return None, f"Tesseract unavailable: {exc}"
+            return None, f"Tesseract unavailable: {exc}", info
         text = pytesseract.image_to_string(image)
         text = (text or "").strip()
-        return text if text else None, None
+        if text:
+            info["engine"] = "tesseract"
+        return text if text else None, None, info
     except Exception as exc:
-        return None, f"PDF OCR failed: {exc}"
+        return None, f"PDF OCR failed: {exc}", info
 
 
 def extract_text_with_meta(image_path: str, min_chars: int | None = None) -> Tuple[Optional[str], Optional[str], Dict[str, Any]]:
@@ -276,15 +320,15 @@ def extract_text_with_meta(image_path: str, min_chars: int | None = None) -> Tup
     if suffix in {".txt", ".md", ".log", ".json"}:
         try:
             text = path_obj.read_text(encoding="utf-8", errors="ignore").strip()
-            return (text if text else None), None, {"ocr_used": False, "method": "text"}
+            return (text if text else None), None, {"ocr_used": False, "method": "text", "engine": "text"}
         except Exception as exc:
-            return None, f"Text read failed: {exc}", {"ocr_used": False, "method": "text"}
+            return None, f"Text read failed: {exc}", {"ocr_used": False, "method": "text", "engine": None}
 
     if suffix == ".docx":
         text, err = _extract_docx_text(path_obj)
         if text:
-            return text, None, {"ocr_used": False, "method": "docx"}
-        return None, err or "DOCX extraction produced no content.", {"ocr_used": False, "method": "docx"}
+            return text, None, {"ocr_used": False, "method": "docx", "engine": "docx"}
+        return None, err or "DOCX extraction produced no content.", {"ocr_used": False, "method": "docx", "engine": None}
 
     if suffix == ".doc":
         return (
@@ -296,19 +340,22 @@ def extract_text_with_meta(image_path: str, min_chars: int | None = None) -> Tup
     if suffix == ".pdf":
         text, err = _extract_pdf_text(path_obj)
         if text and len(text) >= min_chars:
-            return text, None, {"ocr_used": False, "method": "pdf"}
-        ocr_text, ocr_err = _maybe_ocr_pdf(path_obj)
+            return text, None, {"ocr_used": False, "method": "pdf", "engine": "pdf"}
+        ocr_text, ocr_err, ocr_info = _maybe_ocr_pdf_with_meta(path_obj)
         if ocr_text:
-            return ocr_text, None, {"ocr_used": True, "method": "pdf_ocr"}
-        return text, ocr_err or err or "PDF text extraction produced no content.", {"ocr_used": False, "method": "pdf"}
+            return ocr_text, None, {"ocr_used": True, "method": "pdf_ocr", **ocr_info}
+        meta: Dict[str, Any] = {"ocr_used": False, "method": "pdf", "engine": "pdf" if text else None}
+        if ocr_info.get("paddle_error"):
+            meta["paddle_error"] = ocr_info["paddle_error"]
+        return text, ocr_err or err or "PDF text extraction produced no content.", meta
 
     engine = _resolve_engine()
-    text, err, used_engine = _run_image_ocr(path_obj, engine)
+    text, err, image_meta = _run_image_ocr_with_meta(path_obj, engine)
 
     if text:
-        log_action("ocr_call", f"engine={used_engine} path={image_path}")
-        return text, None, {"ocr_used": True, "method": used_engine}
-    return None, err or "OCR produced no text", {"ocr_used": True, "method": used_engine}
+        log_action("ocr_call", f"engine={image_meta['engine']} method={image_meta['method']} path={image_path}")
+        return text, None, {"ocr_used": True, **image_meta}
+    return None, err or "OCR produced no text", {"ocr_used": True, **image_meta}
 
 
 def extract_text(image_path: str) -> Tuple[Optional[str], Optional[str]]:
@@ -316,15 +363,52 @@ def extract_text(image_path: str) -> Tuple[Optional[str], Optional[str]]:
     return text, err
 
 
+def _probe_engine(name: str) -> Dict[str, Any]:
+    """OCR the bundled health image with one engine and check the expected token comes back."""
+    if name == "paddle" and find_spec("paddleocr") is None:
+        return {"ok": False, "error": "PaddleOCR package missing"}
+    runner = run_paddle_ocr if name == "paddle" else run_tesseract_ocr
+    try:
+        text, err = runner(_HEALTH_IMAGE)
+    except Exception as exc:  # pragma: no cover - runtime safeguard
+        text, err = None, f"{name} OCR raised: {exc}"
+    if text and _HEALTH_EXPECTED_TOKEN in text:
+        return {"ok": True, "error": None}
+    return {"ok": False, "error": _short_error(err) or f"{name} OCR did not read the test image (got {text!r})"}
+
+
+def health_report(force: bool = False) -> Dict[str, Any]:
+    """Run real OCR on a bundled test image; cached for OCR_HEALTH_TTL_SEC seconds."""
+    global _health_cache
+    if not force and _health_cache and (_now() - _health_cache[0]) < _HEALTH_TTL_SEC:
+        return _health_cache[1]
+    configured = _resolve_engine()
+    engines: Dict[str, Dict[str, Any]] = {}
+    if configured == "paddle":
+        engines["paddle"] = _probe_engine("paddle")
+    engines["tesseract"] = _probe_engine("tesseract")
+    configured_ok = engines.get(configured, {}).get("ok", False)
+    if configured_ok:
+        active = configured
+        detail = f"{'PaddleOCR' if configured == 'paddle' else 'Tesseract'} read the test image"
+    elif configured == "paddle" and engines["tesseract"]["ok"]:
+        active = "tesseract"
+        detail = f"{engines['paddle']['error']}; Tesseract fallback read the test image"
+    else:
+        active = None
+        detail = "; ".join(f"{name} failed: {probe['error']}" for name, probe in engines.items())
+    report = {
+        "ok": configured_ok,
+        "detail": detail,
+        "configured_engine": configured,
+        "active_engine": active,
+        "engines": engines,
+    }
+    _health_cache = (_now(), report)
+    return report
+
+
 def health() -> Tuple[bool, str]:
-    engine = _resolve_engine()
-    if engine == "paddle":
-        # Keep health checks lightweight: importing PaddleOCR can trigger model-host checks.
-        if find_spec("paddleocr") is not None:
-            return True, "PaddleOCR available (lazy)"
-        fallback_ok, fallback_err = _tesseract_ready()
-        if fallback_ok:
-            return True, "PaddleOCR package missing; Tesseract fallback ready"
-        return False, f"PaddleOCR package missing; Tesseract fallback unavailable: {fallback_err}"
-    ok, err = _tesseract_ready()
-    return ok, "Tesseract ready" if ok else (err or "Tesseract unavailable")
+    """True only when the configured engine actually reads the bundled test image."""
+    report = health_report()
+    return report["ok"], report["detail"]

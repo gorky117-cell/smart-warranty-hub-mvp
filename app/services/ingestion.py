@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Tuple
 
 from ..models import Artifact, ArtifactType
 from ..storage import generate_id, store
-from .ocr import extract_text
+from .ocr import extract_text_with_meta
 
 _KNOWN_OEMS = (
     "acer", "apple", "asus", "bajaj", "bosch", "brother", "canon", "dell", "dyson",
@@ -564,8 +564,14 @@ def ingest_artifact(
 ) -> Artifact:
     text_content = content or ""
     ocr_note = None
+    ocr_meta = None
     if file_path or use_ocr:
-        text, err = extract_text(file_path or "")
+        text, err, meta = extract_text_with_meta(file_path or "")
+        ocr_meta = {
+            "method": meta.get("method"),
+            "engine": meta.get("engine"),
+            "paddle_failed": bool(meta.get("paddle_error")),
+        }
         if text:
             text_content = text
         if err:
@@ -581,6 +587,7 @@ def ingest_artifact(
         type=artifact_type,
         content=text_content,
         source=source,
+        ocr_meta=ocr_meta,
     )
     return store.add_artifact(artifact)
 

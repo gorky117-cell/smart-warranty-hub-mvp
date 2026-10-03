@@ -1507,7 +1507,7 @@ printer/Epson-specific logic removed. Resume from the first unchecked box.
 - [x] Step 1 — Repo hygiene (cookies.txt tracking report, unpushed commits, .gitignore, untrack).
 - [x] Step 2 — Regression tests that lock in today's Samsung and printer/Epson outputs.
 - [x] Step 3 — Extraction safety (serial fallback, field clearing, duplicate first pass).
-- [ ] Step 4 — OCR honesty (real health check, logged Paddle errors, engine in metadata, real-image test).
+- [x] Step 4 — OCR honesty (real health check, logged Paddle errors, engine in metadata, real-image test).
 - [ ] Step 5 — Truthful docs.
 - [ ] Step 6 — Honest 50-sample baseline and CI floors.
 - [ ] Step 7 — Brand registry and domain preflight.
@@ -1590,7 +1590,7 @@ Inventory of brand- or printer-specific logic (none removed or changed):
 - Already covered before this step (left as is): Samsung Galaxy M17e invoice parsing
   (`test_invoice_pipeline.py:286-350`), Epson L3250 invoice parsing (`:233`), printer/phone question
   gating (`test_phase5_behaviour_predictive.py:95-221`), printer care (`test_product_recommendations.py`).
-| 3 | (recorded in Step 4) | 243 passed (+27) | See 90.3. |
+| 3 | `5f8686d2` | 243 passed (+27) | See 90.3. |
 
 ### 90.3 Step 3 — extraction safety (2026-10-03)
 
@@ -1631,6 +1631,35 @@ Inventory of brand- or printer-specific logic (none removed or changed):
   fallback, clear-on-reprocess, override kept). `test_upload_returns_warranty_when_initial_canonicalization_fails`
   was rewritten as `test_upload_runs_extraction_once_in_pipeline` (asserts exactly one extraction call,
   job `done`, brand `Epson`).
+| 4 | (recorded in Step 5) | 249 passed (+6) | See 90.4. OCR engine unchanged. |
+
+### 90.4 Step 4 — OCR honesty (2026-10-03)
+
+- `ocr.health_report()` (new) and `ocr.health()` now **run real OCR** on the bundled 2.5 KB image
+  `app/assets/ocr_health_check.png` ("OCR 2468") and require the token `2468` in the output. Paddle is
+  probed when it is the configured engine, Tesseract always. `ok` is True only when the **configured**
+  engine reads the image; `active_engine` says what will actually be used. Result cached
+  `OCR_HEALTH_TTL_SEC` (default 600 s). `/health/ocr` now returns the full report
+  (`ok`, `detail`, `configured_engine`, `active_engine`, `engines`); `/health/full` keeps `{ok, detail}`.
+- Measured on this machine: `ok=False`, `active_engine=tesseract`, detail
+  `PaddleOCR failed: NotFoundError: OneDnnContext does not have the input Filter. [operator < fused_conv2d > error]; Tesseract fallback read the test image`.
+  Latency: cold 6.8 s (Paddle init), forced warm 0.3 s, cached ~0 ms. Before this step the same
+  endpoint reported `ok=True, "PaddleOCR available (lazy)"`.
+- `_run_image_ocr_with_meta()` (new; `_run_image_ocr()` kept as a wrapper) logs the Paddle error at WARNING
+  (`app.services.ocr`) and returns `{"method", "engine", "paddle_error"}`; `_short_error()` reduces the
+  Paddle traceback to its decisive line. `extract_text_with_meta()` meta now always carries `engine`
+  (`pdf`, `paddle`, `tesseract`, `text`, `docx`, or None when nothing produced text) plus `paddle_error`
+  when Paddle failed. PDF page OCR reports its engine too.
+- Engine travels with the upload: `Artifact.ocr_meta` (in memory only, `{method, engine, paddle_failed}`;
+  the raw Paddle error is not exposed in API responses) is set by `ingest_artifact()`, and the pipeline
+  writes it to `warranty.alternatives["ocr"]` (or its own re-OCR meta when it re-OCRs short text).
+- Tests: new `tests/test_ocr_integration.py` (6). `test_real_image_ocr_pipeline_extracts_fields` runs
+  **real OCR on `S001.png`** (synthetic image) through `ingest_artifact` → placeholder → `run_job` and
+  asserts brand `Apple`, purchase date `2025-01-06`, serial not `TAKINVOICE` and in
+  {blank, `SN001X1001`, `SNO01X1001`}, and the recorded engine. Only OEM terms lookup and domain
+  verification are mocked (network). Skips if Tesseract is not installed. On S001 today the pipeline also
+  stores product name `�Apple Authorized Store` (retailer header — wrong), coverage `38` (truth 36,
+  OCR digit error), no model code, no invoice number; not asserted, measured in Step 6.
 
 ### 90.x Open questions
 

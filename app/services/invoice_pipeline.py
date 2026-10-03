@@ -203,10 +203,17 @@ def run_job(job_id: str) -> None:
                 if artifact and artifact.content:
                     text = artifact.content
             ocr_detail = "skipped"
+            cached_artifact = store.artifacts.get(job.artifact_id) if job.artifact_id else None
+            ocr_meta = dict(getattr(cached_artifact, "ocr_meta", None) or {})
             if job.source_path and len(text) < 200:
                 extracted, err, meta = extract_text_with_meta(job.source_path)
                 if extracted and len(extracted) > len(text):
                     text = extracted
+                    ocr_meta = {
+                        "method": meta.get("method"),
+                        "engine": meta.get("engine"),
+                        "paddle_failed": bool(meta.get("paddle_error")),
+                    }
                 if meta.get("ocr_used"):
                     ocr_detail = str(meta.get("method"))
             _set_job_status(db, job, "ocr_if_needed", detail=ocr_detail)
@@ -226,6 +233,9 @@ def run_job(job_id: str) -> None:
                     "error_type": exc.__class__.__name__,
                 }
             fields, confidence, alternatives = sanitize_invoice_identity_fields(fields, confidence, alternatives)
+            if ocr_meta:
+                alternatives = dict(alternatives or {})
+                alternatives["ocr"] = ocr_meta
             if openai_meta:
                 alternatives = dict(alternatives or {})
                 alternatives["openai_invoice_enrichment"] = openai_meta

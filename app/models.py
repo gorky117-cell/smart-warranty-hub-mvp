@@ -24,6 +24,8 @@ class Artifact(AppBaseModel):
     content: str
     source: Optional[str] = None
     received_at: datetime = Field(default_factory=datetime.utcnow)
+    # Which extractor produced `content` (method/engine/paddle_failed); in memory only, not persisted.
+    ocr_meta: Optional[Dict[str, Any]] = None
 
 
 class CanonicalWarranty(AppBaseModel):

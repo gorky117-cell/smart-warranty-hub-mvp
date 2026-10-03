@@ -595,8 +595,7 @@ def api_health():
 
 @app.get("/health/ocr")
 def health_ocr():
-    ok, detail = ocr_service.health()
-    return {"ok": ok, "detail": detail}
+    return ocr_service.health_report()
 
 
 @app.get("/health/llm")
