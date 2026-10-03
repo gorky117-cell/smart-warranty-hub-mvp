@@ -1,0 +1,305 @@
+{
+ "_note": "OCR text of test_data/ingestion_ocr_samples/*.png (synthetic images) from extract_text_with_meta(), captured 2026-10-03. Configured engine paddle failed on every image; text is Tesseract fallback. Used by tests/test_invoice_field_floors.py.",
+ "samples": {
+  "S001": {
+   "text": "‘Apple Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2026-0001\n\nDate: 06-Jan-2025\n\nProduct iPhone 15\n\nBand: Apple\n\nMad IPHONEOO1\n\nseriat SNO01X1001\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S002": {
+   "text": "Lc Authorized Store\nTAKINVOICE\n\nInvoice Ne INV-2025-0002\n\nDate: 11-Jan-2025\n\nProduct OLEDS5C3\n\nBrand: L\n\nMadet OLED55:002\n\nseriat sNo02xt1002\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S003": {
+   "text": "sony Authorized Store\nTAKINVOICE\n\nInvoice Ne INV-2026-0003,\n\nDate 16-Jan-2025\n\nProduct BRAVIA.80\n\nBand Sony\n\nMad BRAVIA.OO3\n\nseriat sNoosxt003\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S004": {
+   "text": "Whirlpool Authorized Store\nTAKINVOICE\n\nInvoice Ne INV-2025-0004\n\nDate: 21-Jan-2025\n\nProduct WM-8KG-PRO\n\nBrand: Whitlpet\n\nModet WMeKG-004\n\nseriat sNooax1004\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S005": {
+   "text": "Beach Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2026-0005,\n\nDate: 26-Jan-2025\n\nProduct FRS2OL-INV\n\nBand: Bosch\n\nMad 320-005,\n\nseria: sNO0Sx1005\n\nWarranty 24 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S006": {
+   "text": "‘her Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2025-0008,\n\nDate 31-Jan-2025\n\nProduct 450 BATT\n\nBrand: Ather\n\nMad 450X808,\n\nseriat sNoosxt008\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S007": {
+   "text": "Tata Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2026-0007\n\nDate 05-Feb 2025\n\nProduct NEXON-EV-BATT\n\nBrand: Tata\n\nMadet NEXON-007\n\nseriat sNO07x1007\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S008": {
+   "text": "samsung Authorized Sore\nTAKINVOICE\n\nInvoice Ne INV:2025-0008,\n\nDate: 10-Feb 2025\n\nProduct Galaxy $24\n\nBrand: Samsung\n\nMadet GALAKY-008\n\nseriat sNooaxt008\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S009": {
+   "text": "‘Apple Authorized Store\nTAKINVOICE\n\nInvoice Ne INV-2026-0009\n\nDate 16-Feb 2025\n\nProduct iPhone 15\n\nBand: Apple\n\nMade IPHONE-009\n\nseriat sNo09x1009\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S010": {
+   "text": "Lc Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2025-0010\n\nDate: 20-Feb 2025\n\nProduct OLEDS5C3\n\nBrand: L\n\nMade OLEDS5:010\n\nseriat sNoTox1010\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S011": {
+   "text": "sony Authorized Store\nTAKINVOICE\n\nInvoice Ne INV2026-0011\n\nDate: 25-Feb 2025\n\nProduct BRAVIA.80\n\nBand Sony\n\nMade BRAVIAOTT\n\nseri sNO11X1011\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S012": {
+   "text": "Whirlpool Authorized Store\nTAKINVOICE\n\nInvoice Ne INV-2025-0012\n\nDate: 02-Mar-2025\n\nProduct WM-8KG-PRO\n\nBrand: Whitlpet\n\nMadet WMeKG-012\n\nseriat sNO12x1012\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S013": {
+   "text": "Beach Authorized Store\nTAKINVOICE\n\nInvoice Ne INV-2026-0013,\n\nDate 07-Mar-2025\n\nProduct FRS2OL-INV\n\nBand: Bosch\n\nMad FR320.013,\n\nseriat sNo1ax1013\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S014": {
+   "text": "‘her Authorized Store\nTAKINVOICE\n\nInvoice Ne INV-2025-0014\n\nDate: 12-Mar-2025\n\nProduct 450 BATT\n\nBrand: Ather\n\nMad 450X8014\n\nseri sNoTaxIO1a\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S015": {
+   "text": "Tata Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2026-0015\n\nDate: 17-Mar-2025\n\nProduct NEXON-EV-BATT\n\nBrand: Tata\n\nMadet NEXONO15\n\nseriat SNO1SX1015\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S016": {
+   "text": "samsung Authorized Sore\nTAKINVOICE\n\nInvoice Ne INV:2025-0018\n\nDate 22-Mar-2025\n\nProduct Galaxy $24\n\nBrand: Samsung\n\nMadet GALAKY.018\n\nseriat sNoTex1018\n\nWarranty 24 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S017": {
+   "text": "‘Apple Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2026-0017\n\nDate: 27-Mar-2025\n\nProduct iPhone 15\n\nBand: Apple\n\nMadet PHONEO17\n\nseriat SNO17x1017\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S018": {
+   "text": "Lc Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2025-0018\n\nDate: 01-Apr-2025\n\nProduct OLEDS5C3\n\nBrand: L\n\nMade OLEDS5.018\n\nseriat sNOTExIO18\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S019": {
+   "text": "sony Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2026-0019\n\nDate: 08-Apr-2025\n\nProduct BRAVIA.80\n\nBand Sony\n\nMadt BRAVIAOTS\n\nseriat sNOT9xI019\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S020": {
+   "text": "Whirlpool Authorized Store\nTAKINVOICE\n\nInvoice Ne INV-2025-0020\n\nDate: 11-Apr-2025\n\nProduct WM-8KG-PRO\n\nBrand: Whitlpet\n\nMadet WiMax -020\n\nseriat sNoz0x1020\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S021": {
+   "text": "Beach Authorized Store\nTAKINVOICE\n\nInvoice Ne INV-2026-0021\n\nDate: 16-Apr-2025\n\nProduct FRS2OL-INV\n\nBand: Bosch\n\nMadet FR320.021\n\nserit sNo21x1021\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S022": {
+   "text": "‘her Authorized Store\nTAKINVOICE\n\nInvoice Ne INV-2025-0022\n\nDate: 21-Apr-2025\n\nProduct 450 BATT\n\nBrand: Ather\n\nMad 450x8022\n\nseriat sNo22x1022\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S023": {
+   "text": "Tata Authorized Store\nTAKINVOICE\n\nInvoice Ne INV-2026-0028,\n\nDate: 26-Apr-2025\n\nProduct NEXON-EV-BATT\n\nBrand: Tata\n\nMadet NEXON023,\n\nseriat sNozaxto23\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S024": {
+   "text": "samsung Authorized Sore\nTAKINVOICE\n\nInvoice Ne INV-2025-0024\n\nDate 01-May-2028\n\nProduct Galaxy $24\n\nBrand: Samsung\n\nMadet GALAX¥024\n\nserit sNozax024\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S025": {
+   "text": "‘Apple Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2026-0025\n\nDate 06-May-2028\n\nProduct iPhone 15\n\nBand: Apple\n\nMad IPHONE.025\n\nseriat sNo25x1025\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S026": {
+   "text": "Lc Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2025-0026,\n\nDate: 17-May-2025\n\nProduct OLEDS5C3\n\nBrand: L\n\nMade OLED55:028\n\nseriat sNo2ext028\n\nWarranty: 12 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S027": {
+   "text": "sony Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2026-0027\n\nDate 16-May-2025\n\nProduct BRAVIA.80\n\nBand Sony\n\nModet BRAVIAO27\n\nseriat sNo27x1027\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S028": {
+   "text": "Whirlpool Authorized Store\nTAKINVOICE\n\nInvoice Ne INV-2025-0028,\n\nDate: 21-May-2028\n\nProduct WM-8KG-PRO\n\nBrand: Whitlpet\n\nMadet WiMaKG-028\n\nseriat sNo2ext028\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S029": {
+   "text": "Beach Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2026-0028\n\nDate 26-May-2025\n\nProduct FRS2OL-INV\n\nBand: Bosch\n\nMad 320.020\n\nseriat sNo29x1029\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S030": {
+   "text": "‘her Authorized Store\nTAKINVOICE\n\nInvoice Ne INV:2025-0030\n\nDate 31-May-2025\n\nProduct 450 BATT\n\nBrand: Ather\n\nMade 4508030\n\nseriat sNo3ox1030\n\nWarranty 38 months manufacturer warranty\n\nCustomer Copy",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S031": {
+   "text": null,
+   "error": "PaddleOCR failed: NotFoundError: OneDnnContext does not have the input Filter. [operator < fused_conv2d > error]",
+   "method": "paddle",
+   "engine": null
+  },
+  "S032": {
+   "text": null,
+   "error": "PaddleOCR failed: NotFoundError: OneDnnContext does not have the input Filter. [operator < fused_conv2d > error]",
+   "method": "paddle",
+   "engine": null
+  },
+  "S033": {
+   "text": null,
+   "error": "PaddleOCR failed: NotFoundError: OneDnnContext does not have the input Filter. [operator < fused_conv2d > error]",
+   "method": "paddle",
+   "engine": null
+  },
+  "S034": {
+   "text": null,
+   "error": "PaddleOCR failed: NotFoundError: OneDnnContext does not have the input Filter. [operator < fused_conv2d > error]",
+   "method": "paddle",
+   "engine": null
+  },
+  "S035": {
+   "text": null,
+   "error": "PaddleOCR failed: NotFoundError: OneDnnContext does not have the input Filter. [operator < fused_conv2d > error]",
+   "method": "paddle",
+   "engine": null
+  },
+  "S036": {
+   "text": null,
+   "error": "PaddleOCR failed: NotFoundError: OneDnnContext does not have the input Filter. [operator < fused_conv2d > error]",
+   "method": "paddle",
+   "engine": null
+  },
+  "S037": {
+   "text": null,
+   "error": "PaddleOCR failed: NotFoundError: OneDnnContext does not have the input Filter. [operator < fused_conv2d > error]",
+   "method": "paddle",
+   "engine": null
+  },
+  "S038": {
+   "text": null,
+   "error": "PaddleOCR failed: NotFoundError: OneDnnContext does not have the input Filter. [operator < fused_conv2d > error]",
+   "method": "paddle",
+   "engine": null
+  },
+  "S039": {
+   "text": null,
+   "error": "PaddleOCR failed: NotFoundError: OneDnnContext does not have the input Filter. [operator < fused_conv2d > error]",
+   "method": "paddle",
+   "engine": null
+  },
+  "S040": {
+   "text": null,
+   "error": "PaddleOCR failed: NotFoundError: OneDnnContext does not have the input Filter. [operator < fused_conv2d > error]",
+   "method": "paddle",
+   "engine": null
+  },
+  "S041": {
+   "text": "Fresh Grocery Mart\nRETAILBILL\n\nBill Nar BILL-2026-0441\n\nDate: 21-05-2028\n\nhems sweets snacks grocery\nays\n\nTotal 850\n\nThank you, vsitagain",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S042": {
+   "text": "City Bakery\n\nRETAILBILL\n\nBill Nar BILL-2025-0442\n\nDate: 26-05-2028\n\nhems sweets snacks grocery\nays\n\nTotal 850\n\nThank you, vsitagain",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S043": {
+   "text": "Veggie World\nRETAILBILL\n\nBill Nar BILL-2026.0443\n\nDate: 31-05-2028\n\nhems sweets snacks grocery\nays\n\nTotal 850\n\nThank you, vsitagain",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S044": {
+   "text": "(Quick Shacks Point\nRETAILBILL\n\nBill Nar BILL-2025-0444\n\nDate: 05-08-2028\n\nhems sweets snacks grocery\nays\n\nTotal 850\n\nThank you, vsitagain",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S045": {
+   "text": "‘SweetCorner\nRETAILBILL\n\nBill Nar BILL-2026-0445\n\nDate: 10-08-2028\n\nhems sweets snacks grocery\nays\n\nTotal 850\n\nThank you, vsitagain",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S046": {
+   "text": "Fresh Grocery Mart\nRETAILBILL\n\nBill Nar BILL-2025-0448\n\nDate: 16-08-2028\n\nhems sweets snacks grocery\nays\n\nTotal 850\n\nThank you, vsitagain",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S047": {
+   "text": "City Bakery\n\nRETAILBILL\n\nBill Nac BILL-2028-0447\n\nDate: 20-08-2028\n\nhems sweets snacks grocery\nays\n\nTotal 850\n\nThank you, vsitagain",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S048": {
+   "text": "Veggie World\nRETAILBILL\n\nBill Nar BILL-2025-0448\n\nDate: 25-08-2028\n\nhems sweets snacks grocery\nays\n\nTotal 850\n\nThank you, vsitagain",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S049": {
+   "text": "(Quick Shacks Point\nRETAILBILL\n\nBill Nar BILL-2026-0449\n\nDate: 30-08-2028\n\nhems sweets snacks grocery\nays\n\nTotal 850\n\nThank you, vsitagain",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  },
+  "S050": {
+   "text": "‘SweetCorner\nRETAILBILL\n\nBill Nar BILL-2025-0450\n\nDate: 05-07-2028\n\nhems sweets snacks grocery\nays\n\nTotal 850\n\nThank you, vsitagain",
+   "error": null,
+   "method": "tesseract_fallback",
+   "engine": "tesseract"
+  }
+ }
+}

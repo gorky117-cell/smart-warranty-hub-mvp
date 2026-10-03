@@ -1509,7 +1509,7 @@ printer/Epson-specific logic removed. Resume from the first unchecked box.
 - [x] Step 3 — Extraction safety (serial fallback, field clearing, duplicate first pass).
 - [x] Step 4 — OCR honesty (real health check, logged Paddle errors, engine in metadata, real-image test).
 - [x] Step 5 — Truthful docs.
-- [ ] Step 6 — Honest 50-sample baseline and CI floors.
+- [x] Step 6 — Honest 50-sample baseline and CI floors.
 - [ ] Step 7 — Brand registry and domain preflight.
 - [ ] Step 8 — Product-scoped warranty duration.
 - [ ] Step 9 — Prepare (not activate) grounded AI extraction.
@@ -1660,7 +1660,7 @@ Inventory of brand- or printer-specific logic (none removed or changed):
   verification are mocked (network). Skips if Tesseract is not installed. On S001 today the pipeline also
   stores product name `�Apple Authorized Store` (retailer header — wrong), coverage `38` (truth 36,
   OCR digit error), no model code, no invoice number; not asserted, measured in Step 6.
-| 5 | (recorded in Step 6) | 249 passed | See 90.5. Docs only. |
+| 5 | `8d788085` | 249 passed | See 90.5. Docs only. |
 
 ### 90.5 Step 5 — truthful docs (2026-10-03)
 
@@ -1681,6 +1681,40 @@ Inventory of brand- or printer-specific logic (none removed or changed):
 - Not changed (outside the listed scope): the 100% rows of other phase runbooks (nip/service/oem/kpi
   phases), which already carry a synthetic note; the MEMORY.md section 11 table and entries ~914/925
   (historical log — superseded by this entry).
+| 6 | (recorded in Step 7) | 251 passed (+2) | See 90.6. |
+
+### 90.6 Step 6 — honest image-OCR baseline and CI floors (2026-10-03)
+
+Measured with `scripts/measure_invoice_fields.py` (new): real `extract_text_with_meta()` on each image of
+`test_data/ingestion_ocr_50_labeled.csv` → `extract_product_fields()` (includes identity sanitisation;
+AI enrichment off). Exact match after case/whitespace normalisation, dates to ISO. **All samples are
+synthetic images.** Runtime 33 s.
+
+- Engines: configured Paddle produced text on **0/50** images. 40 → `tesseract_fallback`; 10 (`hard_ocr`)
+  → no text from either engine.
+- `normal` case, 30 labelled images (correct / wrong / missing):
+
+| Field | Correct | Wrong | Missing |
+|---|---|---|---|
+| `brand` | 26 (86.7%) | 0 | 4 |
+| `product_category` | 26 (86.7%) | 0 | 4 |
+| `purchase_date` | 24 (80.0%) | 6 | 0 |
+| `coverage_months` | 16 (53.3%) | 14 | 0 |
+| `model_code` | 0 (0.0%) | 1 | 29 |
+| `serial_no` | 0 (0.0%) | 30 | 0 |
+| `invoice_no` | 0 (0.0%) | 0 | 30 |
+
+- `hard_ocr` case, 10 labelled images: every field missing (no OCR text).
+- `non_warranty` case, 10 bills: 0 fields extracted (no false positives).
+- Same as entry 89.2 for every field except `serial_no`. Scoring the same cached OCR text with the
+  pre-Step-3 code (`c251e6e0`, temporary worktree, removed): serial was 15 wrong (all `TAKINVOICE`) +
+  15 missing; now 0 `TAKINVOICE` but **30 wrong** — the 15 previously blank samples now store the
+  OCR-garbled value from the `seriat` label line (e.g. `SNO01X1001` for `SN001X1001`) at confidence 0.5.
+  Per the plan's rule ("allow OCR variants like seriat") these are accepted; see open questions.
+- CI floors: `tests/test_invoice_field_floors.py` — fails if any `normal` field's correct count drops
+  below the table, any wrong count rises above it, `TAKINVOICE` reappears, or a non-warranty bill yields
+  a field. Runs on the captured OCR text (`tests/fixtures/ocr_text_50.json`, deterministic) and again
+  with real OCR when Tesseract is installed (~30 s; Docker image has `tesseract-ocr`).
 
 ### 90.x Open questions
 
@@ -1696,3 +1730,6 @@ Inventory of brand- or printer-specific logic (none removed or changed):
   stored as `electronics`. Behaviour today is 12 months either way.
 - Step 3 deviation: keep or drop the narrowed unlabelled serial fallback (see 90.3)? Dropping it blanks
   the Epson L3250 production invoice serial and requires changing the entry 63 test.
+- Serial values read next to an OCR-variant label (`seriat`, confidence 0.5) are garbled on all 30
+  synthetic `normal` images (30 wrong, 0 correct). Should values from OCR-variant labels be left blank
+  (giving 0 wrong / 30 missing) until OCR improves? Kept per plan wording for now.

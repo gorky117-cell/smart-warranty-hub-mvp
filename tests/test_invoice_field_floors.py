@@ -1,0 +1,67 @@
+"""Per-field accuracy floors on the labelled 50-sample invoice set (work plan step 6).
+
+Floors are the exact-match counts measured on 2026-10-03 (MEMORY.md 90.6). A change that lowers any
+`correct` count, raises a `wrong` count, or reintroduces `TAKINVOICE` fails here. Raise a floor when
+a change genuinely improves it. Samples are synthetic.
+
+- `test_field_floors_on_cached_ocr_text` scores the captured OCR text, so it checks extraction code
+  deterministically on any machine.
+- `test_field_floors_with_real_ocr` re-runs real image OCR (needs Tesseract; ~30 s).
+"""
+
+import csv
+import importlib.util
+import json
+from pathlib import Path
+
+import pytest
+
+from app.services import ocr
+
+ROOT = Path(__file__).resolve().parents[1]
+_spec = importlib.util.spec_from_file_location("measure_invoice_fields", ROOT / "scripts" / "measure_invoice_fields.py")
+measure = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(measure)
+
+ROWS = list(csv.DictReader(open(ROOT / "test_data" / "ingestion_ocr_50_labeled.csv", encoding="utf-8")))
+CACHED = json.loads((ROOT / "tests" / "fixtures" / "ocr_text_50.json").read_text(encoding="utf-8"))["samples"]
+
+# Minimum correct per field, `normal` case (30 labelled synthetic images), measured 2026-10-03.
+MIN_CORRECT = {
+    "brand": 26,
+    "model_code": 0,
+    "purchase_date": 24,
+    "serial_no": 0,
+    "invoice_no": 0,
+    "coverage_months": 16,
+    "product_category": 26,
+}
+# Maximum confidently-wrong values per field, same set.
+MAX_WRONG = {
+    "brand": 0,
+    "model_code": 1,
+    "purchase_date": 6,
+    "serial_no": 30,
+    "invoice_no": 0,
+    "coverage_months": 14,
+    "product_category": 0,
+}
+
+
+def _assert_floors(report):
+    normal = report["fields_by_case"]["normal"]
+    for field in measure.FIELDS:
+        counts = normal[field]
+        assert counts.get("correct", 0) >= MIN_CORRECT[field], (field, counts)
+        assert counts.get("wrong", 0) <= MAX_WRONG[field], (field, counts)
+        assert counts.get("takinvoice", 0) == 0, (field, counts)
+    assert report["non_warranty_false_positive_fields"] == {}
+
+
+def test_field_floors_on_cached_ocr_text():
+    _assert_floors(measure.score(ROWS, CACHED))
+
+
+@pytest.mark.skipif(not ocr._tesseract_ready()[0], reason="Tesseract not installed")
+def test_field_floors_with_real_ocr():
+    _assert_floors(measure.score(ROWS, measure.ocr_texts(ROWS, ROOT)))
