@@ -36,8 +36,9 @@ class ParsedTerms:
     duration_candidates: List[Dict[str, Any]] = field(default_factory=list)
 
 
-_YEAR_RE = re.compile(r"(\d{1,2})\s*(?:year|years|yr|yrs)", re.IGNORECASE)
-_MONTH_RE = re.compile(r"(\d{1,2})\s*(?:month|months|mo)", re.IGNORECASE)
+# Word-bounded: "120 months" used to be read as 20 and "240 months" as 40 (fix run B6).
+_YEAR_RE = re.compile(r"\b(\d{1,2})\s*(?:year|years|yr|yrs)\b", re.IGNORECASE)
+_MONTH_RE = re.compile(r"\b(\d{1,3})\s*(?:month|months|mo)\b", re.IGNORECASE)
 _EXTENDED_PLAN_MARKERS = (
     "coverplus",
     "extended warranty",
@@ -168,6 +169,9 @@ def _best_duration_months(text: str) -> Optional[int]:
         "lamp",
         "printhead",
         "print head",
+        "part warranty",
+        "parts warranty",
+        "only part",
     )
     general: List[int] = []
     component: List[int] = []
@@ -241,7 +245,8 @@ def _extract_section(lines: List[str], keywords: Tuple[str, ...]) -> List[str]:
 
 def _clean_item(text: str) -> str:
     s = (text or "").strip()
-    s = re.sub(r"^[\-\*\u2022\d\.\)\(]+\s*", "", s)
+    # Strip bullets and list numbering ("1.", "2)", "(3)"), not a leading quantity ("60 months ...").
+    s = re.sub(r"^(?:[\-\*\u2022]+\s*|\(?\d{1,2}[\.\)]\s+)", "", s)
     s = re.sub(r"\s+", " ", s).strip(" :;,-")
     return s
 
@@ -779,6 +784,22 @@ def _read_local_path(path: Path) -> Tuple[Optional[str], Optional[str], bool]:
         return None, f"File read failed: {exc}", False
 
 
+def response_text(resp: Any) -> str:
+    """Decode an HTTP response body. Without a declared charset `requests` assumes ISO-8859-1 for
+    text/html, which turns UTF-8 punctuation into mojibake; try UTF-8 first in that case (fix run B6)."""
+    content_type = (getattr(resp, "headers", {}) or {}).get("content-type", "") or ""
+    content = getattr(resp, "content", b"") or b""
+    if content and "charset=" not in content_type.lower():
+        try:
+            return content.decode("utf-8")
+        except UnicodeDecodeError:
+            pass
+    try:
+        return resp.text
+    except Exception:
+        return content.decode("utf-8", errors="replace")
+
+
 def parse_terms_from_url(url: str, timeout: int = 10) -> Tuple[Optional[ParsedTerms], Optional[str]]:
     url = (url or "").strip()
     if not url:
@@ -838,10 +859,7 @@ def parse_terms_from_url(url: str, timeout: int = 10) -> Tuple[Optional[ParsedTe
             except Exception:
                 pass
 
-    try:
-        html = resp.text
-    except Exception:
-        html = resp.content.decode("utf-8", errors="ignore")
+    html = response_text(resp)
     parsed = parse_terms_from_html(html)
     # OEM-specific rules (brand-specific selectors/regex)
     try:

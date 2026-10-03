@@ -38,7 +38,9 @@ class OemAdapter:
             }
         resp = requests.get(url, headers=HEADERS, timeout=timeout)
         resp.raise_for_status()
-        html = resp.text
+        from .warranty_parser import response_text
+
+        html = response_text(resp)
         text = " ".join(html.split())
         return {
             "ok": True,

@@ -1905,7 +1905,7 @@ until the user approves at the end. Resume from the first unchecked box.
 - [x] B3 RAG out of the risk score; fix "no failures" vs "multiple failures" bug.
 - [x] B4 Insecure-settings warning on the admin health page.
 - [x] B5 Serial from misread labels → unconfirmed suggestion confirmed in UI (keep Epson exception).
-- [ ] B6 Bugs: MG Road→MG, device→EV 36m, 120 months→20, Epson broken chars, kia.com/in.
+- [x] B6 Bugs: MG Road→MG, device→EV 36m, 120 months→20, Epson broken chars, kia.com/in.
 - [ ] B7 Remove only the redundant Samsung 12-month forcing.
 - [ ] B8 New domain verification; write passing domains to verified list.
 - [ ] B9 One risk scorer (ML; heuristic fallback inside; nudge features).
@@ -2069,6 +2069,31 @@ the flags are unknown, so conditionally:
   `scripts/measure_invoice_fields.py` now counts `suggestion_exact` / `suggestion_needs_edit`.
 - Tests: new `tests/test_serial_suggestion.py` (4); S001 test rewritten for the suggestion.
 
+### 91.B6 Bug fixes (2026-10-03)
+
+- **"MG Road" → brand MG**: `brand_registry.find_brands()` skips a brand name followed within 2 tokens by
+  an address word (road, rd, street, marg, nagar, lane, layout, colony, sector, cross, avenue, chowk,
+  circle, park, complex, plaza, enclave, vihar, bagh, gali, bazar, market, junction, flyover, estate).
+  "tower", "main", "block" deliberately excluded ("Bajaj Tower Fan").
+- **"device" → 36-month EV default**: `terms_lookup._normalize_category()` now matches whole words
+  ("electronic device" → electronics → 12 months). The same substring bug existed in 3 more places and was
+  fixed too: `product_recommendations.infer_product_category` (`"ev" in name` matched "device", "Clever",
+  "Level"), `main.py` OEM aggregate `_infer_product_type` (`"ac"` matched "Black", `"ev"` "device") and the
+  OEM EV payload check.
+- **"120 months" → 20**: `warranty_parser._YEAR_RE`/`_MONTH_RE` are word-bounded, months read up to 3
+  digits. `_clean_item()` no longer strips a leading quantity as a bullet ("60 months (only part warranty)"
+  kept its number only after this fix); part-only rows ("part warranty", "parts warranty", "only part") count
+  as component rows in the legacy maximum, so it does not jump to 120/240 on parts tables.
+- **Epson broken characters — correction of 90.x**: re-checked live: the Epson server sends
+  `text/html;charset=UTF-8`, the apostrophe as `&rsquo;`; the app's parsed term contains U+2019 (correct)
+  and **no U+FFFD**; the fixture bytes are correct UTF-8. The `�` was only my Windows console display in
+  Step 2 — not an app defect. Hardening added anyway: `warranty_parser.response_text()` decodes bodies with
+  no declared charset as UTF-8 first (requests would assume ISO-8859-1), used by `parse_terms_from_url`,
+  `oem_adapters` and `oem.fetch_oem_page`.
+- **kia.com/in**: removed from `data/oem_domains.json` (`kia.com` already listed); `load_oem_domains()`
+  now normalises every entry to a bare lower-case host (scheme/path/port/`www.` dropped, deduped).
+- Tests: new `tests/test_bug_fixes_b6.py` (19). Field floors (cached + real OCR) unchanged and passing.
+
 ### 91.y Step log (each hash recorded by the next step's commit)
 
 | Step | Commit | Tests | Notes |
@@ -2078,7 +2103,8 @@ the flags are unknown, so conditionally:
 | B2 | `80adf7df` | 311 passed (+4) | Paddle back-off; tesseract-ocr-eng. |
 | B3 | `ad242961` | 321 passed (+10) | RAG never moves score by default. |
 | B4 | `46a2cab4` | 326 passed (+5) | Admin security banner; HTTPS redirect implemented. |
-| B5 | (next) | 330 passed (+4) | Serial suggestions confirmed in UI. |
+| B5 | `e50fa3d0` | 330 passed (+4) | Serial suggestions confirmed in UI. |
+| B6 | (next) | 349 passed (+19) | Five bugs; Epson was a display artefact. |
 
 ### 91.x Open questions
 - Pin `paddlepaddle` (unpinned in requirements; production pulls 3.x and Paddle cannot read with

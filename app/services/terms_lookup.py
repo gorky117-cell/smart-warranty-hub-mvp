@@ -51,13 +51,17 @@ def _normalize_category(category: Optional[str]) -> str:
     if not category:
         return "general"
     cat = category.strip().lower()
-    if any(k in cat for k in ("phone", "mobile")):
+    # Whole words only: "device" used to match "ev" and fall to the 36-month EV default (fix run B6).
+    words = set(re.findall(r"[a-z0-9]+", cat))
+    if words & {"phone", "phones", "smartphone", "mobile", "mobiles", "handset"} or "smartphone" in cat:
         return "mobile"
-    if any(k in cat for k in ("ev", "battery")):
+    if words & {"ev", "evs", "battery", "batteries", "scooter"} or "electric vehicle" in cat:
         return "ev"
-    if any(k in cat for k in ("appliance", "fridge", "wash", "microwave")):
+    if words & {"appliance", "appliances", "fridge", "refrigerator", "microwave"} or any(
+        w.startswith("wash") or w.endswith("washer") for w in words
+    ):
         return "appliance"
-    if any(k in cat for k in ("electronic", "device")):
+    if words & {"electronic", "electronics", "device", "devices"}:
         return "electronics"
     return "general"
 

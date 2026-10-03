@@ -52,7 +52,9 @@ def fetch_oem_page(url: str, brand: str, model: str, region: Optional[str] = Non
 
         resp = requests.get(url, headers=oem_adapters.HEADERS, timeout=20)
         resp.raise_for_status()
-        text = resp.text
+        from .warranty_parser import response_text
+
+        text = response_text(resp)
         text_clean = re.sub(r"\s+", " ", text)
         parsed = parse_oem_text(text_clean, brand)
         parsed_html = parse_oem_html(text, brand)

@@ -3312,7 +3312,7 @@ def oem_product_catalog(limit: int = 200, current=Depends(require_oem_or_admin),
     def _infer_product_type(name: str | None) -> str:
         low = (name or "").strip().lower()
         for token in ("washer", "fridge", "ac", "tv", "phone", "mobile", "laptop", "ev"):
-            if token in low:
+            if re.search(rf"\b{token}\b", low):  # whole word: "Black" is not "ac", "device" not "ev"
                 return token
         return ""
 
@@ -3385,7 +3385,7 @@ def oem_risk_stats(
             risk_counts["UNKNOWN"] = risk_counts.get("UNKNOWN", 0) + 1
         name = (w.product_name or "").lower() if w else ""
         pt_lower = p.product_type.lower() if getattr(p, "product_type", None) else ""
-        if "ev" in name or ("ev" in pt_lower):
+        if re.search(r"\bev\b", name) or re.search(r"\bev\b", pt_lower):
             ev_payload = {
                 "product_type": 3,
                 "age_months": 12,

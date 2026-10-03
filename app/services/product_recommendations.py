@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import re
 from typing import List, Optional, TypedDict, Literal, Dict
 
 try:
@@ -198,7 +199,7 @@ def infer_product_category(warranty: Dict) -> str:
         return "smartphone"
     if "laptop" in name or "notebook" in name or "laptop" in pt:
         return "laptop"
-    if "ev" in name or "ev" in pt or "battery" in name:
+    if re.search(r"\bev\b", name) or re.search(r"\bev\b", pt) or "battery" in name:  # whole word: not "device"
         return "ev"
     if any(k in joined for k in ["fridge", "refrigerator"]):
         return "fridge"

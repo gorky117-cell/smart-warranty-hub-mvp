@@ -88,6 +88,17 @@ def _written_as_name(original: str, key: Tuple[str, ...]) -> bool:
     return False
 
 
+# A brand-like word followed by one of these is a place name ("MG Road", "Hero Honda Chowk").
+ADDRESS_WORDS = frozenset(
+    {
+        # Not "tower"/"main"/"block": real products ("Bajaj Tower Fan") use them.
+        "road", "rd", "street", "st", "marg", "nagar", "lane", "layout", "colony", "sector", "cross",
+        "avenue", "chowk", "circle", "park", "complex", "plaza", "enclave", "vihar",
+        "bagh", "gali", "bazar", "bazaar", "market", "junction", "flyover", "estate",
+    }
+)
+
+
 def find_brands(text: str) -> List[str]:
     """All registry brands named in ``text``, in order of appearance, longest names first on overlap."""
     original = text or ""
@@ -101,6 +112,8 @@ def find_brands(text: str) -> List[str]:
         for start in range(0, len(tokens) - size + 1):
             if tuple(tokens[start:start + size]) != key or any(taken[start:start + size]):
                 continue
+            if set(tokens[start + size:start + size + 2]) & ADDRESS_WORDS:
+                continue  # "MG Road", "Hero Honda Chowk" are addresses, not brands (fix run B6)
             if " ".join(key) in AMBIGUOUS and not _written_as_name(original, key):
                 continue
             for i in range(start, start + size):
