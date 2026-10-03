@@ -4,7 +4,7 @@ import re
 import time
 from pathlib import Path
 from datetime import datetime, timedelta
-from typing import List, Optional, Dict
+from typing import Any, List, Optional, Dict
 from contextlib import asynccontextmanager
 from urllib.parse import quote, urlencode
 from html import escape
@@ -2003,6 +2003,45 @@ def get_warranty(warranty_id: str, db=Depends(get_db), current: UserDB = Depends
     payload.update(_build_warranty_status_info(warranty))
     payload["evidence_status"] = summary_engine.build_evidence_summary(warranty)
     return payload
+
+
+@app.post("/warranties/{warranty_id}/serial-suggestion", dependencies=[Depends(rbac_dependency)])
+def resolve_serial_suggestion(
+    warranty_id: str,
+    payload: Dict[str, Any] = Body(...),
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    """Confirm (optionally corrected) or dismiss a serial read next to a misread label (fix run B5)."""
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
+    row = db.query(WarrantyDB).filter_by(id=warranty_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Warranty not found")
+    meta = dict(row.alternatives or {})
+    suggestion = dict(meta.get("serial_suggestion") or {})
+    if not suggestion:
+        raise HTTPException(status_code=404, detail="No serial suggestion for this warranty")
+    action = str(payload.get("action") or "").strip().lower()
+    if action == "confirm":
+        value = " ".join(str(payload.get("value") or suggestion.get("value") or "").split()).upper()
+        if not value or len(value) > 40 or not re.fullmatch(r"[A-Z0-9][A-Z0-9\-/]*", value):
+            raise HTTPException(status_code=422, detail="Enter the serial number as printed (letters, digits, - or /).")
+        row.serial_no = value
+        confidence = dict(row.confidence or {})
+        confidence["serial_no"] = 0.95  # user-confirmed: never cleared by re-processing
+        row.confidence = confidence
+        suggestion.update({"status": "confirmed", "confirmed_value": value})
+    elif action == "dismiss":
+        suggestion["status"] = "dismissed"
+    else:
+        raise HTTPException(status_code=422, detail="action must be 'confirm' or 'dismiss'")
+    suggestion["resolved_at"] = datetime.utcnow().isoformat()
+    meta["serial_suggestion"] = suggestion
+    row.alternatives = meta
+    db.add(row)
+    db.commit()
+    store.warranties.pop(warranty_id, None)
+    return {"warranty_id": warranty_id, "serial_no": row.serial_no, "serial_suggestion": suggestion}
 
 
 @app.post("/warranties/{warranty_id}/process", dependencies=[Depends(rbac_dependency)])

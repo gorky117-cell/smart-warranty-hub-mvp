@@ -41,7 +41,7 @@ MAX_WRONG = {
     "brand": 0,
     "model_code": 1,
     "purchase_date": 6,
-    "serial_no": 30,
+    "serial_no": 0,  # was 30 before fix run B5 (misread-label values are now suggestions)
     "invoice_no": 0,
     "coverage_months": 14,
     "product_category": 0,

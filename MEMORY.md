@@ -1904,7 +1904,7 @@ until the user approves at the end. Resume from the first unchecked box.
 - [x] B2 OCR: skip failed Paddle for OCR_ENGINE_TTL_SEC; Tesseract eng in build; Playwright decision.
 - [x] B3 RAG out of the risk score; fix "no failures" vs "multiple failures" bug.
 - [x] B4 Insecure-settings warning on the admin health page.
-- [ ] B5 Serial from misread labels → unconfirmed suggestion confirmed in UI (keep Epson exception).
+- [x] B5 Serial from misread labels → unconfirmed suggestion confirmed in UI (keep Epson exception).
 - [ ] B6 Bugs: MG Road→MG, device→EV 36m, 120 months→20, Epson broken chars, kia.com/in.
 - [ ] B7 Remove only the redundant Samsung 12-month forcing.
 - [ ] B8 New domain verification; write passing domains to verified list.
@@ -2049,6 +2049,26 @@ the flags are unknown, so conditionally:
   production value is truthy.
 - Tests: new `tests/test_security_status.py` (5).
 
+### 91.B5 Serial from misread labels → user-confirmed suggestion (2026-10-03)
+
+- `ingestion._serial_candidate()` returns the kind of evidence. `labelled` (serial/S/N/SN/IMEI) → stored,
+  0.7. `under_line_item` (the narrow Epson L3250 exception) → stored, 0.5 (kept as asked).
+  `misread_label` (`seriat`, `seria:`, `seri`...) → **not stored**; written to
+  `alternatives.serial_suggestion = {value, source_line, status: "pending", reason}`.
+- `invoice_pipeline._update_warranty`: a confirmed/dismissed suggestion is never overwritten by
+  re-processing; a stale pending suggestion is dropped when the new pass has none or finds a properly
+  labelled serial.
+- New `POST /warranties/{id}/serial-suggestion` `{action: confirm|dismiss, value?}` (owner/admin access):
+  confirm stores the (optionally corrected) value, upper-cased, letters/digits/-/ only, ≤40 chars, with
+  confidence 0.95 (≥ 0.9 → never cleared on re-processing); dismiss records the decision.
+- Neo dashboard ("What is covered?"): yellow "Please check the serial number" box with the value, the source
+  line, an editable field, **Confirm** / **Not right**; coverage details now show `Serial: … / Not confirmed`.
+- Measured, 30 labelled synthetic images (cached OCR text): serial **0 correct / 0 wrong / 30 missing**
+  (was 0 / 30 / 0 after 90.6) with **30 pending suggestions, all needing an edit** (0 exact — OCR reads
+  `0` as `O`). Floor `serial_no` max wrong tightened 30 → 0. Non-warranty bills: 0 fields.
+  `scripts/measure_invoice_fields.py` now counts `suggestion_exact` / `suggestion_needs_edit`.
+- Tests: new `tests/test_serial_suggestion.py` (4); S001 test rewritten for the suggestion.
+
 ### 91.y Step log (each hash recorded by the next step's commit)
 
 | Step | Commit | Tests | Notes |
@@ -2057,7 +2077,8 @@ the flags are unknown, so conditionally:
 | B1 | `8d7865b3` | 307 passed (+8) | Redaction everywhere. |
 | B2 | `80adf7df` | 311 passed (+4) | Paddle back-off; tesseract-ocr-eng. |
 | B3 | `ad242961` | 321 passed (+10) | RAG never moves score by default. |
-| B4 | (next) | 326 passed (+5) | Admin security banner; HTTPS redirect implemented. |
+| B4 | `46a2cab4` | 326 passed (+5) | Admin security banner; HTTPS redirect implemented. |
+| B5 | (next) | 330 passed (+4) | Serial suggestions confirmed in UI. |
 
 ### 91.x Open questions
 - Pin `paddlepaddle` (unpinned in requirements; production pulls 3.x and Paddle cannot read with

@@ -991,6 +991,16 @@
             <summary>What is covered?</summary>
             <div class="helper">Coverage in simple terms.</div>
             <div id="coverageDetails" class="placeholder">Load data to see coverage details.</div>
+            <div id="serialSuggestion" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px dashed #b98900;border-radius:8px;">
+              <div><strong>Please check the serial number.</strong> We read <code id="serialSuggestionValue"></code>
+                from the line <em id="serialSuggestionLine"></em>, but the label was hard to read.</div>
+              <div style="margin-top:6px;">
+                <input id="serialSuggestionInput" type="text" maxlength="40" aria-label="Serial number as printed">
+                <button type="button" class="btn" id="serialConfirmBtn">Confirm</button>
+                <button type="button" class="btn secondary" id="serialDismissBtn">Not right</button>
+              </div>
+              <div id="serialSuggestionStatus" class="helper"></div>
+            </div>
             <div class="helper"><a href="javascript:void(0)" data-role="open-fullview" data-target="coverageDetails"
                 data-title="What is covered">Open in full view</a></div>
           </details>
@@ -2610,6 +2620,38 @@
         `;
       }
 
+      function renderSerialSuggestion(w) {
+        const box = document.getElementById('serialSuggestion');
+        if (!box) return;
+        const s = (w && w.alternatives && w.alternatives.serial_suggestion) || null;
+        if (!s || s.status !== 'pending' || w.serial_no) { box.style.display = 'none'; return; }
+        document.getElementById('serialSuggestionValue').textContent = s.value || '';
+        document.getElementById('serialSuggestionLine').textContent = s.source_line ? `"${s.source_line}"` : '';
+        const input = document.getElementById('serialSuggestionInput');
+        input.value = s.value || '';
+        const statusEl = document.getElementById('serialSuggestionStatus');
+        statusEl.textContent = '';
+        const send = async (action) => {
+          try {
+            const res = await fetch(`/warranties/${encodeURIComponent(w.id)}/serial-suggestion`, {
+              method: 'POST',
+              headers: h({ 'Content-Type': 'application/json' }),
+              body: JSON.stringify({ action, value: input.value.trim() }),
+            });
+            const data = await res.json();
+            if (!res.ok) { statusEl.textContent = data.detail || 'Could not save.'; return; }
+            statusEl.textContent = action === 'confirm' ? `Saved serial ${data.serial_no}.` : 'Okay, we will not use it.';
+            box.style.display = 'none';
+            w.serial_no = data.serial_no;
+            w.alternatives.serial_suggestion = data.serial_suggestion;
+            renderCoverage(w);
+          } catch (e) { statusEl.textContent = 'Could not save.'; }
+        };
+        document.getElementById('serialConfirmBtn').onclick = () => send('confirm');
+        document.getElementById('serialDismissBtn').onclick = () => send('dismiss');
+        box.style.display = 'block';
+      }
+
       function renderCoverage(w) {
         const expiryInfo = document.getElementById('expiryLine');
         const coverageMonths = w.coverage_months || 0;
@@ -2629,9 +2671,11 @@
           coverageBadge.classList.remove('hidden');
         }
         if (expiryInfo) expiryInfo.classList.remove('hidden');
+        renderSerialSuggestion(w);
         document.getElementById('coverageDetails').textContent = [
           `Brand: ${w.brand || 'N/A'}`,
           `Model: ${w.model_code || 'N/A'}`,
+          `Serial: ${w.serial_no || 'Not confirmed'}`,
           `Coverage months: ${coverageMonths || 'N/A'}`,
           `Expiry: ${(expInfo.expiryDate ? expInfo.expiryDate.toISOString().slice(0, 10) : (w.expiry_date || 'N/A'))}${expInfo.derived ? ' (estimated from purchase + coverage)' : ''}`,
           `Status: ${w.warranty_status || cov.text}`,

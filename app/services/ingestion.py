@@ -521,8 +521,9 @@ def _plausible_serial(value: str) -> bool:
     return True
 
 
-def _serial_from_lines(lines: List[str], product_line: Optional[str]) -> Tuple[Optional[str], float]:
-    """Return (serial, confidence). Blank when no labelled or clearly placed serial exists."""
+def _serial_candidate(lines: List[str], product_line: Optional[str]) -> Tuple[Optional[str], float, str, str]:
+    """Return (serial, confidence, kind, source_line); kind is "labelled", "misread_label" (the label
+    itself was garbled by OCR, e.g. "seriat"), "under_line_item" or "" when nothing was found."""
     clean_lines = [_normalize_spaces(line) for line in lines]
     for i, line in enumerate(clean_lines):
         for label in _SERIAL_LABEL_RE.finditer(line):
@@ -533,7 +534,9 @@ def _serial_from_lines(lines: List[str], product_line: Optional[str]) -> Tuple[O
                 rest = next((nxt for nxt in clean_lines[i + 1:i + 3] if nxt), "")
             value = _SERIAL_VALUE_RE.match(rest)
             if value and _plausible_serial(value.group(0)):
-                return value.group(0).upper(), 0.7 if exact else 0.5
+                if exact:
+                    return value.group(0).upper(), 0.7, "labelled", line
+                return value.group(0).upper(), 0.5, "misread_label", line
     if product_line:
         # Unlabelled fallback: a single code on the line directly under a real line item
         # (e.g. "1 Epson L 3250 Printer ..." followed by "XAHT699208").
@@ -542,8 +545,14 @@ def _serial_from_lines(lines: List[str], product_line: Optional[str]) -> Tuple[O
         if idx >= 0 and re.match(r"^\d+[\.\)]?\s+\S", target) and idx + 1 < len(clean_lines):
             candidate = clean_lines[idx + 1]
             if re.fullmatch(r"[A-Z0-9]{8,18}", candidate) and _plausible_serial(candidate):
-                return candidate, 0.5
-    return None, 0.0
+                return candidate, 0.5, "under_line_item", candidate
+    return None, 0.0, "", ""
+
+
+def _serial_from_lines(lines: List[str], product_line: Optional[str]) -> Tuple[Optional[str], float]:
+    """Return (serial, confidence) for any candidate, including misread-label suggestions."""
+    value, confidence, _kind, _line = _serial_candidate(lines, product_line)
+    return value, confidence
 
 
 def ingest_artifact(
@@ -724,8 +733,19 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
                     confidence["model_code"] = 0.4
 
     # === SERIAL NUMBER ===
-    serial_value, serial_confidence = _serial_from_lines(logical_lines + lines, line_items[0][1] if line_items else None)
-    if serial_value:
+    serial_value, serial_confidence, serial_kind, serial_line = _serial_candidate(
+        logical_lines + lines, line_items[0][1] if line_items else None
+    )
+    if serial_value and serial_kind == "misread_label":
+        # The label itself was garbled by OCR, so the value is likely garbled too: offer it to the
+        # user to confirm instead of storing it (fix run B5).
+        alternatives["serial_suggestion"] = {
+            "value": serial_value,
+            "source_line": serial_line,
+            "status": "pending",
+            "reason": "Serial label was misread by OCR; please confirm the number.",
+        }
+    elif serial_value:
         fields["serial_no"] = serial_value
         confidence["serial_no"] = serial_confidence
 

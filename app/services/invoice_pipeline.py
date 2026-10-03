@@ -154,7 +154,18 @@ def _update_warranty(
                 stored_confidence[key] = value
         warranty.confidence = stored_confidence
         meta = dict(warranty.alternatives or {})
-        meta.update(alternatives or {})
+        incoming = dict(alternatives or {})
+        previous = meta.get("serial_suggestion") or {}
+        new_suggestion = incoming.get("serial_suggestion")
+        if previous.get("status") in ("confirmed", "dismissed"):
+            # A user decision is never overwritten by re-processing (fix run B5).
+            incoming.pop("serial_suggestion", None)
+        elif not new_suggestion and previous.get("status") == "pending":
+            meta.pop("serial_suggestion", None)
+        if (meta.get("serial_suggestion") or incoming.get("serial_suggestion") or {}).get("status") == "pending" and fields.get("serial_no"):
+            incoming.pop("serial_suggestion", None)  # a properly labelled serial was found after all
+            meta.pop("serial_suggestion", None)
+        meta.update(incoming)
         if cleared:
             meta["cleared_on_reprocess"] = cleared
         else:

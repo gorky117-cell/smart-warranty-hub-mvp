@@ -29,10 +29,12 @@ def test_ocr_samples_never_store_invoice_header_as_serial(sample_id):
         assert confidence["serial_no"] == 0.5
 
 
-def test_ocr_sample_s001_serial_comes_from_label_line():
-    fields, confidence, _ = extract_product_fields(_OCR["S001"]["text"])
-    assert fields["serial_no"] == "SNO01X1001"  # truth SN001X1001; OCR reads 0 as O
-    assert confidence["serial_no"] == 0.5
+def test_ocr_sample_s001_misread_label_gives_suggestion_not_serial():
+    fields, confidence, alternatives = extract_product_fields(_OCR["S001"]["text"])
+    assert "serial_no" not in fields  # fix run B5: misread label -> unconfirmed suggestion
+    suggestion = alternatives["serial_suggestion"]
+    assert suggestion["value"] == "SNO01X1001"  # truth SN001X1001; OCR reads 0 as O
+    assert suggestion["status"] == "pending" and suggestion["source_line"].startswith("seriat")
 
 
 @pytest.mark.parametrize(
