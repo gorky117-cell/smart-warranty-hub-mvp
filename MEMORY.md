@@ -1892,3 +1892,98 @@ and the open questions below.
 - Remove the now-redundant Samsung duration force (user decision, per plan).
 - Grounded AI redaction removes seller address lines too; acceptable, or limit to customer blocks?
 - `brand_registry`: "MG Road" → brand `MG`. Add road/street context to the ambiguity rule?
+
+## 91. Full fix run (started 2026-10-03)
+
+Rules: one local commit per step, full `pytest -q` after each, MEMORY updated each step, measured
+numbers only, never print/log/commit secret values, do not change Railway settings, **do not push**
+until the user approves at the end. Resume from the first unchecked box.
+
+- [x] A  Production check (this section).
+- [ ] B1 Redaction before any text/image reaches any AI provider (buyer details only, token masking).
+- [ ] B2 OCR: skip failed Paddle for OCR_ENGINE_TTL_SEC; Tesseract eng in build; Playwright decision.
+- [ ] B3 RAG out of the risk score; fix "no failures" vs "multiple failures" bug.
+- [ ] B4 Insecure-settings warning on the admin health page.
+- [ ] B5 Serial from misread labels → unconfirmed suggestion confirmed in UI (keep Epson exception).
+- [ ] B6 Bugs: MG Road→MG, device→EV 36m, 120 months→20, Epson broken chars, kia.com/in.
+- [ ] B7 Remove only the redundant Samsung 12-month forcing.
+- [ ] B8 New domain verification; write passing domains to verified list.
+- [ ] B9 One risk scorer (ML; heuristic fallback inside; nudge features).
+- [ ] B10 AI vision tier for low-text images (redacted image, quoted lines, needs confirmation).
+- [ ] B11 Expiry recalculation never triggers notifications/emails; count affected records.
+- [ ] C  Real measurement — SKIPPED: no API keys in local `.env` or shell (checked names only:
+       `.env` has OCR_ENGINE, OEM_REFRESH_MINUTES, OEM_REVIEW_REQUIRED, DISABLE_MODEL_SOURCE_CHECK).
+- [ ] D  Production-like local run of full journeys, then stop and ask before pushing.
+
+### 91.A Production check (names only; values unknown and not requested)
+
+**Deploy files.** Railway builds the `Dockerfile` (no railway.json/nixpacks/Procfile in repo):
+`python:3.11-slim-bookworm`, apt installs `tesseract-ocr` (Debian package depends on
+`tesseract-ocr-eng`), `poppler-utils`, `libgl1`; `pip install -r requirements.txt`; start command
+`python run_app.py` → single uvicorn process on `$PORT`.
+- Tesseract: **installed**. Paddle: `paddleocr==2.8.0` + **unpinned** `paddlepaddle` → a fresh build pulls
+  paddle 3.x, the same framework/model mismatch measured locally (90.0), so Paddle almost certainly fails
+  at inference in production and falls back to Tesseract. Playwright: **not installed** (`HEADLESS_SCRAPE`
+  path dead). `openai>=1,<2` **is** installed in production (unlike the local venv).
+- Live site branch (evidence, not Railway settings): commit `3598c910 Trigger Railway redeploy` exists only
+  on `origin/master`; `origin/main` is 167 commits behind (last 2026-02-09). Production most likely
+  deploys from **master** at `bf7e1ee1` — i.e. none of entry 90/91 is live.
+
+**Variable map** (production name → code reader, default when unset):
+- Auth/admin: `ADMIN_USER`/`ADMIN_PASS` deps.py:159-160, main.py:1295 (None → insecure defaults only if
+  allowed); `JWT_SECRET` deps.py:22, `JWT_SALT` deps.py:31 (None); `ALLOW_INSECURE_DEFAULTS`
+  runtime_safety.py:23 (None); `ALLOWED_HOSTS` main.py:415 ('').
+- Cookies: `COOKIE_SECURE` main.py:1437 (None), `COOKIE_SAMESITE` main.py:1446 ('lax'), `COOKIE_DOMAIN`
+  main.py:1449, `COOKIE_PATH` main.py:1450 (None).
+- DB: `DATABASE_URL` db.py:7 (sqlite data/app.db).
+- Email: `EMAIL_ENABLED` emailer.py:26 (True), `APP_BASE_URL` :20, `SMTP_HOST/PORT/USER/PASS` :30-33,
+  `MAIL_FROM` :34, `SMTP_STARTTLS` :35 (True), `SMTP_SSL` :36 (False).
+- LLM: `LLM_PROVIDER` llm.py:9 ('ollama') and summary_engine.py:14 ('none'); `MISTRAL_API_KEY` llm.py:11,
+  rag.py:14, summary_engine.py:21, warranty_parser.py; `MISTRAL_MODEL` ('mistral-small-latest');
+  `OPENAI_ENABLED` ('0'), `OPENAI_INVOICE_ENRICHMENT` ('0'), `OPENAI_API_KEY`, `OPENAI_MODEL`
+  ('gpt-4.1-mini'), `OPENAI_TIMEOUT_SEC` ('20'), `OPENAI_MAX_INPUT_CHARS` ('6000') openai_intelligence.py:8-28;
+  `OPENAI_FALLBACK_PROVIDER` summary_engine.py:22 ('template'); `RAG_ENABLED` rag.py:16, summary_engine.py:23 ('0').
+- OCR: `OCR_ENGINE` ocr.py:25 ('tesseract'), `OCR_ENGINE_TTL_SEC` ocr.py:27 ('900').
+- Schedulers: `SCHEDULER_ENABLED` runtime_safety.py:40, `OEM_REFRESH_MINUTES` main.py:401 ('120'),
+  `RISK_REFRESH_MINUTES` scheduler.py:38 ('120'), `REVIEW_CRAWL_ENABLED` scheduler.py:40 ('true').
+- Search: `TERMS_SEARCH_PROVIDER` web_search.py:302 ('auto'), `TERMS_SEARCH_AUTO_ORDER` :313 (''),
+  `SERPER_API_KEY` :191 (also `SERPER_KEY`), `SERPAPI_KEY` :255, `GOOGLE_CSE_API_KEY`/`GOOGLE_CSE_CX` :223-224;
+  `SEARCH_{DAILY,MONTHLY}_LIMIT_{GOOGLE,SERPAPI,SERPER}` read dynamically at web_search.py:101-102
+  (fallback `SEARCH_DAILY_LIMIT`/`SEARCH_MONTHLY_LIMIT`, 0 = unlimited);
+  `TERMS_SEARCH_MAX_QUERIES` ('2'), `TERMS_SEARCH_MAX_RESULTS` ('5'), `TERMS_SEARCH_TIMEOUT_SEC` ('6'),
+  `TERMS_OFFICIAL_ONLY`, `TERMS_PREFLIGHT_STRICT`, `TERMS_ALLOW_BROAD_FALLBACK` warranty_discovery.py:38-44 and
+  oem_source_policy.py:107-128 (note: two modules, different defaults: OFFICIAL_ONLY '0'/'false',
+  PREFLIGHT_STRICT '1'/'true', BROAD_FALLBACK '0'/'false').
+- **Set in production but read by no code:** `FORCE_HTTPS_REDIRECT`, `MISTRAL_EMBED_MODE` (code reads
+  `MISTRAL_EMBED_MODEL`). They have no effect.
+- **Read by code, not set in production (defaults apply), notable ones:** `APP_ENV`/`ENVIRONMENT`/
+  `FASTAPI_ENV` (production detection falls back to Railway's own `RAILWAY_ENVIRONMENT`), `OEM_AUTO_VERIFY`
+  (true: every upload calls domain verification), `TERMS_NLP_ENRICH_ENABLED` (**1**: with `MISTRAL_API_KEY`
+  set, low-confidence OEM pages are sent to Mistral), `HEADLESS_SCRAPE` (0), `GROUNDED_AI_*` (off),
+  `RATE_LIMIT_ENABLED` (1), `AI_QUOTA_ENABLED`/`AI_DAILY_QUOTA_PER_USER` (unset), `PUBLIC_SIGNUP_ENABLED` (1),
+  `REQUIRE_OEM_DIRECT_CONSENT`, `REQUIRE_USER_CONSENT` (false), `EXPIRY_REMINDER_ENABLED` (true),
+  `OEM_AUTO_DISPATCH_ENABLED` (true), `KPI_WATCHDOG/REMEDIATION/EXECUTION_ENABLED` (true),
+  `REMOTE_DIAGNOSTICS_AUTO_EXECUTE` (true), `REVIEW_CRAWL_ON_UPLOAD` (false), `JWT_EXPIRE_HOURS` (8),
+  `UPLOAD_MAX_BYTES` (10 MB), `MISTRAL_EMBED_MODEL` ('mistral-embed'), object-store and Ollama settings.
+  Full list (140 names) from an AST scan of `app/` and `run_app.py`.
+
+**Does production AI send unredacted text?** Production runs `bf7e1ee1` (no Step 9 redaction). Values of
+the flags are unknown, so conditionally:
+- If `OPENAI_ENABLED` and `OPENAI_INVOICE_ENRICHMENT` are truthy and the key is valid: **yes** —
+  `enrich_invoice_fields()` sends the first 6,000 chars of raw OCR invoice text (buyer name, address,
+  phone, e-mail, GSTIN included) to OpenAI.
+- If `RAG_ENABLED` is truthy with `MISTRAL_API_KEY`: **yes, personal identifiers** — telemetry and behaviour
+  documents are embedded via Mistral with content `user=<username> warranty=<id> ... payload=<raw payload>`
+  (storage.py:135, behaviour.py:131); usernames can be e-mail addresses. Warranty summaries are embedded too
+  (product data only).
+- Summaries (`LLM_PROVIDER` mistral/openai) send brand/model/expiry/terms only — no buyer fields.
+- Mistral terms enrichment (`TERMS_NLP_ENRICH_ENABLED` default 1) sends OEM page text, not invoices.
+- `/llm/generate` (main.py:2355) forwards a user-typed prompt as is.
+
+### 91.y Step log (each hash recorded by the next step's commit)
+
+| Step | Commit | Tests | Notes |
+|---|---|---|---|
+| A | (next) | 299 passed | Production check; docs only. |
+
+### 91.x Open questions
