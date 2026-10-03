@@ -1911,9 +1911,9 @@ until the user approves at the end. Resume from the first unchecked box.
 - [x] B9 One risk scorer (ML; heuristic fallback inside; nudge features).
 - [x] B10 AI vision tier for low-text images (redacted image, quoted lines, needs confirmation).
 - [x] B11 Expiry recalculation never triggers notifications/emails; count affected records.
-- [ ] C  Real measurement — SKIPPED: no API keys in local `.env` or shell (checked names only:
+- [x] C  Real measurement — SKIPPED: no API keys in local `.env` or shell (checked names only:
        `.env` has OCR_ENGINE, OEM_REFRESH_MINUTES, OEM_REVIEW_REQUIRED, DISABLE_MODEL_SOURCE_CHECK).
-- [ ] D  Production-like local run of full journeys, then stop and ask before pushing.
+- [x] D  Production-like local run of full journeys, then stop and ask before pushing.
 
 ### 91.A Production check (names only; values unknown and not requested)
 
@@ -2215,6 +2215,44 @@ the flags are unknown, so conditionally:
   flag, vision-only values are suggestions, sent image OCRs without buyer data; confirm/dismiss endpoint;
   strict mode masks a garbled buyer label and an address line and keeps the invoice line.
 
+### 91.C Real measurement — skipped (2026-10-03)
+
+No API keys exist locally: `.env` holds only OCR_ENGINE, OEM_REFRESH_MINUTES, OEM_REVIEW_REQUIRED,
+DISABLE_MODEL_SOURCE_CHECK; OPENAI/MISTRAL/SERPER/SERPAPI/GOOGLE_CSE/BRAVE/BING keys are not set in the shell
+(checked by name only). AI-on vs AI-off field accuracy, the 20-brand warranty-page measurement and API cost
+were **not measured**.
+
+### 91.D Production-like local run (2026-10-03/04)
+
+Setup: `python run_local.py` (scratchpad, not in repo) with every production variable **name** and local test
+values: generated ADMIN/JWT secrets (scratchpad file, never printed or committed), `RAILWAY_ENVIRONMENT=production`,
+`ALLOW_INSECURE_DEFAULTS=false`, `COOKIE_SECURE=false` (plain-HTTP localhost), `FORCE_HTTPS_REDIRECT=1`,
+`OCR_ENGINE=paddle`, `OPENAI_ENABLED=1` + `OPENAI_INVOICE_ENRICHMENT=1` with **no key**, `RAG_ENABLED=1` with no
+Mistral key, `SCHEDULER_ENABLED=0`, `EMAIL_ENABLED=false`, fresh SQLite DB. Started via the Browser pane
+(`.claude/launch.json`, left untracked). Journeys scripted against the HTTP API, UI checked in the browser.
+
+| Journey | Job | Stored fields | OCR | Risk (predictive / risk / advisories) | Notifications |
+|---|---|---|---|---|---|
+| Text PDF (`invoice_full_details.pdf`) | done 4.6 s | Samsung, "Samsung Galaxy S24 Ultra Model Code: SM-S928BZKGINS", model **S24** (should be SM-S928BZKGINS), serial R5CX40VP8LA, 12 m, 2026-01-22 → 2027-01-22, source `approved_oem_source` | pdf text layer | LOW 0.32 / low 0.32 predictive / low | onboarded |
+| Scanned PDF (image-only, from S002) | done 7.6 s | brand **"Lo"** (OCR of "LG"; wrong), product "Product", 12 m (default), 2025-01-11 → 2026-01-11; serial suggestion SN002X1002 (pending) | pdf_ocr, tesseract, paddle failed | LOW 0.32 consistent | onboarded, **expiry_expired** (first expiry, genuinely past — correct) |
+| Phone photo, clear (S001) | done 1.4 s | Apple, product **"Band: Apple"** (OCR "Brand"→"Band"; wrong), coverage **38** (truth 36, OCR), 2025-01-06; serial suggestion SNO01X1001 | tesseract_fallback | LOW 0.32 consistent | onboarded |
+| Phone photo, blurred/skewed (S031) | done 1.4 s | nothing extracted; placeholder "Product", default 12 m, no dates | no text (vision tier off) | LOW 0.32 consistent | onboarded |
+
+- Risk: `/predictive/score`, `/risk/score` (source `predictive`) and `/advisories` agree on every journey.
+- UI (browser): admin hub shows the red banner "Critical: COOKIE_SECURE is off" (the only warning for these
+  settings); Neo dashboard shows the serial suggestion box for S001 — corrected to SN001X1001 and confirmed in
+  the UI → DB `serial_no=SN001X1001`, confidence 0.95, suggestion `confirmed`; OEM dashboard loads, no console
+  errors, risk distribution LOW 4, aggregate insight "suppressed for privacy" (cohort 1 < 10).
+- `/health/ocr`: ok=false, active engine tesseract, `paddle_backoff_sec` 899 after the first Paddle failure.
+- HTTPS: `X-Forwarded-Proto: http` → 308 to https; without the header → 200 (internal checks unaffected).
+- `/oem/domains/verified`: 153 brands. All OEM endpoints 200.
+- Not done: AI paths with real providers (no keys); scheduler loops (disabled); e-mail (disabled; no SMTP);
+  the blurred photo is unreadable without the vision tier, which needs a key.
+- Defects observed (not fixed in this run): model code "S24" taken over the printed "SM-S928BZKGINS";
+  garbled OCR brand "Lo" stored at face value; "Band: Apple" stored as product name; a photo with no text still
+  gets a 12-month default coverage shown as "Estimated"; coverage-details lines render on one line in the
+  Neo dashboard (newline-joined text in a div).
+
 ### 91.y Step log (each hash recorded by the next step's commit)
 
 | Step | Commit | Tests | Notes |
@@ -2230,7 +2268,8 @@ the flags are unknown, so conditionally:
 | B9 | `2b62e8ed` | 359 passed (+10 incl. B8 tests) | One scorer; nudges connected. |
 | B8 | `40ecb293` | 360 passed (+1) | 169 domains verified and written. |
 | B10 | `0b1f70cc` | 366 passed (+6) | Vision tier, off by default. |
-| B11 | (next) | 370 passed (+4) | Expiry recalculation guard. |
+| B11 | `1c8b69c0` | 370 passed (+4) | Expiry recalculation guard. |
+| D | (next) | 370 passed | Local production-like run; C skipped (no keys). |
 
 ### 91.x Open questions
 - Pin `paddlepaddle` (unpinned in requirements; production pulls 3.x and Paddle cannot read with
@@ -2249,3 +2288,5 @@ the flags are unknown, so conditionally:
   photos (it reads garbled-but-partial text on S031/S035/S040). Not wired into OCR — try and measure?
 - Test run stalled twice in a row at the first test (`test_auth_form_routes`, which starts the app
   lifespan) during B11, then 2 consecutive clean runs (370 passed, 74-76 s). Not reproduced; cause unknown.
+- Part D defects: model "S24" vs printed "SM-S928BZKGINS"; OCR-garbled brand "Lo" stored; "Band: Apple" as
+  product name; default 12-month coverage shown for a photo with no readable text. Fix in a next run?
