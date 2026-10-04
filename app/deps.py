@@ -153,6 +153,14 @@ def init_db():
     except Exception as exc:
         print(f"DB create_all failed: {exc}")
         return
+    try:
+        from .schema_upgrade import ensure_columns
+
+        added = ensure_columns(engine)
+        if added:
+            print(f"Added columns: {added}")
+    except Exception as exc:
+        print(f"Column upgrade failed: {exc}")
 
     try:
         with SessionLocal() as db:

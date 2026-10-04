@@ -17,6 +17,7 @@ from .warranty_parser import parse_terms_from_url, ParsedTerms, sanitize_base_te
 from . import regional_policy as regional_policy_service
 from . import oem_source_policy
 from .brand_families import resolve_oem_entity
+from . import terms_cache
 from . import oem_product_knowledge
 from .duration_selection import DurationContext, select_duration
 
@@ -487,6 +488,7 @@ def lookup_terms(
         # Unknown, tiny or missing brand: no guessed duration (consolidated run step 8).
         return needs_check_terms(_SOURCE_NEEDS_CHECK_UNKNOWN_BRAND)
     norm_category = _normalize_category(category)
+    scope_model, scope_line = terms_cache.product_scope(model_code, product_name)
     duration_context = DurationContext(
         category=norm_category,
         model_code=model_code,
@@ -534,12 +536,11 @@ def lookup_terms(
         # 2) fallback: brand/category/region cache
         cached = None
         if brand:
-            cache_q = db.query(WarrantyTermsCacheDB).filter(
-                WarrantyTermsCacheDB.brand == brand,
-                WarrantyTermsCacheDB.category == norm_category,
-                WarrantyTermsCacheDB.region == region,
+            # Scoped to the product line (cache fix 1): a Samsung TV entry never answers a Samsung phone.
+            cached = terms_cache.newest_for_scope(
+                terms_cache.scoped_query(db, brand=brand, category=norm_category, region=region, line=scope_line).all(),
+                scope_model,
             )
-            cached = cache_q.order_by(WarrantyTermsCacheDB.fetched_at.desc()).first()
         if cached and _cache_is_fresh(cached) and _cache_has_real_source(cached):
             result = TermsResult(
                 duration_months=cached.duration_months,
@@ -602,17 +603,9 @@ def lookup_terms(
                 )
                 manual_context = replace(duration_context, require_source_context=False)
                 result = _merge_terms_results([result], manual_context) or result
-                cached = WarrantyTermsCacheDB(
-                    brand=brand,
-                    category=norm_category,
-                    region=region,
-                    source_url=url_override,
-                    fetched_at=datetime.utcnow(),
-                    duration_months=result.duration_months,
-                    raw_text=result.raw_text,
-                    terms=result.terms,
-                    exclusions=result.exclusions,
-                    claim_steps=result.claim_steps,
+                cached = terms_cache.new_entry(
+                    brand=brand, category=norm_category, region=region, model=scope_model, line=scope_line,
+                    source_url=url_override, result=result,
                 )
                 db.add(cached)
                 db.commit()
@@ -672,17 +665,9 @@ def lookup_terms(
                     break
             merged = _merge_terms_results(parsed_results, duration_context)
             if merged:
-                cached = WarrantyTermsCacheDB(
-                    brand=brand,
-                    category=norm_category,
-                    region=region,
-                    source_url=merged.source_url,
-                    fetched_at=datetime.utcnow(),
-                    duration_months=merged.duration_months,
-                    raw_text=merged.raw_text,
-                    terms=merged.terms,
-                    exclusions=merged.exclusions,
-                    claim_steps=merged.claim_steps,
+                cached = terms_cache.new_entry(
+                    brand=brand, category=norm_category, region=region, model=scope_model, line=scope_line,
+                    source_url=merged.source_url, result=merged,
                 )
                 db.add(cached)
                 db.commit()
@@ -706,17 +691,9 @@ def lookup_terms(
 
     duration = DEFAULT_RULES.get(norm_category, 12)
     result = _default_terms(duration)
-    cached = WarrantyTermsCacheDB(
-        brand=brand,
-        category=norm_category,
-        region=region,
-        source_url=None,
-        fetched_at=datetime.utcnow(),
-        duration_months=result.duration_months,
-        raw_text=None,
-        terms=result.terms,
-        exclusions=result.exclusions,
-        claim_steps=result.claim_steps,
+    cached = terms_cache.new_entry(
+        brand=brand, category=norm_category, region=region, model=scope_model, line=scope_line,
+        source_url=None, result=result,
     )
     db.add(cached)
     db.commit()

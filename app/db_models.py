@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 import os
 
-from sqlalchemy import Column, DateTime, Float, Integer, String, Text, UniqueConstraint, ForeignKey, JSON
+from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text, UniqueConstraint, ForeignKey, JSON
 from sqlalchemy.dialects.sqlite import JSON as SqliteJSON
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -341,6 +341,13 @@ class WarrantyTermsCacheDB(Base):
     terms = Column(SqliteJSON)
     exclusions = Column(SqliteJSON)
     claim_steps = Column(SqliteJSON)
+    # Product scope (cache fix 1): terms for one product line never answer another.
+    model_code: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    product_line: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    # Cache fix 4: "official" (verified OEM domain), "non_official" or "default" (estimate; never served).
+    source_type: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    grounded: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
 
 
 class WarrantySummaryDB(Base):

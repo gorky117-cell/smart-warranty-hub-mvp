@@ -2688,3 +2688,28 @@ Owner approved pushing entry 93 Parts 2 and 4. Rules as before; nothing after th
 - origin/master = `eac60ead` (live). Local only: `bc85e1ca`, `025e21a8`, `682af6ad`, `557e6c6e` and the
   94.6-7 commit. Nothing pushed after 94.1.
 
+## 95. Terms-cache fixes and knowledge base v1 (started 2026-10-04)
+
+Owner approved pushing entry 94's 5 commits, on condition that Railway's health check uses /api/health
+and not /health/ocr. Rules as before; nothing in this entry is pushed without approval.
+
+### Checklist
+- [ ] 95.0 Push: NOT done. The repo defines no health check (no railway.json/railway.toml, no Dockerfile
+  HEALTHCHECK, run_app.py just starts uvicorn), so the path - if any - is set in the Railway dashboard and
+  cannot be confirmed from files. Adding railway.json would change Railway settings (not allowed). Asked
+  the owner to check Settings > Deploy > Healthcheck Path. Evidence: the last two deploys went live while
+  the first /health/ocr call took ~70 s; none of the 5 commits changes /health/ocr.
+- [x] 95.1 Product scope in the cache key - not pushed. New columns on `warranty_terms_cache` (added for
+  existing tables by `app/schema_upgrade.ensure_columns`, called from `init_db`: ADD COLUMN [IF NOT EXISTS],
+  only when missing; checked on a copy of local data/app.db; Postgres path not run locally): model_code,
+  product_line (+ source_type, confidence, grounded used by 95.4). `app/services/terms_cache.py`:
+  product line = `product_recommendations.infer_product_category` of model + product name ("tv",
+  "smartphone", "fan", ...; "general" -> None); model key = alphanumerics of the model code. Reads filter
+  brand + category + region + product_line (NULL matches only NULL) and prefer the same model; writes store
+  both. Tests: Samsung TV terms never answer a Samsung phone (same coarse category); same model preferred.
+
+### Step log
+| Step | Commit | Tests | Notes |
+|---|---|---|---|
+| 95.1 | (next) | 465 passed, 2 skipped (+3) | Product scope in the cache key; column upgrade helper. |
+
