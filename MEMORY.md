@@ -2832,13 +2832,22 @@ and not /health/ocr. Rules as before; nothing in this entry is pushed without ap
   `schema` block showing whether the Postgres upgrade succeeded) is left to the owner; no production
   credentials used. Railway's health-check path was never confirmed (not in the repo); the deploy went live.
 
+- [ ] 96.4 Deploy log check for "SCHEMA UPGRADE FAILED": NOT possible from here (no Railway CLI or log
+  access; not installed / signed in on the owner's account). Owner to check Railway > service > Deployments >
+  latest (03f6a0ab) > logs: "SCHEMA UPGRADE FAILED" = upgrade failed (app still runs, cache/KB off);
+  "Schema upgrade: added {...}" on the first start = success; or the `schema` block of
+  /admin/terms-cache/stats. Re-check 2026-10-05 01:16: /api/health 200 ok; /health/ocr 200 ok (paddle,
+  0.49 s, cached); /login 200; http -> https one 301, no loop. The owner's "backup done" + "push the 14"
+  message arrived after the push had already been made (96.3); nothing new was pushed.
+
 ### State at the end of this entry
-- origin/master = `03f6a0ab` (live). Local only: the STATUS/MEMORY commit for 96.3.
+- origin/master = `03f6a0ab` (live). Local only: the STATUS/MEMORY commits for 96.3-96.4.
 
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
 | 96.1 | `1d8c127d` | 491 passed, 2 skipped (+3) | Guarded schema upgrade; cache/KB fall back when it fails. |
 | 96.2 | `49cdfc7d` + `03f6a0ab` | 491 passed, 2 skipped | Backup script; table count fix. |
-| 96.3 | (next) | 491 passed, 2 skipped | Push + live checks; STATUS.md. |
+| 96.3 | `5b479703` | 491 passed, 2 skipped | Push + live checks; STATUS.md. |
+| 96.4 | (next) | - | Deploy-log check not possible here; re-check. |
 

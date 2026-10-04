@@ -45,6 +45,8 @@ Live checks on 2026-10-05 01:10 after the deploy:
 | http to https | one 301 redirect, no loop |
 | `/admin/terms-cache/stats` and `/admin/knowledge-base` without login | 401 (routes live, admin-only) |
 | `/admin/terms-cache/stats` as admin | owner to run: `schema` should show `cache_ready: true`, `knowledge_base_ready: true`, `error: null` |
+| Deploy log: "SCHEMA UPGRADE FAILED"? | not checked by me (no Railway log access); owner to check the latest deploy's logs, or the stats `schema` block |
+| Re-check 2026-10-05 01:16 | `/api/health` 200, `/health/ocr` 200 (cached, 0.49 s), `/login` 200, http to https one redirect |
 
 A real sign-in was not tested by me; no production credentials were used.
 
