@@ -1614,7 +1614,7 @@ def auth_session(current: Optional[UserDB] = Depends(get_current_user_optional))
 
 
 @app.get("/login")
-def login_form():
+def login_form(request: Request, current: Optional[UserDB] = Depends(get_current_user_optional)):
     from fastapi.responses import HTMLResponse
     html_path = Path(__file__).resolve().parents[1] / "templates" / "login.html"
     html = html_path.read_text(encoding="utf-8")
@@ -1623,7 +1623,13 @@ def login_form():
     if verification:
         meta = f'<meta name="google-site-verification" content="{escape(verification)}" />'
     html = html.replace("__GOOGLE_SITE_VERIFICATION_META__", meta)
-    return HTMLResponse(content=html, status_code=200)
+    response = HTMLResponse(content=html, status_code=200)
+    if request.cookies.get("access_token") and not current:
+        # Drop an expired/invalid session so it cannot interfere with signing in.
+        cookie_opts = _cookie_options(request)
+        for name in ("access_token", CSRF_COOKIE_NAME):
+            response.delete_cookie(name, path=cookie_opts.get("path") or "/", domain=cookie_opts.get("domain"))
+    return response
 
 
 @app.get("/google{token}.html")

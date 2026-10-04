@@ -63,3 +63,49 @@ def test_bearer_authenticated_post_does_not_require_csrf_header(monkeypatch, tmp
 
     assert resp.status_code == 200
     assert resp.json().get("job_id")
+
+
+def test_stale_access_cookie_does_not_block_form_login(monkeypatch):
+    monkeypatch.setenv("RATE_LIMIT_ENABLED", "0")
+    client = TestClient(app, follow_redirects=False)
+    client.cookies.set("access_token", "stale")
+
+    resp = client.post("/auth/login", data={"username": "admin", "password": "admin123"})
+
+    assert resp.status_code == 303
+    assert any(
+        h.startswith("access_token=") and not h.startswith("access_token=stale")
+        for h in resp.headers.get_list("set-cookie")
+    )
+
+
+def test_stale_access_cookie_does_not_block_failed_login_redirect(monkeypatch):
+    monkeypatch.setenv("RATE_LIMIT_ENABLED", "0")
+    client = TestClient(app, follow_redirects=False)
+    client.cookies.set("access_token", "stale")
+
+    resp = client.post("/auth/login", data={"username": "x", "password": "y"})
+
+    assert resp.status_code == 303
+    assert resp.headers["location"].startswith("/login?error=invalid")
+
+
+def test_login_page_clears_stale_access_cookie():
+    client = TestClient(app)
+    client.cookies.set("access_token", "stale")
+
+    resp = client.get("/login")
+
+    assert resp.status_code == 200
+    assert any(h.startswith("access_token=") and "Max-Age=0" in h for h in resp.headers.get_list("set-cookie"))
+
+
+def test_login_page_keeps_valid_session(monkeypatch):
+    monkeypatch.setenv("RATE_LIMIT_ENABLED", "0")
+    client = TestClient(app)
+    assert _login(client).status_code == 200
+
+    resp = client.get("/login")
+
+    assert resp.status_code == 200
+    assert not any(h.startswith("access_token=") for h in resp.headers.get_list("set-cookie"))

@@ -6,6 +6,10 @@ from fastapi import HTTPException, Request
 CSRF_COOKIE_NAME = "csrf_token"
 CSRF_HEADER_NAME = "x-csrf-token"
 UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+# Unauthenticated sign-in/sign-up endpoints. The login page posts these forms
+# natively (no CSRF header), and a stale access_token cookie left in the browser
+# must not block a fresh sign-in.
+CSRF_EXEMPT_PATHS = {"/auth/login", "/auth/signup", "/auth/signup/form"}
 
 
 def new_csrf_token() -> str:
@@ -14,6 +18,8 @@ def new_csrf_token() -> str:
 
 def requires_csrf_check(request: Request) -> bool:
     if request.method.upper() not in UNSAFE_METHODS:
+        return False
+    if request.url.path.rstrip("/") in CSRF_EXEMPT_PATHS:
         return False
     if not request.cookies.get("access_token"):
         return False
