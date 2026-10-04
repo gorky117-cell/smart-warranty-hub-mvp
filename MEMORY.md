@@ -2594,11 +2594,35 @@ Owner approved pushing entry 93 Parts 2 and 4. Rules as before; nothing after th
   Tests: tests/test_ai_provider_fallback.py (10, mocked timeouts/errors, redaction checked for both
   providers), mid-line redaction test. Full suite 457 passed, 2 skipped.
 
+- [x] 94.5 Real-invoice runner: review mode, provider comparison; corrections log - not pushed.
+  - `scripts/run_real_invoices.py`: expected.csv is optional. review.md is always written: per file (and per
+    provider) a table of what SWH read - text engine/characters, brand, model, serial, invoice no, date,
+    category (coarse / fine), OEM website used, warranty source URL, duration found, estimated / please-confirm
+    status, first 3 summary lines - with blank "OK?" and "Correct value if wrong" columns. Marks: y/yes/ok
+    = pass, n/no/x = fail, ? = please confirm (acceptable), a correction alone = fail. Re-running keeps marks
+    while SWH's value is unchanged (otherwise lists them under "Marks cleared") and turns them into counts per
+    stage ("Hand-marked results"). report.md is written when expected.csv has values or with --provider both.
+  - `--provider auto|openai|mistral|both`: openai/mistral runs that provider alone (AI_PROVIDER set,
+    AI_PROVIDER_FALLBACK=0, AI_INVOICE_ENRICHMENT=1; vision tier only with OpenAI); both runs each in its own
+    subprocess and report.md starts with a comparison (fields / warranty page / duration acceptable, fields
+    by hand marks, time, API calls, tokens, cost) and a table of items where the providers read differently.
+    A provider that cannot run is listed with its reason (missing key, or the `openai` package not installed).
+  - Found: the local .venv does NOT have the `openai` package (production does); the runner now says so
+    instead of silently running without OpenAI.
+  - `app/services/corrections_log.py`: when CORRECTIONS_LOG=1 (off by default; production stays off unless
+    the owner approves), confirmations/corrections from the UI (brand/model/serial suggestions, vision
+    suggestions, manual details) append to real_invoices/corrections.csv (git-ignored; CORRECTIONS_LOG_PATH
+    overrides): logged_at, field, value_read, value_confirmed, action (confirmed / corrected / dismissed /
+    entered). No warranty/user ids, names, addresses, phones or invoice text; values go through `ai_safe`.
+  - Tests: runner review mode + marks, provider comparison (offline, fake keys in the subprocess env only),
+    corrections log (off by default, columns, masking, git-ignored path). Full suite 462 passed, 2 skipped.
+
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
 | 94.0 | `eac60ead` (pushed) | 442 passed, 2 skipped (+5) | Sign-up rate limit; friendly limit messages. |
 | 94.2 | `bc85e1ca` | 444 passed, 2 skipped (+2) | philips.co.in; "/" in model codes. |
 | 94.3 | `025e21a8` | 446 passed, 2 skipped (+2) | Embed model env; Mistral redaction audit. |
-| 94.4 | (next) | 457 passed, 2 skipped (+11) | Provider fallback; mid-line buyer redaction. |
+| 94.4 | `682af6ad` | 457 passed, 2 skipped (+11) | Provider fallback; mid-line buyer redaction. |
+| 94.5 | (next) | 462 passed, 2 skipped (+5) | Runner review mode / marks / --provider; corrections log. |
 

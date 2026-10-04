@@ -1,15 +1,25 @@
-"""Send every invoice in real_invoices/ through the full upload pipeline and write real_invoices/report.md.
+"""Send every invoice in real_invoices/ through the full upload pipeline; write review.md (always) and report.md.
 
-Real invoices, expected values and the report stay in real_invoices/, which is git-ignored: never commit them.
+Real invoices, expected values, review marks, reports and corrections stay in real_invoices/, which is
+git-ignored: never commit them.
 
-    python scripts/run_real_invoices.py [--dir real_invoices] [--offline] [--no-ai] [--no-vision]
+    python scripts/run_real_invoices.py [--dir real_invoices] [--provider auto|openai|mistral|both]
+                                        [--offline] [--no-ai] [--no-vision]
 
 - Runs the real app in-process (POST /artifacts/upload, as a browser upload does) against a throwaway SQLite
   database, so nothing is written to the app's own database or data/ files.
-- AI is on only when keys are present in the local .env (or the environment): OPENAI_API_KEY turns on
-  OpenAI invoice enrichment, summaries and the vision tier for unreadable photos; MISTRAL_API_KEY is used
-  for summaries when there is no OpenAI key. Key values are never printed or written to the report.
-- --offline blocks all non-loopback network (no OEM website lookups); used by the tests.
+- review.md (always): per file, what SWH read - text engine and characters, brand, model, serial, invoice
+  number, date, category, OEM website, warranty duration and source URL, the estimated / please-confirm
+  status and the first lines of the customer summary - with blank "OK?" and "Correct value if wrong"
+  columns. Mark them by hand (y / n / ?) and re-run: marks become pass / fail counts per stage. A mark is
+  kept while SWH's value is unchanged.
+- expected.csv is optional. Where it has values, report.md also scores each stage automatically.
+- AI is on only when keys are present in the local .env (or the environment); key values are never printed
+  or written anywhere. --provider auto uses whatever keys exist with the app's normal OpenAI<->Mistral
+  fallback; openai or mistral runs that provider alone (fallback off); both runs each alone, in separate
+  processes, and report.md compares field accuracy, warranty page reading, time and API cost. The vision
+  tier for unreadable photos is OpenAI-only.
+- --offline blocks all non-loopback network (no OEM website lookups or AI calls); used by the tests.
 - API cost: calls and tokens are counted; a cost is shown only when prices are set in the environment
   (USD per 1M tokens): COST_OPENAI_INPUT, COST_OPENAI_OUTPUT, COST_MISTRAL_INPUT, COST_MISTRAL_OUTPUT.
 
@@ -24,7 +34,9 @@ from __future__ import annotations
 import argparse
 import csv
 import os
+import json
 import secrets
+import subprocess
 import sys
 import tempfile
 import time
@@ -60,10 +72,29 @@ def _read_env_file(path: Path) -> Dict[str, str]:
     return values
 
 
-def configure_environment(*, offline: bool, no_ai: bool, no_vision: bool) -> Dict[str, Any]:
-    """Isolated DB, AI only when keys exist, generated admin login. Returns what was enabled (no values)."""
+class ProviderUnavailable(RuntimeError):
+    pass
+
+
+def configure_environment(*, offline: bool, no_ai: bool, no_vision: bool, provider: str = "auto") -> Dict[str, Any]:
+    """Isolated DB, AI only when keys exist, generated admin login. Returns what was enabled (no values).
+
+    provider: "auto" (whatever keys exist, with the app's normal OpenAI<->Mistral fallback), or "openai" /
+    "mistral" (that provider only for invoice enrichment, terms extraction and summaries; fallback off)."""
     for key, value in _read_env_file(ROOT / ".env").items():
         os.environ.setdefault(key, value)
+    from importlib.util import find_spec
+
+    openai_package = find_spec("openai") is not None
+    if provider in ("openai", "mistral") and not no_ai:
+        key_name = "OPENAI_API_KEY" if provider == "openai" else "MISTRAL_API_KEY"
+        if not os.getenv(key_name):
+            raise ProviderUnavailable(f"{key_name} is not in the local .env or environment; cannot run --provider {provider}")
+        if provider == "openai" and not openai_package:
+            raise ProviderUnavailable("the 'openai' package is not installed here (pip install -r requirements.txt); cannot run --provider openai")
+    if os.getenv("OPENAI_API_KEY") and not openai_package and not no_ai:
+        print("Note: OPENAI_API_KEY is set but the 'openai' package is not installed; OpenAI is off for this run.")
+        os.environ.pop("OPENAI_API_KEY", None)
     tmp = Path(tempfile.mkdtemp(prefix="swh_real_invoices_"))
     os.environ["DATABASE_URL"] = f"sqlite:///{(tmp / 'run.db').as_posix()}"
     os.environ["AI_QUOTA_FILE"] = str(tmp / "ai_quota.json")
@@ -78,19 +109,27 @@ def configure_environment(*, offline: bool, no_ai: bool, no_vision: bool) -> Dic
     os.environ["EMAIL_ENABLED"] = "false"
     os.environ["RATE_LIMIT_ENABLED"] = "0"
     os.environ["OCR_WARMUP"] = "0"
-    has_openai = bool(os.getenv("OPENAI_API_KEY")) and not no_ai
-    has_mistral = bool(os.getenv("MISTRAL_API_KEY")) and not no_ai
+    has_openai = bool(os.getenv("OPENAI_API_KEY")) and not no_ai and provider != "mistral"
+    has_mistral = bool(os.getenv("MISTRAL_API_KEY")) and not no_ai and provider != "openai"
     os.environ["OPENAI_ENABLED"] = "1" if has_openai else "0"
     os.environ["OPENAI_INVOICE_ENRICHMENT"] = "1" if has_openai else "0"
+    os.environ["AI_INVOICE_ENRICHMENT"] = "1" if (has_openai or has_mistral) else "0"
+    # The vision tier is OpenAI-only in the code today.
     os.environ["VISION_AI_EXTRACTION"] = "1" if has_openai and not no_vision else "0"
     os.environ["LLM_PROVIDER"] = "openai" if has_openai else ("mistral" if has_mistral else "none")
+    if provider in ("openai", "mistral"):
+        os.environ["AI_PROVIDER"] = provider
+        os.environ["AI_PROVIDER_FALLBACK"] = "0"  # measure one provider at a time
     if not has_openai:
         os.environ.pop("OPENAI_API_KEY", None)
     if not has_mistral:
         os.environ.pop("MISTRAL_API_KEY", None)
     if offline:
         _block_network()
-    return {"openai": has_openai, "mistral": has_mistral, "vision": has_openai and not no_vision, "offline": offline}
+    return {
+        "provider": provider if provider in ("openai", "mistral") else "auto",
+        "openai": has_openai, "mistral": has_mistral, "vision": has_openai and not no_vision, "offline": offline,
+    }
 
 
 def _block_network() -> None:
@@ -179,9 +218,10 @@ def _install_usage_hooks() -> None:
     real_post = requests.post
 
     def counted_post(url, *args, **kwargs):
+        if "mistral.ai" in str(url):
+            USAGE.calls["mistral"] += 1  # counted when attempted, like OpenAI
         response = real_post(url, *args, **kwargs)
         if "mistral.ai" in str(url):
-            USAGE.calls["mistral"] += 1
             try:
                 usage = response.json().get("usage") or {}
                 USAGE.tokens["mistral"]["input"] += int(usage.get("prompt_tokens") or 0)
@@ -282,6 +322,7 @@ def evaluate(path: Path, expected: Dict[str, str], client, auth: Dict[str, str])
         row["causes"].append("upload_rejected")
         for stage in STAGES:
             row["stages"][stage] = "fail"
+        row["review"] = {"text": f"upload rejected ({row['error']})"}
         return row
 
     with SessionLocal() as db:
@@ -415,6 +456,33 @@ def evaluate(path: Path, expected: Dict[str, str], client, auth: Dict[str, str])
         row["stages"]["summary"] = "n/a"
     else:
         row["stages"]["summary"] = "confirm"
+
+    # What SWH read, for review by hand (review.md); no expected values needed.
+    def shown_or_suggested(value, key):
+        suggestion = (alt.get(f"{key}_suggestion") or {}) if key else {}
+        if value:
+            return str(value)
+        if suggestion.get("status") == "pending" and suggestion.get("value"):
+            return f"(blank - suggests {suggestion['value']}, asks the customer to confirm)"
+        return "(blank)"
+
+    enrichment = alt.get("openai_invoice_enrichment") or {}
+    summary_lines = [line.strip() for line in str(summary_json.get("summary") or "").splitlines() if line.strip()][:3]
+    row["review"] = {
+        "text": f"{row['text']['engine']} ({row['text']['method'] or 'text'}), {text_chars} characters",
+        "brand": shown_or_suggested(stored["brand"], "brand"),
+        "model": shown_or_suggested(stored["model"], "model"),
+        "serial": shown_or_suggested(stored["serial"], "serial"),
+        "invoice_no": shown_or_suggested(invoice_no, None),
+        "purchase_date": shown_or_suggested(stored["purchase_date"], None),
+        "category": f"{coarse_category or '-'} / {fine_category}",
+        "oem_website": page_host or (", ".join(domains[:3]) + " (known site; no page read)" if domains else "(none)"),
+        "duration": f"{shown} months" if shown is not None else "(none shown)",
+        "warranty_source": source_url or source_type,
+        "status": evidence.get("status_label") or "-",
+        "summary": " / ".join(summary_lines) or "-",
+    }
+    row["ai"] = {k: enrichment.get(k) for k in ("provider", "fallback_used", "used") if k in enrichment}
     return row
 
 
@@ -425,18 +493,16 @@ def _label(outcome: str) -> str:
     return {"pass": "pass", "confirm": "please confirm", "missing": "missing", "fail": "FAIL", "n/a": "n/a"}[outcome]
 
 
-def write_report(rows: List[Dict[str, Any]], enabled: Dict[str, Any], out: Path) -> Dict[str, Any]:
+def render_report(rows: List[Dict[str, Any]], enabled: Dict[str, Any], title: str) -> Tuple[List[str], Dict[str, Any]]:
     lines = [
-        "# Real-invoice run",
-        "",
-        "Local only - real_invoices/ is git-ignored. Never commit this report or the invoices.",
+        f"## {title}",
         "",
         f"- Invoices: {len(rows)}",
         f"- AI: OpenAI {'on' if enabled['openai'] else 'off'}, Mistral {'on' if enabled['mistral'] else 'off'}, "
         f"vision tier {'on' if enabled['vision'] else 'off'}; network {'blocked (--offline)' if enabled['offline'] else 'on'}",
         "- Outcomes: pass; please confirm (acceptable: the app asks the customer); missing; FAIL (confident wrong); n/a (no expected value).",
         "",
-        "## Summary",
+        "### Summary",
         "",
         "| Stage | Judged | Pass | Please confirm | Missing | FAIL | Acceptable rate |",
         "|---|---|---|---|---|---|---|",
@@ -456,7 +522,7 @@ def write_report(rows: List[Dict[str, Any]], enabled: Dict[str, Any], out: Path)
     for r in rows:
         for provider, u in (r.get("usage") or {}).items():
             calls[provider] += u["calls"]
-    lines += ["", f"Time: {total_seconds:.1f} s total. API calls: {dict(calls) or 'none'}. Cost: {cost_text}.", "", "## Failures by cause", ""]
+    lines += ["", f"Time: {total_seconds:.1f} s total. API calls: {dict(calls) or 'none'}. Cost: {cost_text}.", "", "### Failures by cause", ""]
     by_cause: Dict[str, List[str]] = defaultdict(list)
     for r in rows:
         for cause in r["causes"]:
@@ -467,9 +533,9 @@ def write_report(rows: List[Dict[str, Any]], enabled: Dict[str, Any], out: Path)
             lines.append(f"| {cause} | {len(files)} | {', '.join(files)} |")
     else:
         lines.append("None.")
-    lines += ["", "## Per invoice", ""]
+    lines += ["", "### Per invoice", ""]
     for r in rows:
-        lines += [f"### {r['file']}", ""]
+        lines += [f"#### {r['file']}", ""]
         if r.get("error"):
             lines += [f"- Error: {r['error']}", ""]
             continue
@@ -489,11 +555,11 @@ def write_report(rows: List[Dict[str, Any]], enabled: Dict[str, Any], out: Path)
             f"- Customer summary: **{_label(r['stages']['summary'])}** - {r['summary_source']}: {r['summary_text']!r}",
             "",
         ]
-    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return rates
+    return lines, rates
 
 
 def load_expected(path: Path) -> Dict[str, Dict[str, str]]:
+    """Expected values per file; optional - an absent or header-only file means review mode only."""
     if not path.exists():
         return {}
     with path.open(encoding="utf-8-sig", newline="") as fh:
@@ -506,21 +572,220 @@ def ensure_expected_template(path: Path) -> None:
         path.write_text(",".join(EXPECTED_COLUMNS) + "\n", encoding="utf-8")
 
 
-def main(argv: Optional[List[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--dir", default=str(ROOT / "real_invoices"))
-    parser.add_argument("--offline", action="store_true", help="block all non-loopback network")
-    parser.add_argument("--no-ai", action="store_true", help="do not use AI even if keys are present")
-    parser.add_argument("--no-vision", action="store_true", help="never send photos to the AI vision tier")
-    args = parser.parse_args(argv)
-    folder = Path(args.dir).resolve()
-    ensure_expected_template(folder / "expected.csv")
-    files = sorted(p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in INVOICE_SUFFIXES)
-    if not files:
-        print(f"No invoices in {folder}. Add files and fill expected.csv.")
-        return 0
+# --- review.md: what SWH read, marked by hand ---------------------------------------------------------------
 
-    enabled = configure_environment(offline=args.offline, no_ai=args.no_ai, no_vision=args.no_vision)
+REVIEW_ITEMS = [
+    # (key, label, stage the hand mark counts towards)
+    ("text", "Text read (engine, characters)", "text"),
+    ("brand", "Brand", "fields"),
+    ("model", "Model", "fields"),
+    ("serial", "Serial", "fields"),
+    ("invoice_no", "Invoice number", "fields"),
+    ("purchase_date", "Purchase date", "fields"),
+    ("category", "Category (coarse / fine)", "fields"),
+    ("oem_website", "OEM website used", "oem_domain"),
+    ("warranty_source", "Warranty source URL", "warranty_page"),
+    ("duration", "Warranty duration found", "duration"),
+    ("status", "Estimated / please confirm status", "summary"),
+    ("summary", "Customer summary (first lines)", "summary"),
+]
+_ITEM_BY_LABEL = {label: (key, stage) for key, label, stage in REVIEW_ITEMS}
+_PASS_MARKS = {"y", "yes", "ok", "pass", "true", "1", "correct", "✓", "✔"}
+_FAIL_MARKS = {"n", "no", "x", "fail", "false", "0", "wrong", "✗", "✘"}
+_CONFIRM_MARKS = {"?", "confirm", "please confirm", "asks", "acceptable"}
+
+
+def _cell(value: Any) -> str:
+    return str(value if value is not None else "").replace("\r", " ").replace("\n", " / ").replace("|", "\\|").strip()
+
+
+def _uncell(value: str) -> str:
+    return value.replace("\\|", "|").strip()
+
+
+def _split_row(line: str) -> List[str]:
+    """Cells of a markdown table row, honouring escaped pipes."""
+    body = line.strip()
+    if body.startswith("|"):
+        body = body[1:]
+    if body.endswith("|") and not body.endswith("\\|"):
+        body = body[:-1]
+    cells, current, i = [], "", 0
+    while i < len(body):
+        if body[i] == "\\" and i + 1 < len(body) and body[i + 1] == "|":
+            current += "\\|"
+            i += 2
+            continue
+        if body[i] == "|":
+            cells.append(current)
+            current = ""
+        else:
+            current += body[i]
+        i += 1
+    cells.append(current)
+    return [_uncell(c) for c in cells]
+
+
+def mark_outcome(ok: str, correct_value: str) -> Optional[str]:
+    """pass / fail / confirm from a hand mark; None when unmarked."""
+    mark = (ok or "").strip().lower()
+    if mark in _PASS_MARKS:
+        return "pass"
+    if mark in _FAIL_MARKS or (not mark and (correct_value or "").strip()):
+        return "fail"
+    if mark in _CONFIRM_MARKS:
+        return "confirm"
+    return None
+
+
+def parse_review_marks(path: Path) -> Dict[Tuple[str, str, str], Dict[str, str]]:
+    """Marks from an existing review.md: (file, provider, item key) -> {value, ok, correct}."""
+    marks: Dict[Tuple[str, str, str], Dict[str, str]] = {}
+    if not path.exists():
+        return marks
+    file_name, provider = None, None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("### "):
+            title = line[4:].strip()
+            file_name, _, provider = title.partition(" | provider ")
+            provider = provider.strip() or "auto"
+            continue
+        if not file_name or not line.startswith("|") or line.startswith("|---") or line.startswith("| Item |"):
+            continue
+        cells = _split_row(line)
+        if len(cells) < 4 or cells[0] not in _ITEM_BY_LABEL:
+            continue
+        key, _stage = _ITEM_BY_LABEL[cells[0]]
+        marks[(file_name.strip(), provider, key)] = {"value": cells[1], "ok": cells[2], "correct": cells[3]}
+    return marks
+
+
+def hand_mark_counts(rows_by_provider: Dict[str, List[Dict[str, Any]]], marks) -> Dict[str, Dict[str, Counter]]:
+    """Per provider and stage: pass / fail / confirm / unmarked counts from the marks that still apply."""
+    out: Dict[str, Dict[str, Counter]] = {}
+    for provider, rows in rows_by_provider.items():
+        per_stage: Dict[str, Counter] = defaultdict(Counter)
+        for row in rows:
+            for key, _label_, stage in REVIEW_ITEMS:
+                if key not in (row.get("review") or {}):
+                    continue
+                mark = marks.get((row["file"], provider, key))
+                value = _uncell(_cell(row["review"][key]))
+                outcome = mark_outcome(mark["ok"], mark["correct"]) if mark and mark["value"] == value else None
+                per_stage[stage][outcome or "unmarked"] += 1
+        out[provider] = per_stage
+    return out
+
+
+def write_review(rows_by_provider: Dict[str, List[Dict[str, Any]]], out: Path) -> Dict[str, Dict[str, Counter]]:
+    """review.md: SWH's reading of every invoice with blank "OK?" / "Correct value if wrong" columns.
+    Marks already in the file are kept when the value SWH read is unchanged; otherwise they are cleared and
+    listed under "Marks cleared"."""
+    marks = parse_review_marks(out)
+    counts = hand_mark_counts(rows_by_provider, marks)
+    cleared: List[str] = []
+    lines = [
+        "# Real-invoice review",
+        "",
+        "Local only - real_invoices/ is git-ignored. Never commit this file or the invoices.",
+        "",
+        'Mark each row: "OK?" = y / n / ? (? = SWH asked the customer to confirm, which is acceptable). Put the '
+        'right value in "Correct value if wrong" (that alone counts as n). Re-run the runner to turn the marks '
+        "into counts; a mark is kept while SWH's value is unchanged.",
+        "",
+        "## Hand-marked results",
+        "",
+        "| Provider | Stage | Pass | Please confirm | Fail | Unmarked | Pass rate (marked) |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for provider, per_stage in counts.items():
+        for stage in STAGES:
+            c = per_stage.get(stage)
+            if not c:
+                continue
+            marked = c["pass"] + c["fail"] + c["confirm"]
+            rate = f"{c['pass'] + c['confirm']}/{marked}" if marked else "-"
+            lines.append(f"| {provider} | {stage} | {c['pass']} | {c['confirm']} | {c['fail']} | {c['unmarked']} | {rate} |")
+    body: List[str] = []
+    for provider, rows in rows_by_provider.items():
+        for row in rows:
+            body += ["", f"### {row['file']} | provider {provider}", ""]
+            if row.get("error"):
+                body.append(f"Error: {row['error']}")
+            body += ["| Item | SWH read | OK? | Correct value if wrong |", "|---|---|---|---|"]
+            for key, label, _stage in REVIEW_ITEMS:
+                if key not in (row.get("review") or {}):
+                    continue
+                value = _cell(row["review"][key])
+                mark = marks.get((row["file"], provider, key))
+                ok, correct = "", ""
+                if mark:
+                    if mark["value"] == _uncell(value):
+                        ok, correct = mark["ok"], mark["correct"]
+                    elif mark["ok"] or mark["correct"]:
+                        cleared.append(f"{row['file']} / {provider} / {label}: was \"{mark['value']}\", now \"{_uncell(value)}\"")
+                body.append(f"| {label} | {value} | {_cell(ok)} | {_cell(correct)} |")
+    if cleared:
+        lines += ["", "## Marks cleared (SWH now reads a different value)", ""] + [f"- {c}" for c in cleared]
+    lines += ["", "## Invoices"] + body
+    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return counts
+
+
+# --- provider comparison --------------------------------------------------------------------------------------
+
+
+def compare_providers(rows_by_provider: Dict[str, List[Dict[str, Any]]], hand_counts) -> List[str]:
+    lines = ["## Provider comparison", "",
+             "Each provider ran alone (fallback off) on the same files. Stage counts use expected.csv where filled in; "
+             "hand marks come from review.md.", "",
+             "| Provider | Fields acceptable | Warranty page acceptable | Duration acceptable | Fields (hand marks) | Time (s) | API calls | Tokens in/out | Cost |",
+             "|---|---|---|---|---|---|---|---|---|"]
+    for provider, rows in rows_by_provider.items():
+        def rate(stage):
+            c = Counter(r["stages"].get(stage, "n/a") for r in rows)
+            judged = sum(v for k, v in c.items() if k != "n/a")
+            return f"{c['pass'] + c['confirm']}/{judged}" if judged else "-"
+
+        hc = (hand_counts.get(provider) or {}).get("fields") or Counter()
+        marked = hc["pass"] + hc["fail"] + hc["confirm"]
+        calls = sum(u["calls"] for r in rows for u in (r.get("usage") or {}).values())
+        tin = sum(u["input_tokens"] for r in rows for u in (r.get("usage") or {}).values())
+        tout = sum(u["output_tokens"] for r in rows for u in (r.get("usage") or {}).values())
+        costs = [r.get("cost_usd") for r in rows]
+        cost = "not priced" if any(c is None for c in costs) else f"${sum(c or 0 for c in costs):.4f}"
+        lines.append(
+            f"| {provider} | {rate('fields')} | {rate('warranty_page')} | {rate('duration')} | "
+            f"{(str(hc['pass'] + hc['confirm']) + '/' + str(marked)) if marked else '-'} | "
+            f"{sum(r.get('seconds', 0) for r in rows):.1f} | {calls} | {tin}/{tout} | {cost} |"
+        )
+    providers = list(rows_by_provider)
+    if len(providers) == 2:
+        a, b = providers
+        by_file = {r["file"]: r for r in rows_by_provider[b]}
+        lines += ["", f"### Where {a} and {b} read differently", "", f"| File | Item | {a} | {b} |", "|---|---|---|---|"]
+        differences = 0
+        for ra in rows_by_provider[a]:
+            rb = by_file.get(ra["file"])
+            if not rb:
+                continue
+            for key, label, _stage in REVIEW_ITEMS:
+                if key in ("text", "summary"):
+                    continue
+                va, vb = (ra.get("review") or {}).get(key), (rb.get("review") or {}).get(key)
+                if va != vb:
+                    differences += 1
+                    lines.append(f"| {ra['file']} | {label} | {_cell(va)} | {_cell(vb)} |")
+        if not differences:
+            lines.append("| - | no differences | - | - |")
+    return lines
+
+
+# --- main -----------------------------------------------------------------------------------------------------
+
+
+def run_one(folder: Path, files: List[Path], args) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    enabled = configure_environment(offline=args.offline, no_ai=args.no_ai, no_vision=args.no_vision, provider=args.provider)
     sys.path.insert(0, str(ROOT))
     from fastapi.testclient import TestClient
 
@@ -540,10 +805,81 @@ def main(argv: Optional[List[str]] = None) -> int:
     rows = []
     for path in files:
         rows.append(evaluate(path, expected.get(path.name, {}), client, auth))
-        print(f"{path.name}: " + ", ".join(f"{s} {_label(rows[-1]['stages'].get(s, 'n/a'))}" for s in STAGES))
-    rates = write_report(rows, enabled, folder / "report.md")
-    print(f"Report: {folder / 'report.md'}")
-    print("Acceptable per stage: " + ", ".join(f"{s} {r['acceptable']}/{r['judged']}" for s, r in rates.items()))
+        rows[-1]["provider"] = enabled["provider"]
+        print(f"[{enabled['provider']}] {path.name}: " + ", ".join(f"{s} {_label(rows[-1]['stages'].get(s, 'n/a'))}" for s in STAGES))
+    return rows, enabled
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--dir", default=str(ROOT / "real_invoices"))
+    parser.add_argument("--offline", action="store_true", help="block all non-loopback network")
+    parser.add_argument("--no-ai", action="store_true", help="do not use AI even if keys are present")
+    parser.add_argument("--no-vision", action="store_true", help="never send photos to the AI vision tier")
+    parser.add_argument("--provider", choices=("auto", "openai", "mistral", "both"), default="auto",
+                        help="AI provider: auto (keys present, normal fallback), openai, mistral, or both (compared)")
+    parser.add_argument("--rows-json", help=argparse.SUPPRESS)  # internal: one provider's rows for --provider both
+    args = parser.parse_args(argv)
+    folder = Path(args.dir).resolve()
+    ensure_expected_template(folder / "expected.csv")
+    files = sorted(p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in INVOICE_SUFFIXES)
+    if not files:
+        print(f"No invoices in {folder}. Add files (expected.csv is optional).")
+        return 0
+
+    if args.rows_json:  # child process of --provider both
+        try:
+            rows, enabled = run_one(folder, files, args)
+        except ProviderUnavailable as exc:
+            print(str(exc))
+            return 2
+        Path(args.rows_json).write_text(json.dumps({"rows": rows, "enabled": enabled}, default=str), encoding="utf-8")
+        return 0
+
+    rows_by_provider: Dict[str, List[Dict[str, Any]]] = {}
+    enabled_by_provider: Dict[str, Dict[str, Any]] = {}
+    skipped: Dict[str, str] = {}
+    if args.provider == "both":
+        tmp = Path(tempfile.mkdtemp(prefix="swh_real_invoices_both_"))
+        for provider in ("openai", "mistral"):
+            out = tmp / f"{provider}.json"
+            cmd = [sys.executable, str(Path(__file__).resolve()), "--dir", str(folder), "--provider", provider, "--rows-json", str(out)]
+            cmd += [flag for flag, on in (("--offline", args.offline), ("--no-vision", args.no_vision)) if on]
+            proc = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
+            print(proc.stdout, end="")
+            if proc.returncode != 0 or not out.exists():
+                reason = ([line for line in proc.stdout.splitlines() if line.strip()] or [f"exit {proc.returncode}"])[-1]
+                skipped[provider] = reason
+                print(f"--provider {provider} did not run: {reason}")
+                continue
+            data = json.loads(out.read_text(encoding="utf-8"))
+            rows_by_provider[provider], enabled_by_provider[provider] = data["rows"], data["enabled"]
+        if not rows_by_provider:
+            return 2
+    else:
+        try:
+            rows, enabled = run_one(folder, files, args)
+        except ProviderUnavailable as exc:
+            print(str(exc))
+            return 2
+        rows_by_provider[enabled["provider"]], enabled_by_provider[enabled["provider"]] = rows, enabled
+
+    hand_counts = write_review(rows_by_provider, folder / "review.md")
+    print(f"Review: {folder / 'review.md'}")
+    has_expected = bool(load_expected(folder / "expected.csv"))
+    if has_expected or args.provider == "both":
+        sections: List[str] = ["# Real-invoice run", "", "Local only - real_invoices/ is git-ignored. Never commit this report or the invoices.", ""]
+        if args.provider == "both":
+            sections += compare_providers(rows_by_provider, hand_counts)
+            sections += [f"- {provider} did not run: {reason}" for provider, reason in skipped.items()] + [""]
+        for provider, rows in rows_by_provider.items():
+            report_lines, rates = render_report(rows, enabled_by_provider[provider], f"Provider: {provider}")
+            sections += report_lines
+            print(f"[{provider}] acceptable per stage: " + ", ".join(f"{s} {r['acceptable']}/{r['judged']}" for s, r in rates.items()))
+        (folder / "report.md").write_text("\n".join(sections) + "\n", encoding="utf-8")
+        print(f"Report: {folder / 'report.md'}")
+    else:
+        print("No expected.csv values: wrote review.md only (mark it by hand and re-run for counts).")
     return 0
 
 

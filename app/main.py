@@ -28,6 +28,7 @@ from .models import ArtifactType, BehaviourEvent, CanonicalWarranty
 from .services.canonical import canonicalize_artifact
 from .services.ingestion import ingest_artifact
 from .services import brand_registry
+from .services import corrections_log
 from .services.llm import generate_text
 from .services.nudge import generate_nudges
 from .services.predictive import compute_predictive_score, predictive_model, build_feature_vector, score_warranty, unified_risk
@@ -2127,6 +2128,8 @@ def _resolve_identity_suggestion(db, current, warranty_id: str, field: str, payl
     else:
         raise HTTPException(status_code=422, detail="action must be 'confirm' or 'dismiss'")
     suggestion["resolved_at"] = datetime.utcnow().isoformat()
+    corrections_log.log_correction(field, suggestion.get("value"), suggestion.get("confirmed_value"),
+                                   "confirm" if action == "confirm" else "dismissed")
     meta[key] = suggestion
     row.alternatives = meta
     db.add(row)
@@ -2182,6 +2185,11 @@ def save_manual_details(
     confidence = dict(row.confidence or {})
     meta = dict(row.alternatives or {})
     for field, value in fields.items():
+        previous = row.purchase_date.date().isoformat() if field == "purchase_date" and row.purchase_date else getattr(row, field, None)
+        suggested = (meta.get(_SUGGESTION_FIELDS.get(field, "")) or {}).get("value")
+        if field == "product_name" and previous == "Product":
+            previous = None  # upload placeholder, not a value SWH read
+        corrections_log.log_correction(field, previous or suggested, value, "entered")
         if field == "purchase_date":
             row.purchase_date = datetime.fromisoformat(value)
         else:
@@ -2246,6 +2254,8 @@ def resolve_vision_suggestion(
     else:
         raise HTTPException(status_code=422, detail="action must be 'confirm' or 'dismiss'")
     suggestion["resolved_at"] = datetime.utcnow().isoformat()
+    corrections_log.log_correction(field, suggestion.get("value"), suggestion.get("confirmed_value"),
+                                   "confirm" if action == "confirm" else "dismissed")
     suggestions[field] = suggestion
     meta["vision_suggestions"] = suggestions
     row.alternatives = meta
