@@ -50,3 +50,6 @@ tmp_*.py
 .claude/
 .kiro/
 data/ai_usage_quota.json
+
+# Real customer invoices, their expected values and run reports: NEVER commit (consolidated run P3)
+real_invoices/

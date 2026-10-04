@@ -2474,7 +2474,26 @@ never print/commit secrets, no Railway changes. Push ONLY Part 1 (Steps 1-3 of e
     +6 for .in hosts (unchanged), -20 for another country's path (unchanged).
   - After: all 4 synthetic invoices give the expected brand (or suggestion), product, model/blank, invoice
     no, date; no serials invented. 50-sample field measurement unchanged. Tests: 425 passed, 2 skipped (+9).
-- [ ] P3.9-11 real-invoice loop
+- [x] P3.9-11 Real-invoice loop (setup only) - not pushed.
+  - `real_invoices/` created and git-ignored (`.gitignore`); `real_invoices/expected.csv` holds only the
+    header: file, brand, model, serial, invoice_no, purchase_date, category, warranty_months, key_exclusions
+    (";"-separated keywords), oem_url. The owner fills it in. Nothing in real_invoices/ is ever committed.
+  - `scripts/run_real_invoices.py [--dir] [--offline] [--no-ai] [--no-vision]`: posts each file to
+    `/artifacts/upload` in-process (the full production path) against a throwaway SQLite DB, with generated
+    admin credentials, OEM auto-verify/RAG/e-mail/scheduler/warm-up off, AI quota file in temp. AI on only if
+    OPENAI_API_KEY / MISTRAL_API_KEY are in the local .env or environment (key values never printed);
+    OpenAI also enables invoice enrichment and the vision tier (unless --no-vision). Counts AI calls and
+    tokens (OpenAI responses usage; Mistral usage from responses); cost only when COST_<PROVIDER>_INPUT/
+    OUTPUT prices (USD per 1M tokens) are set. Writes real_invoices/report.md: per invoice and stage
+    (text read: engine, characters; fields vs expected; brand -> OEM domain; warranty page found/read;
+    duration and exclusions; customer summary; time; API usage/cost), a pass-rate table per stage and
+    failures grouped by cause. Outcomes: pass / please confirm (acceptable) / missing / FAIL (confident
+    wrong) / n/a.
+  - Tried on 3 synthetic invoices offline, no AI (scratchpad): text 3/3; fields 1/3; OEM domain 2/3;
+    warranty page 0/3 (expected offline); duration 2/3; exclusions 1/1; summary 1/3; 8.6 s; no API calls.
+    It surfaced two real gaps (not fixed): registry has philips.com but not philips.co.in; model
+    "HL7756/00" is cut at "/" by extraction. `tests/test_run_real_invoices.py` runs it as a subprocess on 3
+    synthetic invoices (offline, no AI) and checks the repo is untouched. Full suite 437 passed, 2 skipped.
 - [ ] P4.12-14 MEMORY/STATUS/README
 
 ### Step log
@@ -2485,5 +2504,6 @@ never print/commit secrets, no Railway changes. Push ONLY Part 1 (Steps 1-3 of e
 | P1.4-5 | `73e90793` | - | Push + live checks recorded. |
 | P2.7 | `b53433eb` | 416 passed, 2 skipped (+30) | Shared brands by product segment. |
 | P2.8 | `b147af43` | 425 passed, 2 skipped (+9) | Marketplace invoices; unknown brand -> please check; India pages. |
-| P2.6 | `2e472d20` + (next) | 436 passed, 2 skipped (+11) | CSRF: cherry-picked exemption + stale-cookie middleware, friendly redirect. |
+| P2.6 | `2e472d20` + `7e858a89` | 436 passed, 2 skipped (+11) | CSRF: cherry-picked exemption + stale-cookie middleware, friendly redirect. |
+| P3 | (next) | 437 passed, 2 skipped (+1) | real_invoices/ (ignored) + runner + runner test. |
 
