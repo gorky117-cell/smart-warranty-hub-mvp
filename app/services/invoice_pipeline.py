@@ -17,7 +17,12 @@ from ..db_models import (
 from ..storage import generate_id, store
 from ..models import CanonicalWarranty
 from .ocr import extract_text_with_meta
-from .ingestion import extract_product_fields, sanitize_invoice_identity_fields
+from .ingestion import (
+    SUGGESTION_KEYS,
+    extract_product_fields,
+    route_uncertain_identity,
+    sanitize_invoice_identity_fields,
+)
 from .terms_lookup import classify_terms_source_url, lookup_terms
 from .warranty_parser import sanitize_base_terms
 from .oem_domain_verify import verify_or_suggest
@@ -156,13 +161,16 @@ def _update_warranty(
         warranty.confidence = stored_confidence
         meta = dict(warranty.alternatives or {})
         incoming = dict(alternatives or {})
-        previous = meta.get("serial_suggestion") or {}
-        new_suggestion = incoming.get("serial_suggestion")
-        if previous.get("status") in ("confirmed", "dismissed"):
-            # A user decision is never overwritten by re-processing (fix run B5).
-            incoming.pop("serial_suggestion", None)
-        elif not new_suggestion and previous.get("status") == "pending":
-            meta.pop("serial_suggestion", None)
+        for field, key in SUGGESTION_KEYS.items():
+            previous = meta.get(key) or {}
+            if previous.get("status") in ("confirmed", "dismissed"):
+                # A user decision is never overwritten by re-processing (fix run B5).
+                incoming.pop(key, None)
+            elif not incoming.get(key) and previous.get("status") == "pending":
+                meta.pop(key, None)
+            if (meta.get(key) or incoming.get(key) or {}).get("status") == "pending" and fields.get(field):
+                incoming.pop(key, None)  # a confident value was found after all
+                meta.pop(key, None)
         if "vision_suggestions" in incoming:
             # Keep the user's confirmed/dismissed vision suggestions; refresh only pending ones (fix run B10).
             merged_vision = {
@@ -173,9 +181,6 @@ def _update_warranty(
             for key, value in (incoming.get("vision_suggestions") or {}).items():
                 merged_vision.setdefault(key, value)
             incoming["vision_suggestions"] = merged_vision
-        if (meta.get("serial_suggestion") or incoming.get("serial_suggestion") or {}).get("status") == "pending" and fields.get("serial_no"):
-            incoming.pop("serial_suggestion", None)  # a properly labelled serial was found after all
-            meta.pop("serial_suggestion", None)
         meta.update(incoming)
         if cleared:
             meta["cleared_on_reprocess"] = cleared
@@ -213,6 +218,120 @@ def _update_warranty(
     return warranty
 
 
+UNREADABLE_MESSAGE = "We couldn't read this invoice - retake the photo or enter the details."
+_READ_FIELDS = ("brand", "product_name", "model_code", "serial_no", "purchase_date", "invoice_no")
+
+
+def is_unreadable(fields: Dict[str, Any], alternatives: Optional[Dict[str, Any]]) -> bool:
+    """True when nothing identifying was read: no field and nothing to offer for confirmation."""
+    alternatives = alternatives or {}
+    if any(fields.get(key) for key in _READ_FIELDS):
+        return False
+    if any(alternatives.get(key) for key in SUGGESTION_KEYS.values()):
+        return False
+    return not any((s or {}).get("status") == "pending" for s in (alternatives.get("vision_suggestions") or {}).values())
+
+
+def mark_unreadable(warranty: WarrantyDB) -> None:
+    """Show the retake/enter-details message instead of any estimated coverage or terms."""
+    meta = dict(warranty.alternatives or {})
+    meta["unreadable_invoice"] = {"message": UNREADABLE_MESSAGE, "at": datetime.utcnow().isoformat()}
+    meta["terms_source_type"] = "unreadable"
+    for key in ("terms_source_url", "terms_source_urls", "terms_last_refreshed_at"):
+        meta.pop(key, None)
+    warranty.alternatives = meta
+    if float((warranty.confidence or {}).get("coverage_months") or 0.0) < 0.9:
+        warranty.coverage_months = None
+        warranty.expiry_date = None
+        warranty.terms = []
+        warranty.exclusions = []
+
+
+def apply_terms_and_expiry(db: Session, warranty: WarrantyDB, fields: Dict[str, Any]) -> None:
+    """Look up warranty terms for the stored identity and derive coverage and expiry (moved out of
+    ``run_job`` so manually entered details use the same path)."""
+    meta = dict(warranty.alternatives or {})
+    if meta.pop("unreadable_invoice", None) is not None and meta.get("terms_source_type") == "unreadable":
+        meta.pop("terms_source_type", None)
+    warranty.alternatives = meta
+    terms_result = None
+    terms_lookup_error = None
+    should_lookup_terms = _has_terms_lookup_identity(warranty, fields) or not fields.get("coverage_months")
+    if should_lookup_terms:
+        try:
+            terms_result = lookup_terms(
+                db,
+                brand=warranty.brand,
+                category=fields.get("product_category"),
+                region=warranty.region_code,
+                model_code=warranty.model_code,
+                product_name=warranty.product_name,
+                force_refresh=True,
+            )
+        except Exception as exc:
+            terms_lookup_error = exc.__class__.__name__
+    # Auto-verify OEM domain on new brand (bounded attempts)
+    if os.getenv("OEM_AUTO_VERIFY", "true").lower() == "true" and warranty.brand:
+        try:
+            res = verify_or_suggest(
+                brand=warranty.brand,
+                domain="",
+                region=warranty.region_code,
+            )
+            if not res.get("verified"):
+                try:
+                    create_oem_notification(
+                        db,
+                        user_id="oem-1",
+                        ntype="oem_domain_unverified",
+                        title=f"OEM domain unverified: {warranty.brand}",
+                        message=f"Auto-verify failed. Suggestions: {res.get('suggestions')}",
+                        severity="warning",
+                        brand=warranty.brand,
+                        region=warranty.region_code,
+                    )
+                except Exception:
+                    pass
+        except Exception:
+            pass
+    terms_source_type = None
+    if terms_result:
+        terms_source_type = classify_terms_source_url(terms_result.source_url or "", warranty.brand)
+    if terms_result and terms_result.duration_months and (
+        terms_source_type == "approved_oem_source" or not warranty.coverage_months
+    ):
+        warranty.coverage_months = terms_result.duration_months
+    if warranty.purchase_date and warranty.coverage_months:
+        try:
+            expiry = warranty.purchase_date.date()
+            year = expiry.year + (expiry.month - 1 + warranty.coverage_months) // 12
+            month = (expiry.month - 1 + warranty.coverage_months) % 12 + 1
+            day = min(expiry.day, [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1])
+            warranty.expiry_date = datetime(year, month, day)
+        except Exception:
+            pass
+    if terms_result:
+        warranty.terms = sanitize_base_terms(terms_result.terms or [])
+        warranty.exclusions = terms_result.exclusions
+        warranty.claim_steps = terms_result.claim_steps
+    # Persist source hints for UI transparency.
+    meta = dict(warranty.alternatives or {})
+    if terms_result:
+        source_url = terms_result.source_url or ""
+        meta["terms_source_url"] = source_url or None
+        meta["terms_source_urls"] = terms_result.source_urls or ([source_url] if source_url else [])
+        meta["terms_source_type"] = terms_source_type or classify_terms_source_url(source_url, warranty.brand)
+        meta["terms_last_refreshed_at"] = datetime.utcnow().isoformat()
+        meta.pop("terms_lookup_error", None)
+    elif terms_lookup_error:
+        meta["terms_lookup_error"] = terms_lookup_error
+        meta["terms_last_lookup_error_at"] = datetime.utcnow().isoformat()
+        meta.setdefault("terms_source_type", "invoice_only")
+    else:
+        meta.setdefault("terms_source_type", "invoice_only")
+    warranty.alternatives = meta
+
+
 def run_job(job_id: str) -> None:
     with SessionLocal() as db:
         job = db.query(PipelineJobDB).filter_by(id=job_id).first()
@@ -243,6 +362,12 @@ def run_job(job_id: str) -> None:
             ocr_only_text = (text or "").split("[OCR note]")[0].strip()
             vision_due = bool(job.source_path) and vision_enabled() and needs_vision(ocr_only_text)
             if not text and not vision_due:
+                row = db.query(WarrantyDB).filter_by(id=job.warranty_id).first()
+                if row:
+                    mark_unreadable(row)
+                    db.add(row)
+                    db.commit()
+                    store.warranties.pop(job.warranty_id, None)
                 _set_job_status(db, job, "failed", error="no_text")
                 return
 
@@ -279,6 +404,9 @@ def run_job(job_id: str) -> None:
             if openai_meta:
                 alternatives = dict(alternatives or {})
                 alternatives["openai_invoice_enrichment"] = openai_meta
+            # Low-confidence or unknown brand/model/serial (also from AI enrichment) become suggestions.
+            fields, confidence, alternatives = route_uncertain_identity(fields, confidence, alternatives)
+            unreadable = is_unreadable(fields, alternatives)
             parsed_date = None
             if fields.get("purchase_date"):
                 try:
@@ -306,82 +434,10 @@ def run_job(job_id: str) -> None:
                 return
 
             _set_job_status(db, job, "terms_lookup")
-            terms_result = None
-            terms_lookup_error = None
-            should_lookup_terms = _has_terms_lookup_identity(warranty, fields) or not fields.get("coverage_months")
-            if should_lookup_terms:
-                try:
-                    terms_result = lookup_terms(
-                        db,
-                        brand=warranty.brand,
-                        category=fields.get("product_category"),
-                        region=warranty.region_code,
-                        model_code=warranty.model_code,
-                        product_name=warranty.product_name,
-                        force_refresh=True,
-                    )
-                except Exception as exc:
-                    terms_lookup_error = exc.__class__.__name__
-            # Auto-verify OEM domain on new brand (bounded attempts)
-            if os.getenv("OEM_AUTO_VERIFY", "true").lower() == "true" and warranty.brand:
-                try:
-                    res = verify_or_suggest(
-                        brand=warranty.brand,
-                        domain="",
-                        region=warranty.region_code,
-                    )
-                    if not res.get("verified"):
-                        try:
-                            create_oem_notification(
-                                db,
-                                user_id="oem-1",
-                                ntype="oem_domain_unverified",
-                                title=f"OEM domain unverified: {warranty.brand}",
-                                message=f"Auto-verify failed. Suggestions: {res.get('suggestions')}",
-                                severity="warning",
-                                brand=warranty.brand,
-                                region=warranty.region_code,
-                            )
-                        except Exception:
-                            pass
-                except Exception:
-                    pass
-            terms_source_type = None
-            if terms_result:
-                terms_source_type = classify_terms_source_url(terms_result.source_url or "", warranty.brand)
-            if terms_result and terms_result.duration_months and (
-                terms_source_type == "approved_oem_source" or not warranty.coverage_months
-            ):
-                warranty.coverage_months = terms_result.duration_months
-            if warranty.purchase_date and warranty.coverage_months:
-                try:
-                    expiry = warranty.purchase_date.date()
-                    year = expiry.year + (expiry.month - 1 + warranty.coverage_months) // 12
-                    month = (expiry.month - 1 + warranty.coverage_months) % 12 + 1
-                    day = min(expiry.day, [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1])
-                    warranty.expiry_date = datetime(year, month, day)
-                except Exception:
-                    pass
-            if terms_result:
-                warranty.terms = sanitize_base_terms(terms_result.terms or [])
-                warranty.exclusions = terms_result.exclusions
-                warranty.claim_steps = terms_result.claim_steps
-            # Persist source hints for UI transparency.
-            meta = dict(warranty.alternatives or {})
-            if terms_result:
-                source_url = terms_result.source_url or ""
-                meta["terms_source_url"] = source_url or None
-                meta["terms_source_urls"] = terms_result.source_urls or ([source_url] if source_url else [])
-                meta["terms_source_type"] = terms_source_type or classify_terms_source_url(source_url, warranty.brand)
-                meta["terms_last_refreshed_at"] = datetime.utcnow().isoformat()
-                meta.pop("terms_lookup_error", None)
-            elif terms_lookup_error:
-                meta["terms_lookup_error"] = terms_lookup_error
-                meta["terms_last_lookup_error_at"] = datetime.utcnow().isoformat()
-                meta.setdefault("terms_source_type", "invoice_only")
+            if unreadable:
+                mark_unreadable(warranty)
             else:
-                meta.setdefault("terms_source_type", "invoice_only")
-            warranty.alternatives = meta
+                apply_terms_and_expiry(db, warranty, fields)
             # Optional: per-upload review crawl for real-time enrichment
             if os.getenv("REVIEW_CRAWL_ON_UPLOAD", "false").lower() == "true":
                 try:

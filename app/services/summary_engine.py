@@ -73,7 +73,13 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
         source_type=source_type,
     )
 
-    if source_type == "approved_oem_source" and source_url:
+    unreadable = alt.get("unreadable_invoice")
+    if unreadable or source_type == "unreadable":
+        status = "unreadable"
+        label = "We couldn't read this invoice"
+        note = (unreadable or {}).get("message") or "We couldn't read this invoice - retake the photo or enter the details."
+        confidence = 0.0
+    elif source_type == "approved_oem_source" and source_url:
         status = "confirmed"
         label = source_trust["label"]
         note = source_trust["note"]
@@ -141,8 +147,8 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
         "source_url": source_url,
         "last_refreshed_at": refreshed_at,
         "confidence": confidence,
-        "requires_oem_verification": bool(source_trust.get("requires_oem_verification"))
-        or status in {"estimated", "not_confirmed", "cached"},
+        "requires_oem_verification": status != "unreadable"
+        and (bool(source_trust.get("requires_oem_verification")) or status in {"estimated", "not_confirmed", "cached"}),
         "note": note,
         "sources": sources,
         "source_trust": source_trust,
@@ -250,6 +256,9 @@ def summarize_warranty(warranty: CanonicalWarranty) -> Tuple[str, str]:
     """
     Returns (summary_text, source).
     """
+    unreadable = (getattr(warranty, "alternatives", None) or {}).get("unreadable_invoice")
+    if unreadable:
+        return unreadable.get("message") or "We couldn't read this invoice - retake the photo or enter the details.", "unreadable"
     if _LLM_PROVIDER == "none":
         return _template_summary(warranty), "template"
 

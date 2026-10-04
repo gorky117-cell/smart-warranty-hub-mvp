@@ -2324,12 +2324,50 @@ and deployed; Steps 1-3 are NOT pushed until the user approves.
     panasonic.com, Whirlpool whirlpool.in + whirlpool.com; each opened in a real browser 2026-10-04, owner
     read from title/footer. Label "From the official <Brand> website (manually confirmed)", status
     `manually_confirmed_official`. `sony.co.in` and `whirlpool.in` added to the registry.
-- [ ] 2 Extraction defects
+- [x] 2 Extraction defects (Part D journeys) - not pushed
+  - Model: labelled "Model Code:/Model No:" read (was missed: regex needed "Model:"); a printed code
+    (letters+digits with a hyphen, or 6+ mixed chars) beats a marketing name ("Galaxy S24"). A marketing
+    name alone is still stored (0.7, `alternatives.model_evidence = marketing_name`) - the Samsung M17e
+    regression tests require it. Misread model labels ("Mad", "Madet", "Modet") and unlabelled
+    fallback tokens (was stored at 0.4) become `model_suggestion`.
+  - Product name: a field line, exact or one OCR slip from a label ("Band: Apple", "Modet X"), is never a
+    product name or line item; embedded labels are cut ("... S24 Ultra Model Code: SM-..." ->
+    "Samsung Galaxy S24 Ultra"); "Product iPhone 15" without a colon is read.
+  - Brand: `route_uncertain_identity` (ingestion) moves any brand not in the OEM registry, and any brand/
+    model/serial below 0.6, into pending `brand_suggestion`/`model_suggestion`/`serial_suggestion`;
+    user values (>= 0.9) and the Epson under-line-item serial are kept. Applied after extraction and
+    again in the pipeline after AI enrichment/vision. Misread "Band:" is read as the brand label.
+  - Unreadable: nothing identifying read and nothing to suggest -> `alternatives.unreadable_invoice`
+    {message}, `terms_source_type = unreadable`, coverage/expiry/terms cleared (unless user-set), no
+    terms lookup; evidence status "unreadable" ("Not read"), summary = the message. Also set when the job
+    fails `no_text`. Message: "We couldn't read this invoice - retake the photo or enter the details."
+  - New endpoints: POST /warranties/{id}/field-suggestion {field, action, value} (serial endpoint now
+    delegates to the same resolver); POST /warranties/{id}/manual-details (brand/product/model/serial/
+    purchase date, user confidence 0.95, then the same terms lookup as the pipeline via
+    `invoice_pipeline.apply_terms_and_expiry`, which was moved out of `run_job` unchanged).
+  - Neo dashboard: `#fieldSuggestions` (brand/model) and `#unreadableInvoice` (message + details form).
+  - Measured, 30 labelled synthetic images, cached OCR text (`scripts/measure_invoice_fields.py`):
+    | field | before | after |
+    |---|---|---|
+    | brand | 26 correct, 4 missing | 26 correct, 4 missing |
+    | model_code | 2 correct, 1 wrong, 27 missing | 0 stored (0 wrong); 28 suggestions: 2 exact, 26 need an edit |
+    | serial_no | 0 stored; 30 suggestions need an edit | unchanged |
+    The 2 "correct" models came from misread labels, so they are now suggestions (same policy as serials).
+  - Local production-like journeys (synthetic files) after the change: text PDF model SM-S928BZKGINS,
+    product "Samsung Galaxy S24 Ultra"; scanned PDF brand none + suggestion "Lo", model suggestion
+    OLEDSS-002; clear photo product "iPhone 15" (was "Band: Apple"); blurred photo coverage none, message
+    shown (was 12 months "Estimated"). Browser: form saved -> message gone, terms looked up; brand
+    suggestion confirmed as "LG" -> stored.
+  - Found (pre-existing, not fixed, spawned as a separate task): POST /auth/login returns raw 403 "CSRF
+    token missing or invalid" when the browser still holds an old `access_token` cookie (the login form
+    sends no CSRF header). Reproduced locally and on the live site with a fake cookie; dates from
+    `aa3f3b48` Phase 9C.
 - [ ] 3 Clean-up
 
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
 | 0 | `9e9bc278` | 372 passed (+2) | Label, Orient, gitignore. Pushed and deployed. |
-| 1 | (next) | 374 passed (+2) | Registry review doc; manual-confirmed list. Not pushed. |
+| 1 | `17a40348` | 374 passed (+2) | Registry review doc; manual-confirmed list. Not pushed. |
+| 2 | (next) | 384 passed (+10) | Model/brand/product fixes, suggestions, unreadable message. Not pushed. |
 

@@ -29,7 +29,7 @@ CACHED = json.loads((ROOT / "tests" / "fixtures" / "ocr_text_50.json").read_text
 # Minimum correct per field, `normal` case (30 labelled synthetic images), measured 2026-10-03.
 MIN_CORRECT = {
     "brand": 26,
-    "model_code": 2,  # was 0 before step 7 (seller lines no longer taken as product lines)
+    "model_code": 0,  # 2 before follow-up step 2: misread-label models ("Madet X") are now suggestions
     "purchase_date": 24,
     "serial_no": 0,
     "invoice_no": 0,
@@ -39,7 +39,7 @@ MIN_CORRECT = {
 # Maximum confidently-wrong values per field, same set.
 MAX_WRONG = {
     "brand": 0,
-    "model_code": 1,
+    "model_code": 0,  # was 1 before follow-up step 2
     "purchase_date": 6,
     "serial_no": 0,  # was 30 before fix run B5 (misread-label values are now suggestions)
     "invoice_no": 0,
@@ -48,8 +48,15 @@ MAX_WRONG = {
 }
 
 
+# Minimum suggestions offered for confirmation instead of a stored value (follow-up step 2).
+MIN_SUGGESTIONS = {"model_code": 28, "serial_no": 30}
+
+
 def _assert_floors(report):
     normal = report["fields_by_case"]["normal"]
+    for field, floor in MIN_SUGGESTIONS.items():
+        offered = normal[field].get("suggestion_exact", 0) + normal[field].get("suggestion_needs_edit", 0)
+        assert offered >= floor, (field, normal[field])
     for field in measure.FIELDS:
         counts = normal[field]
         assert counts.get("correct", 0) >= MIN_CORRECT[field], (field, counts)

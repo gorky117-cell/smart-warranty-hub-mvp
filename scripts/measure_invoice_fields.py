@@ -58,7 +58,10 @@ def score(rows: List[Dict[str, str]], texts: Dict[str, Dict[str, object]]) -> Di
         if not text:
             empty_text[row["case_type"]] += 1
         fields, _confidence, alt = extract_product_fields(text)
-        suggestion = (alt or {}).get("serial_suggestion")
+        suggestions = {
+            field: (alt or {}).get(key)
+            for field, key in (("serial_no", "serial_suggestion"), ("brand", "brand_suggestion"), ("model_code", "model_suggestion"))
+        }
         if row["case_type"] == "non_warranty":
             for field in FIELDS:
                 if fields.get(field):
@@ -74,7 +77,8 @@ def score(rows: List[Dict[str, str]], texts: Dict[str, Dict[str, object]]) -> Di
             group[field][outcome] += 1
             if field == "serial_no" and got == "takinvoice":
                 group[field]["takinvoice"] += 1
-            if field == "serial_no" and suggestion:
+            suggestion = suggestions.get(field)
+            if suggestion:
                 exact = _norm(field, suggestion.get("value")) == truth
                 group[field]["suggestion_exact" if exact else "suggestion_needs_edit"] += 1
     return {

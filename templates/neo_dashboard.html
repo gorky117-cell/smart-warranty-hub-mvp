@@ -1001,6 +1001,22 @@
               </div>
               <div id="serialSuggestionStatus" class="helper"></div>
             </div>
+            <div id="fieldSuggestions" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px dashed #b98900;border-radius:8px;">
+              <div><strong>Please check these details.</strong> We were not sure we read them correctly.</div>
+              <div id="fieldSuggestionList"></div>
+            </div>
+            <div id="unreadableInvoice" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px solid #b3261e;border-radius:8px;">
+              <div><strong id="unreadableMessage">We couldn't read this invoice - retake the photo or enter the details.</strong></div>
+              <div style="margin-top:6px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;">
+                <input id="manualBrand" type="text" maxlength="40" placeholder="Brand" aria-label="Brand">
+                <input id="manualProduct" type="text" maxlength="80" placeholder="Product (e.g. iPhone 15)" aria-label="Product">
+                <input id="manualModel" type="text" maxlength="40" placeholder="Model code" aria-label="Model code">
+                <input id="manualSerial" type="text" maxlength="40" placeholder="Serial number" aria-label="Serial number">
+                <input id="manualPurchaseDate" type="date" aria-label="Purchase date">
+              </div>
+              <div style="margin-top:6px;"><button type="button" class="btn" id="manualSaveBtn">Save details</button>
+                <span id="manualStatus" class="helper"></span></div>
+            </div>
             <div id="visionSuggestions" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px dashed #b98900;border-radius:8px;">
               <div><strong>Please check these details.</strong> They were read from your photo by AI and need your confirmation.</div>
               <div id="visionSuggestionList"></div>
@@ -2481,6 +2497,7 @@
         if (s === 'confirmed' || s === 'confirmed_internal') return 'Confirmed';
         if (s === 'cached') return 'Cached';
         if (s === 'estimated') return 'Estimated';
+        if (s === 'unreadable') return 'Not read';
         return 'Needs verification';
       }
 
@@ -2656,6 +2673,84 @@
         box.style.display = 'block';
       }
 
+      function renderFieldSuggestions(w) {
+        const box = document.getElementById('fieldSuggestions');
+        const list = document.getElementById('fieldSuggestionList');
+        if (!box || !list) return;
+        const alt = (w && w.alternatives) || {};
+        const fields = [['brand', 'brand_suggestion', 'Brand'], ['model_code', 'model_suggestion', 'Model']];
+        const pending = fields.filter(([field, key]) => alt[key] && alt[key].status === 'pending' && !w[field]);
+        list.innerHTML = '';
+        if (!pending.length) { box.style.display = 'none'; return; }
+        pending.forEach(([field, key, label]) => {
+          const s = alt[key];
+          const row = document.createElement('div');
+          row.style.marginTop = '6px';
+          row.innerHTML = `<div>${escapeHtml(label)}: <code></code> <span class="helper fs-reason"></span></div>
+            <input type="text" maxlength="40"> <button type="button" class="btn">Confirm</button>
+            <button type="button" class="btn secondary">Not right</button> <span class="helper fs-status"></span>`;
+          row.querySelector('code').textContent = s.value || '';
+          row.querySelector('.fs-reason').textContent = s.reason || '';
+          const input = row.querySelector('input');
+          input.value = s.value || '';
+          input.setAttribute('aria-label', `${label} as printed`);
+          const [confirmBtn, dismissBtn] = row.querySelectorAll('button');
+          const statusEl = row.querySelector('.fs-status');
+          const send = async (action) => {
+            try {
+              const res = await fetch(`/warranties/${encodeURIComponent(w.id)}/field-suggestion`, {
+                method: 'POST',
+                headers: h({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ field, action, value: input.value.trim() }),
+              });
+              const data = await res.json();
+              if (!res.ok) { statusEl.textContent = data.detail || 'Could not save.'; return; }
+              alt[key] = data.suggestion;
+              if (action === 'confirm') w[field] = data[field];
+              row.remove();
+              if (!list.children.length) box.style.display = 'none';
+              if (action === 'confirm') renderCoverage(w);
+            } catch (e) { statusEl.textContent = 'Could not save.'; }
+          };
+          confirmBtn.onclick = () => send('confirm');
+          dismissBtn.onclick = () => send('dismiss');
+          list.appendChild(row);
+        });
+        box.style.display = 'block';
+      }
+
+      function renderUnreadable(w) {
+        const box = document.getElementById('unreadableInvoice');
+        if (!box) return false;
+        const info = (w && w.alternatives && w.alternatives.unreadable_invoice) || null;
+        if (!info) { box.style.display = 'none'; return false; }
+        document.getElementById('unreadableMessage').textContent = info.message || "We couldn't read this invoice - retake the photo or enter the details.";
+        const statusEl = document.getElementById('manualStatus');
+        statusEl.textContent = '';
+        document.getElementById('manualSaveBtn').onclick = async () => {
+          const body = {
+            brand: document.getElementById('manualBrand').value.trim(),
+            product_name: document.getElementById('manualProduct').value.trim(),
+            model_code: document.getElementById('manualModel').value.trim(),
+            serial_no: document.getElementById('manualSerial').value.trim(),
+            purchase_date: document.getElementById('manualPurchaseDate').value,
+          };
+          try {
+            const res = await fetch(`/warranties/${encodeURIComponent(w.id)}/manual-details`, {
+              method: 'POST',
+              headers: h({ 'Content-Type': 'application/json' }),
+              body: JSON.stringify(body),
+            });
+            const data = await res.json();
+            if (!res.ok) { statusEl.textContent = data.detail || 'Could not save.'; return; }
+            statusEl.textContent = 'Saved. Updating your warranty...';
+            if (typeof loadAll === 'function') loadAll();
+          } catch (e) { statusEl.textContent = 'Could not save.'; }
+        };
+        box.style.display = 'block';
+        return true;
+      }
+
       function renderVisionSuggestions(w) {
         const box = document.getElementById('visionSuggestions');
         const list = document.getElementById('visionSuggestionList');
@@ -2718,7 +2813,16 @@
         }
         if (expiryInfo) expiryInfo.classList.remove('hidden');
         renderSerialSuggestion(w);
+        renderFieldSuggestions(w);
         renderVisionSuggestions(w);
+        if (renderUnreadable(w)) {
+          // Nothing was read: never show an estimated coverage.
+          if (coverageBadge) coverageBadge.classList.add('hidden');
+          if (expiryInfo) expiryInfo.textContent = 'Days left: N/A';
+          document.getElementById('coverageDetails').textContent =
+            w.alternatives.unreadable_invoice.message || "We couldn't read this invoice - retake the photo or enter the details.";
+          return;
+        }
         document.getElementById('coverageDetails').textContent = [
           `Brand: ${w.brand || 'N/A'}`,
           `Model: ${w.model_code || 'N/A'}`,

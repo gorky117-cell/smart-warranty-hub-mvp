@@ -78,6 +78,63 @@ def _looks_like_seller_text(value: str) -> bool:
     return any(marker in low for marker in _RETAILER_MARKERS)
 
 
+# Invoice field labels, used to spot label lines whose label OCR garbled ("Band: Apple", "Modet X1").
+_FIELD_LABELS = (
+    "brand", "model", "serial", "imei", "date", "invoice", "warranty", "colour", "color", "price",
+    "quantity", "seller", "buyer", "gstin", "total", "make", "mrp",
+)
+_LABEL_PREFIX_RE = re.compile(r"^\s*\W?\s*([A-Za-z]{3,9})\b\s*([:\-.]?)\s*(\S.*)$")
+# Labels OCR garbles most; for these a label without a colon still counts ("Band Sony").
+_IDENTITY_LABELS = ("brand", "model", "serial")
+
+
+# A field label inside a joined product line: "Samsung Galaxy S24 Ultra Model Code: SM-S928B".
+_EMBEDDED_FIELD_RE = re.compile(
+    r"\s+(?:model|serial|imei|colou?r|warranty|invoice)(?:\s*(?:code|no\.?|number|#))?\s*[:\-#]",
+    re.IGNORECASE,
+)
+
+
+def _edit_distance(a: str, b: str) -> int:
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
+def _field_label(word: str) -> Optional[str]:
+    """The invoice field label ``word`` is, or is one OCR slip away from ("band" -> "brand")."""
+    low = word.lower()
+    if low in _FIELD_LABELS:
+        return low
+    if len(low) < 4:
+        return None
+    for label in _FIELD_LABELS:
+        if len(label) >= 4 and abs(len(label) - len(low)) <= 1 and _edit_distance(low, label) <= 1:
+            return label
+    return None
+
+
+def _labelled_line(value: str) -> Optional[Tuple[str, str]]:
+    """(label, value) when the line starts with a field label, exact or misread; else None.
+    A colon or dash after the word is not required because OCR often drops it ("Band Sony")."""
+    match = _LABEL_PREFIX_RE.match(_normalize_spaces(value))
+    if not match:
+        return None
+    word, separator, rest = match.group(1), match.group(2), match.group(3).strip()
+    label = _field_label(word)
+    if not label or not rest:
+        return None
+    if label == "brand" and not separator and rest.lower().startswith("new"):
+        return None  # "Brand new ..." is a description
+    if not separator and label not in _IDENTITY_LABELS:
+        return None  # "Data Cable" / "Color Black Edition" are product lines, not "Date:" / "Color:"
+    return label, rest
+
+
 def _is_boilerplate_line(value: str) -> bool:
     low = _normalize_spaces(value).lower()
     if not low:
@@ -297,6 +354,9 @@ def _clean_product_name_candidate(raw: str) -> Optional[str]:
     text = _strip_invoice_table_prefix(raw).strip(":-|")
     if not text or _is_boilerplate_line(text):
         return None
+    if _labelled_line(text):
+        return None  # a field line such as "Band: Apple" (misread "Brand:") is never a product name
+    text = _EMBEDDED_FIELD_RE.split(text, maxsplit=1)[0]
     text = re.sub(r"^\d+[\.\)]?\s*", "", text)
     text = re.sub(r"\bIP\s*\d{2,3}\b", "", text, flags=re.IGNORECASE)
     text = re.sub(r"\bB0[A-Z0-9]{6,}\b.*$", "", text, flags=re.IGNORECASE)
@@ -379,7 +439,7 @@ def _line_item_candidates(lines: List[str]) -> List[Tuple[int, str]]:
         if len(clean) < 5:
             continue
         low = clean.lower()
-        if _is_boilerplate_line(clean) or _looks_like_address_text(clean):
+        if _is_boilerplate_line(clean) or _looks_like_address_text(clean) or _labelled_line(clean):
             continue
         # Split pipe-heavy item descriptions and score the strongest product-bearing segment.
         segments = [
@@ -428,14 +488,34 @@ def _strip_line_item_noise(line: str) -> str:
 
 
 def _model_from_product_line(line: str, brand: Optional[str]) -> Optional[str]:
+    value, _kind = _model_candidate_from_line(line, brand)
+    return value
+
+
+# Marketing names that are not model codes ("Galaxy S24", "iPhone 15", "Redmi Note 13").
+_MARKETING_MODEL_RE = re.compile(
+    r"\b(?:Galaxy|iPhone|Pixel|Redmi(?:\s+Note)?|Note|Bravia|Vivobook|Ideapad|Inspiron|Pavilion)\s+"
+    r"([A-Z]?\d{1,3}[A-Z]{0,3}(?:\s+(?:Ultra|Pro|Plus|Max|Mini|Lite|FE))?)\b",
+    re.IGNORECASE,
+)
+# A printed model code: letters and digits joined by a hyphen, or 6+ chars mixing both ("SM-S928BZKGINS").
+_PRINTED_CODE_RE = re.compile(r"\b(?=[A-Z0-9\-]*\d)(?=[A-Z0-9\-]*[A-Z])([A-Z0-9]{2,}-[A-Z0-9\-]{2,}|[A-Z0-9]{6,})\b")
+
+
+def _model_candidate_from_line(line: str, brand: Optional[str]) -> Tuple[Optional[str], str]:
+    """(model, kind) from a product line; kind is "code" for a printed model code, "marketing" for a
+    marketing name such as "Galaxy S24", or "" when nothing was found."""
     text = line
     if brand:
         text = re.sub(rf"\b{re.escape(brand)}\b", "", text, flags=re.IGNORECASE)
-    galaxy = re.search(r"\bGalaxy\s+([A-Z]\d{1,3}[A-Z]{0,3})\b", line, re.IGNORECASE)
-    if galaxy:
-        candidate = galaxy.group(1).upper()
-        if not _is_spec_only(candidate):
-            return candidate
+    marketing = _MARKETING_MODEL_RE.search(text)
+    code_text = _MARKETING_MODEL_RE.sub(" ", text) if marketing else text
+    for match in _PRINTED_CODE_RE.finditer(code_text.upper()):
+        candidate = match.group(1)
+        if not _is_spec_only(candidate) and not re.fullmatch(r"\d+", candidate) and not re.fullmatch(r"B0[A-Z0-9]{8}", candidate):
+            return candidate, "code"
+    if marketing:
+        return _normalize_spaces(marketing.group(1)).upper(), "marketing"
     product_words = "|".join(re.escape(term) for term in _PRODUCT_TERMS)
     text = re.sub(rf"\b({product_words})\b", " ", text, flags=re.IGNORECASE)
     text = _normalize_spaces(text)
@@ -450,8 +530,8 @@ def _model_from_product_line(line: str, brand: Optional[str]) -> Optional[str]:
             candidate = _normalize_spaces(m.group(1)).replace(" ", "").upper()
             if _is_spec_only(candidate):
                 continue
-            return candidate
-    return None
+            return candidate, "code"
+    return None, ""
 
 
 def sanitize_invoice_identity_fields(
@@ -555,6 +635,60 @@ def _serial_from_lines(lines: List[str], product_line: Optional[str]) -> Tuple[O
     return value, confidence
 
 
+_MISREAD_MODEL_RE = re.compile(r"^\W?\s*(m[ao]d[a-z0-9]{0,3})\b\s*[:\-.]?\s*(\S.*)$", re.IGNORECASE)
+
+
+def _misread_model_line(lines: List[str]) -> Optional[Tuple[str, str]]:
+    """(value, line) for a model line whose label OCR garbled ("Madet NEXON-007", "Mad IPHONEOO1")."""
+    for raw in lines:
+        line = _normalize_spaces(raw)
+        match = _MISREAD_MODEL_RE.match(line)
+        if not match:
+            continue
+        word, rest = match.group(1).lower(), match.group(2)
+        if word == "made" and rest.lower().startswith(("in ", "by ")):
+            continue
+        value = rest.strip(" ,.;:").upper()
+        if 3 <= len(value) <= 24 and re.search(r"\d", value) and re.search(r"[A-Z0-9]{2}", value):
+            return value, line
+    return None
+
+
+# Pipeline confidence below which a brand, model or serial is offered for confirmation, not stored.
+SUGGESTION_CONFIDENCE = 0.6
+SUGGESTION_KEYS = {"brand": "brand_suggestion", "model_code": "model_suggestion", "serial_no": "serial_suggestion"}
+
+
+def route_uncertain_identity(
+    fields: Dict[str, str],
+    confidence: Dict[str, float],
+    alternatives: Dict[str, object],
+) -> Tuple[Dict[str, str], Dict[str, float], Dict[str, object]]:
+    """Move low-confidence brand/model/serial values, and brands that are not in the OEM registry,
+    out of the stored fields and into pending ``<field>_suggestion`` entries the user confirms."""
+    fields, confidence, alternatives = dict(fields), dict(confidence), dict(alternatives or {})
+    for field, key in SUGGESTION_KEYS.items():
+        value = fields.get(field)
+        if not value:
+            continue
+        conf = float(confidence.get(field) or 0.0)
+        if conf >= 0.9:
+            continue  # user-confirmed
+        if field == "serial_no" and alternatives.get("serial_evidence") == "under_line_item":
+            continue
+        reason = None
+        if field == "brand" and not _canonical_oem(value):
+            reason = "This brand is not in our list of known manufacturers; please confirm it."
+        elif conf < SUGGESTION_CONFIDENCE:
+            reason = "We are not sure we read this correctly; please confirm."
+        if not reason:
+            continue
+        fields.pop(field, None)
+        confidence.pop(field, None)
+        alternatives.setdefault(key, {"value": value, "source_line": "", "status": "pending", "reason": reason})
+    return fields, confidence, alternatives
+
+
 def ingest_artifact(
     artifact_type: ArtifactType,
     content: Optional[str] = None,
@@ -651,6 +785,14 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
     # === BRAND EXTRACTION ===
     # Strategy 1: Explicit "Brand:" label
     brand_match = re.search(r"brand\s*[:\-]\s*([a-zA-Z0-9 \-]{2,40})", text, re.IGNORECASE)
+    labelled_brand = brand_match.group(1) if brand_match else None
+    if not labelled_brand:
+        # Misread label, e.g. "Band: Apple" / "Band Sony".
+        for line in lines:
+            labelled = _labelled_line(line)
+            if labelled and labelled[0] in ("brand", "make"):
+                labelled_brand = labelled[1][:40]
+                break
     # Registry brand named only in the shop/header lines, e.g. "LG Authorized Store".
     shop_lines = [line for line in lines[:8] if brand_registry.is_seller_line(line)]
     header_brand = None if item_brand else brand_registry.resolve_brand(None, seller_lines=shop_lines)
@@ -658,9 +800,9 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
         fields["brand"] = item_brand
         confidence["brand"] = 0.85
         alternatives["product_line"] = [best_item] if best_item else []
-    elif brand_match and (_canonical_oem(brand_match.group(1)) or not header_brand):
+    elif labelled_brand and (_canonical_oem(labelled_brand) or not header_brand):
         # A labelled brand wins when it is a registry brand, or when nothing better exists.
-        cleaned = _clean_brand_candidate(brand_match.group(1))
+        cleaned = _clean_brand_candidate(labelled_brand)
         if cleaned:
             fields["brand"] = _canonical_oem(cleaned) or cleaned
             confidence["brand"] = 0.8
@@ -694,7 +836,18 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
         if val and val.lower() not in ('description', 'hsn', 'sac', 'qty', 'price', 'tax', 'total'):
             fields["product_name"] = val.title()
             confidence["product_name"] = 0.7
-    
+    if "product_name" not in fields:
+        # "Product iPhone 15": the label's colon is often lost by OCR.
+        for line in lines:
+            m = re.match(r"^\s*(?:product|item)(?:\s*name)?\s*[:\-]?\s+(\S.{1,59})$", line.strip(), re.IGNORECASE)
+            if not m:
+                continue
+            val = _clean_product_name_candidate(m.group(1))
+            if val and not val.endswith(":") and val.lower().split()[0] not in ("details", "description", "info", "information", "code", "id"):
+                fields["product_name"] = val
+                confidence["product_name"] = 0.65
+                break
+
     # Strategy 2: Look for product patterns in line items (e.g., "1. Samsung Galaxy S24")
     if "product_name" not in fields:
         if best_item:
@@ -710,27 +863,49 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
                     confidence["product_name"] = 0.5
 
     # === MODEL CODE ===
-    model_match = re.search(r"(?:model|mode[li1])\s*[:\-#]\s*([a-zA-Z0-9\-]{2,30})", text, re.IGNORECASE)
+    # Printed model code first ("Model Code: SM-S928BZKGINS"); a marketing name such as "Galaxy S24"
+    # stays in the product name and is only offered as a suggestion.
+    model_match = re.search(
+        r"\b(?:model|mode[li1])(?:\s*(?:code|no\.?|number|#))?\s*[:\-#]\s*([a-zA-Z0-9][a-zA-Z0-9\-/]{1,29})",
+        text,
+        re.IGNORECASE,
+    )
+    item_model, item_model_kind = _model_candidate_from_line(best_item or "", fields.get("brand"))
+    misread_model = None if model_match else _misread_model_line(lines)
     if model_match:
         fields["model_code"] = model_match.group(1).strip().upper()
+        confidence["model_code"] = 0.8
+    elif item_model and item_model_kind == "code":
+        fields["model_code"] = item_model
+        confidence["model_code"] = 0.75
+    elif misread_model:
+        alternatives["model_suggestion"] = {
+            "value": misread_model[0],
+            "source_line": misread_model[1],
+            "status": "pending",
+            "reason": "Model label was misread by OCR; please confirm the model code.",
+        }
+    elif item_model:
+        # Only a marketing name ("Galaxy M17e") is printed: store it, as before, below a printed code.
+        fields["model_code"] = item_model
         confidence["model_code"] = 0.7
+        alternatives["model_evidence"] = "marketing_name"
     else:
-        item_model = _model_from_product_line(best_item or "", fields.get("brand"))
-        if item_model:
-            fields["model_code"] = item_model
-            confidence["model_code"] = 0.75
-        else:
-        # Fallback model signal from common invoice token shapes.
-            model_token = re.search(r"\b([A-Z]{2,}[A-Z0-9\-]{2,})\b", text)
-            if model_token:
-                token = model_token.group(1).strip().upper()
-                if token not in (
-                    "GST", "HSN", "SAC", "INR", "CGST", "SGST", "IGST",
-                    "INVOICE", "BILL", "RETAIL", "TAX", "CUSTOMER", "COPY", "TOTAL",
-                    "ORIGINAL", "RECIPIENT", "DESCRIPTION", "QUANTITY", "AMOUNT",
-                ) and re.search(r"\d", token) and not _is_spec_only(token):
-                    fields["model_code"] = token
-                    confidence["model_code"] = 0.4
+        # Fallback: an unlabelled token shaped like a model code. Too weak to store; offer it instead.
+        model_token = re.search(r"\b([A-Z]{2,}[A-Z0-9\-]{2,})\b", text)
+        if model_token:
+            token = model_token.group(1).strip().upper()
+            if token not in (
+                "GST", "HSN", "SAC", "INR", "CGST", "SGST", "IGST",
+                "INVOICE", "BILL", "RETAIL", "TAX", "CUSTOMER", "COPY", "TOTAL",
+                "ORIGINAL", "RECIPIENT", "DESCRIPTION", "QUANTITY", "AMOUNT",
+            ) and re.search(r"\d", token) and not _is_spec_only(token):
+                alternatives["model_suggestion"] = {
+                    "value": token,
+                    "source_line": next((line.strip() for line in lines if token in line.upper()), ""),
+                    "status": "pending",
+                    "reason": "This looks like a model code but was not labelled; please confirm.",
+                }
 
     # === SERIAL NUMBER ===
     serial_value, serial_confidence, serial_kind, serial_line = _serial_candidate(
@@ -748,6 +923,8 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
     elif serial_value:
         fields["serial_no"] = serial_value
         confidence["serial_no"] = serial_confidence
+        if serial_kind == "under_line_item":
+            alternatives["serial_evidence"] = serial_kind  # the Epson exception: stored, not suggested
 
     # === PURCHASE DATE ===
     # Look specifically for "Date:" labeled date first
@@ -826,6 +1003,7 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
         confidence["region_code"] = 0.7
 
     fields, confidence, alternatives = sanitize_invoice_identity_fields(fields, confidence, alternatives)
+    fields, confidence, alternatives = route_uncertain_identity(fields, confidence, alternatives)
 
     if not confidence:
         alternatives["notes"] = ["No strong signals found; manual entry may be required."]

@@ -157,7 +157,10 @@ def test_pipeline_with_mock_text():
             .first()
         )
         assert parsed is not None
-        assert parsed.brand == "Acmeco"
+        # "Acmeco" is not in the OEM registry, so it is offered for confirmation (follow-up step 2).
+        assert parsed.brand is None
+        row = db.query(WarrantyDB).filter_by(id=warranty.id).first()
+        assert row.alternatives["brand_suggestion"]["value"] == "Acmeco"
 
 
 def test_pipeline_completes_with_docx(tmp_path):

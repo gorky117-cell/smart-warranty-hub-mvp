@@ -27,6 +27,7 @@ class BaseModel(PydanticBaseModel):
 from .models import ArtifactType, BehaviourEvent, CanonicalWarranty
 from .services.canonical import canonicalize_artifact
 from .services.ingestion import ingest_artifact
+from .services import brand_registry
 from .services.llm import generate_text
 from .services.nudge import generate_nudges
 from .services.predictive import compute_predictive_score, predictive_model, build_feature_vector, score_warranty, unified_risk
@@ -45,7 +46,7 @@ from .services import peer_review as peer_review_service
 from .services import search_log as search_log_service
 from .services import recommendation as recommendation_service
 from .services import ev_battery as ev_battery_service
-from .services.oem_domains import load_verified_domains, save_verified_domains
+from .services.oem_domains import load_oem_domains, load_verified_domains, save_verified_domains
 from .services.oem_domain_verify import verify_or_suggest
 from .services import notifications as notification_service
 from .services import product_recommendations as prod_recs_service
@@ -2012,22 +2013,46 @@ def resolve_serial_suggestion(
     current: UserDB = Depends(require_user),
 ):
     """Confirm (optionally corrected) or dismiss a serial read next to a misread label (fix run B5)."""
+    result = _resolve_identity_suggestion(db, current, warranty_id, "serial_no", payload)
+    return {"warranty_id": warranty_id, "serial_no": result["value"], "serial_suggestion": result["suggestion"]}
+
+
+_SUGGESTION_FIELDS = {"brand": "brand_suggestion", "model_code": "model_suggestion", "serial_no": "serial_suggestion"}
+_USER_CONFIRMED_CONFIDENCE = 0.95  # never cleared by re-processing
+
+
+def _clean_identity_value(field: str, raw: object) -> str:
+    """Validate a user-entered brand, model or serial; returns the value to store."""
+    value = " ".join(str(raw or "").split())
+    if field == "brand":
+        if not value or len(value) > 40 or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 &.\-']*", value):
+            raise HTTPException(status_code=422, detail="Enter the brand name (letters, digits, spaces, & . - ').")
+        # The user typed it, so a registry name matches exactly even when short ("lg" -> "LG").
+        exact = next((name for name in load_oem_domains() if name.lower() == value.lower()), None)
+        return exact or brand_registry.resolve_brand(value) or value
+    value = value.upper()
+    if not value or len(value) > 40 or not re.fullmatch(r"[A-Z0-9][A-Z0-9\-/]*", value):
+        what = "serial number" if field == "serial_no" else "model code"
+        raise HTTPException(status_code=422, detail=f"Enter the {what} as printed (letters, digits, - or /).")
+    return value
+
+
+def _resolve_identity_suggestion(db, current, warranty_id: str, field: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     _require_warranty_access(db, user=current, warranty_id=warranty_id)
     row = db.query(WarrantyDB).filter_by(id=warranty_id).first()
     if not row:
         raise HTTPException(status_code=404, detail="Warranty not found")
+    key = _SUGGESTION_FIELDS[field]
     meta = dict(row.alternatives or {})
-    suggestion = dict(meta.get("serial_suggestion") or {})
+    suggestion = dict(meta.get(key) or {})
     if not suggestion:
-        raise HTTPException(status_code=404, detail="No serial suggestion for this warranty")
+        raise HTTPException(status_code=404, detail=f"No {field.replace('_no', '').replace('_code', '')} suggestion for this warranty")
     action = str(payload.get("action") or "").strip().lower()
     if action == "confirm":
-        value = " ".join(str(payload.get("value") or suggestion.get("value") or "").split()).upper()
-        if not value or len(value) > 40 or not re.fullmatch(r"[A-Z0-9][A-Z0-9\-/]*", value):
-            raise HTTPException(status_code=422, detail="Enter the serial number as printed (letters, digits, - or /).")
-        row.serial_no = value
+        value = _clean_identity_value(field, payload.get("value") or suggestion.get("value"))
+        setattr(row, field, value)
         confidence = dict(row.confidence or {})
-        confidence["serial_no"] = 0.95  # user-confirmed: never cleared by re-processing
+        confidence[field] = _USER_CONFIRMED_CONFIDENCE
         row.confidence = confidence
         suggestion.update({"status": "confirmed", "confirmed_value": value})
     elif action == "dismiss":
@@ -2035,12 +2060,77 @@ def resolve_serial_suggestion(
     else:
         raise HTTPException(status_code=422, detail="action must be 'confirm' or 'dismiss'")
     suggestion["resolved_at"] = datetime.utcnow().isoformat()
-    meta["serial_suggestion"] = suggestion
+    meta[key] = suggestion
     row.alternatives = meta
     db.add(row)
     db.commit()
     store.warranties.pop(warranty_id, None)
-    return {"warranty_id": warranty_id, "serial_no": row.serial_no, "serial_suggestion": suggestion}
+    return {"value": getattr(row, field), "suggestion": suggestion}
+
+
+@app.post("/warranties/{warranty_id}/field-suggestion", dependencies=[Depends(rbac_dependency)])
+def resolve_field_suggestion(
+    warranty_id: str,
+    payload: Dict[str, Any] = Body(...),
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    """Confirm (optionally corrected) or dismiss a low-confidence brand, model or serial suggestion."""
+    field = str(payload.get("field") or "").strip()
+    if field not in _SUGGESTION_FIELDS:
+        raise HTTPException(status_code=422, detail="field must be brand, model_code or serial_no")
+    result = _resolve_identity_suggestion(db, current, warranty_id, field, payload)
+    return {"warranty_id": warranty_id, "field": field, field: result["value"], "suggestion": result["suggestion"]}
+
+
+@app.post("/warranties/{warranty_id}/manual-details", dependencies=[Depends(rbac_dependency)])
+def save_manual_details(
+    warranty_id: str,
+    payload: Dict[str, Any] = Body(...),
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    """Details typed by the user when the invoice could not be read; then look up terms as usual."""
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
+    row = db.query(WarrantyDB).filter_by(id=warranty_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Warranty not found")
+    fields: Dict[str, Any] = {}
+    for field in ("brand", "model_code", "serial_no"):
+        if str(payload.get(field) or "").strip():
+            fields[field] = _clean_identity_value(field, payload.get(field))
+    product = " ".join(str(payload.get("product_name") or "").split())
+    if product:
+        if len(product) > 80:
+            raise HTTPException(status_code=422, detail="Product name is too long (80 characters max).")
+        fields["product_name"] = product
+    purchase = str(payload.get("purchase_date") or "").strip()
+    if purchase:
+        try:
+            fields["purchase_date"] = datetime.strptime(purchase, "%Y-%m-%d").date().isoformat()
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Purchase date must be YYYY-MM-DD.")
+    if not fields:
+        raise HTTPException(status_code=422, detail="Enter at least one detail.")
+    confidence = dict(row.confidence or {})
+    meta = dict(row.alternatives or {})
+    for field, value in fields.items():
+        if field == "purchase_date":
+            row.purchase_date = datetime.fromisoformat(value)
+        else:
+            setattr(row, field, value)
+        confidence[field] = _USER_CONFIRMED_CONFIDENCE
+        key = _SUGGESTION_FIELDS.get(field)
+        if key and (meta.get(key) or {}).get("status") == "pending":
+            meta[key] = {**meta[key], "status": "confirmed", "confirmed_value": value, "resolved_at": datetime.utcnow().isoformat()}
+    meta["manual_details_at"] = datetime.utcnow().isoformat()
+    row.confidence = confidence
+    row.alternatives = meta
+    invoice_pipeline.apply_terms_and_expiry(db, row, fields)
+    db.add(row)
+    db.commit()
+    store.warranties.pop(warranty_id, None)
+    return {"warranty_id": warranty_id, "saved": sorted(fields), "coverage_months": row.coverage_months}
 
 
 @app.post("/warranties/{warranty_id}/vision-suggestion", dependencies=[Depends(rbac_dependency)])
