@@ -2526,3 +2526,24 @@ never print/commit secrets, no Railway changes. Push ONLY Part 1 (Steps 1-3 of e
 | P3 | `251bc733` | 437 passed, 2 skipped (+1) | real_invoices/ (ignored) + runner + runner test. |
 | P4 | (next) | 437 passed, 2 skipped | MEMORY check, STATUS.md, README status. |
 
+## 94. Push of Parts 2+4, small fixes, Mistral work, terms-cache review (started 2026-10-04)
+
+Owner approved pushing entry 93 Parts 2 and 4. Rules as before; nothing after the push is pushed.
+
+### Checklist
+- [x] 94.0 Rate limits on sign-in/sign-up (checked before the push, since P2.6 skips CSRF there).
+  Found: `/auth/login` was limited (`login` 10 per 10 min per client); `/auth/signup` and
+  `/auth/signup/form` had NO rate limit. Added scope `signup` (5 per hour per client;
+  RATE_LIMIT_SIGNUP_MAX / _WINDOW_SEC) to both. Browser forms that hit a limit now get a friendly redirect
+  (`/login?error=rate_limited`, `/login?signup=rate_limited`) instead of raw 429 JSON; API clients still get
+  429 with Retry-After. `tests/test_auth_rate_limits.py` (5): limits hold with a stale cookie, per client.
+  Limits are on unless RATE_LIMIT_ENABLED is falsy (production value not known here; the admin security
+  banner shows `rate_limit_off` if it is off). Open question: anonymous clients are keyed on the FIRST
+  X-Forwarded-For entry, which a client can set; whether Railway's proxy replaces or appends that header
+  decides if the limit can be dodged. Not changed. Tests 442 passed, 2 skipped.
+
+### Step log
+| Step | Commit | Tests | Notes |
+|---|---|---|---|
+| 94.0 | (next) | 442 passed, 2 skipped (+5) | Sign-up rate limit; friendly limit messages. |
+

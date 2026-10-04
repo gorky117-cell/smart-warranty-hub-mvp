@@ -1387,10 +1387,12 @@ def _ensure_users_table_and_admin(db) -> None:
 @app.post("/auth/signup")
 def signup(
     payload: SignupRequest,
+    request: Request,
     background_tasks: BackgroundTasks = None,
     db=Depends(get_db),
     current=Depends(get_current_user_optional),
 ):
+    check_rate_limit("signup", request)
     if payload.role not in ("user", "oem", "tpa", "admin"):
         raise HTTPException(status_code=400, detail="Role must be user, oem, tpa, or admin")
     try:
@@ -1443,6 +1445,13 @@ def signup_form(
     db=Depends(get_db),
 ):
     login_params = {"next": next_url or "/ui/neo-dashboard"}
+    try:
+        check_rate_limit("signup", request)
+    except HTTPException as exc:
+        if exc.status_code != 429:
+            raise
+        login_params["signup"] = "rate_limited"  # a browser form: friendly message, not raw JSON
+        return RedirectResponse(url=f"/login?{urlencode(login_params)}", status_code=status.HTTP_303_SEE_OTHER)
     if not _public_signup_enabled():
         login_params["signup"] = "disabled"
         return RedirectResponse(
@@ -1536,9 +1545,17 @@ def login(
     db=Depends(get_db),
     next_url: str | None = Form(None),
 ):
-    check_rate_limit("login", request)
-    login_id = (username or "").strip()
     accepts_json = "application/json" in (request.headers.get("accept") or "")
+    try:
+        check_rate_limit("login", request)
+    except HTTPException as exc:
+        if accepts_json or exc.status_code != 429:
+            raise
+        params = {"error": "rate_limited"}  # a browser form: friendly message, not raw JSON
+        if next_url:
+            params["next"] = next_url
+        return RedirectResponse(url=f"/login?{urlencode(params)}", status_code=status.HTTP_303_SEE_OTHER)
+    login_id = (username or "").strip()
     cookie_opts = _cookie_options(request)
     try:
         user = db.query(UserDB).filter(UserDB.username == login_id).first()

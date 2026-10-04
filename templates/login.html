@@ -362,6 +362,9 @@
       if (loginError === "invalid") {
         loginMessage.textContent = "Invalid username or password.";
         loginMessage.className = "msg err";
+      } else if (loginError === "rate_limited") {
+        loginMessage.textContent = "Too many sign-in attempts. Please wait a few minutes and try again.";
+        loginMessage.className = "msg err";
       } else if (loginError === "session_expired") {
         loginMessage.textContent = "Your session expired. Please sign in again and retry.";
         loginMessage.className = "msg err";
@@ -378,6 +381,10 @@
         setTab("signin");
       } else if (signupState === "exists") {
         signupMessage.textContent = "That username already exists.";
+        signupMessage.className = "msg err";
+        setTab("signup");
+      } else if (signupState === "rate_limited") {
+        signupMessage.textContent = "Too many sign-up attempts. Please wait a while and try again.";
         signupMessage.className = "msg err";
         setTab("signup");
       } else if (signupState === "disabled") {

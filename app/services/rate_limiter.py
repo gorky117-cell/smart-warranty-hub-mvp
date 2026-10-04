@@ -20,6 +20,8 @@ _BUCKETS: dict[str, Deque[float]] = defaultdict(deque)
 
 DEFAULT_LIMITS: dict[str, RateLimit] = {
     "login": RateLimit(10, 10 * 60),
+    # Sign-up skips the cookie-session CSRF check (consolidated run P2.6), so it is always rate limited.
+    "signup": RateLimit(5, 60 * 60),
     "upload": RateLimit(20, 60 * 60),
     "ai": RateLimit(30, 60 * 60),
     "agent": RateLimit(20, 60 * 60),
