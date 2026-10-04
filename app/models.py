@@ -135,3 +135,9 @@ class TermsResult(AppBaseModel):
     optional_plan_terms: List[str] = Field(default_factory=list)
     # Parser duration statements for product-scoped selection; internal, not serialised.
     duration_candidates: List[Dict[str, Any]] = Field(default_factory=list, exclude=True)
+    # Cache fixes 4-5: parser confidence; whether the duration was traced to a sentence on the page;
+    # when the source was last checked; and whether that check is older than the freshness window.
+    confidence: Optional[float] = None
+    grounded: Optional[bool] = None
+    checked_at: Optional[str] = None
+    needs_refresh: bool = False

@@ -181,15 +181,6 @@ def _drop_conflicting_duration_terms(terms: List[str], duration_months: Optional
     return filtered
 
 
-def _cache_is_fresh(item: WarrantyTermsCacheDB, max_age_days: int = 30) -> bool:
-    return (datetime.utcnow() - item.fetched_at) <= timedelta(days=max_age_days)
-
-
-def _cache_has_real_source(item: WarrantyTermsCacheDB) -> bool:
-    src = (item.source_url or "").strip()
-    return bool(src) and not src.startswith("internal://")
-
-
 def _to_terms_result(parsed: ParsedTerms, source_url: Optional[str]) -> TermsResult:
     return TermsResult(
         duration_months=parsed.duration_months,
@@ -200,6 +191,7 @@ def _to_terms_result(parsed: ParsedTerms, source_url: Optional[str]) -> TermsRes
         source_urls=[source_url] if source_url else [],
         raw_text=parsed.raw_text,
         duration_candidates=list(getattr(parsed, "duration_candidates", None) or []),
+        confidence=getattr(parsed, "confidence", None),
     )
 
 
@@ -407,6 +399,9 @@ def _merge_terms_results(
         raw_text="\n\n--- SOURCE ---\n\n".join(raw_chunks)[:12000] if raw_chunks else None,
         duration_evidence=choice.evidence,
         optional_plan_terms=choice.optional_plans,
+        confidence=max((r.confidence for r in usable if r.confidence is not None), default=None),
+        # Grounding check: a duration is kept only with a sentence from the page behind it.
+        grounded=bool(choice.evidence) if duration_months else None,
     )
 
 
@@ -555,21 +550,13 @@ def lookup_terms(
         # 2) fallback: brand/category/region cache
         cached = None
         if brand:
-            # Scoped to the product line (cache fix 1): a Samsung TV entry never answers a Samsung phone.
-            cached = terms_cache.newest_for_scope(
-                terms_cache.scoped_query(db, brand=brand, category=norm_category, region=region, line=scope_line).all(),
-                scope_model,
+            # Scoped to the product line (cache fix 1); newest OFFICIAL entry, so default or non-official rows
+            # never hide a good one (cache fix 3); served while fresh (cache fix 5).
+            cached = terms_cache.latest_official(
+                db, brand=brand, category=norm_category, region=region, model=scope_model, line=scope_line
             )
-        if cached and _cache_is_fresh(cached) and _cache_has_real_source(cached):
-            result = TermsResult(
-                duration_months=cached.duration_months,
-                terms=sanitize_base_terms(cached.terms or []),
-                exclusions=cached.exclusions or [],
-                claim_steps=cached.claim_steps or [],
-                source_url=cached.source_url or _SOURCE_INTERNAL_CACHE,
-                source_urls=[cached.source_url or _SOURCE_INTERNAL_CACHE],
-                raw_text=cached.raw_text,
-            )
+        if cached and terms_cache.is_fresh(cached):
+            result = terms_cache.result_from_row(cached)
             return _apply_region_policy(
                 db,
                 result,
@@ -622,12 +609,14 @@ def lookup_terms(
                 )
                 manual_context = replace(duration_context, require_source_context=False)
                 result = _merge_terms_results([result], manual_context) or result
+                result.checked_at = datetime.utcnow().isoformat(timespec="seconds")
                 cached = terms_cache.new_entry(
                     brand=brand, category=norm_category, region=region, model=scope_model, line=scope_line,
                     source_url=url_override, result=result,
                 )
-                db.add(cached)
-                db.commit()
+                if terms_cache.cacheable(cached):  # only verified official pages (cache fix 4)
+                    db.add(cached)
+                    db.commit()
                 _upsert_oem_product_knowledge(
                     db,
                     result,
@@ -684,12 +673,14 @@ def lookup_terms(
                     break
             merged = _merge_terms_results(parsed_results, duration_context)
             if merged:
+                merged.checked_at = datetime.utcnow().isoformat(timespec="seconds")
                 cached = terms_cache.new_entry(
                     brand=brand, category=norm_category, region=region, model=scope_model, line=scope_line,
                     source_url=merged.source_url, result=merged,
                 )
-                db.add(cached)
-                db.commit()
+                if terms_cache.cacheable(cached):  # only verified official pages (cache fix 4)
+                    db.add(cached)
+                    db.commit()
                 _upsert_oem_product_knowledge(
                     db,
                     merged,
@@ -708,6 +699,20 @@ def lookup_terms(
                     product_type=category,
                 )
 
+    # Refresh found nothing: keep serving the last good official entry, flagged when it is old (cache fix 3/5).
+    if brand:
+        last_good = terms_cache.latest_official(
+            db, brand=brand, category=norm_category, region=region, model=scope_model, line=scope_line
+        )
+        if last_good:
+            return _apply_region_policy(
+                db,
+                terms_cache.result_from_row(last_good),
+                region=region,
+                brand=brand,
+                model_code=model_code,
+                product_type=category,
+            )
     duration = DEFAULT_RULES.get(norm_category, 12)
     result = _default_terms(duration)
     cached = terms_cache.new_entry(

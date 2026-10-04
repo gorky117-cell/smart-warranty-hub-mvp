@@ -2719,9 +2719,24 @@ and not /health/ocr. Rules as before; nothing in this entry is pushed without ap
   Tests: an estimate is never reused or shown as confirmed; official record reused with its URL; other
   product line / brand-only never reused; legacy label.
 
+- [x] 95.3-4 Newest official entry; metadata; official-only caching - not pushed (one commit: same code).
+  - Rows get source_type ("official" = verified or manually confirmed domain of the brand, "non_official",
+    "default"), confidence (parser confidence; merged = highest), grounded (duration traced to a page
+    sentence by duration selection; None when no duration), model_code and product_line.
+  - Reads use `terms_cache.latest_official`: newest row of the scope that is official (legacy rows without
+    source_type count only if their URL still verifies), so default or non-official rows never hide it.
+  - Writes: scraped / manual-URL results are cached only when official (`terms_cache.cacheable`); default
+    rows are still written but tagged "default" and never served.
+  - Failed refresh (forced lookup finds no source): the last good official row is returned (any age; flagged
+    by 95.5) instead of default rules, and no default row is written on top.
+  - Removed `_cache_is_fresh` / `_cache_has_real_source` (replaced). Tests: default/non-official rows never
+    hide a good entry; failed refresh keeps the last good entry; legacy rows; official result cached with
+    metadata; non-official scrape not cached.
+
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
 | 95.1 | `a8df141b` | 465 passed, 2 skipped (+3) | Product scope in the cache key; column upgrade helper. |
-| 95.2 | (next) | 469 passed, 2 skipped (+4) | Saved records reused only from official sources, same line. |
+| 95.2 | `2d3926f9` | 469 passed, 2 skipped (+4) | Saved records reused only from official sources, same line. |
+| 95.3-4 | (next) | 474 passed, 2 skipped (+5) | Newest official entry; metadata; official-only caching. |
 

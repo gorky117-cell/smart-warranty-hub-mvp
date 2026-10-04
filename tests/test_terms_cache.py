@@ -107,3 +107,63 @@ def test_legacy_internal_reuse_is_not_labelled_confirmed():
                                  alternatives={"terms_source_type": "internal_warranty_db", "terms_source_url": "internal://warranty_db"})
     evidence = summary_engine.build_evidence_summary(warranty)
     assert evidence["status"] == "not_confirmed" and "not confirmed" in evidence["status_label"]
+
+
+# --- cache fixes 3 and 4: newest official entry; only verified official results cached ----------------------
+
+from app.services.warranty_discovery import DiscoverySource  # noqa: E402
+from app.services.warranty_parser import ParsedTerms  # noqa: E402
+
+
+def test_a_default_row_never_hides_a_good_entry():
+    with SessionLocal() as db:
+        _row(db, url=TV_URL, line="tv", model="QA55Q60D", months=24, age_days=10, source_type="official")
+        _row(db, url=None, line="tv", model="QA55Q60D", months=12, age_days=0, source_type="default")
+        _row(db, url="https://tv-reviews.example/samsung", line="tv", model="QA55Q60D", months=36, age_days=0, source_type="non_official")
+        served = _lookup(db, "Samsung 55 inch QLED TV", model="QA55Q60D")
+        assert served.source_url == TV_URL and served.duration_months == 24
+
+
+def test_failed_refresh_keeps_the_last_good_entry():
+    with SessionLocal() as db:
+        _row(db, url=TV_URL, line="tv", model="QA55Q60D", months=24, age_days=3, source_type="official")
+        before = db.query(WarrantyTermsCacheDB).filter_by(brand="Samsung").count()
+        refreshed = _lookup(db, "Samsung 55 inch QLED TV", model="QA55Q60D", force=True)  # discovery finds nothing
+        assert refreshed.source_url == TV_URL and refreshed.duration_months == 24
+        assert db.query(WarrantyTermsCacheDB).filter_by(brand="Samsung").count() == before  # no default row on top
+
+
+def test_legacy_rows_count_as_official_only_if_the_url_verifies():
+    with SessionLocal() as db:
+        _row(db, url="https://samsung-deals.example/warranty", line="tv", model="QA55Q60D", months=36, source_type=None)
+        assert _lookup(db, "Samsung 55 inch QLED TV", model="QA55Q60D").duration_months != 36
+        _row(db, url=TV_URL, line="tv", model="QA55Q60D", months=24, source_type=None)
+        assert _lookup(db, "Samsung 55 inch QLED TV", model="QA55Q60D").duration_months == 24
+
+
+def _scrape(monkeypatch, url):
+    monkeypatch.setattr(terms_lookup, "discover_sources", lambda **kw: [DiscoverySource(url=url, source_type="oem_warranty", score=90, official=True)])
+    monkeypatch.setattr(terms_lookup, "parse_terms_from_url", lambda u: (ParsedTerms(
+        duration_months=24, terms=["Warranty of 24 months from the date of purchase."], exclusions=["Liquid damage"],
+        claim_steps=["Call support"], raw_text="This TV carries a warranty of 24 months from the date of purchase.",
+        confidence=0.8,
+    ), None))
+
+
+def test_verified_official_result_is_cached_with_its_metadata(monkeypatch):
+    _scrape(monkeypatch, TV_URL)
+    with SessionLocal() as db:
+        result = _lookup(db, "Samsung 55 inch QLED TV", model="QA55Q60D", force=True)
+        assert result.checked_at and result.needs_refresh is False
+        row = db.query(WarrantyTermsCacheDB).filter_by(brand="Samsung", source_url=TV_URL).one()
+        assert (row.source_type, row.model_code, row.product_line, row.confidence) == ("official", "QA55Q60D", "tv", 0.8)
+        assert row.grounded is not None
+
+
+def test_non_official_scrape_is_not_cached(monkeypatch):
+    url = "https://www.samsung-warranty-help.example/tv"
+    _scrape(monkeypatch, url)
+    monkeypatch.setattr(terms_lookup.oem_source_policy, "is_approved_oem_url", lambda u, b: False)
+    with SessionLocal() as db:
+        _lookup(db, "Samsung 55 inch QLED TV", model="QA55Q60D", force=True)
+        assert db.query(WarrantyTermsCacheDB).filter_by(brand="Samsung", source_url=url).count() == 0
