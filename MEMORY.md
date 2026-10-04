@@ -2787,5 +2787,11 @@ and not /health/ocr. Rules as before; nothing in this entry is pushed without ap
 | 95.3-4 | `9a7de517` + `4ed67981` | 474 passed, 2 skipped (+5) | Newest official entry; metadata; official-only caching. `9a7de517` was committed with 1 failing test (the commit gate checked grep's exit code, not pytest's): test_samsung_notebook_page_rejected_for_mobile_in_auto_discovery got the last good Samsung mobile entry another test had cached - intended behaviour of 95.3; the next commit isolates that module's cache rows. Commits are now gated on pytest's exit code. |
 | 95.5 | `8f9c94ca` | 477 passed, 2 skipped (+3) | 30-day expiry; "checked on <date>"; needs-refresh flag. |
 | 95.6 | `6dc8aa69` | 479 passed, 2 skipped (+2) | Admin terms-cache counts. |
-| 95.7 | (next) | 488 passed, 2 skipped (+9) | Knowledge base v1 (empty). |
+| 95.7 | `a4ad9b63` | 488 passed, 2 skipped (+9) | Knowledge base v1 (empty). |
+| 95.8 | (next) | 488 passed, 2 skipped | STATUS.md. |
+
+### State at the end of this entry
+- origin/master = `eac60ead` (live). Local only, not pushed: entry 94's 5 commits (bc85e1ca, 025e21a8, 682af6ad,
+  557e6c6e, a5ab512f) + a8df141b, 2d3926f9, 9a7de517, 4ed67981, 8f9c94ca, 6dc8aa69, a4ad9b63 + 95.8. Push waits
+  for the owner to confirm Railway's health-check path (95.0).
 

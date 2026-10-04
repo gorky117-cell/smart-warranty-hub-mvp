@@ -1,4 +1,4 @@
-# Smart Warranty Hub - status (2026-10-04, evening)
+# Smart Warranty Hub - status (2026-10-04, late)
 
 Measured numbers only. **Synthetic** marks results from generated test files, not real customer
 invoices. No real-invoice accuracy has been measured yet (see "Next steps").
@@ -21,11 +21,21 @@ invoices. No real-invoice accuracy has been measured yet (see "Next steps").
     - real-invoice runner;
     - STATUS.md.
   - Sign-up rate limit (`eac60ead`).
-- **Local only, not pushed** (awaiting approval):
+- **Local only, not pushed.** The push was approved on condition that Railway's health check uses
+  `/api/health`. The repo defines no health check, so this can't be confirmed from the files; it has to
+  be checked in the Railway dashboard first.
   - `bc85e1ca`: philips.co.in; model codes keep "/" parts.
   - `025e21a8`: MISTRAL_EMBED_MODE is read; the Mistral summary helper redacts on its own.
   - `682af6ad`: OpenAI <-> Mistral fallback; buyer labels in the middle of a line are masked.
   - `557e6c6e`: runner review mode with hand marks, `--provider` comparison, local corrections log.
+  - `a5ab512f`: status/MEMORY update.
+  - Terms-cache fixes:
+    - `a8df141b`: product scope in the key.
+    - `2d3926f9`: no reuse of estimates as "confirmed".
+    - `9a7de517` + `4ed67981`: newest official entry, metadata, official-only caching.
+    - `8f9c94ca`: 30-day expiry and "checked on".
+    - `6dc8aa69`: admin counts.
+  - `a4ad9b63`: knowledge base v1 (empty).
   - This status update.
 
 Live checks on 2026-10-04 19:27 after the last deploy:
@@ -57,6 +67,20 @@ A real sign-in was not tested; no production credentials were used (the owner wi
   details", with a details form. No estimated coverage is shown.
 - **Warranty terms.**
   - Taken from registry or verified OEM sites ("From the official <Brand> website" / "(manually confirmed)").
+  - *Local only:* the terms cache is keyed by product line and model, so a Samsung TV page never answers a
+    Samsung phone.
+  - *Local only:* only pages on verified official domains are cached, with source type, confidence,
+    grounding and model.
+  - *Local only:* entries are served for 30 days and labelled "checked on <date>"; older terms are
+    flagged "needs refresh".
+  - *Local only:* a failed refresh keeps the last good entry, and default estimates are never served
+    from the cache.
+  - *Local only:* other users' saved warranties are reused only when their terms came from an official
+    page, for the same product line.
+  - *Local only:* admin counts at `/admin/terms-cache/stats`.
+  - *Local only:* knowledge base v1. Hand-checked entries come first, even on forced refreshes, and
+    customers see "Checked on <date>". Locked entries are never overwritten: a disagreeing re-check is
+    saved for review and admins are notified. Admin-only endpoints are audit-logged. The table is empty.
   - Shared brand names use the company that matches the product.
   - Unknown brands get "Estimated - please check your warranty card or the seller" and no guessed duration.
   - India pages are preferred, including philips.co.in. *philips.co.in is local only.*
@@ -84,7 +108,7 @@ A real sign-in was not tested; no production credentials were used (the owner wi
 
 | What | Result | Data |
 |---|---|---|
-| Test suite | 462 passed, 2 skipped (live-network tests, opt-in with `SWH_LIVE_NETWORK_TESTS=1`) | - |
+| Test suite | 488 passed, 2 skipped (live-network tests, opt-in with `SWH_LIVE_NETWORK_TESTS=1`) | - |
 | Brand (30 labelled invoice photos) | 26 correct, 0 wrong, 4 missing | synthetic |
 | Model | 0 stored wrong; 28 offered to confirm (2 exact, 26 need an edit); 0 stored correct | synthetic |
 | Serial | 0 stored wrong; 30 offered to confirm, all need an edit | synthetic |
@@ -100,12 +124,10 @@ A real sign-in was not tested; no production credentials were used (the owner wi
 
 ## Known issues
 
-- **Terms cache (read-only review, not changed):**
-  - The cache key is brand + coarse category + region; model and product line are not part of it.
-  - A failed refresh hides the last good entry.
-  - Saved warranty records can be reused across users, and their default-rule terms are labelled
-    "Confirmed from saved warranty record".
-  - Details and a proposed "verified knowledge base" are in MEMORY.md entry 94.
+- **Terms cache: fixed locally, live until pushed.** On the live site the key is still brand + coarse
+  category + region, a failed refresh hides the last good entry, and other users' default-rule terms can
+  show as "Confirmed from saved warranty record". The local fixes also add columns to
+  `warranty_terms_cache` at start-up (ADD COLUMN IF NOT EXISTS on Postgres, a path not run locally).
 - **When pushed, the provider fallback is live in production.** Production has both OpenAI and Mistral
   configured, so a failing provider's redacted request will go to the other provider. Set
   `AI_PROVIDER_FALLBACK=0` to keep the old behaviour.
@@ -131,6 +153,6 @@ A real sign-in was not tested; no production credentials were used (the owner wi
    `--provider both` once keys are in the local `.env` and `pip install -r requirements.txt` is done), and
    marks `review.md`. `expected.csv` is optional.
 2. Approve and push the local commits above.
-3. Decide on the terms-cache "verified knowledge base" proposal (MEMORY.md 94) and the cache fixes it
-   implies.
+3. Check Railway's health-check path, then approve the push. After deploy, look at
+   `/admin/terms-cache/stats` and start adding hand-checked entries to the knowledge base.
 4. Optional: add a Mistral vision / OCR provider for unreadable photos (what is needed is in MEMORY.md 94).
