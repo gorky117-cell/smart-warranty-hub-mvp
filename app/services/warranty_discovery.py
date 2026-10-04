@@ -77,10 +77,14 @@ def _region_score(region: Optional[str], url: str) -> int:
     host = _host(url)
     path = (urlparse(url).path or "").lower()
     score = 0
-    if reg and reg in url.lower():
-        score += 8
-    # Check country code in region like "US-CA" or "IN"
     country = reg.split("-")[0] if reg else reg
+    # Country page of a global brand ("/in/", "/en-in/", "india"): prefer it. Plain substring matching
+    # used to reward any URL containing "in" ("printer", "warranty-info").
+    if country and re.search(rf"/(?:[a-z]{{2}}[-_])?{re.escape(country)}(?:/|$)", path):
+        score += 8
+    if country == "in" and "india" in url.lower():
+        score += 4
+    # Check country code in region like "US-CA" or "IN"
     if country and host.endswith(f".{country}"):
         score += 6
     common_country_paths = {

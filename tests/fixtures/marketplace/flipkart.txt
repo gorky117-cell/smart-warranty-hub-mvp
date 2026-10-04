@@ -1,0 +1,8 @@
+Tax Invoice
+Sold By: RetailNet, Ship-from Address: Survey No 12, Kolkata, West Bengal - 711302
+GSTIN - 19AAICR1234Q1ZJ
+Order ID: OD12345678901234567 Invoice Date: 05-01-2026
+Invoice Number # FAABCD2600012345
+Product Title Qty Gross Amount Discount Taxable Value IGST Total
+Philips HL7756/00 750 W Mixer Grinder (Black, 3 Jars) FSN: MIXEFZ3WGKZYH5HZ HSN/SAC: 85094010 1 3,499.00 -500.00 2,541.53 457.47 2,999.00
+Grand Total 2,999.00

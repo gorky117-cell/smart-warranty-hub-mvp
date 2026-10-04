@@ -1,0 +1,14 @@
+Tax Invoice/Bill of Supply/Cash Memo
+(Original for Recipient)
+Sold By :
+Appario Retail Private Ltd
+Plot No 12, Industrial Area, Bengaluru, Karnataka, 560099
+PAN No: AALCA0171E
+GST Registration No: 29AALCA0171E1ZQ
+Order Number: 408-1234567-1234567
+Order Date: 12.02.2026
+Invoice Number : BLR7-1234567
+Invoice Date : 12.02.2026
+Sl. No Description Unit Price Qty Net Amount Tax Rate Tax Type Tax Amount Total Amount
+1 boAt Rockerz 450 Bluetooth On Ear Headphones with Mic (Luscious Black) | B07PR1CL3S ( HSN:85183000 ) 1,299.00 1 1,299.00 18% IGST 198.15 1,299.00
+TOTAL: 1,299.00

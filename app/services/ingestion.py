@@ -88,6 +88,12 @@ _LABEL_PREFIX_RE = re.compile(r"^\s*\W?\s*([A-Za-z]{3,9})\b\s*([:\-.]?)\s*(\S.*)
 _IDENTITY_LABELS = ("brand", "model", "serial")
 
 
+# First words of an item title that are not a maker's name.
+_TITLE_NON_BRAND_WORDS = frozenset({
+    "the", "new", "item", "items", "product", "description", "goods", "qty", "total", "smart", "digital",
+    "wireless", "bluetooth", "portable", "automatic", "electric", "original", "combo", "pack", "set",
+})
+
 # A field label inside a joined product line: "Samsung Galaxy S24 Ultra Model Code: SM-S928B".
 _EMBEDDED_FIELD_RE = re.compile(
     r"\s+(?:model|serial|imei|colou?r|warranty|invoice)(?:\s*(?:code|no\.?|number|#))?\s*[:\-#]",
@@ -362,6 +368,8 @@ def _clean_product_name_candidate(raw: str) -> Optional[str]:
     if _labelled_line(text):
         return None  # a field line such as "Band: Apple" (misread "Brand:") is never a product name
     text = _EMBEDDED_FIELD_RE.split(text, maxsplit=1)[0]
+    # Marketplace codes after the title: "... (Black, 3 Jars) FSN: MIXEFZ3W... HSN/SAC: 85094010".
+    text = re.split(r"\s+(?:FSN|ASIN|HSN/SAC|HSN|SAC)\b", text, maxsplit=1, flags=re.IGNORECASE)[0]
     text = re.sub(r"^\d+[\.\)]?\s*", "", text)
     text = re.sub(r"\bIP\s*\d{2,3}\b", "", text, flags=re.IGNORECASE)
     text = re.sub(r"\bB0[A-Z0-9]{6,}\b.*$", "", text, flags=re.IGNORECASE)
@@ -377,8 +385,10 @@ def _clean_product_name_candidate(raw: str) -> Optional[str]:
 def _infer_product_category(*, product_name: Optional[str], model_code: Optional[str], lowered_text: str) -> Optional[str]:
     hay = " ".join([product_name or "", model_code or "", lowered_text]).lower()
     tokens = set(re.findall(r"[a-z0-9]+", hay))
-    if any(k in hay for k in ("phone", "mobile", "iphone", "android", "galaxy")):
+    if tokens & {"phone", "phones", "mobile", "smartphone", "iphone", "android", "galaxy"}:  # not "headphones"
         return "mobile"
+    if tokens & {"headphone", "headphones", "earphones", "earbuds", "speaker", "soundbar"}:
+        return "electronics"
     if "printer" in tokens:
         return "electronics"
     if any(k in tokens for k in ("tv", "oled", "qled", "bravia")):
@@ -397,6 +407,9 @@ def _infer_product_category(*, product_name: Optional[str], model_code: Optional
                 "microwave",
                 "geyser",
                 "air fryer",
+                "mixer",
+                "grinder",
+                "ceiling fan",
                 "whirlpool",
                 "bosch",
                 "wm-",
@@ -437,10 +450,28 @@ def _infer_invoice_region(text: str) -> Optional[str]:
     return None
 
 
+# Where the description of a numbered table row ends: HSN/SAC or FSN codes, or the first price column.
+_ROW_TAIL_RE = re.compile(
+    r"\s+\(?\s*(?:HSN|SAC|HSN/SAC)\b|\s+FSN\s*:|\s+\d{1,3}(?:,\d{2,3})+(?:\.\d{2})?(?!\d)|\s+\d+\.\d{2}(?!\d)",
+    re.IGNORECASE,
+)
+
+
+def _item_row_description(line: str) -> str:
+    """Description part of a numbered item row on a marketplace/retail invoice: "1 boAt Rockerz 450 ...
+    | B07PR1CL3S ( HSN:85183000 ) 1,299.00 1 1,299.00 18% IGST ..." -> "1 boAt Rockerz 450 ... | B07PR1CL3S".
+    Tax and price columns otherwise make the whole row look like boilerplate."""
+    if not re.match(r"^\d{1,3}[\.\)]?\s+[A-Za-z]", line):
+        return line
+    head = _ROW_TAIL_RE.split(line, maxsplit=1)[0]
+    head = re.sub(r"\s+\d{1,2}$", "", head.rstrip(" (|"))  # trailing quantity column
+    return head if len(head) >= 8 else line
+
+
 def _line_item_candidates(lines: List[str]) -> List[Tuple[int, str]]:
     candidates: List[Tuple[int, str]] = []
     for line in lines:
-        clean = _strip_invoice_table_prefix(line)
+        clean = _item_row_description(_strip_invoice_table_prefix(line))
         if len(clean) < 5:
             continue
         low = clean.lower()
@@ -551,7 +582,10 @@ def sanitize_invoice_identity_fields(
     removed: List[str] = []
 
     brand = sanitized_fields.get("brand")
-    if brand and (_is_boilerplate_line(brand) or _is_spec_only(brand) or _looks_like_seller_text(brand)):
+    product_line = ((alternatives.get("product_line") or [""])[0] or "").lower()
+    # Retailer own-label goods ("Croma 80 cm ... TV"): the retailer is the brand when it starts the item.
+    own_label = bool(brand) and brand_registry.is_retailer(brand) and product_line.startswith(str(brand).lower())
+    if brand and not own_label and (_is_boilerplate_line(brand) or _is_spec_only(brand) or _looks_like_seller_text(brand)):
         sanitized_fields.pop("brand", None)
         sanitized_confidence.pop("brand", None)
         removed.append(f"brand:{brand}")
@@ -626,7 +660,8 @@ def _serial_candidate(lines: List[str], product_line: Optional[str]) -> Tuple[Op
         # Unlabelled fallback: a single code on the line directly under a real line item
         # (e.g. "1 Epson L 3250 Printer ..." followed by "XAHT699208").
         target = _normalize_spaces(product_line)
-        idx = next((i for i, line in enumerate(clean_lines) if line == target), -1)
+        # The product line may be the trimmed description of the row (see _item_row_description).
+        idx = next((i for i, line in enumerate(clean_lines) if line == target or line.startswith(target)), -1)
         if idx >= 0 and re.match(r"^\d+[\.\)]?\s+\S", target) and idx + 1 < len(clean_lines):
             candidate = clean_lines[idx + 1]
             if re.fullmatch(r"[A-Z0-9]{8,18}", candidate) and _plausible_serial(candidate):
@@ -776,6 +811,7 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
     )
 
     line_items = _line_item_candidates(logical_lines)
+    has_warranty_context = has_warranty_context or bool(line_items)
     best_item = _strip_line_item_noise(line_items[0][1]) if line_items else None
     item_brand = _canonical_oem(best_item or "")
     seller_candidates: List[str] = []
@@ -867,6 +903,18 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
                     fields["product_name"] = val.title()
                     confidence["product_name"] = 0.5
 
+    # Marketplace/retail rows name the maker first ("Reconnect 1.5 Ton ... AC"). When that word is not a
+    # known brand, offer it for confirmation instead of guessing from the seller (consolidated run step 8).
+    if "brand" not in fields and best_item and fields.get("product_name"):
+        first = re.match(r"([A-Za-z][A-Za-z&'\-]{2,20})\b", fields["product_name"])
+        if first and first.group(1).lower() not in _TITLE_NON_BRAND_WORDS and not _contains_product_term(first.group(1)):
+            alternatives.setdefault("brand_suggestion", {
+                "value": first.group(1),
+                "source_line": best_item,
+                "status": "pending",
+                "reason": "We read this brand from the product title; it is not in our list of known manufacturers. Please confirm.",
+            })
+
     # === MODEL CODE ===
     # Printed model code first ("Model Code: SM-S928BZKGINS"); a marketing name such as "Galaxy S24"
     # stays in the product name and is only offered as a suggestion.
@@ -897,7 +945,19 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
         alternatives["model_evidence"] = "marketing_name"
     else:
         # Fallback: an unlabelled token shaped like a model code. Too weak to store; offer it instead.
-        model_token = re.search(r"\b([A-Z]{2,}[A-Z0-9\-]{2,})\b", text)
+        model_token = next(
+            (
+                m for m in re.finditer(r"\b([A-Z]{2,}[A-Z0-9\-]{2,})\b", text)
+                # Never a tax/order identifier: PAN (AAAAA9999A), GSTIN, or a token on a PAN/GST/order/CIN line.
+                if not re.fullmatch(r"[A-Z]{5}\d{4}[A-Z]|\d{2}[A-Z]{5}\d{4}[A-Z]\d[A-Z0-9]{2}", m.group(1))
+                and not re.search(
+                    r"\b(?:pan|gst|gstin|cin|order|fssai|invoice|bill|awb|irn)\b",
+                    text[text.rfind("\n", 0, m.start()) + 1 : m.start()],
+                    re.IGNORECASE,
+                )
+            ),
+            None,
+        )
         if model_token:
             token = model_token.group(1).strip().upper()
             if token not in (
@@ -950,7 +1010,7 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
 
     # === INVOICE NUMBER ===
     inv_patterns = [
-        r"(?:invoice|invo[il1]ce|inv)\s*(?:no|number|#)\s*[:\-]?\s*([a-zA-Z0-9][a-zA-Z0-9\-/]{2,30})",
+        r"(?:invoice|invo[il1]ce|inv)\s*(?:no|number|#)\.?\s*[:\-#]?\s*([a-zA-Z0-9][a-zA-Z0-9\-/]{2,30})",
         r"(?:invoice|invo[il1]ce)\s*[:\-]\s*([a-zA-Z0-9][a-zA-Z0-9\-/]{2,30})",
     ]
     if has_warranty_context:

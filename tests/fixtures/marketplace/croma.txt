@@ -1,0 +1,8 @@
+Croma
+Infiniti Retail Limited
+Tax Invoice
+Invoice No: CRM-26-001234
+Invoice Date: 18/03/2026
+Item Description Qty Rate Amount
+1 Croma 80 cm (32 inch) HD Ready LED Smart TV CREL032HOF024601 1 10,990.00 10,990.00
+Total 10,990.00

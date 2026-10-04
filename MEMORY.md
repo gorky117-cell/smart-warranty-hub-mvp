@@ -2438,7 +2438,28 @@ never print/commit secrets, no Railway changes. Push ONLY Part 1 (Steps 1-3 of e
   Bugs found by the tests and fixed: the line joiner glued "Invoice No:"/"Date:" lines onto the product line
   (the item was then discarded); a lender in the seller line ("Bajaj Finserv") became the brand -
   `brand_registry.NON_MAKERS`. Tests: 416 passed, 2 skipped (+30). Field measurement unchanged.
-- [ ] P2.8 marketplace invoices
+- [x] P2.8 Marketplace invoices - not pushed. Synthetic fixtures `tests/fixtures/marketplace/` (Amazon/Appario,
+  Flipkart/RetailNet, Croma own-label, Reliance Digital own-label "Reconnect").
+  - Before: Amazon gave no brand/product/date (the item row was rejected as boilerplate because it
+    contained "IGST"), category "mobile" (substring "phone" in "Headphones"), and the seller's PAN offered as
+    a model; Croma own-label brand dropped (retailer-name sanitiser); Flipkart product name included
+    "FSN: ... HSN/SAC" and "Invoice Number # X" was missed; Reliance unknown brand gave nothing.
+  - Fixes (ingestion): numbered item rows are cut to their description (`_item_row_description`: stops at
+    HSN/SAC/FSN or the first price; drops a trailing quantity); an identified item row counts as
+    warranty context (dates are read); phone/mobile category by whole word, headphones/speakers ->
+    electronics, mixer/grinder/ceiling fan -> appliance; PAN/GSTIN and tokens on PAN/GST/order/invoice
+    lines are never model suggestions; FSN/ASIN/HSN cut from product names; "Invoice Number # X"; a
+    retailer that starts the item line is kept as the brand (own label); an unknown first word of the item
+    title becomes a pending `brand_suggestion`. The Epson under-line serial now matches the trimmed row.
+  - Unknown/tiny/missing brand: `lookup_terms` returns `needs_check_terms` (source
+    `internal://needs_check_unknown_brand`): no duration, no search, label "Estimated - please check your
+    warranty card or the seller". Invoice-stated warranty months are still shown (not a guess).
+    Exception: `url_override` (manual URL) still runs.
+  - India page preference: `warranty_discovery._region_score` gave +8 to any URL containing "in"
+    ("printer", "warranty-info"); now +8 only for a country path segment (/in/, /en-in/), +4 for "india",
+    +6 for .in hosts (unchanged), -20 for another country's path (unchanged).
+  - After: all 4 synthetic invoices give the expected brand (or suggestion), product, model/blank, invoice
+    no, date; no serials invented. 50-sample field measurement unchanged. Tests: 425 passed, 2 skipped (+9).
 - [ ] P3.9-11 real-invoice loop
 - [ ] P4.12-14 MEMORY/STATUS/README
 
@@ -2448,5 +2469,6 @@ never print/commit secrets, no Railway changes. Push ONLY Part 1 (Steps 1-3 of e
 | P1.1 | `f2e5d8e3` | 383 passed, 2 skipped | Paddle back in requirements. |
 | P1.3 | `25e9d895` | 386 passed, 2 skipped (+3) | Background Paddle warm-up. Pushed. |
 | P1.4-5 | `73e90793` | - | Push + live checks recorded. |
-| P2.7 | (next) | 416 passed, 2 skipped (+30) | Shared brands by product segment. |
+| P2.7 | `b53433eb` | 416 passed, 2 skipped (+30) | Shared brands by product segment. |
+| P2.8 | (next) | 425 passed, 2 skipped (+9) | Marketplace invoices; unknown brand -> please check; India pages. |
 

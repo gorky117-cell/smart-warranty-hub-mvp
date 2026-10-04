@@ -652,6 +652,8 @@ def test_terms_lookup_merges_multiple_controlled_oem_sources(monkeypatch):
 
     monkeypatch.setattr(terms_lookup, "discover_sources", fake_discover_sources)
     monkeypatch.setattr(terms_lookup, "parse_terms_from_url", fake_parse_terms_from_url)
+    # Synthetic stand-in for a registry OEM; unknown brands never get searched terms (consolidated run step 8).
+    monkeypatch.setattr(terms_lookup, "_known_brand", lambda brand: True)
 
     with SessionLocal() as db:
         result = lookup_terms(

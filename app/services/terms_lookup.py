@@ -40,6 +40,7 @@ _SOURCE_INTERNAL_CACHE = "internal://terms_cache"
 _SOURCE_INTERNAL_DEFAULT = "internal://default_rules"
 # No OEM terms and no guessed duration: the customer is asked to check the warranty card or the seller.
 _SOURCE_NEEDS_CHECK_SHARED_BRAND = "internal://needs_check_shared_brand"
+_SOURCE_NEEDS_CHECK_UNKNOWN_BRAND = "internal://needs_check_unknown_brand"
 NEEDS_CHECK_MESSAGE = "Estimated - please check your warranty card or the seller."
 _AUTO_MAX_SOURCES = int(os.getenv("TERMS_AUTO_MAX_SOURCES", "4"))
 
@@ -68,6 +69,18 @@ def _normalize_category(category: Optional[str]) -> str:
     if words & {"electronic", "electronics", "device", "devices"}:
         return "electronics"
     return "general"
+
+
+def _known_brand(brand: Optional[str]) -> bool:
+    """A manufacturer in the OEM registry (exact name, or one the registry resolves the text to)."""
+    if not brand or not brand.strip():
+        return False
+    wanted = brand.strip().lower()
+    if any(name.lower() == wanted for name in oem_source_policy.load_oem_domains()):
+        return True
+    from .brand_registry import resolve_brand
+
+    return bool(resolve_brand(brand))
 
 
 def needs_check_terms(source_url: str) -> TermsResult:
@@ -470,6 +483,9 @@ def lookup_terms(
         if not entity.company:
             return needs_check_terms(_SOURCE_NEEDS_CHECK_SHARED_BRAND)
         brand = entity.company
+    if not url_override and not _known_brand(brand):
+        # Unknown, tiny or missing brand: no guessed duration (consolidated run step 8).
+        return needs_check_terms(_SOURCE_NEEDS_CHECK_UNKNOWN_BRAND)
     norm_category = _normalize_category(category)
     duration_context = DurationContext(
         category=norm_category,
