@@ -362,6 +362,9 @@
       if (loginError === "invalid") {
         loginMessage.textContent = "Invalid username or password.";
         loginMessage.className = "msg err";
+      } else if (loginError === "session_expired") {
+        loginMessage.textContent = "Your session expired. Please sign in again and retry.";
+        loginMessage.className = "msg err";
       }
 
       const signupState = params.get("signup");

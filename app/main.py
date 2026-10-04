@@ -115,6 +115,7 @@ from .deps import (
     verify_password,
     hash_password,
     init_db,
+    decode_token,
     ACCESS_TOKEN_EXPIRE_HOURS,
     require_oem_or_admin,
 )
@@ -486,6 +487,48 @@ def admin_security_status(db=Depends(get_db)):
     return security_report(db)
 
 
+# Sign-in and sign-up pages. A stale or expired session cookie on these is dropped and a fresh CSRF
+# token issued, so an old cookie can never stand between the user and signing in again.
+_AUTH_PAGES = {"/login", "/auth/login", "/auth/signup", "/auth/signup/form"}
+
+
+def _session_cookie_is_valid(token: str) -> bool:
+    try:
+        payload = decode_token(token)
+    except HTTPException:
+        return False
+    username = payload.get("sub")
+    if not username or not payload.get("role"):
+        return False
+    with SessionLocal() as db:
+        return db.query(UserDB).filter_by(username=username).first() is not None
+
+
+@app.middleware("http")
+async def refresh_stale_auth_cookies(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path.rstrip("/") or "/"
+    old_session = request.cookies.get("access_token")
+    if path not in _AUTH_PAGES or not old_session or _session_cookie_is_valid(old_session):
+        return response
+    already_set = response.headers.getlist("set-cookie")
+    opts = _cookie_options(request)
+    if not any(h.startswith("access_token=") for h in already_set):  # a successful login sets a new one
+        response.delete_cookie("access_token", path=opts["path"], domain=opts["domain"])
+    if not any(h.startswith(f"{CSRF_COOKIE_NAME}=") for h in already_set):
+        response.set_cookie(
+            key=CSRF_COOKIE_NAME,
+            value=new_csrf_token(),
+            max_age=ACCESS_TOKEN_EXPIRE_HOURS * 3600,
+            httponly=False,
+            samesite=opts["samesite"],
+            secure=opts["secure"],
+            path=opts["path"],
+            domain=opts["domain"],
+        )
+    return response
+
+
 @app.middleware("http")
 async def cache_dashboard(request: Request, call_next):
     request_id = request_id_from(request)
@@ -503,11 +546,16 @@ async def cache_dashboard(request: Request, call_next):
             error=str(exc.detail),
         )
         log_request(record)
-        response = Response(
-            content=f'{{"detail":"{exc.detail}"}}',
-            status_code=exc.status_code,
-            media_type="application/json",
-        )
+        accept = request.headers.get("accept") or ""
+        if "text/html" in accept and "application/json" not in accept:
+            # A browser form: never a raw error page. The request is still rejected.
+            response = RedirectResponse(url="/login?error=session_expired", status_code=status.HTTP_303_SEE_OTHER)
+        else:
+            response = Response(
+                content=f'{{"detail":"{exc.detail}"}}',
+                status_code=exc.status_code,
+                media_type="application/json",
+            )
         response.headers[REQUEST_ID_HEADER] = request_id
         return response
     try:
@@ -1614,7 +1662,7 @@ def auth_session(current: Optional[UserDB] = Depends(get_current_user_optional))
 
 
 @app.get("/login")
-def login_form(request: Request, current: Optional[UserDB] = Depends(get_current_user_optional)):
+def login_form():
     from fastapi.responses import HTMLResponse
     html_path = Path(__file__).resolve().parents[1] / "templates" / "login.html"
     html = html_path.read_text(encoding="utf-8")
@@ -1623,13 +1671,8 @@ def login_form(request: Request, current: Optional[UserDB] = Depends(get_current
     if verification:
         meta = f'<meta name="google-site-verification" content="{escape(verification)}" />'
     html = html.replace("__GOOGLE_SITE_VERIFICATION_META__", meta)
-    response = HTMLResponse(content=html, status_code=200)
-    if request.cookies.get("access_token") and not current:
-        # Drop an expired/invalid session so it cannot interfere with signing in.
-        cookie_opts = _cookie_options(request)
-        for name in ("access_token", CSRF_COOKIE_NAME):
-            response.delete_cookie(name, path=cookie_opts.get("path") or "/", domain=cookie_opts.get("domain"))
-    return response
+    # A stale/expired session cookie is cleared by the refresh_stale_auth_cookies middleware.
+    return HTMLResponse(content=html, status_code=200)
 
 
 @app.get("/google{token}.html")

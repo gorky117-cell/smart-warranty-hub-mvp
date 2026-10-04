@@ -2419,7 +2419,21 @@ never print/commit secrets, no Railway changes. Push ONLY Part 1 (Steps 1-3 of e
   `/` 200; http://www -> 301 -> https, 1 redirect, no loop; login POST with an unknown probe user -> 303
   back to the form (no 500); `/ui/neo-dashboard` unauthenticated -> 303 to `/login?next=...`. No real
   login was done (no production credentials used).
-- [ ] P2.6 CSRF stale-cookie fix
+- [x] P2.6 CSRF stale-cookie fix - not pushed. Base: the separate session's commit def3c278 (branch
+  `claude/heuristic-davinci-19eae6`), cherry-picked as `2e472d20`: `/auth/login`, `/auth/signup`,
+  `/auth/signup/form` are exempt from the cookie-session CSRF check (they are unauthenticated; before,
+  they were checked only when an `access_token` cookie happened to be present). Every other route keeps
+  the check unchanged. Extended here:
+  - middleware `refresh_stale_auth_cookies` on /login, /auth/login, /auth/signup, /auth/signup/form: an
+    invalid, expired or orphaned (user gone) `access_token` cookie is deleted and a fresh `csrf_token`
+    issued, unless the response already sets them (successful login). Replaces def3c278's deletion in
+    GET /login (which deleted the CSRF cookie without issuing a new one).
+  - a CSRF failure from a browser page (Accept text/html, not JSON) now redirects 303 to
+    `/login?error=session_expired` ("Your session expired. Please sign in again and retry.") instead of
+    raw JSON; the request is still rejected. API clients still get 403 JSON.
+  - tests (test_phase9c_csrf.py, 15): stale cookie, expired JWT, no cookie, failed login with stale cookie,
+    signup with stale cookie, login -> logout -> login, CSRF still enforced on logout (JSON 403 / browser
+    redirect, session unchanged). Full suite 436 passed, 2 skipped.
 - [x] P2.7 Shared brand names - not pushed. `data/brand_families.json` + `app/services/brand_families.py`:
   `resolve_oem_entity(brand, product_name, model_code, category)` -> (family, segment, company).
   Segments by keyword (vehicles first): two_wheeler, car, bicycle, mobile, audio, industrial,
@@ -2470,5 +2484,6 @@ never print/commit secrets, no Railway changes. Push ONLY Part 1 (Steps 1-3 of e
 | P1.3 | `25e9d895` | 386 passed, 2 skipped (+3) | Background Paddle warm-up. Pushed. |
 | P1.4-5 | `73e90793` | - | Push + live checks recorded. |
 | P2.7 | `b53433eb` | 416 passed, 2 skipped (+30) | Shared brands by product segment. |
-| P2.8 | (next) | 425 passed, 2 skipped (+9) | Marketplace invoices; unknown brand -> please check; India pages. |
+| P2.8 | `b147af43` | 425 passed, 2 skipped (+9) | Marketplace invoices; unknown brand -> please check; India pages. |
+| P2.6 | `2e472d20` + (next) | 436 passed, 2 skipped (+11) | CSRF: cherry-picked exemption + stale-cookie middleware, friendly redirect. |
 
