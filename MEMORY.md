@@ -2403,7 +2403,14 @@ never print/commit secrets, no Railway changes. Push ONLY Part 1 (Steps 1-3 of e
   its first call failed only while the model was downloading. Kept from 92.3: Tesseract fallback when
   Paddle is missing, network blocking in tests, `httpx==0.28.1` pin, `faulthandler_timeout = 300`.
   Tests: 383 passed, 2 skipped.
-- [ ] P1.3 Paddle warm-up at start-up
+- [x] P1.3 Paddle warm-up: `ocr.start_paddle_warmup()` called from the lifespan after `init_db`. Daemon
+  thread OCRs the bundled health image with Paddle; start-up returns immediately. A watcher warns
+  "still running after Ns" past OCR_WARMUP_TIMEOUT_SEC (default 300). Success is printed ("PaddleOCR
+  warm-up finished in X.Xs", since the app sets no log level); failure is logged as a warning.
+  `OCR_WARMUP=0` or a non-Paddle engine skips it. `get_paddle()` now has an init lock so the warm-up and
+  an early upload never load the models twice. `/health/ocr` shows `paddle_warmup` {status, seconds,
+  error}. Local start (Windows, OCR_ENGINE=paddle): server served requests during warm-up; warm-up
+  failed after 5.3 s with the known local oneDNN error and was logged. Tests: 386 passed, 2 skipped.
 - [ ] P1.4 push
 - [ ] P1.5 live checks
 - [ ] P2.6 CSRF stale-cookie fix
@@ -2415,5 +2422,6 @@ never print/commit secrets, no Railway changes. Push ONLY Part 1 (Steps 1-3 of e
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
-| P1.1 | (next) | 383 passed, 2 skipped | Paddle back in requirements. |
+| P1.1 | `f2e5d8e3` | 383 passed, 2 skipped | Paddle back in requirements. |
+| P1.3 | (next) | 386 passed, 2 skipped (+3) | Background Paddle warm-up. |
 

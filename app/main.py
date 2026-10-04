@@ -399,6 +399,7 @@ class EVBatteryRequest(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    ocr_service.start_paddle_warmup()  # background thread; start-up never waits for it
     interval = int(os.getenv("OEM_REFRESH_MINUTES", "120"))
     start_scheduler(interval)
     yield

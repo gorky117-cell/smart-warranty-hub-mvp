@@ -4,6 +4,7 @@ import time
 import io
 import logging
 import shutil
+import threading
 import tempfile
 from importlib.util import find_spec
 from typing import Optional, Tuple, Dict, Any, List
@@ -85,12 +86,23 @@ def _should_unload(last_used: float) -> bool:
     return (_now() - last_used) > _OCR_ENGINE_TTL_SEC
 
 
+_paddle_init_lock = threading.Lock()
+
+
 def get_paddle() -> Tuple[Optional[object], Optional[str]]:
     global _paddle_engine, _paddle_last_used
     if _paddle_engine is not None and _should_unload(_paddle_last_used):
         _paddle_engine = None
     if _paddle_engine is not None:
         return _paddle_engine, None
+    with _paddle_init_lock:  # the start-up warm-up and an early upload must not both load the models
+        if _paddle_engine is not None:
+            return _paddle_engine, None
+        return _init_paddle()
+
+
+def _init_paddle() -> Tuple[Optional[object], Optional[str]]:
+    global _paddle_engine, _paddle_last_used
     try:
         from paddleocr import PaddleOCR  # type: ignore
         # use_angle_cls=True loads lighter model?
@@ -423,6 +435,49 @@ def _probe_engine(name: str) -> Dict[str, Any]:
     return {"ok": False, "error": _short_error(err) or f"{name} OCR did not read the test image (got {text!r})"}
 
 
+# Start-up warm-up: Paddle downloads/loads its models on first use, and that first call used to fail
+# ("unexpected end of data") or be slow for the first real upload.
+paddle_warmup_status: Dict[str, Any] = {"status": "not_started"}
+
+
+def start_paddle_warmup(timeout_sec: Optional[float] = None) -> Optional[threading.Thread]:
+    """OCR the bundled health image with Paddle in a background thread. Never blocks the caller; logs
+    how long it took, and logs a warning if it is still running after ``timeout_sec`` (OCR_WARMUP_TIMEOUT_SEC,
+    default 300). Off when OCR_WARMUP=0 or when Paddle is not the engine in use."""
+    if os.getenv("OCR_WARMUP", "1").strip().lower() in ("0", "false", "no") or _resolve_engine() != "paddle":
+        paddle_warmup_status.update({"status": "skipped"})
+        return None
+    limit = float(timeout_sec if timeout_sec is not None else os.getenv("OCR_WARMUP_TIMEOUT_SEC", "300"))
+    started = _now()
+    paddle_warmup_status.clear()
+    paddle_warmup_status.update({"status": "running", "started_at": started})
+
+    def work() -> None:
+        try:
+            text, err = run_paddle_ocr(_HEALTH_IMAGE)
+        except Exception as exc:  # pragma: no cover - runtime safeguard
+            text, err = None, f"warm-up raised: {exc}"
+        seconds = round(_now() - started, 1)
+        ok = bool(text and _HEALTH_EXPECTED_TOKEN in text)
+        paddle_warmup_status.update({"status": "ok" if ok else "failed", "seconds": seconds, "error": None if ok else _short_error(err)})
+        if ok:
+            # print, like init_db: the app sets no log level, so INFO lines would be dropped.
+            print(f"PaddleOCR warm-up finished in {seconds:.1f}s", flush=True)
+        else:
+            logger.warning("PaddleOCR warm-up failed after %.1fs: %s", seconds, _short_error(err))
+
+    def watch(worker: threading.Thread) -> None:
+        worker.join(limit)
+        if worker.is_alive():
+            paddle_warmup_status["status"] = "slow"
+            logger.warning("PaddleOCR warm-up still running after %.0fs; continuing in the background", limit)
+
+    worker = threading.Thread(target=work, name="paddle-warmup", daemon=True)
+    worker.start()
+    threading.Thread(target=watch, args=(worker,), name="paddle-warmup-watch", daemon=True).start()
+    return worker
+
+
 def health_report(force: bool = False) -> Dict[str, Any]:
     """Run real OCR on a bundled test image; cached for OCR_HEALTH_TTL_SEC seconds."""
     global _health_cache
@@ -454,6 +509,7 @@ def health_report(force: bool = False) -> Dict[str, Any]:
         "active_engine": active,
         "engines": engines,
         "paddle_backoff_sec": int(paddle_backoff_remaining()),
+        "paddle_warmup": {k: v for k, v in paddle_warmup_status.items() if k != "started_at"},
     }
     _health_cache = (_now(), report)
     return report
