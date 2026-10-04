@@ -208,6 +208,7 @@ def _summarize_with_llamacpp(prompt: str) -> Tuple[Optional[str], Optional[str]]
 def _summarize_with_mistral(prompt: str) -> Tuple[Optional[str], Optional[str]]:
     if not _MISTRAL_KEY:
         return None, "MISTRAL_API_KEY not set"
+    prompt = ai_safe(prompt)  # callers redact too; never rely on that alone
     try:
         resp = requests.post(
             f"{_MISTRAL_API.rstrip('/')}/chat/completions",

@@ -2556,9 +2556,24 @@ Owner approved pushing entry 93 Parts 2 and 4. Rules as before; nothing after th
   in the printed-code and fallback patterns; unit pairs are dropped ("8GB/128GB" -> not part of the code).
   Field measurement unchanged (brand 26/30; model 0 stored, 28 suggestions). Tests 444 passed, 2 skipped.
 
+- [x] 94.3 Mistral settings and redaction audit - not pushed.
+  - `rag.embed_model_from_env()`: MISTRAL_EMBED_MODEL, else MISTRAL_EMBED_MODE (what production sets) when
+    it looks like an embedding model name (contains "embed", no spaces), else "mistral-embed". The production
+    MODE value was never read here; if it is not a model name it is ignored rather than breaking embeddings.
+  - Every code path that sends data to Mistral, and where redaction (`privacy.ai_safe`) runs:
+    | Path | Sends | Redaction |
+    |---|---|---|
+    | `llm.generate_with_mistral` <- `generate_text` <- POST /llm/generate (user prompt), POST /warranties/summary | chat prompt | inside the function |
+    | `summary_engine._summarize_with_mistral` <- `summarize_warranty` (LLM_PROVIDER=mistral) and `_fallback_summary` (OPENAI_FALLBACK_PROVIDER=mistral) | summary prompt incl. RAG context | in `summarize_warranty` before either call, and now also inside the function |
+    | `warranty_parser._mistral_enrich_terms` <- `_finalize_parsed` (TERMS_NLP_ENRICH_ENABLED, default on, when parsing is weak) | OEM page text (<= TERMS_NLP_MAX_CHARS) | inside the function |
+    | `rag._embed` <- `upsert_document`, `search`, RAG smoke check | summaries, events, queries | inside the function (also masks user ids) |
+    | `llm.health` (GET /models) | nothing | - |
+    Tests cover each path (tests/test_privacy_redaction.py), plus the new summary-helper and embed-model tests.
+
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
 | 94.0 | `eac60ead` (pushed) | 442 passed, 2 skipped (+5) | Sign-up rate limit; friendly limit messages. |
-| 94.2 | (next) | 444 passed, 2 skipped (+2) | philips.co.in; "/" in model codes. |
+| 94.2 | `bc85e1ca` | 444 passed, 2 skipped (+2) | philips.co.in; "/" in model codes. |
+| 94.3 | (next) | 446 passed, 2 skipped (+2) | Embed model env; Mistral redaction audit. |
 

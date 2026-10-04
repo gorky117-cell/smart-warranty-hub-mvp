@@ -131,3 +131,24 @@ def test_openai_summary_and_enrichment_redacted_even_with_flags_on(monkeypatch):
     assert len(sent) == 2
     _assert_clean(sent)
     assert all("CRM/26/5512" in payload for payload in sent)
+
+
+def test_embed_model_reads_mode_and_model(monkeypatch):
+    from app.services.rag import embed_model_from_env
+
+    monkeypatch.delenv("MISTRAL_EMBED_MODEL", raising=False)
+    monkeypatch.delenv("MISTRAL_EMBED_MODE", raising=False)
+    assert embed_model_from_env() == "mistral-embed"
+    monkeypatch.setenv("MISTRAL_EMBED_MODE", "mistral-embed-2312")
+    assert embed_model_from_env() == "mistral-embed-2312"  # production sets the MODE name
+    monkeypatch.setenv("MISTRAL_EMBED_MODE", "auto")
+    assert embed_model_from_env() == "mistral-embed"  # not a model name: ignored
+    monkeypatch.setenv("MISTRAL_EMBED_MODEL", "codestral-embed")
+    assert embed_model_from_env() == "codestral-embed"  # MODEL wins
+
+
+def test_mistral_summary_helper_redacts_on_its_own(monkeypatch, capture_post):
+    monkeypatch.setattr(summary_engine, "_MISTRAL_KEY", "test-key")
+    summary_engine._summarize_with_mistral(INVOICE)
+    body = str(capture_post[-1])
+    assert "9876543210" not in body and "asha" not in body.lower()

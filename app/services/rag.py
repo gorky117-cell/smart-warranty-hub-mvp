@@ -12,7 +12,19 @@ from ..db_models import DocumentEmbeddingDB
 
 _MISTRAL_API = os.getenv("MISTRAL_API_URL", "https://api.mistral.ai/v1")
 _MISTRAL_KEY = os.getenv("MISTRAL_API_KEY")
-_EMBED_MODEL = os.getenv("MISTRAL_EMBED_MODEL", "mistral-embed")
+def embed_model_from_env() -> str:
+    """Production sets MISTRAL_EMBED_MODE (sic); MISTRAL_EMBED_MODEL wins when both are set. A MODE value
+    that does not look like an embedding model name (e.g. a mode such as "auto") is ignored."""
+    model = (os.getenv("MISTRAL_EMBED_MODEL") or "").strip()
+    if model:
+        return model
+    mode = (os.getenv("MISTRAL_EMBED_MODE") or "").strip()
+    if mode and "embed" in mode.lower() and " " not in mode:
+        return mode
+    return "mistral-embed"
+
+
+_EMBED_MODEL = embed_model_from_env()
 _RAG_ENABLED = os.getenv("RAG_ENABLED", "0").strip().lower() in ("1", "true", "yes")
 
 
