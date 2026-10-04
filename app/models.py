@@ -141,3 +141,5 @@ class TermsResult(AppBaseModel):
     grounded: Optional[bool] = None
     checked_at: Optional[str] = None
     needs_refresh: bool = False
+    # "knowledge_base" when the terms are a hand-checked entry (knowledge base v1).
+    source_kind: Optional[str] = None

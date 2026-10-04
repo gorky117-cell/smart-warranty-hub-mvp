@@ -99,6 +99,14 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
         label = "Estimated - please check your warranty card or the seller"
         note = "No official warranty terms were confirmed for this product, so no warranty period is shown."
         confidence = 0.2
+    elif source_type == "knowledge_base" and source_url:
+        # Hand-checked entry (knowledge base v1): customers see when it was checked.
+        checked, _stale = _checked_on(refreshed_at, False)
+        brand_name = oem_entity.get("company") or getattr(warranty, "brand", None) or "the brand"
+        status = "confirmed"
+        label = f"Checked on {checked}" if checked else "Checked by Smart Warranty Hub"
+        note = f"Terms hand-checked against the official {brand_name} website."
+        confidence = 0.95
     elif source_type == "approved_oem_source" and source_url:
         status = "confirmed"
         label = source_trust["label"]
@@ -162,7 +170,9 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
             }
         )
     checked_on, needs_refresh = _checked_on(refreshed_at, alt.get("terms_needs_refresh"))
-    if checked_on and status == "confirmed":
+    if source_type == "knowledge_base":
+        needs_refresh = False  # hand-checked; re-checks are an admin action, not an age rule
+    if checked_on and status == "confirmed" and source_type != "knowledge_base":
         # Cache fix 5: say when the official page was checked; older than 30 days needs a refresh.
         label = f"{label} - checked on {checked_on}" + (", needs refresh" if needs_refresh else "")
         if needs_refresh:

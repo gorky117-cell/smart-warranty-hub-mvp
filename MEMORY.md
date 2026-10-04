@@ -2752,6 +2752,33 @@ and not /health/ocr. Rules as before; nothing in this entry is pushed without ap
   (negative = the wall clock jumped while the process was frozen: the machine slept 20:49-21:57). The
   same runner finished in 10 s afterwards; the commit gate held the commit; re-run was clean.
 
+- [x] 95.7 Knowledge base v1 - not pushed; empty (no data added).
+  - Tables (new, created by create_all): `verified_terms` (company, region NULL=any, category NULL=any,
+    product_scope "model:<KEY>" or "line:<line>", source_url, page_fingerprint = SHA-256 of normalised page
+    text, duration_months, terms, exclusions, claim_steps, verified_by, verified_at, locked default true,
+    note) and `verified_terms_reviews` (entry_id, the new reading, differences, status pending/accepted/
+    dismissed, resolved_by/at).
+  - `app/services/knowledge_base.py`: `find_entry` (company case-insensitive, scope = model then product
+    line, never brand-wide; region and category match or NULL; most specific first). `lookup_terms` checks
+    it before saved records, cache and discovery, including forced refreshes (not for a manual
+    url_override); result has source_kind "knowledge_base", checked_at = verified_at.
+  - Pipeline: terms_source_type "knowledge_base"; its duration overrides an invoice-stated one, like an
+    approved OEM page. Evidence: status confirmed, label "Checked on YYYY-MM-DD", note "Terms hand-checked
+    against the official <Brand> website."; no 30-day needs-refresh flag (re-checks are an admin action).
+  - `recheck`: re-reads the official page; same -> nothing changes; different + locked -> entry untouched,
+    review saved, every admin notified (notification audience "admin", warranty_id "kb:<id>");
+    different + unlocked -> entry updated. Reviews: accept only into an unlocked entry (409 otherwise),
+    or dismiss. Create / lock / unlock / recheck / review decisions go to the audit log (kb_* actions).
+  - Admin-only endpoints: GET/POST /admin/knowledge-base, POST /admin/knowledge-base/{id}/lock|unlock|recheck,
+    GET /admin/knowledge-base/reviews, POST /admin/knowledge-base/reviews/{id}/accept|dismiss. Create checks:
+    company is a registry name; source_url is on the company's verified official website; model_code or
+    product_line given; lists of strings. /admin/terms-cache/stats also returns knowledge_base counts.
+  - Tests (tests/test_knowledge_base.py, 9): checked entry first even when forced; scope/region/category
+    matching (TV entry never answers a phone; never brand-wide); locked recheck -> review + admin
+    notifications + audit, entry unchanged; unchanged / unlocked update; accept blocked while locked;
+    "Checked on <date>"; endpoints (create, lock/unlock, list, validation, audit) and admin-only; pipeline
+    end to end. Test isolation: these modules switch the rate limiter off (full-suite logins hit it).
+
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
@@ -2759,5 +2786,6 @@ and not /health/ocr. Rules as before; nothing in this entry is pushed without ap
 | 95.2 | `2d3926f9` | 469 passed, 2 skipped (+4) | Saved records reused only from official sources, same line. |
 | 95.3-4 | `9a7de517` + `4ed67981` | 474 passed, 2 skipped (+5) | Newest official entry; metadata; official-only caching. `9a7de517` was committed with 1 failing test (the commit gate checked grep's exit code, not pytest's): test_samsung_notebook_page_rejected_for_mobile_in_auto_discovery got the last good Samsung mobile entry another test had cached - intended behaviour of 95.3; the next commit isolates that module's cache rows. Commits are now gated on pytest's exit code. |
 | 95.5 | `8f9c94ca` | 477 passed, 2 skipped (+3) | 30-day expiry; "checked on <date>"; needs-refresh flag. |
-| 95.6 | (next) | 479 passed, 2 skipped (+2) | Admin terms-cache counts. |
+| 95.6 | `6dc8aa69` | 479 passed, 2 skipped (+2) | Admin terms-cache counts. |
+| 95.7 | (next) | 488 passed, 2 skipped (+9) | Knowledge base v1 (empty). |
 

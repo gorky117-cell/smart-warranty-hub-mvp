@@ -14,6 +14,7 @@ PHONE_URL = "https://www.samsung.com/in/support/warranty/mobile/"
 
 @pytest.fixture(autouse=True)
 def _clean_cache(monkeypatch):
+    monkeypatch.setenv("RATE_LIMIT_ENABLED", "0")  # admin logins across the suite
     monkeypatch.setattr(terms_lookup, "discover_sources", lambda **kw: [])  # no live search in these tests
     from app.db_models import WarrantyDB
 

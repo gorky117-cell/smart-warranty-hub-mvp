@@ -482,12 +482,126 @@ async def force_https_redirect(request: Request, call_next):
     return await call_next(request)
 
 
+def _kb_entry_or_404(db, entry_id: int):
+    from .db_models import VerifiedTermsDB
+
+    entry = db.query(VerifiedTermsDB).filter_by(id=entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Knowledge-base entry not found")
+    return entry
+
+
+@app.get("/admin/knowledge-base")
+def admin_kb_list(db=Depends(get_db), current: UserDB = Depends(require_admin)):
+    """Admin-only: hand-checked terms entries and review counts."""
+    from .db_models import VerifiedTermsDB
+    from .services import knowledge_base
+
+    entries = db.query(VerifiedTermsDB).order_by(VerifiedTermsDB.company, VerifiedTermsDB.product_scope).all()
+    return {"entries": [knowledge_base.to_dict(e) for e in entries], "counts": knowledge_base.counts(db)}
+
+
+@app.post("/admin/knowledge-base")
+def admin_kb_create(payload: Dict[str, Any] = Body(...), db=Depends(get_db), current: UserDB = Depends(require_admin)):
+    """Admin-only: add a hand-checked entry. The page must be on the company's verified official domain and
+    the entry must name a model or a product line (never brand-wide)."""
+    from .services import knowledge_base, terms_cache
+
+    company = " ".join(str(payload.get("company") or "").split())
+    exact = next((name for name in load_oem_domains() if name.lower() == company.lower()), None)
+    if not exact:
+        raise HTTPException(status_code=422, detail="company must be a name in the OEM registry")
+    source_url = str(payload.get("source_url") or "").strip()
+    if not terms_cache.verified_official(source_url, exact):
+        raise HTTPException(status_code=422, detail="source_url must be a page on the company's verified official website")
+    model = terms_cache.model_key(payload.get("model_code"))
+    line = str(payload.get("product_line") or "").strip().lower() or None
+    if not model and not line:
+        raise HTTPException(status_code=422, detail="give model_code or product_line")
+    try:
+        months = int(payload["duration_months"]) if payload.get("duration_months") not in (None, "") else None
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="duration_months must be a whole number")
+    lists = {}
+    for key in ("terms", "exclusions", "claim_steps"):
+        value = payload.get(key) or []
+        if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+            raise HTTPException(status_code=422, detail=f"{key} must be a list of strings")
+        lists[key] = [" ".join(v.split()) for v in value if v.strip()]
+    entry = knowledge_base.create_entry(db, {
+        "company": exact,
+        "region": (str(payload.get("region") or "").strip().upper() or None),
+        "category": (str(payload.get("category") or "").strip().lower() or None),
+        "product_scope": f"model:{model}" if model else f"line:{line}",
+        "source_url": source_url,
+        "page_fingerprint": payload.get("page_fingerprint") or knowledge_base.page_fingerprint(payload.get("page_text")),
+        "duration_months": months,
+        "note": (str(payload.get("note") or "")[:500] or None),
+        "locked": payload.get("locked", True) is not False,
+        **lists,
+    }, admin=current.username)
+    return knowledge_base.to_dict(entry)
+
+
+@app.post("/admin/knowledge-base/{entry_id}/lock")
+def admin_kb_lock(entry_id: int, db=Depends(get_db), current: UserDB = Depends(require_admin)):
+    from .services import knowledge_base
+
+    return knowledge_base.to_dict(knowledge_base.set_lock(db, _kb_entry_or_404(db, entry_id), True, admin=current.username))
+
+
+@app.post("/admin/knowledge-base/{entry_id}/unlock")
+def admin_kb_unlock(entry_id: int, db=Depends(get_db), current: UserDB = Depends(require_admin)):
+    from .services import knowledge_base
+
+    return knowledge_base.to_dict(knowledge_base.set_lock(db, _kb_entry_or_404(db, entry_id), False, admin=current.username))
+
+
+@app.post("/admin/knowledge-base/{entry_id}/recheck")
+def admin_kb_recheck(entry_id: int, db=Depends(get_db), current: UserDB = Depends(require_admin)):
+    """Admin-only: read the official page again. A locked entry is never changed: a disagreement is saved
+    for review and all admins are notified."""
+    from .services import knowledge_base
+
+    return knowledge_base.recheck(db, _kb_entry_or_404(db, entry_id), admin=current.username)
+
+
+@app.get("/admin/knowledge-base/reviews")
+def admin_kb_reviews(status: str = "pending", db=Depends(get_db), current: UserDB = Depends(require_admin)):
+    from .db_models import VerifiedTermsReviewDB
+    from .services import knowledge_base
+
+    rows = db.query(VerifiedTermsReviewDB).filter_by(status=status).order_by(VerifiedTermsReviewDB.found_at.desc()).all()
+    return {"reviews": [knowledge_base.review_to_dict(r) for r in rows]}
+
+
+@app.post("/admin/knowledge-base/reviews/{review_id}/{decision}")
+def admin_kb_resolve_review(review_id: int, decision: str, db=Depends(get_db), current: UserDB = Depends(require_admin)):
+    """Admin-only: accept (copies the new reading into an UNLOCKED entry) or dismiss a review."""
+    from .db_models import VerifiedTermsReviewDB
+    from .services import knowledge_base
+
+    if decision not in ("accept", "dismiss"):
+        raise HTTPException(status_code=404, detail="Use /accept or /dismiss")
+    review = db.query(VerifiedTermsReviewDB).filter_by(id=review_id).first()
+    if not review or review.status != "pending":
+        raise HTTPException(status_code=404, detail="No pending review with that id")
+    try:
+        return knowledge_base.resolve_review(db, review, decision == "accept", admin=current.username)
+    except PermissionError:
+        raise HTTPException(status_code=409, detail="The entry is locked; unlock it before accepting a review")
+    except ValueError:
+        raise HTTPException(status_code=404, detail="The entry no longer exists")
+
+
 @app.get("/admin/terms-cache/stats", dependencies=[Depends(require_admin)])
 def admin_terms_cache_stats(db=Depends(get_db)):
     """Admin-only: terms-cache counts (rows, real-source, official, fresh, distinct keys); no contents."""
     from .services import terms_cache
 
-    return terms_cache.stats(db)
+    from .services import knowledge_base
+
+    return {**terms_cache.stats(db), "knowledge_base": knowledge_base.counts(db)}
 
 
 @app.get("/admin/security-status", dependencies=[Depends(require_admin)])

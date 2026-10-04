@@ -503,6 +503,15 @@ def lookup_terms(
         return needs_check_terms(_SOURCE_NEEDS_CHECK_UNKNOWN_BRAND)
     norm_category = _normalize_category(category)
     scope_model, scope_line = terms_cache.product_scope(model_code, product_name)
+    # Hand-checked terms first, also on forced refreshes (knowledge base v1).
+    if not url_override:
+        from . import knowledge_base
+
+        entry = knowledge_base.find_entry(
+            db, company=brand, region=region, category=norm_category, model_code=model_code, product_name=product_name
+        )
+        if entry:
+            return knowledge_base.result_from_entry(entry)
     duration_context = DurationContext(
         category=norm_category,
         model_code=model_code,

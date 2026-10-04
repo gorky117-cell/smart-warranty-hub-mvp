@@ -350,6 +350,51 @@ class WarrantyTermsCacheDB(Base):
     grounded: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
 
 
+class VerifiedTermsDB(Base):
+    """Knowledge base v1: warranty terms hand-checked against an official page. Looked up before the cache
+    and before any refresh; a refresh never overwrites a locked entry."""
+
+    __tablename__ = "verified_terms"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    company: Mapped[str] = mapped_column(String, index=True)
+    region: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)  # NULL = any region
+    category: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # NULL = any category
+    product_scope: Mapped[str] = mapped_column(String, index=True)  # "model:SMS928B" or "line:smartphone"
+    source_url: Mapped[str] = mapped_column(String)
+    page_fingerprint: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    duration_months: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    terms = Column(SqliteJSON)
+    exclusions = Column(SqliteJSON)
+    claim_steps = Column(SqliteJSON)
+    verified_by: Mapped[str] = mapped_column(String)
+    verified_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    locked: Mapped[bool] = mapped_column(Boolean, default=True)
+    note = Column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class VerifiedTermsReviewDB(Base):
+    """A re-check of a knowledge-base entry that disagreed with it, waiting for an admin."""
+
+    __tablename__ = "verified_terms_reviews"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    entry_id: Mapped[int] = mapped_column(Integer, index=True)
+    found_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    source_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    page_fingerprint: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    duration_months: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    terms = Column(SqliteJSON)
+    exclusions = Column(SqliteJSON)
+    claim_steps = Column(SqliteJSON)
+    differences = Column(SqliteJSON)
+    status: Mapped[str] = mapped_column(String, default="pending", index=True)  # pending / accepted / dismissed
+    resolved_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
 class WarrantySummaryDB(Base):
     __tablename__ = "warranty_summaries"
 

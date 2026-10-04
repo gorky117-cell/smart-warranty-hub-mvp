@@ -310,9 +310,12 @@ def apply_terms_and_expiry(db: Session, warranty: WarrantyDB, fields: Dict[str, 
             pass
     terms_source_type = None
     if terms_result:
-        terms_source_type = classify_terms_source_url(terms_result.source_url or "", oem_brand)
+        terms_source_type = (
+            "knowledge_base" if terms_result.source_kind == "knowledge_base"
+            else classify_terms_source_url(terms_result.source_url or "", oem_brand)
+        )
     if terms_result and terms_result.duration_months and (
-        terms_source_type == "approved_oem_source" or not warranty.coverage_months
+        terms_source_type in ("approved_oem_source", "knowledge_base") or not warranty.coverage_months
     ):
         warranty.coverage_months = terms_result.duration_months
     if warranty.purchase_date and warranty.coverage_months:
