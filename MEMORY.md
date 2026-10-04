@@ -2743,11 +2743,21 @@ and not /health/ocr. Rules as before; nothing in this entry is pushed without ap
   and needs_refresh. Tests: 31-day entry not served but returned flagged on failed refresh; 29-day served;
   label with date / needs refresh; reused saved record carries its date.
 
+- [x] 95.6 Admin count endpoint - not pushed. GET /admin/terms-cache/stats (require_admin) ->
+  `terms_cache.stats`: rows, real_source_rows (http source), official_rows, fresh_official_rows,
+  stale_official_rows, default_rows (tagged default or no source), non_official_rows,
+  legacy_rows_without_source_type, distinct_keys (brand, category, region, product line), fresh_days,
+  oldest/newest fetched_at. Counts only, no row contents. Tests: counts; 401 without login, 403 for a user.
+  Note: one full-suite run took 70 min and failed a runner subprocess test with "timed out after -3486 s"
+  (negative = the wall clock jumped while the process was frozen: the machine slept 20:49-21:57). The
+  same runner finished in 10 s afterwards; the commit gate held the commit; re-run was clean.
+
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
 | 95.1 | `a8df141b` | 465 passed, 2 skipped (+3) | Product scope in the cache key; column upgrade helper. |
 | 95.2 | `2d3926f9` | 469 passed, 2 skipped (+4) | Saved records reused only from official sources, same line. |
 | 95.3-4 | `9a7de517` + `4ed67981` | 474 passed, 2 skipped (+5) | Newest official entry; metadata; official-only caching. `9a7de517` was committed with 1 failing test (the commit gate checked grep's exit code, not pytest's): test_samsung_notebook_page_rejected_for_mobile_in_auto_discovery got the last good Samsung mobile entry another test had cached - intended behaviour of 95.3; the next commit isolates that module's cache rows. Commits are now gated on pytest's exit code. |
-| 95.5 | (next) | 477 passed, 2 skipped (+3) | 30-day expiry; "checked on <date>"; needs-refresh flag. |
+| 95.5 | `8f9c94ca` | 477 passed, 2 skipped (+3) | 30-day expiry; "checked on <date>"; needs-refresh flag. |
+| 95.6 | (next) | 479 passed, 2 skipped (+2) | Admin terms-cache counts. |
 

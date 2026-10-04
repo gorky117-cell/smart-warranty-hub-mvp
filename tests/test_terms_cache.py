@@ -212,3 +212,46 @@ def test_reused_official_record_carries_its_checked_date():
         db.commit()
         result = _lookup(db, "Samsung Galaxy A16", model="SM-A166B", category="mobile")
         assert result.source_url == PHONE_URL and result.needs_refresh is True and result.checked_at
+
+
+# --- cache fix 6: admin-only counts --------------------------------------------------------------------------
+
+from fastapi.testclient import TestClient  # noqa: E402
+
+from app.main import app  # noqa: E402
+
+
+def _client_token(username, password):
+    client = TestClient(app)
+    resp = client.post("/auth/login", data={"username": username, "password": password}, headers={"accept": "application/json"})
+    return client, resp.json().get("access_token")
+
+
+def test_admin_count_endpoint():
+    with SessionLocal() as db:
+        _row(db, url=TV_URL, line="tv", model="QA55Q60D", age_days=2, source_type="official")
+        _row(db, url=TV_URL, line="tv", model="QA55Q60D", age_days=40, source_type="official")
+        _row(db, url=None, line="tv", age_days=0, source_type="default")
+        _row(db, url="https://x.example/w", line="smartphone", age_days=0, source_type="non_official")
+        expected_total = db.query(WarrantyTermsCacheDB).count()
+    client, token = _client_token("admin", "admin123")
+    stats = client.get("/admin/terms-cache/stats", headers={"Authorization": f"Bearer {token}"}).json()
+    assert stats["rows"] == expected_total
+    assert stats["official_rows"] >= 2 and stats["fresh_official_rows"] >= 1 and stats["stale_official_rows"] >= 1
+    assert stats["default_rows"] >= 1 and stats["non_official_rows"] >= 1 and stats["distinct_keys"] >= 2
+    assert set(stats) >= {"rows", "real_source_rows", "fresh_official_rows", "distinct_keys"}
+
+
+def test_count_endpoint_is_admin_only():
+    from app.db_models import UserDB
+    from app.deps import hash_password
+
+    client = TestClient(app)
+    assert client.get("/admin/terms-cache/stats").status_code in (401, 403)
+    with SessionLocal() as db:
+        if not db.query(UserDB).filter_by(username="cache_stats_user").first():
+            db.add(UserDB(username="cache_stats_user", role="user", hashed_password=hash_password("secret123")))
+            db.commit()
+    client, token = _client_token("cache_stats_user", "secret123")
+    assert token
+    assert client.get("/admin/terms-cache/stats", headers={"Authorization": f"Bearer {token}"}).status_code == 403

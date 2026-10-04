@@ -141,3 +141,28 @@ def cacheable(entry: WarrantyTermsCacheDB) -> bool:
     """Only results from verified official domains are cached for reuse (cache fix 4); default rows are
     kept, tagged "default", for counts only - they are never served."""
     return entry.source_type in (OFFICIAL, DEFAULT)
+
+
+def stats(db: Session) -> dict:
+    """Counts for the admin endpoint (cache fix 6); no row contents."""
+    from sqlalchemy import or_
+
+    table = WarrantyTermsCacheDB
+    q = db.query(table)
+    fresh_after = datetime.utcnow() - timedelta(days=FRESH_DAYS)
+    real_source = table.source_url.like("http%")
+    official = table.source_type == OFFICIAL
+    return {
+        "rows": q.count(),
+        "real_source_rows": q.filter(real_source).count(),
+        "official_rows": q.filter(official).count(),
+        "fresh_official_rows": q.filter(official, table.fetched_at >= fresh_after).count(),
+        "stale_official_rows": q.filter(official, table.fetched_at < fresh_after).count(),
+        "default_rows": q.filter(or_(table.source_type == DEFAULT, table.source_url.is_(None))).count(),
+        "non_official_rows": q.filter(table.source_type == NON_OFFICIAL).count(),
+        "legacy_rows_without_source_type": q.filter(table.source_type.is_(None)).count(),
+        "distinct_keys": db.query(table.brand, table.category, table.region, table.product_line).distinct().count(),
+        "fresh_days": FRESH_DAYS,
+        "oldest_fetched_at": (db.query(table.fetched_at).order_by(table.fetched_at.asc()).limit(1).scalar() or None),
+        "newest_fetched_at": (db.query(table.fetched_at).order_by(table.fetched_at.desc()).limit(1).scalar() or None),
+    }

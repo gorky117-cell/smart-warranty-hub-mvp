@@ -482,6 +482,14 @@ async def force_https_redirect(request: Request, call_next):
     return await call_next(request)
 
 
+@app.get("/admin/terms-cache/stats", dependencies=[Depends(require_admin)])
+def admin_terms_cache_stats(db=Depends(get_db)):
+    """Admin-only: terms-cache counts (rows, real-source, official, fresh, distinct keys); no contents."""
+    from .services import terms_cache
+
+    return terms_cache.stats(db)
+
+
 @app.get("/admin/security-status", dependencies=[Depends(require_admin)])
 def admin_security_status(db=Depends(get_db)):
     """Admin-only: weak or risky security settings (names only, never values)."""
