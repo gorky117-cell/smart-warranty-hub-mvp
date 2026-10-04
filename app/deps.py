@@ -145,22 +145,20 @@ def init_db():
     else:
         print("Using SQLite (vector extension skipped).")
 
+    from .schema_upgrade import NEW_TABLES, run_startup_upgrade
+
     try:
-        Base.metadata.create_all(bind=engine)
+        # Existing tables as before; the knowledge-base tables are created by the guarded upgrade below.
+        Base.metadata.create_all(
+            bind=engine, tables=[t for t in Base.metadata.sorted_tables if t.name not in NEW_TABLES]
+        )
         # Belt-and-suspenders creation for hotfix safety on partially-migrated DBs.
         UserDB.__table__.create(bind=engine, checkfirst=True)
         AuditLogDB.__table__.create(bind=engine, checkfirst=True)
     except Exception as exc:
         print(f"DB create_all failed: {exc}")
         return
-    try:
-        from .schema_upgrade import ensure_columns
-
-        added = ensure_columns(engine)
-        if added:
-            print(f"Added columns: {added}")
-    except Exception as exc:
-        print(f"Column upgrade failed: {exc}")
+    run_startup_upgrade(engine)  # never raises; logs clearly and switches the cache/knowledge base off on failure
 
     try:
         with SessionLocal() as db:

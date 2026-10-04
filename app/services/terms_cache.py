@@ -78,7 +78,13 @@ def is_official_row(row: WarrantyTermsCacheDB) -> bool:
 def latest_official(db: Session, *, brand, category, region, model, line) -> Optional[WarrantyTermsCacheDB]:
     """Newest official entry for the scope, whatever its age. Default and non-official rows never shadow it
     (cache fix 3)."""
-    rows = [r for r in scoped_query(db, brand=brand, category=category, region=region, line=line).all() if is_official_row(r)]
+    if not schema_ready():
+        return None  # start-up upgrade failed: behave as if nothing is cached
+    try:
+        rows = [r for r in scoped_query(db, brand=brand, category=category, region=region, line=line).all() if is_official_row(r)]
+    except Exception:
+        db.rollback()
+        return None
     return newest_for_scope(rows, model)
 
 
@@ -140,12 +146,24 @@ def new_entry(
 def cacheable(entry: WarrantyTermsCacheDB) -> bool:
     """Only results from verified official domains are cached for reuse (cache fix 4); default rows are
     kept, tagged "default", for counts only - they are never served."""
-    return entry.source_type in (OFFICIAL, DEFAULT)
+    return schema_ready() and entry.source_type in (OFFICIAL, DEFAULT)
+
+
+def schema_ready() -> bool:
+    from ..schema_upgrade import cache_schema_ready
+
+    return cache_schema_ready()
 
 
 def stats(db: Session) -> dict:
     """Counts for the admin endpoint (cache fix 6); no row contents."""
     from sqlalchemy import or_
+
+    from ..schema_upgrade import STATUS
+
+    schema = {k: STATUS[k] for k in ("ran", "cache_ready", "knowledge_base_ready", "error")}
+    if not schema_ready():
+        return {"schema": schema, "rows": db.query(WarrantyTermsCacheDB.id).count()}
 
     table = WarrantyTermsCacheDB
     q = db.query(table)
@@ -153,6 +171,7 @@ def stats(db: Session) -> dict:
     real_source = table.source_url.like("http%")
     official = table.source_type == OFFICIAL
     return {
+        "schema": schema,
         "rows": q.count(),
         "real_source_rows": q.filter(real_source).count(),
         "official_rows": q.filter(official).count(),

@@ -736,8 +736,9 @@ def lookup_terms(
         brand=brand, category=norm_category, region=region, model=scope_model, line=scope_line,
         source_url=None, result=result,
     )
-    db.add(cached)
-    db.commit()
+    if terms_cache.cacheable(cached):  # tagged "default"; skipped when the schema upgrade failed
+        db.add(cached)
+        db.commit()
     return _apply_region_policy(
         db,
         result,

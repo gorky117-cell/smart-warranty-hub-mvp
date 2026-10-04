@@ -482,8 +482,17 @@ async def force_https_redirect(request: Request, call_next):
     return await call_next(request)
 
 
+def _kb_available():
+    from .services import knowledge_base
+
+    if not knowledge_base.ready():
+        raise HTTPException(status_code=503, detail="Knowledge base unavailable: the start-up schema upgrade failed (see logs)")
+
+
 def _kb_entry_or_404(db, entry_id: int):
     from .db_models import VerifiedTermsDB
+
+    _kb_available()
 
     entry = db.query(VerifiedTermsDB).filter_by(id=entry_id).first()
     if not entry:
@@ -494,6 +503,7 @@ def _kb_entry_or_404(db, entry_id: int):
 @app.get("/admin/knowledge-base")
 def admin_kb_list(db=Depends(get_db), current: UserDB = Depends(require_admin)):
     """Admin-only: hand-checked terms entries and review counts."""
+    _kb_available()
     from .db_models import VerifiedTermsDB
     from .services import knowledge_base
 
@@ -505,6 +515,7 @@ def admin_kb_list(db=Depends(get_db), current: UserDB = Depends(require_admin)):
 def admin_kb_create(payload: Dict[str, Any] = Body(...), db=Depends(get_db), current: UserDB = Depends(require_admin)):
     """Admin-only: add a hand-checked entry. The page must be on the company's verified official domain and
     the entry must name a model or a product line (never brand-wide)."""
+    _kb_available()
     from .services import knowledge_base, terms_cache
 
     company = " ".join(str(payload.get("company") or "").split())
@@ -568,6 +579,7 @@ def admin_kb_recheck(entry_id: int, db=Depends(get_db), current: UserDB = Depend
 
 @app.get("/admin/knowledge-base/reviews")
 def admin_kb_reviews(status: str = "pending", db=Depends(get_db), current: UserDB = Depends(require_admin)):
+    _kb_available()
     from .db_models import VerifiedTermsReviewDB
     from .services import knowledge_base
 
@@ -578,6 +590,7 @@ def admin_kb_reviews(status: str = "pending", db=Depends(get_db), current: UserD
 @app.post("/admin/knowledge-base/reviews/{review_id}/{decision}")
 def admin_kb_resolve_review(review_id: int, decision: str, db=Depends(get_db), current: UserDB = Depends(require_admin)):
     """Admin-only: accept (copies the new reading into an UNLOCKED entry) or dismiss a review."""
+    _kb_available()
     from .db_models import VerifiedTermsReviewDB
     from .services import knowledge_base
 

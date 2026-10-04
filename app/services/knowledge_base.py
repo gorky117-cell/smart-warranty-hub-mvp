@@ -24,6 +24,12 @@ from . import terms_cache
 SOURCE_KIND = "knowledge_base"
 
 
+def ready() -> bool:
+    from ..schema_upgrade import knowledge_base_ready
+
+    return knowledge_base_ready()
+
+
 def scope_keys(model_code: Optional[str], line: Optional[str]) -> List[str]:
     keys = []
     model = terms_cache.model_key(model_code)
@@ -49,19 +55,23 @@ def find_entry(
     model_code: Optional[str],
     product_name: Optional[str],
 ) -> Optional[VerifiedTermsDB]:
-    if not company:
+    if not company or not ready():
         return None
     keys = scope_keys(model_code, terms_cache.product_line(model_code, product_name))
     if not keys:
         return None  # never brand-wide
-    rows = (
-        db.query(VerifiedTermsDB)
-        .filter(func.lower(VerifiedTermsDB.company) == company.strip().lower())
-        .filter(VerifiedTermsDB.product_scope.in_(keys))
-        .filter(or_(VerifiedTermsDB.region.is_(None), VerifiedTermsDB.region == region))
-        .filter(or_(VerifiedTermsDB.category.is_(None), VerifiedTermsDB.category == category))
-        .all()
-    )
+    try:
+        rows = (
+            db.query(VerifiedTermsDB)
+            .filter(func.lower(VerifiedTermsDB.company) == company.strip().lower())
+            .filter(VerifiedTermsDB.product_scope.in_(keys))
+            .filter(or_(VerifiedTermsDB.region.is_(None), VerifiedTermsDB.region == region))
+            .filter(or_(VerifiedTermsDB.category.is_(None), VerifiedTermsDB.category == category))
+            .all()
+        )
+    except Exception:
+        db.rollback()
+        return None
     if not rows:
         return None
     # Most specific first: model over product line, then a named region, then a named category, then newest.
@@ -235,7 +245,9 @@ def resolve_review(db: Session, review: VerifiedTermsReviewDB, accept: bool, *, 
     return review_to_dict(review)
 
 
-def counts(db: Session) -> Dict[str, int]:
+def counts(db: Session) -> Dict[str, Any]:
+    if not ready():
+        return {"available": False}
     return {
         "entries": db.query(VerifiedTermsDB).count(),
         "locked_entries": db.query(VerifiedTermsDB).filter(VerifiedTermsDB.locked.is_(True)).count(),

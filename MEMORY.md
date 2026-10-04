@@ -2788,10 +2788,41 @@ and not /health/ocr. Rules as before; nothing in this entry is pushed without ap
 | 95.5 | `8f9c94ca` | 477 passed, 2 skipped (+3) | 30-day expiry; "checked on <date>"; needs-refresh flag. |
 | 95.6 | `6dc8aa69` | 479 passed, 2 skipped (+2) | Admin terms-cache counts. |
 | 95.7 | `a4ad9b63` | 488 passed, 2 skipped (+9) | Knowledge base v1 (empty). |
-| 95.8 | (next) | 488 passed, 2 skipped | STATUS.md. |
+| 95.8 | `f76df0d0` | 488 passed, 2 skipped | STATUS.md. |
 
 ### State at the end of this entry
 - origin/master = `eac60ead` (live). Local only, not pushed: entry 94's 5 commits (bc85e1ca, 025e21a8, 682af6ad,
   557e6c6e, a5ab512f) + a8df141b, 2d3926f9, 9a7de517, 4ed67981, 8f9c94ca, 6dc8aa69, a4ad9b63 + 95.8. Push waits
   for the owner to confirm Railway's health-check path (95.0).
+
+## 96. Safe start-up schema change, then push (2026-10-05)
+
+### Checklist
+- [x] 96.1 Start-up schema upgrade hardened - not pushed. `app/schema_upgrade.run_startup_upgrade(engine)`
+  (called from `init_db`; never raises): creates `verified_terms` / `verified_terms_reviews` only if missing
+  (they are excluded from the main create_all, so a failure there cannot skip the admin seed or other
+  tables), adds the 5 cache columns only if missing (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS` on Postgres),
+  each step with `SET LOCAL lock_timeout = '5s'` on Postgres. Additions only - nothing dropped or rewritten.
+  Then it inspects the schema: `STATUS` = {ran, cache_ready, knowledge_base_ready, added, error}. On any
+  failure it prints/logs "SCHEMA UPGRADE FAILED - app starting anyway; terms cache ON/OFF, knowledge base
+  ON/OFF; error: ...". When not ready: the terms cache is neither read nor written (`terms_cache.schema_ready`
+  guards reads, `cacheable` guards all 3 writes; reads also roll back and return None on any DB error), so
+  lookups use saved records, discovery and defaults as before the cache existed; the knowledge base is
+  skipped (`knowledge_base.ready`), its admin endpoints return 503; `/admin/terms-cache/stats` returns a
+  `schema` block (always) and only a row count when not ready.
+  Postgres DDL compiled for review (not run - no Postgres here): two CREATE TABLEs (SERIAL id, VARCHAR, JSON,
+  TIMESTAMP, BOOLEAN) and five ADD COLUMN IF NOT EXISTS (TEXT x3, DOUBLE PRECISION, BOOLEAN).
+  Tests (tests/test_schema_upgrade.py): upgrade of a legacy-schema DB adds only what is missing and keeps the
+  existing row; second run adds nothing; a forced failure on the legacy DB is logged and a lookup still
+  works without touching the cache; full app start-up (lifespan) with the upgrade failing: /api/health 200,
+  login works, stats show the error, knowledge base 503. Full suite 491 passed, 2 skipped.
+  Code rollback note: the previous code (eac60ead) maps only the old cache columns, so it runs fine on the
+  upgraded schema; the added columns/tables need not be dropped to roll back.
+- [ ] 96.2 Owner: production Postgres backup ("backup done") - waiting.
+- [ ] 96.3 Push the local commits; live checks.
+
+### Step log
+| Step | Commit | Tests | Notes |
+|---|---|---|---|
+| 96.1 | (next) | 491 passed, 2 skipped (+3) | Guarded schema upgrade; cache/KB fall back when it fails. |
 
