@@ -84,6 +84,25 @@ def _known_brand(brand: Optional[str]) -> bool:
     return bool(resolve_brand(brand))
 
 
+def _official_source(source_url: Optional[str], brand: Optional[str], source_type: Optional[str] = None) -> bool:
+    """A real page on a verified (or manually confirmed) official domain of the brand, or an approved OEM path."""
+    if not source_url or not str(source_url).startswith(("http://", "https://")):
+        return False
+    from .source_trust import classify_terms_source
+
+    trust = classify_terms_source(brand=brand, source_url=source_url, source_type=source_type or "scraped")
+    return bool(trust.get("verified")) or trust.get("status") == "approved_oem_source"
+
+
+def _reusable_official_record(rec: WarrantyDB, brand: Optional[str], line: Optional[str]) -> bool:
+    meta = rec.alternatives or {}
+    if meta.get("terms_source_type") not in ("approved_oem_source", "scraped"):
+        return False  # defaults, estimates, invoice-only, needs-check and legacy internal reuse
+    if not _official_source(meta.get("terms_source_url"), brand, meta.get("terms_source_type")):
+        return False
+    return terms_cache.product_line(rec.model_code, rec.product_name) == line
+
+
 def needs_check_terms(source_url: str) -> TermsResult:
     """Terms when no company's warranty can be trusted for this product: never a guessed duration."""
     return TermsResult(
@@ -498,28 +517,28 @@ def lookup_terms(
     # 1) Try internal warranty records first (brand + model/product_name)
     if not force_refresh:
         try:
-            q = db.query(WarrantyDB)
-            has_filter = False
-            if brand:
-                q = q.filter(WarrantyDB.brand == brand)
-                has_filter = True
-            if model_code:
-                q = q.filter(WarrantyDB.model_code == model_code)
-                has_filter = True
-            elif product_name:
-                q = q.filter(WarrantyDB.product_name == product_name)
-                has_filter = True
-            if region:
-                q = q.filter(WarrantyDB.region_code == region)
-            rec = q.order_by(WarrantyDB.created_at.desc()).first() if has_filter else None
+            # Another saved warranty for the same product (cache fix 2): reused only when its terms came from
+            # an official source and it is the same product line. Never matched on brand alone, and never
+            # an estimate or default dressed up as "confirmed".
+            rec = None
+            if brand and (model_code or product_name):
+                q = db.query(WarrantyDB).filter(WarrantyDB.brand == brand)
+                q = q.filter(WarrantyDB.model_code == model_code) if model_code else q.filter(WarrantyDB.product_name == product_name)
+                if region:
+                    q = q.filter(WarrantyDB.region_code == region)
+                for candidate in q.order_by(WarrantyDB.created_at.desc()).limit(20).all():
+                    if _reusable_official_record(candidate, brand, scope_line):
+                        rec = candidate
+                        break
             if rec and (rec.terms or rec.exclusions or rec.coverage_months):
+                meta = rec.alternatives or {}
                 result = TermsResult(
                     duration_months=rec.coverage_months,
                     terms=sanitize_base_terms(rec.terms or []),
                     exclusions=rec.exclusions or [],
                     claim_steps=rec.claim_steps or [],
-                    source_url=_SOURCE_INTERNAL_WARRANTY,
-                    source_urls=[_SOURCE_INTERNAL_WARRANTY],
+                    source_url=meta.get("terms_source_url"),
+                    source_urls=meta.get("terms_source_urls") or [meta.get("terms_source_url")],
                     raw_text=None,
                 )
                 return _apply_region_policy(

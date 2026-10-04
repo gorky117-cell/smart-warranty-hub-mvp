@@ -2708,8 +2708,20 @@ and not /health/ocr. Rules as before; nothing in this entry is pushed without ap
   brand + category + region + product_line (NULL matches only NULL) and prefer the same model; writes store
   both. Tests: Samsung TV terms never answer a Samsung phone (same coarse category); same model preferred.
 
+- [x] 95.2 Saved warranties of other users - not pushed. `lookup_terms` step 1 now needs a model or product
+  name (never brand alone) and reuses a saved record only when `_reusable_official_record`: its
+  terms_source_type is approved_oem_source or scraped AND its terms_source_url is a real page on a verified /
+  manually confirmed official domain (or approved OEM path) AND it is the same product line. Up to the 20
+  newest candidates are checked. The reused result carries that record's real source URL (so the normal
+  "From the official <Brand> website" label applies); `internal://warranty_db` is no longer produced.
+  Legacy rows with terms_source_type internal_warranty_db now show "From a saved warranty record - not
+  confirmed" (status not_confirmed) instead of "Confirmed from saved warranty record".
+  Tests: an estimate is never reused or shown as confirmed; official record reused with its URL; other
+  product line / brand-only never reused; legacy label.
+
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
-| 95.1 | (next) | 465 passed, 2 skipped (+3) | Product scope in the cache key; column upgrade helper. |
+| 95.1 | `a8df141b` | 465 passed, 2 skipped (+3) | Product scope in the cache key; column upgrade helper. |
+| 95.2 | (next) | 469 passed, 2 skipped (+4) | Saved records reused only from official sources, same line. |
 

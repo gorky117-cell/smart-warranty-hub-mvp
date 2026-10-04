@@ -99,10 +99,11 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
         note = source_trust["note"]
         confidence = source_trust["confidence"]
     elif source_type == "internal_warranty_db":
-        status = "confirmed_internal"
-        label = "Confirmed from saved warranty record"
-        note = "Warranty terms came from an existing saved warranty record."
-        confidence = 0.8
+        # Legacy rows (before cache fix 2) copied another record's terms, estimates included: not confirmed.
+        status = "not_confirmed"
+        label = "From a saved warranty record - not confirmed"
+        note = "These terms were copied from another saved record and may be an estimate. Verify with the OEM."
+        confidence = 0.4
     elif source_type == "internal_terms_cache":
         status = "cached"
         label = "Cached source"
