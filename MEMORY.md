@@ -2392,3 +2392,28 @@ and deployed; Steps 1-3 are NOT pushed until the user approves.
 | 2 | `04cca63a` | 384 passed (+10) | Model/brand/product fixes, suggestions, unreadable message. Not pushed. |
 | 3 | (next) | 383 passed, 2 skipped (+1 test; 2 live tests opt-in) | Paddle out of requirements; hermetic tests. Not pushed. |
 
+## 93. Consolidated run: push approved work, fixes, real-invoice loop, status (started 2026-10-04)
+
+Rules: one local commit per step, full tests after each, MEMORY update per step, measured numbers only,
+never print/commit secrets, no Railway changes. Push ONLY Part 1 (Steps 1-3 of entry 92 with Paddle kept).
+
+### Checklist
+- [x] P1.1 PaddleOCR restored in `requirements.txt` (`paddleocr==2.8.0`, unpinned `paddlepaddle`, as before
+  92.3); Dockerfile comment restored. Reason (owner decision): production Paddle reads the test image;
+  its first call failed only while the model was downloading. Kept from 92.3: Tesseract fallback when
+  Paddle is missing, network blocking in tests, `httpx==0.28.1` pin, `faulthandler_timeout = 300`.
+  Tests: 383 passed, 2 skipped.
+- [ ] P1.3 Paddle warm-up at start-up
+- [ ] P1.4 push
+- [ ] P1.5 live checks
+- [ ] P2.6 CSRF stale-cookie fix
+- [ ] P2.7 shared brand names by category
+- [ ] P2.8 marketplace invoices
+- [ ] P3.9-11 real-invoice loop
+- [ ] P4.12-14 MEMORY/STATUS/README
+
+### Step log
+| Step | Commit | Tests | Notes |
+|---|---|---|---|
+| P1.1 | (next) | 383 passed, 2 skipped | Paddle back in requirements. |
+

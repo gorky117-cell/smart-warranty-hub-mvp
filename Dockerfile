@@ -2,7 +2,7 @@ FROM python:3.11-slim-bookworm
 
 WORKDIR /app
 
-# Install system dependencies for cv2, pdf2image and Tesseract OCR (PaddleOCR is not installed)
+# Install system dependencies for cv2, pdf2image, paddle
 RUN apt-get update && apt-get install -y \
     build-essential \
     libgl1 \
