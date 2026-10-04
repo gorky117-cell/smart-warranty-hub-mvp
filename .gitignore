@@ -45,3 +45,8 @@ frontend/node_modules/
 pytest-cache-files-*/
 tmp_*.py
 .env*
+
+# Local tool state and runtime files
+.claude/
+.kiro/
+data/ai_usage_quota.json

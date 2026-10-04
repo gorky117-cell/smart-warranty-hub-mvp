@@ -29,6 +29,14 @@ def _domains_for_brand(domain_map: Dict[str, list], brand: Optional[str]) -> lis
     return []
 
 
+def _display_brand(domain_map: Dict[str, list], brand: Optional[str]) -> str:
+    wanted = _normalize(brand)
+    for key in domain_map:
+        if _normalize(key) == wanted:
+            return key
+    return (brand or "").strip()
+
+
 def _matches_domain(host: str, domains: list[str]) -> bool:
     if not host:
         return False
@@ -65,8 +73,9 @@ def classify_terms_source(
             confidence = 0.88
         elif verified:
             status = "verified_official"
-            label = "Verified official source"
-            note = "Terms came from a verified OEM domain."
+            # The check proves the website belongs to the brand, not that the scraped terms are correct.
+            label = f"From the official {_display_brand(load_verified_domains(), brand)} website"
+            note = "Terms came from a website confirmed to belong to the brand."
             confidence = 0.9
         elif official:
             status = "official"

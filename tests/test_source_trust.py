@@ -73,3 +73,18 @@ def test_verified_domain_is_labelled_verified_official(monkeypatch):
     trust = classify_terms_source(brand="HP", source_url="https://support.hp.com/warranty", source_type="scraped")
     assert trust["status"] == "verified_official"
     assert trust["verified"] is True and trust["official"] is True
+    assert trust["label"] == "From the official HP website"
+
+
+def test_verified_label_uses_registry_brand_spelling(monkeypatch):
+    monkeypatch.setattr(source_trust, "load_verified_domains", lambda: {"OnePlus": ["oneplus.in"]})
+    trust = classify_terms_source(brand="oneplus", source_url="https://www.oneplus.in/support", source_type="scraped")
+    assert trust["label"] == "From the official OnePlus website"
+
+
+def test_orient_points_to_orient_electric_not_the_tiles_company():
+    from app.services.oem_domains import load_oem_domains, load_verified_domains
+
+    for registry in (load_oem_domains(), load_verified_domains()):
+        assert registry["Orient"] == ["orientelectric.com"]
+        assert not any("orientbell" in d for domains in registry.values() for d in domains)

@@ -2284,9 +2284,31 @@ Mistral key, `SCHEDULER_ENABLED=0`, `EMAIL_ENABLED=false`, fresh SQLite DB. Star
   verifier with 403 — add them manually after a human check?
 - B10: the crop/5x pre-processing that makes hard images locatable might also help normal OCR of blurry
   photos (it reads garbled-but-partial text on S031/S035/S040). Not wired into OCR — try and measure?
-- B10: the crop/5x pre-processing that makes hard images locatable might also help normal OCR of blurry
-  photos (it reads garbled-but-partial text on S031/S035/S040). Not wired into OCR — try and measure?
 - Test run stalled twice in a row at the first test (`test_auth_form_routes`, which starts the app
   lifespan) during B11, then 2 consecutive clean runs (370 passed, 74-76 s). Not reproduced; cause unknown.
 - Part D defects: model "S24" vs printed "SM-S928BZKGINS"; OCR-garbled brand "Lo" stored; "Band: Apple" as
   product name; default 12-month coverage shown for a photo with no readable text. Fix in a next run?
+
+## 92. Follow-up run: deploy, registry review, extraction defects, clean-up (started 2026-10-04)
+
+User approved the fix run 91 decisions. Rules: one local commit per step, full tests after each, MEMORY
+update after each step, measured numbers only, never print secrets, no Railway changes. Step 0 is pushed
+and deployed; Steps 1-3 are NOT pushed until the user approves.
+
+### Checklist
+- [x] 0a .gitignore: `.claude/`, `.kiro/`, `data/ai_usage_quota.json`
+- [x] 0b Label: "Verified official source" -> "From the official <Brand> website" (brand spelled as in the
+  verified registry). Note text now says the website was confirmed to belong to the brand.
+- [x] 0c Orient: `Orient` -> `orientelectric.com` in `data/oem_domains.json` and `data/oem_verified.json`
+  (was `orientbell.com`, a tiles company, plus `orientfan.com`). `Orient Fans` -> `orientfan.com` left as is
+  (failed HTTPS in 91.B8; ownership unconfirmed — listed in Step 1 review).
+- [ ] 0d push master -> origin/master and check the live site
+- [ ] 1 Registry review
+- [ ] 2 Extraction defects
+- [ ] 3 Clean-up
+
+### Step log
+| Step | Commit | Tests | Notes |
+|---|---|---|---|
+| 0 | (next) | 372 passed (+2) | Label, Orient, gitignore. |
+
