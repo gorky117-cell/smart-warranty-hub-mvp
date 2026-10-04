@@ -544,6 +544,34 @@ def _mistral_enrich_terms(raw_text: str) -> Tuple[Optional[ParsedTerms], Optiona
     return parsed, None
 
 
+def _openai_enrich_terms(raw_text: str) -> Tuple[Optional[ParsedTerms], Optional[str]]:
+    from .openai_intelligence import request_terms_json
+    from .privacy import ai_safe
+
+    text = (raw_text or "").strip()
+    if not text:
+        return None, "No text to enrich"
+    payload, err = request_terms_json(ai_safe(text[: max(200, _nlp_max_chars())]))
+    if err or payload is None:
+        return None, err
+    parsed = _parse_mistral_terms_json(json.dumps(payload))
+    return (parsed, None) if parsed else (None, "OpenAI returned non-JSON terms payload")
+
+
+def _ai_enrich_terms(raw_text: str) -> Tuple[Optional[ParsedTerms], Dict[str, object]]:
+    """Terms extraction from an OEM page: Mistral first by default (AI_PROVIDER can choose), the other
+    provider if it fails. Both redact; results are still grounded in the page text by the caller."""
+    from .ai_providers import run_with_fallback
+
+    return run_with_fallback(
+        "terms_extraction",
+        raw_text,
+        {"mistral": lambda t: _mistral_enrich_terms(t), "openai": lambda t: _openai_enrich_terms(t)},
+        default_first="mistral",
+        chosen=(os.getenv("AI_PROVIDER") or "mistral").strip().lower(),  # as before: always try the first one
+    )
+
+
 def _needs_enrichment(parsed: ParsedTerms) -> bool:
     if parsed.confidence < _nlp_min_confidence():
         return True
@@ -663,7 +691,7 @@ def _finalize_parsed(parsed: ParsedTerms, raw_text_for_enrich: Optional[str] = N
     if not _needs_enrichment(normalized):
         return normalized
     enrich_text = (raw_text_for_enrich or normalized.raw_text or "").strip()
-    enrich, _err = _mistral_enrich_terms(enrich_text)
+    enrich, _meta = _ai_enrich_terms(enrich_text)
     if not enrich:
         return normalized
     grounded_enrich = _ground_enrichment_in_source(enrich, enrich_text)

@@ -30,7 +30,8 @@ from .oem_domain_verify import verify_or_suggest
 from .notifications import create_oem_notification
 from .review_crawler import crawl_reviews_for_product
 from .summary_engine import summarize_warranty, build_structured_summary
-from .openai_intelligence import enrich_invoice_fields, merge_invoice_enrichment
+from .ai_providers import enrich_invoice
+from .openai_intelligence import merge_invoice_enrichment
 from .grounded_extraction import apply_grounded_extraction
 from .vision_extraction import apply_vision_tier, enabled as vision_enabled, needs_vision
 
@@ -387,8 +388,13 @@ def run_job(job_id: str) -> None:
             _set_job_status(db, job, "parsed_fields")
             fields, confidence, alternatives = extract_product_fields(text)
             try:
-                enrichment = enrich_invoice_fields(text, fields, confidence)
+                # OpenAI or Mistral, with fallback to the other; redacted before either sees it.
+                enrichment, provider_meta = enrich_invoice(text, fields, confidence)
                 fields, confidence, openai_meta = merge_invoice_enrichment(fields, confidence, enrichment)
+                if provider_meta:
+                    openai_meta = {**(openai_meta or {}), "provider": provider_meta.get("provider"),
+                                   "fallback_used": provider_meta.get("fallback_used"),
+                                   "attempts": provider_meta.get("attempts")}
             except Exception as exc:
                 openai_meta = {
                     "provider": "openai_invoice_enrichment",

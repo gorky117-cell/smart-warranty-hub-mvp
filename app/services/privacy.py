@@ -44,6 +44,45 @@ _BLOCK_END_RE = re.compile(
 )
 _CONTACT_LABEL_RE = re.compile(r"^\s*(phone|mobile|mob|tel|telephone|contact|cell|e-?mail|gstin|gst\s*no|state)\b", re.IGNORECASE)
 _INLINE_LABEL_RE = re.compile(r"^(\s*[A-Za-z][A-Za-z .]{1,24}\s*[:\-]\s*)(.*)$")
+# A buyer label in the middle of a line (OCR or line joining merged rows): "... TAX INVOICE Bill To: Asha ...".
+# Needs ":" or "-" after the label; bare "Name" is not used here ("Product Name:" is not a buyer).
+_MID_BUYER_LABEL_RE = re.compile(
+    r"\s(?:bill(?:ed)?\s*to|ship(?:ped)?\s*to|sold\s*to|deliver(?:y|ed)?\s*to|buyer(?:'s)?(?:\s*(?:name|details|address))?|"
+    r"consignee|customer(?!\s*care)(?:\s*(?:name|details|address))?|billing\s*address|shipping\s*address|delivery\s*address)"
+    r"\s*[:\-]",
+    re.IGNORECASE,
+)
+_ITEM_ROW_START_RE = re.compile(r"\s\d{1,3}\s+[A-Z]")
+
+
+def _mid_value_end(rest: str) -> int:
+    """Where the buyer value inside such a line ends: an invoice keyword, or an item row whose text names a
+    product or brand ("1 Samsung 55 inch TV"); a house number ("4 MG Road") is not an item row."""
+    ends = [m.start() for m in _BLOCK_END_RE.finditer(rest)]
+    try:
+        from .ingestion import _has_product_signal, _looks_like_address_text
+
+        for m in _ITEM_ROW_START_RE.finditer(rest):
+            window = rest[m.start(): m.start() + 60]
+            if _has_product_signal(window) and not _looks_like_address_text(window):
+                ends.append(m.start())
+                break
+    except Exception:  # pragma: no cover - ingestion import failure: keyword ends only
+        pass
+    return min(ends) if ends else len(rest)
+
+
+def _mask_mid_line_buyer(line: str, counts: Dict[str, int]) -> str:
+    label = _MID_BUYER_LABEL_RE.search(line)
+    if not label:
+        return line
+    rest = line[label.end():]
+    end = _mid_value_end(rest)
+    if not rest[:end].strip():
+        return line
+    counts["buyer_values"] += 1
+    tail = rest[end:].strip()
+    return f"{line[:label.end()]} {REDACTED}" + (f" {tail}" if tail else "")
 
 EMAIL_RE = re.compile(r"\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b")
 PHONE_RE = re.compile(r"(?<![\w/])(?:\+?91[\s\-]?)?(?:0\d{2,4}[\s\-]?\d{6,8}|[6-9]\d{4}[\s\-]?\d{5})(?![\w/])")
@@ -106,7 +145,7 @@ def redact_text(text: str) -> Tuple[str, Dict[str, int]]:
             continue
         block = 0
         if _BUYER_CUE_RE.search(line):
-            out.append(_mask_tokens(line, counts, gstin=True))
+            out.append(_mask_tokens(_mask_mid_line_buyer(line, counts), counts, gstin=True))
         elif _SELLER_CUE_RE.search(line) or (has_buyer_label and i < first_buyer):
             out.append(line)  # seller header / support line: keep as is
         else:

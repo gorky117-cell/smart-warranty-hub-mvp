@@ -293,14 +293,22 @@ def summarize_warranty(warranty: CanonicalWarranty) -> Tuple[str, str]:
         except Exception:
             pass
     prompt = ai_safe(prompt)  # buyer details never reach a provider (fix run B1)
-    if _LLM_PROVIDER == "mistral":
-        text, err = _summarize_with_mistral(prompt)
-        return (text or _template_summary(warranty)), "mistral" if text else "template"
-    if _LLM_PROVIDER == "openai":
-        text, err = _summarize_with_openai(prompt)
+    if _LLM_PROVIDER in ("openai", "mistral"):
+        # The chosen provider first, then the other one if it fails or times out (redacted for both).
+        from .ai_providers import run_with_fallback
+
+        text, meta = run_with_fallback(
+            "summary",
+            prompt,
+            {"openai": lambda p: _summarize_with_openai(p), "mistral": lambda p: _summarize_with_mistral(p)},
+            default_first=_LLM_PROVIDER,
+            chosen=_LLM_PROVIDER,
+        )
         if text:
-            return text, "openai"
-        return _fallback_summary(prompt, warranty)
+            return text, meta["provider"]
+        if _LLM_PROVIDER == "openai":
+            return _fallback_summary(prompt, warranty)
+        return _template_summary(warranty), "template"
     if _LLM_PROVIDER == "ollama_remote":
         text, err = _summarize_with_ollama(prompt)
         return (text or _template_summary(warranty)), "ollama" if text else "template"

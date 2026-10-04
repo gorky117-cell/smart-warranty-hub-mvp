@@ -152,3 +152,14 @@ def test_mistral_summary_helper_redacts_on_its_own(monkeypatch, capture_post):
     summary_engine._summarize_with_mistral(INVOICE)
     body = str(capture_post[-1])
     assert "9876543210" not in body and "asha" not in body.lower()
+
+
+def test_buyer_label_in_the_middle_of_a_line_is_masked():
+    merged = ("Croma - Infiniti Retail Ltd TAX INVOICE Bill To: Asha Verma Flat 12B, Lake View Apartments, Powai, "
+              "Mumbai 400076 Mobile: 9876543210 Email: asha.verma@example.com 1 Samsung 55 inch QLED TV QA55Q60D 1 54,990.00")
+    out = ai_safe(merged)
+    assert not any(b.lower() in out.lower() for b in BUYER)
+    assert "Samsung 55 inch QLED TV QA55Q60D" in out and "Croma - Infiniti Retail Ltd" in out
+    out = ai_safe("Order 123 Ship To - Ravi Kumar, 4 MG Road, Pune 411001 Invoice No: X1")
+    assert "Ravi" not in out and "MG Road" not in out and "411001" not in out and "Invoice No: X1" in out
+    assert ai_safe("Product Name: Samsung TV QA55") == "Product Name: Samsung TV QA55"

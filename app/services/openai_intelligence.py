@@ -132,9 +132,23 @@ def enrich_invoice_fields(
 ) -> Optional[Dict[str, Any]]:
     if not invoice_enrichment_enabled():
         return None
+    result, _err = request_invoice_enrichment(raw_text, current_fields, current_confidence)
+    return result
+
+
+def openai_available() -> bool:
+    return _openai_configured()
+
+
+def request_invoice_enrichment(
+    raw_text: str,
+    current_fields: Dict[str, Any],
+    current_confidence: Dict[str, Any],
+) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """One OpenAI invoice-enrichment call (no feature flag check); (result, error)."""
     client, err = _get_client()
     if err or client is None:
-        return None
+        return None, err or "OpenAI client unavailable"
     schema = {
         "type": "object",
         "additionalProperties": False,
@@ -182,11 +196,43 @@ def enrich_invoice_fields(
             },
         )
         payload = json.loads(_response_text(response))
-    except Exception:
-        return None
+    except Exception as exc:
+        return None, f"OpenAI invoice enrichment failed: {exc.__class__.__name__}"
     if not isinstance(payload, dict):
-        return None
-    return _normalize_enrichment(payload)
+        return None, "OpenAI invoice enrichment returned no JSON object"
+    return _normalize_enrichment(payload), None
+
+
+def request_terms_json(raw_text: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """Warranty terms from an OEM page as JSON (duration_months, terms, exclusions, claim_steps)."""
+    client, err = _get_client()
+    if err or client is None:
+        return None, err or "OpenAI client unavailable"
+    text = ai_safe(raw_text)
+    schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "duration_months": {"type": ["number", "null"]},
+            "terms": {"type": "array", "items": {"type": "string"}},
+            "exclusions": {"type": "array", "items": {"type": "string"}},
+            "claim_steps": {"type": "array", "items": {"type": "string"}},
+        },
+        "required": ["duration_months", "terms", "exclusions", "claim_steps"],
+    }
+    try:
+        response = client.responses.create(
+            model=_OPENAI_MODEL,
+            instructions="You extract structured warranty information. Use only what the text says.",
+            input=f"Extract warranty details from this text.\n\nText:\n{text}",
+            temperature=0,
+            max_output_tokens=700,
+            text={"format": {"type": "json_schema", "name": "warranty_terms", "strict": True, "schema": schema}},
+        )
+        payload = json.loads(_response_text(response))
+    except Exception as exc:
+        return None, f"OpenAI terms extraction failed: {exc.__class__.__name__}"
+    return (payload, None) if isinstance(payload, dict) else (None, "OpenAI returned no JSON object")
 
 
 def merge_invoice_enrichment(

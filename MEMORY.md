@@ -2570,10 +2570,35 @@ Owner approved pushing entry 93 Parts 2 and 4. Rules as before; nothing after th
     | `llm.health` (GET /models) | nothing | - |
     Tests cover each path (tests/test_privacy_redaction.py), plus the new summary-helper and embed-model tests.
 
+- [x] 94.4 Provider fallback (OpenAI <-> Mistral) - not pushed. `app/services/ai_providers.py`:
+  `run_with_fallback(task, text, handlers, default_first, chosen)` redacts once with `ai_safe`, then tries
+  providers in order; a failure = exception (timeouts included), an error string or no result; meta records
+  provider, fallback_used and every attempt (provider, ok, error, ms). Order: the chosen/first provider, then
+  the other only if it has a key (OPENAI_ENABLED + OPENAI_API_KEY; MISTRAL_API_KEY) and AI_PROVIDER_FALLBACK
+  is not 0 (default on). Wired into:
+  - invoice enrichment: `ai_providers.enrich_invoice` (enabled by OPENAI_INVOICE_ENRICHMENT as before, or
+    AI_INVOICE_ENRICHMENT=1); first = AI_PROVIDER or OpenAI; new `mistral_intelligence.request_invoice_enrichment`
+    (JSON mode, same normalisation and 0.85 confidence cap); `openai_intelligence.request_invoice_enrichment`
+    is the ungated core. Pipeline meta (`alternatives.openai_invoice_enrichment`, key unchanged) now has
+    provider / fallback_used / attempts.
+  - summaries: LLM_PROVIDER openai|mistral is tried first, then the other, then the old fallbacks/template.
+  - OEM page terms extraction: AI_PROVIDER or Mistral first (always tried, as before), then OpenAI via new
+    `openai_intelligence.request_terms_json`; output is still grounded in the page text.
+  Production note: production has both providers configured (/health/full: OpenAI configured, Mistral RAG
+  key present), so once pushed a failing provider's (redacted) request goes to the other one. Set
+  AI_PROVIDER_FALLBACK=0 to keep the old single-provider behaviour.
+  Privacy fix found by the new tests: a buyer label in the MIDDLE of a line ("... TAX INVOICE Bill To: Asha
+  Verma Flat 12B ...", as OCR or row joining produce) left the name and address unmasked (phones/e-mails were
+  masked). `privacy._mask_mid_line_buyer` masks from the label (needs ":"/"-"; bare "Name" excluded) to the
+  next invoice keyword or an item row that names a product/brand (a house number is not an item row).
+  Tests: tests/test_ai_provider_fallback.py (10, mocked timeouts/errors, redaction checked for both
+  providers), mid-line redaction test. Full suite 457 passed, 2 skipped.
+
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
 | 94.0 | `eac60ead` (pushed) | 442 passed, 2 skipped (+5) | Sign-up rate limit; friendly limit messages. |
 | 94.2 | `bc85e1ca` | 444 passed, 2 skipped (+2) | philips.co.in; "/" in model codes. |
-| 94.3 | (next) | 446 passed, 2 skipped (+2) | Embed model env; Mistral redaction audit. |
+| 94.3 | `025e21a8` | 446 passed, 2 skipped (+2) | Embed model env; Mistral redaction audit. |
+| 94.4 | (next) | 457 passed, 2 skipped (+11) | Provider fallback; mid-line buyer redaction. |
 
