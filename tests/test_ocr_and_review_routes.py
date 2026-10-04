@@ -16,7 +16,7 @@ def test_configured_paddleocr_alias_selects_paddle(monkeypatch):
     monkeypatch.setattr(ocr.registry, "get", lambda _name: connector)
     monkeypatch.setattr(ocr.registry, "list", lambda _kind: {})
 
-    assert ocr._resolve_engine() == "paddle"
+    assert ocr._requested_engine() == "paddle"  # _resolve_engine falls back when Paddle is not installed
 
 
 def test_paddle_failure_uses_tesseract_fallback(monkeypatch, tmp_path):

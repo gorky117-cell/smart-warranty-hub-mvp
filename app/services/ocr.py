@@ -55,7 +55,20 @@ def _normalize_engine_name(value: Optional[str]) -> str:
     return normalized or "tesseract"
 
 
+def paddle_installed() -> bool:
+    return find_spec("paddleocr") is not None
+
+
 def _resolve_engine() -> str:
+    """The engine OCR will use. OCR_ENGINE=paddle falls back to Tesseract when PaddleOCR is not
+    installed (it is not in the production requirements since follow-up step 3)."""
+    engine = _requested_engine()
+    if engine == "paddle" and not paddle_installed():
+        return "tesseract"
+    return engine
+
+
+def _requested_engine() -> str:
     connector = registry.get("ocr-default") or next(
         (c for c in registry.list("ocr").values()), None
     )
@@ -434,6 +447,10 @@ def health_report(force: bool = False) -> Dict[str, Any]:
         "ok": configured_ok,
         "detail": detail,
         "configured_engine": configured,
+        "requested_engine": _requested_engine(),
+        "note": "OCR_ENGINE=paddle but PaddleOCR is not installed; Tesseract is used"
+        if _requested_engine() == "paddle" and configured != "paddle"
+        else None,
         "active_engine": active,
         "engines": engines,
         "paddle_backoff_sec": int(paddle_backoff_remaining()),

@@ -2362,12 +2362,33 @@ and deployed; Steps 1-3 are NOT pushed until the user approves.
     token missing or invalid" when the browser still holds an old `access_token` cookie (the login form
     sends no CSRF header). Reproduced locally and on the live site with a fake cookie; dates from
     `aa3f3b48` Phase 9C.
-- [ ] 3 Clean-up
+- [x] 3 Clean-up - not pushed
+  - PaddleOCR removed from `requirements.txt` (`paddleocr==2.8.0`, unpinned `paddlepaddle`). Local
+    install size: paddle 385 MB + paddleocr 3.2 MB, plus transitive packages. A fresh venv from the new
+    requirements is 567 MB of site-packages with no paddle. `httpx==0.28.1` is now pinned (FastAPI
+    TestClient needs it; it previously came via paddlepaddle and openai).
+  - `ocr._resolve_engine()`: OCR_ENGINE=paddle falls back to Tesseract when PaddleOCR is not installed
+    (production keeps OCR_ENGINE=paddle; no Railway change). `/health/ocr` then reports ok with
+    `requested_engine: paddle`, a `note`, and no Paddle probe. Alias normalisation is `_requested_engine()`.
+  - NEW EVIDENCE against removal: after the Step 0 deploy, production `/health/ocr` showed Paddle
+    reading the test image ("PaddleOCR read the test image", active engine paddle); its first call
+    had failed with "init failed: unexpected end of data" (model download). The oneDNN failure
+    in 91.B2 was measured on local Windows only. Owner to decide before pushing Step 3.
+  - Test stall: not reproduced in 6 full runs this session. Found that 3 tests made live calls to
+    epson.co.in / epson.com (and DNS has no timeout), so a slow site could hold the run. Earlier "stalled at
+    the first test" observations came from runs piped through `tail`, which shows no progress, so the
+    stalled test was never actually identified. Fix: `tests/conftest.py` blocks non-loopback network unless
+    `SWH_LIVE_NETWORK_TESTS=1`; the 2 tests that need live Epson pages are marked `live_network`
+    (skipped by default; both pass with the flag); `pytest.ini` sets `faulthandler_timeout = 300` so
+    any future hang prints every thread's stack. Side effect: tests no longer write
+    `data/oem_verified.json` through auto-verify.
+  - Tests: main venv 383 passed, 2 skipped (64 s); fresh no-Paddle venv 383 passed, 2 skipped (57 s).
 
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
 | 0 | `9e9bc278` | 372 passed (+2) | Label, Orient, gitignore. Pushed and deployed. |
 | 1 | `17a40348` | 374 passed (+2) | Registry review doc; manual-confirmed list. Not pushed. |
-| 2 | (next) | 384 passed (+10) | Model/brand/product fixes, suggestions, unreadable message. Not pushed. |
+| 2 | `04cca63a` | 384 passed (+10) | Model/brand/product fixes, suggestions, unreadable message. Not pushed. |
+| 3 | (next) | 383 passed, 2 skipped (+1 test; 2 live tests opt-in) | Paddle out of requirements; hermetic tests. Not pushed. |
 

@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from datetime import datetime
 
+import pytest
 from fastapi.testclient import TestClient
 from fpdf import FPDF
 
@@ -580,6 +581,7 @@ def test_ai_terms_enrichment_keeps_supported_warranty_facts(monkeypatch):
     assert "Keep invoice and serial number ready for support." in result.claim_steps
 
 
+@pytest.mark.live_network
 def test_epson_l3250_discovers_official_source_and_terms():
     sources = discover_sources(
         brand="Epson",
@@ -1004,6 +1006,7 @@ def test_warranty_list_prefers_parsed_product_when_warranty_is_placeholder():
     assert "Uploaded 2026-05-02 10:30" in item["display_label"]
 
 
+@pytest.mark.live_network
 def test_pipeline_persists_epson_terms_source_after_lookup():
     artifact = ingest_artifact(
         ArtifactType.invoice,

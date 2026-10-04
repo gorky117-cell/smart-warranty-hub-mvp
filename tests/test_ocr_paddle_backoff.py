@@ -74,3 +74,15 @@ def test_health_probe_still_really_tries_paddle(monkeypatch):
     report = ocr.health_report(force=True)
     assert _BrokenEngine.calls == 1
     assert report["ok"] is False and report["paddle_backoff_sec"] > 0
+
+
+@pytest.mark.skipif(not ocr._tesseract_ready()[0], reason="Tesseract not installed")
+def test_ocr_engine_paddle_without_the_package_uses_tesseract_and_is_healthy(monkeypatch):
+    # Production keeps OCR_ENGINE=paddle but no longer installs PaddleOCR (follow-up step 3).
+    monkeypatch.setattr(ocr, "_requested_engine", lambda: "paddle")
+    monkeypatch.setattr(ocr, "paddle_installed", lambda: False)
+    assert ocr._resolve_engine() == "tesseract"
+    report = ocr.health_report(force=True)
+    assert report["ok"] is True and report["active_engine"] == "tesseract"
+    assert report["requested_engine"] == "paddle" and "not installed" in report["note"]
+    assert "paddle" not in report["engines"]
