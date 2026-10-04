@@ -2738,5 +2738,5 @@ and not /health/ocr. Rules as before; nothing in this entry is pushed without ap
 |---|---|---|---|
 | 95.1 | `a8df141b` | 465 passed, 2 skipped (+3) | Product scope in the cache key; column upgrade helper. |
 | 95.2 | `2d3926f9` | 469 passed, 2 skipped (+4) | Saved records reused only from official sources, same line. |
-| 95.3-4 | (next) | 474 passed, 2 skipped (+5) | Newest official entry; metadata; official-only caching. |
+| 95.3-4 | `9a7de517` + (next) | 474 passed, 2 skipped (+5) | Newest official entry; metadata; official-only caching. `9a7de517` was committed with 1 failing test (the commit gate checked grep's exit code, not pytest's): test_samsung_notebook_page_rejected_for_mobile_in_auto_discovery got the last good Samsung mobile entry another test had cached - intended behaviour of 95.3; the next commit isolates that module's cache rows. Commits are now gated on pytest's exit code. |
 

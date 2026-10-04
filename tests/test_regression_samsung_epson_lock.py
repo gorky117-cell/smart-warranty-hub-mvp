@@ -70,6 +70,18 @@ def _parsed(name: str, **overrides) -> ParsedTerms:
     return ParsedTerms(**data)
 
 
+@pytest.fixture(autouse=True)
+def _empty_terms_cache():
+    # Since cache fix 3 a refresh that finds nothing usable serves the last good official entry, so each
+    # test starts without entries other tests cached for these brands.
+    from app.db_models import WarrantyTermsCacheDB
+
+    with SessionLocal() as db:
+        db.query(WarrantyTermsCacheDB).filter(WarrantyTermsCacheDB.brand.in_(["Samsung", "Epson"])).delete(synchronize_session=False)
+        db.commit()
+    yield
+
+
 def _lookup(monkeypatch, sources, pages, **kwargs):
     monkeypatch.setattr(
         tl,
