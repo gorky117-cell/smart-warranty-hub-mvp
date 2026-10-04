@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, Tuple, Dict, Any
 
 import requests
@@ -53,6 +53,20 @@ def _template_summary(warranty: CanonicalWarranty) -> str:
         "Claim steps: " + ("; ".join(claim_steps) if claim_steps else "Not available yet."),
     ]
     return "\n".join(lines)
+
+
+TERMS_FRESH_DAYS = 30
+
+
+def _checked_on(checked_at: Optional[str], flagged: Optional[bool]) -> Tuple[Optional[str], bool]:
+    """(YYYY-MM-DD, needs refresh) for when the terms source was last checked."""
+    if not checked_at:
+        return None, bool(flagged)
+    try:
+        when = datetime.fromisoformat(str(checked_at).replace("Z", "+00:00")).replace(tzinfo=None)
+    except ValueError:
+        return None, bool(flagged)
+    return when.date().isoformat(), bool(flagged) or (datetime.utcnow() - when) > timedelta(days=TERMS_FRESH_DAYS)
 
 
 def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
@@ -147,7 +161,15 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
                 "confidence": confidence,
             }
         )
+    checked_on, needs_refresh = _checked_on(refreshed_at, alt.get("terms_needs_refresh"))
+    if checked_on and status == "confirmed":
+        # Cache fix 5: say when the official page was checked; older than 30 days needs a refresh.
+        label = f"{label} - checked on {checked_on}" + (", needs refresh" if needs_refresh else "")
+        if needs_refresh:
+            note = f"{note} Last checked on {checked_on}, more than {TERMS_FRESH_DAYS} days ago; refresh before relying on it."
     return {
+        "checked_on": checked_on,
+        "needs_refresh": needs_refresh,
         "status": status,
         "status_label": label,
         "source_type": source_type,
@@ -155,7 +177,8 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
         "last_refreshed_at": refreshed_at,
         "confidence": confidence,
         "requires_oem_verification": status != "unreadable"
-        and (bool(source_trust.get("requires_oem_verification")) or status in {"estimated", "not_confirmed", "cached"}),
+        and (bool(source_trust.get("requires_oem_verification")) or needs_refresh
+             or status in {"estimated", "not_confirmed", "cached"}),
         "note": note,
         "sources": sources,
         "source_trust": source_trust,

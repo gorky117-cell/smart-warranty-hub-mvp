@@ -536,6 +536,14 @@ def lookup_terms(
                     source_urls=meta.get("terms_source_urls") or [meta.get("terms_source_url")],
                     raw_text=None,
                 )
+                checked = meta.get("terms_last_refreshed_at") or (rec.created_at.isoformat() if rec.created_at else None)
+                if checked:
+                    result.checked_at = str(checked)
+                    try:
+                        age = datetime.utcnow() - datetime.fromisoformat(str(checked).replace("Z", "")).replace(tzinfo=None)
+                        result.needs_refresh = age > timedelta(days=terms_cache.FRESH_DAYS)
+                    except ValueError:
+                        result.needs_refresh = True
                 return _apply_region_policy(
                     db,
                     result,

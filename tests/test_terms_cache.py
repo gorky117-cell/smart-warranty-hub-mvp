@@ -15,8 +15,11 @@ PHONE_URL = "https://www.samsung.com/in/support/warranty/mobile/"
 @pytest.fixture(autouse=True)
 def _clean_cache(monkeypatch):
     monkeypatch.setattr(terms_lookup, "discover_sources", lambda **kw: [])  # no live search in these tests
+    from app.db_models import WarrantyDB
+
     with SessionLocal() as db:
         db.query(WarrantyTermsCacheDB).filter(WarrantyTermsCacheDB.brand.in_(["Samsung", "LG"])).delete(synchronize_session=False)
+        db.query(WarrantyDB).filter(WarrantyDB.id.like("wty_reuse_%")).delete(synchronize_session=False)
         db.commit()
     yield
 
@@ -167,3 +170,45 @@ def test_non_official_scrape_is_not_cached(monkeypatch):
     with SessionLocal() as db:
         _lookup(db, "Samsung 55 inch QLED TV", model="QA55Q60D", force=True)
         assert db.query(WarrantyTermsCacheDB).filter_by(brand="Samsung", source_url=url).count() == 0
+
+
+# --- cache fix 5: 30-day expiry, "checked on <date>", older entries flagged ---------------------------------
+
+
+def test_entries_older_than_30_days_are_not_served_but_kept_as_last_good():
+    with SessionLocal() as db:
+        _row(db, url=TV_URL, line="tv", model="QA55Q60D", months=24, age_days=31, source_type="official")
+        stale = _lookup(db, "Samsung 55 inch QLED TV", model="QA55Q60D")
+        # discovery finds nothing in the test, so the old entry comes back as last good, flagged
+        assert stale.source_url == TV_URL and stale.needs_refresh is True
+        _row(db, url=TV_URL, line="tv", model="QA55Q60D", months=24, age_days=29, source_type="official")
+        fresh = _lookup(db, "Samsung 55 inch QLED TV", model="QA55Q60D")
+        assert fresh.needs_refresh is False and fresh.checked_at
+
+
+def _evidence(checked_at, flagged=False):
+    warranty = CanonicalWarranty(id="w", product_name="TV", brand="Samsung", alternatives={
+        "terms_source_type": "approved_oem_source", "terms_source_url": "https://www.samsung.com/in/support/warranty/",
+        "terms_last_refreshed_at": checked_at, "terms_needs_refresh": flagged,
+    })
+    return summary_engine.build_evidence_summary(warranty)
+
+
+def test_customer_label_says_when_it_was_checked_and_flags_old_checks():
+    recent = (datetime.utcnow() - timedelta(days=3)).isoformat()
+    evidence = _evidence(recent)
+    assert evidence["status_label"].endswith(f"checked on {recent[:10]}") and evidence["needs_refresh"] is False
+    old = (datetime.utcnow() - timedelta(days=45)).isoformat()
+    evidence = _evidence(old)
+    assert evidence["status_label"].endswith(f"checked on {old[:10]}, needs refresh")
+    assert evidence["requires_oem_verification"] is True and "refresh" in evidence["note"]
+
+
+def test_reused_official_record_carries_its_checked_date():
+    with SessionLocal() as db:
+        _saved(db, "wty_reuse_dated", model="SM-A166B", product="Samsung Galaxy A16", source_type="approved_oem_source", url=PHONE_URL)
+        row = db.query(WarrantyDB).filter_by(id="wty_reuse_dated").one()
+        row.alternatives = {**row.alternatives, "terms_last_refreshed_at": (datetime.utcnow() - timedelta(days=40)).isoformat()}
+        db.commit()
+        result = _lookup(db, "Samsung Galaxy A16", model="SM-A166B", category="mobile")
+        assert result.source_url == PHONE_URL and result.needs_refresh is True and result.checked_at
