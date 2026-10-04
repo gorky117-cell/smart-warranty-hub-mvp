@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 
 _OEM_DOMAIN_PATH = Path(__file__).resolve().parents[2] / "data" / "oem_domains.json"
 _OEM_VERIFIED_PATH = Path(__file__).resolve().parents[2] / "data" / "oem_verified.json"
+_OEM_MANUAL_PATH = Path(__file__).resolve().parents[2] / "data" / "oem_manual_confirmed.json"
 
 
 def normalize_domain(value: str) -> str:
@@ -43,6 +44,17 @@ def load_verified_domains() -> Dict[str, List[str]]:
         return {}
     try:
         return json.loads(_OEM_VERIFIED_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def load_manual_confirmed_domains() -> Dict[str, List[str]]:
+    """Brand websites confirmed by a person in a browser because they block the automated checker."""
+    if not _OEM_MANUAL_PATH.exists():
+        return {}
+    try:
+        brands = json.loads(_OEM_MANUAL_PATH.read_text(encoding="utf-8")).get("brands") or {}
+        return _normalized({brand: (entry or {}).get("domains") or [] for brand, entry in brands.items()})
     except Exception:
         return {}
 

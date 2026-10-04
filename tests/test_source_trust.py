@@ -88,3 +88,20 @@ def test_orient_points_to_orient_electric_not_the_tiles_company():
     for registry in (load_oem_domains(), load_verified_domains()):
         assert registry["Orient"] == ["orientelectric.com"]
         assert not any("orientbell" in d for domains in registry.values() for d in domains)
+
+
+def test_manually_confirmed_site_has_its_own_label(no_verified_domains):
+    trust = classify_terms_source(brand="LG", source_url="https://www.lg.com/in/support/warranty", source_type="scraped")
+    assert trust["status"] == "manually_confirmed_official"
+    assert trust["label"] == "From the official LG website (manually confirmed)"
+    assert trust["manually_confirmed"] is True and trust["official"] is True
+
+
+def test_manual_list_covers_the_five_checker_blocked_brands():
+    from app.services.oem_domains import load_manual_confirmed_domains, load_oem_domains
+
+    manual = load_manual_confirmed_domains()
+    registry = load_oem_domains()
+    assert set(manual) == {"LG", "Sony", "Dell", "Panasonic", "Whirlpool"}
+    for brand, domains in manual.items():
+        assert set(domains) <= set(registry[brand]), brand

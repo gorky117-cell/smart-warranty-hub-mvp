@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Dict, Optional
 from urllib.parse import urlparse
 
-from .oem_domains import load_oem_domains, load_verified_domains
+from .oem_domains import load_manual_confirmed_domains, load_oem_domains, load_verified_domains
 
 
 def _normalize(value: Optional[str]) -> str:
@@ -64,8 +64,10 @@ def classify_terms_source(
     if src_type in ("scraped", "approved_oem_source") and src_url:
         official_domains = _domains_for_brand(load_oem_domains(), brand)
         verified_domains = _domains_for_brand(load_verified_domains(), brand)
+        manual_map = load_manual_confirmed_domains()
         verified = _matches_domain(host, verified_domains)
-        official = verified or _matches_domain(host, official_domains)
+        manual = not verified and _matches_domain(host, _domains_for_brand(manual_map, brand))
+        official = verified or manual or _matches_domain(host, official_domains)
         if src_type == "approved_oem_source" and official:
             status = "approved_oem_source"
             label = "Approved OEM source"
@@ -77,6 +79,11 @@ def classify_terms_source(
             label = f"From the official {_display_brand(load_verified_domains(), brand)} website"
             note = "Terms came from a website confirmed to belong to the brand."
             confidence = 0.9
+        elif manual:
+            status = "manually_confirmed_official"
+            label = f"From the official {_display_brand(manual_map, brand)} website (manually confirmed)"
+            note = "Terms came from a website a person confirmed belongs to the brand."
+            confidence = 0.88
         elif official:
             status = "official"
             label = "Official OEM domain"
@@ -95,8 +102,9 @@ def classify_terms_source(
             "source_url": src_url,
             "host": host,
             "official": official,
-            "verified": verified,
-            "requires_oem_verification": not verified,
+            "verified": verified or manual,
+            "manually_confirmed": manual,
+            "requires_oem_verification": not (verified or manual),
         }
 
     if src_type == "internal_warranty_db":

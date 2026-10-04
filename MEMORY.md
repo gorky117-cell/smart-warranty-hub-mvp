@@ -2302,13 +2302,34 @@ and deployed; Steps 1-3 are NOT pushed until the user approves.
 - [x] 0c Orient: `Orient` -> `orientelectric.com` in `data/oem_domains.json` and `data/oem_verified.json`
   (was `orientbell.com`, a tiles company, plus `orientfan.com`). `Orient Fans` -> `orientfan.com` left as is
   (failed HTTPS in 91.B8; ownership unconfirmed — listed in Step 1 review).
-- [ ] 0d push master -> origin/master and check the live site
-- [ ] 1 Registry review
+- [x] 0d Pushed `bf7e1ee1..9e9bc278` to origin/master (Railway deploys from master; the new build was
+  live about 5 min after the push). Live checks 2026-10-04 (https://www.smartwarrantyhub.com):
+  - `/` 200, `/login` 200, `/api/health` 200, `/health/ocr` 200, `/health/full` 200.
+  - `/health` is 404 before and after the deploy: the app has no such route (health is `/api/health`).
+  - http://www -> 301 (Railway edge) -> https, 1 redirect, no loop; `/ui/*` pages redirect once to `/login?next=...`.
+  - Login: POST /auth/login with a non-existent probe user -> 401 (no 500). A real login was not done
+    (no production credentials used) - user to confirm.
+  - `/health/ocr` now runs real OCR: `ok:false`, "PaddleOCR init failed: unexpected end of data; Tesseract
+    fallback read the test image", active engine tesseract. Before the deploy it said "PaddleOCR available
+    (lazy)" without reading anything. `/health/full` status "degraded" only because of that; llm (OpenAI),
+    predictive and RAG (Mistral) report ok - so production AI calls are live and now redacted (B1).
+  - Apex http(s)://smartwarrantyhub.com (no www) returns a 114-byte parking page that redirects to
+    `/lander` - not served by the app (DNS/registrar), unchanged by this deploy.
+  - Rollback if ever needed: Railway -> Deployments -> redeploy the previous deployment, or
+    `git push --force-with-lease origin bf7e1ee1:master` (needs user approval).
+- [x] 1 Registry review -> `docs/REGISTRY_REVIEW_2026-10-04.md`
+  - A: 26 registry names shared by unrelated companies, listed for owner decision; NOT changed
+    (Bajaj/Bajaj Auto/Bajaj Finserv, Tata, Hero, Honda, Yamaha, Hyundai, Usha, Wipro, Nokia/HMD, ...).
+  - B: `data/oem_manual_confirmed.json` - LG lg.com, Sony sony.co.in, Dell dell.com, Panasonic
+    panasonic.com, Whirlpool whirlpool.in + whirlpool.com; each opened in a real browser 2026-10-04, owner
+    read from title/footer. Label "From the official <Brand> website (manually confirmed)", status
+    `manually_confirmed_official`. `sony.co.in` and `whirlpool.in` added to the registry.
 - [ ] 2 Extraction defects
 - [ ] 3 Clean-up
 
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
-| 0 | (next) | 372 passed (+2) | Label, Orient, gitignore. |
+| 0 | `9e9bc278` | 372 passed (+2) | Label, Orient, gitignore. Pushed and deployed. |
+| 1 | (next) | 374 passed (+2) | Registry review doc; manual-confirmed list. Not pushed. |
 

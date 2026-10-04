@@ -1,0 +1,41 @@
+{
+  "_note": "Official brand websites that block the automated domain checker (HTTP 403). Each was opened in a real browser on 2026-10-04 and the page owner read from the site itself. Shown to customers as 'From the official <Brand> website (manually confirmed)'. Proves the website belongs to the brand, not that scraped terms are correct.",
+  "brands": {
+    "LG": {
+      "domains": [
+        "lg.com"
+      ],
+      "checked_on": "2026-10-04",
+      "evidence": "https://www.lg.com/in/support/ - title 'Get Product Help & Support | LG India', footer 'Copyright 2026 LG Electronics India Limited'"
+    },
+    "Sony": {
+      "domains": [
+        "sony.co.in"
+      ],
+      "checked_on": "2026-10-04",
+      "evidence": "https://www.sony.co.in/electronics/support - title 'Support for Sony products | Sony IN', footer 'Copyright 2026 Sony India'"
+    },
+    "Dell": {
+      "domains": [
+        "dell.com"
+      ],
+      "checked_on": "2026-10-04",
+      "evidence": "https://www.dell.com/support/home/en-in - title 'Support Home | Dell India', footer 'Copyright 2026 Dell Inc.'"
+    },
+    "Panasonic": {
+      "domains": [
+        "panasonic.com"
+      ],
+      "checked_on": "2026-10-04",
+      "evidence": "https://www.panasonic.com/in/support.html - title 'Support Home - Panasonic', footer '2026 - Panasonic Life Solutions India Pvt. Ltd.'"
+    },
+    "Whirlpool": {
+      "domains": [
+        "whirlpool.in",
+        "whirlpool.com"
+      ],
+      "checked_on": "2026-10-04",
+      "evidence": "whirlpoolindia.com redirects to https://india.whirlpool.in/ - title '... | Whirlpool India'; https://www.whirlpool.com/ footer '2026 Whirlpool' (US site)"
+    }
+  }
+}
