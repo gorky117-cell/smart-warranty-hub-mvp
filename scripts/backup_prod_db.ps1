@@ -59,7 +59,8 @@ try {
 
     $list = & $pgRestore --list $file
     if ($LASTEXITCODE -ne 0) { Fail "pg_restore --list could not read the dump (exit $LASTEXITCODE)" }
-    $tables = @($list | Where-Object { $_ -match '^\d+;\s+\d+\s+\d+\s+TABLE\s' }).Count
+    # "TABLE <schema> <name>" entries only; "TABLE DATA" entries are counted separately below.
+    $tables = @($list | Where-Object { $_ -match '^\d+;\s+\d+\s+\d+\s+TABLE\s' -and $_ -notmatch '\sTABLE DATA\s' }).Count
     $tablesWithData = @($list | Where-Object { $_ -match '\sTABLE DATA\s' }).Count
     $sizeMb = [Math]::Round((Get-Item $file).Length / 1MB, 2)
 
