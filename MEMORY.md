@@ -2818,11 +2818,27 @@ and not /health/ocr. Rules as before; nothing in this entry is pushed without ap
   login works, stats show the error, knowledge base 503. Full suite 491 passed, 2 skipped.
   Code rollback note: the previous code (eac60ead) maps only the old cache columns, so it runs fine on the
   upgraded schema; the added columns/tables need not be dropped to roll back.
-- [ ] 96.2 Owner: production Postgres backup ("backup done") - waiting.
-- [ ] 96.3 Push the local commits; live checks.
+- [x] 96.2 Production backup by the owner with `scripts/backup_prod_db.ps1` (hidden prompt; the password goes
+  to pg_dump only through a temporary PGPASSWORD; verified with pg_restore --list):
+  C:\Users\lenovo\swh_backups\swh_prod_2026-10-05_0106.dump, 1.23 MB, "OK". The script's "Tables: 72" counted
+  TABLE and TABLE DATA entries together: production has 36 tables, all with data; count fixed in `03f6a0ab`.
+  The owner's earlier screenshot showed the production DB password inside a connection URL: advised to rotate
+  it in Railway (owner action; I did not use it).
+- [x] 96.3 Pushed `eac60ead..03f6a0ab` (16 commits: entry 94's 5, entry 95's 9, 96.1, and the backup script +
+  its fix). Deployed 2026-10-05 01:10 (detected by /admin/terms-cache/stats turning from 404 to 401).
+  Live checks: `/api/health` 200 {"status":"ok"}; `/health/ocr` 200 ok, paddle active, warm-up ok in 66.7 s,
+  first call after deploy 47.8 s; `/login` 200; http://www -> 301 -> https, 1 redirect, no loop;
+  `/admin/terms-cache/stats` and `/admin/knowledge-base` without login -> 401. The admin stats call (with its
+  `schema` block showing whether the Postgres upgrade succeeded) is left to the owner; no production
+  credentials used. Railway's health-check path was never confirmed (not in the repo); the deploy went live.
+
+### State at the end of this entry
+- origin/master = `03f6a0ab` (live). Local only: the STATUS/MEMORY commit for 96.3.
 
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
-| 96.1 | (next) | 491 passed, 2 skipped (+3) | Guarded schema upgrade; cache/KB fall back when it fails. |
+| 96.1 | `1d8c127d` | 491 passed, 2 skipped (+3) | Guarded schema upgrade; cache/KB fall back when it fails. |
+| 96.2 | `49cdfc7d` + `03f6a0ab` | 491 passed, 2 skipped | Backup script; table count fix. |
+| 96.3 | (next) | 491 passed, 2 skipped | Push + live checks; STATUS.md. |
 

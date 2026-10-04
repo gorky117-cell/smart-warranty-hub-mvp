@@ -1,57 +1,52 @@
-# Smart Warranty Hub - status (2026-10-04, late)
+# Smart Warranty Hub - status (2026-10-05)
 
 Measured numbers only. **Synthetic** marks results from generated test files, not real customer
 invoices. No real-invoice accuracy has been measured yet (see "Next steps").
 
 ## Live vs local
 
-- **Live** (https://www.smartwarrantyhub.com, Railway deploys `origin/master`): up to commit `eac60ead`.
+- **Live** (https://www.smartwarrantyhub.com, Railway deploys `origin/master`): everything, up to commit
+  `03f6a0ab` (deployed 2026-10-05 01:10).
   - Fix run 91: redaction before AI calls, Paddle back-off with Tesseract fallback, one risk scorer,
     domain verification, vision tier (off by default), expiry recalculation guard, admin security banner.
   - Follow-up run 92: "From the official <Brand> website" label, Orient Electric fix, manually confirmed
-    sites (LG, Sony, Dell, Panasonic, Whirlpool), extraction suggestions, unreadable-invoice message,
-    hermetic tests.
-  - Consolidated run 93:
-    - Paddle kept, with a background warm-up;
+    sites, extraction suggestions, unreadable-invoice message, hermetic tests.
+  - Run 93:
+    - Paddle warm-up;
     - shared brand names resolved by product;
     - marketplace invoices;
     - unknown brands get "please check";
     - India pages preferred;
-    - sign-in stale-cookie fix with a friendly session-expired page;
-    - real-invoice runner;
-    - STATUS.md.
-  - Sign-up rate limit (`eac60ead`).
-- **Local only, not pushed.** The push was approved on condition that Railway's health check uses
-  `/api/health`. The repo defines no health check, so this can't be confirmed from the files; it has to
-  be checked in the Railway dashboard first.
-  - `bc85e1ca`: philips.co.in; model codes keep "/" parts.
-  - `025e21a8`: MISTRAL_EMBED_MODE is read; the Mistral summary helper redacts on its own.
-  - `682af6ad`: OpenAI <-> Mistral fallback; buyer labels in the middle of a line are masked.
-  - `557e6c6e`: runner review mode with hand marks, `--provider` comparison, local corrections log.
-  - `a5ab512f`: status/MEMORY update.
-  - Terms-cache fixes:
-    - `a8df141b`: product scope in the key.
-    - `2d3926f9`: no reuse of estimates as "confirmed".
-    - `9a7de517` + `4ed67981`: newest official entry, metadata, official-only caching.
-    - `8f9c94ca`: 30-day expiry and "checked on".
-    - `6dc8aa69`: admin counts.
-  - `a4ad9b63`: knowledge base v1 (empty).
-  - This status update.
+    - sign-in stale-cookie fix;
+    - real-invoice runner.
+  - Run 94:
+    - sign-up rate limit;
+    - philips.co.in and "/" model codes;
+    - MISTRAL_EMBED_MODE;
+    - OpenAI <-> Mistral fallback and mid-line buyer redaction;
+    - runner review mode, `--provider`, corrections log (off).
+  - Run 95-96:
+    - terms-cache fixes (product scope, no estimates as "confirmed", newest official entry, metadata,
+      official-only caching, 30-day expiry with "checked on", admin counts);
+    - knowledge base v1 (empty);
+    - guarded start-up schema upgrade;
+    - backup script.
+- **Local only:** nothing except this status update.
+- **Production backup before this deploy:** `swh_prod_2026-10-05_0106.dump`, 1.23 MB, 36 tables, verified
+  with `pg_restore --list`, kept on the owner's machine.
 
-Live checks on 2026-10-04 19:27 after the last deploy:
+Live checks on 2026-10-05 01:10 after the deploy:
 
 | Check | Result |
 |---|---|
 | `/api/health` | 200 `{"status":"ok"}` |
-| `/health/ocr` | 200 ok; Paddle active |
-| Paddle warm-up | finished in 85.3 s; start-up did not wait for it |
-| First `/health/ocr` call after deploy | 69.5 s (real OCR with both engines; then cached 10 min) |
+| `/health/ocr` | 200 ok, Paddle active; warm-up 66.7 s; first call after deploy took 47.8 s |
 | `/login` | 200 |
 | http to https | one 301 redirect, no loop |
-| Sign-in with an old session cookie | goes back to the form (`error=invalid` for a probe user); no 403 |
-| `/login` with an old session cookie | clears it and issues a fresh CSRF token |
+| `/admin/terms-cache/stats` and `/admin/knowledge-base` without login | 401 (routes live, admin-only) |
+| `/admin/terms-cache/stats` as admin | owner to run: `schema` should show `cache_ready: true`, `knowledge_base_ready: true`, `error: null` |
 
-A real sign-in was not tested; no production credentials were used (the owner will check).
+A real sign-in was not tested by me; no production credentials were used.
 
 ## What works
 
@@ -108,7 +103,7 @@ A real sign-in was not tested; no production credentials were used (the owner wi
 
 | What | Result | Data |
 |---|---|---|
-| Test suite | 488 passed, 2 skipped (live-network tests, opt-in with `SWH_LIVE_NETWORK_TESTS=1`) | - |
+| Test suite | 491 passed, 2 skipped (live-network tests, opt-in with `SWH_LIVE_NETWORK_TESTS=1`) | - |
 | Brand (30 labelled invoice photos) | 26 correct, 0 wrong, 4 missing | synthetic |
 | Model | 0 stored wrong; 28 offered to confirm (2 exact, 26 need an edit); 0 stored correct | synthetic |
 | Serial | 0 stored wrong; 30 offered to confirm, all need an edit | synthetic |
@@ -124,13 +119,13 @@ A real sign-in was not tested; no production credentials were used (the owner wi
 
 ## Known issues
 
-- **Terms cache: fixed locally, live until pushed.** On the live site the key is still brand + coarse
-  category + region, a failed refresh hides the last good entry, and other users' default-rule terms can
-  show as "Confirmed from saved warranty record". The local fixes also add columns to
-  `warranty_terms_cache` at start-up (ADD COLUMN IF NOT EXISTS on Postgres, a path not run locally).
-- **When pushed, the provider fallback is live in production.** Production has both OpenAI and Mistral
-  configured, so a failing provider's redacted request will go to the other provider. Set
-  `AI_PROVIDER_FALLBACK=0` to keep the old behaviour.
+- **Start-up schema upgrade on Postgres:** first run in production with this deploy (adds 5 nullable cache
+  columns and 2 tables). If it failed, the app still runs with the terms cache and knowledge base off and
+  `/admin/terms-cache/stats` shows the error; check that block once.
+- **Provider fallback is live.** Production has both OpenAI and Mistral configured, so a failing provider's
+  redacted request goes to the other one. Set `AI_PROVIDER_FALLBACK=0` to turn it off.
+- **Exposed database password:** a screenshot in this conversation showed the production Postgres password
+  in a connection URL. Rotate it in Railway (owner action).
 - **Rate limiting:** anonymous clients are keyed on the first `X-Forwarded-For` entry. Whether Railway's
   proxy replaces or appends that header decides whether a client can dodge the limit. Unconfirmed.
 - **Local setup:** the local `.venv` has no `openai` package, so OpenAI paths (and `--provider openai`)
@@ -152,7 +147,7 @@ A real sign-in was not tested; no production credentials were used (the owner wi
 1. Owner puts invoices in `real_invoices/`, runs `python scripts/run_real_invoices.py` (add
    `--provider both` once keys are in the local `.env` and `pip install -r requirements.txt` is done), and
    marks `review.md`. `expected.csv` is optional.
-2. Approve and push the local commits above.
-3. Check Railway's health-check path, then approve the push. After deploy, look at
-   `/admin/terms-cache/stats` and start adding hand-checked entries to the knowledge base.
+2. Rotate the production Postgres password; check the `schema` block of `/admin/terms-cache/stats`; do a
+   real sign-in.
+3. Start adding hand-checked entries to the knowledge base (`POST /admin/knowledge-base`).
 4. Optional: add a Mistral vision / OCR provider for unreadable photos (what is needed is in MEMORY.md 94).
