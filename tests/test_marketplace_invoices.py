@@ -23,7 +23,7 @@ def _fields(name):
     "name, brand, product, model, invoice_no, purchase",
     [
         ("amazon", "boAt", "boAt Rockerz 450 Bluetooth On Ear Headphones with Mic (Luscious Black)", None, "BLR7-1234567", "2026-02-12"),
-        ("flipkart", "Philips", "Philips HL7756/00 750 W Mixer Grinder (Black, 3 Jars)", "HL7756", "FAABCD2600012345", "2026-01-05"),
+        ("flipkart", "Philips", "Philips HL7756/00 750 W Mixer Grinder (Black, 3 Jars)", "HL7756/00", "FAABCD2600012345", "2026-01-05"),
         ("croma", "Croma", "Croma 80 cm (32 inch) HD Ready LED Smart TV CREL032HOF024601", "CREL032HOF024601", "CRM-26-001234", "2026-03-18"),
         ("reliance_digital", None, "Reconnect 1.5 Ton 3 Star Inverter Split AC RAC-SPL15", "RAC-SPL15", "RD-4455667", "2026-03-22"),
     ],
@@ -90,3 +90,21 @@ def test_india_page_preferred_for_global_brands():
     assert india > global_page > us_page
     assert _region_score("IN", "https://www.dell.com/support/home/en-in") > global_page
     assert _region_score("IN", "https://www.lg.com/printer/warranty") == 0  # "in" inside "printer" is not India
+
+
+def test_model_codes_keep_slash_variants_but_not_spec_pairs():
+    from app.services.ingestion import _model_candidate_from_line
+
+    assert _model_candidate_from_line("Philips HL7756/00 750 W Mixer Grinder", None) == ("HL7756/00", "code")
+    assert _model_candidate_from_line("Samsung Galaxy A15 SM-A155F/DS 8GB/128GB", None) == ("SM-A155F/DS", "code")
+    assert extract_product_fields("Tax Invoice\nModel: HL7756/00\nDate: 01-01-2026")[0]["model_code"] == "HL7756/00"
+    assert _model_candidate_from_line("1 Epson L 3250 Printer 84433240 1no", None) == ("L3250", "code")
+
+
+def test_philips_india_site_is_official_and_preferred():
+    from app.services import oem_source_policy
+
+    url = "https://www.philips.co.in/c-w/support-home/warranty.html"
+    for brand in ("Philips", "Philips India"):
+        assert oem_source_policy.is_approved_oem_url(url, brand)
+    assert _region_score("IN", url) > _region_score("IN", "https://www.philips.com/support/warranty")

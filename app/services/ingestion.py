@@ -535,7 +535,17 @@ _MARKETING_MODEL_RE = re.compile(
     re.IGNORECASE,
 )
 # A printed model code: letters and digits joined by a hyphen, or 6+ chars mixing both ("SM-S928BZKGINS").
-_PRINTED_CODE_RE = re.compile(r"\b(?=[A-Z0-9\-]*\d)(?=[A-Z0-9\-]*[A-Z])([A-Z0-9]{2,}-[A-Z0-9\-]{2,}|[A-Z0-9]{6,})\b")
+# Codes may carry "/" variant parts: "HL7756/00", "SM-A155F/DS".
+_PRINTED_CODE_RE = re.compile(
+    r"\b(?=[A-Z0-9\-]*\d)(?=[A-Z0-9\-]*[A-Z])((?:[A-Z0-9]{2,}-[A-Z0-9\-]{2,}|[A-Z0-9]{6,})(?:/[A-Z0-9]{1,6})*)\b"
+)
+
+
+def _drop_spec_suffix(code: str) -> str:
+    """Keep "/" variant parts of a model code, but not spec pairs: "HL7756/00" stays, "8GB/128GB" -> "8GB"."""
+    parts = code.split("/")
+    unit = re.compile(r"^\d+(?:\.\d+)?(?:GB|TB|MB|MAH|AH|WH|KW|W|V|HZ|L|KG|MM|CM|INCH|MP)$", re.IGNORECASE)
+    return "/".join([parts[0]] + [part for part in parts[1:] if not unit.match(part)])
 
 
 def _model_candidate_from_line(line: str, brand: Optional[str]) -> Tuple[Optional[str], str]:
@@ -547,7 +557,7 @@ def _model_candidate_from_line(line: str, brand: Optional[str]) -> Tuple[Optiona
     marketing = _MARKETING_MODEL_RE.search(text)
     code_text = _MARKETING_MODEL_RE.sub(" ", text) if marketing else text
     for match in _PRINTED_CODE_RE.finditer(code_text.upper()):
-        candidate = match.group(1)
+        candidate = _drop_spec_suffix(match.group(1))
         if not _is_spec_only(candidate) and not re.fullmatch(r"\d+", candidate) and not re.fullmatch(r"B0[A-Z0-9]{8}", candidate):
             return candidate, "code"
     if marketing:
@@ -556,14 +566,14 @@ def _model_candidate_from_line(line: str, brand: Optional[str]) -> Tuple[Optiona
     text = re.sub(rf"\b({product_words})\b", " ", text, flags=re.IGNORECASE)
     text = _normalize_spaces(text)
     patterns = (
-        r"\b([A-Z]{1,5}\s*-?\s*\d{2,5}[A-Z0-9\-]*)\b",
-        r"\b(\d{2,4}[A-Z]{1,6}[A-Z0-9\-]*)\b",
-        r"\b([A-Z0-9]{2,}-[A-Z0-9\-]{2,})\b",
+        r"\b([A-Z]{1,5}\s*-?\s*\d{2,5}[A-Z0-9\-]*(?:/[A-Z0-9]{1,6})*)\b",
+        r"\b(\d{2,4}[A-Z]{1,6}[A-Z0-9\-]*(?:/[A-Z0-9]{1,6})*)\b",
+        r"\b([A-Z0-9]{2,}-[A-Z0-9\-]{2,}(?:/[A-Z0-9]{1,6})*)\b",
     )
     for pat in patterns:
         m = re.search(pat, text)
         if m:
-            candidate = _normalize_spaces(m.group(1)).replace(" ", "").upper()
+            candidate = _drop_spec_suffix(_normalize_spaces(m.group(1)).replace(" ", "").upper())
             if _is_spec_only(candidate):
                 continue
             return candidate, "code"

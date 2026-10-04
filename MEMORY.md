@@ -2542,8 +2542,23 @@ Owner approved pushing entry 93 Parts 2 and 4. Rules as before; nothing after th
   X-Forwarded-For entry, which a client can set; whether Railway's proxy replaces or appends that header
   decides if the limit can be dodged. Not changed. Tests 442 passed, 2 skipped.
 
+- [x] 94.1 Pushed `25e9d895..eac60ead` (entry 93 P1.4-5 memory, P2.7, P2.8, P2.6 x2, P3, P4, and 94.0).
+  Live 2026-10-04 19:27 (stale-cookie probe flipped from 403 to 303): `/api/health` 200 ok; `/health/ocr`
+  200 ok, paddle active, warm-up ok in 85.3 s; the first `/health/ocr` after the deploy took 69.5 s (it runs
+  real OCR with both engines, then caches 10 min); `/login` 200; http://www -> 301 -> https, 1 redirect;
+  POST /auth/login with a stale cookie and an unknown probe user -> 303 `/login?error=invalid` (was 403);
+  GET /login with a stale cookie -> deletes `access_token` (Max-Age=0) and sets a fresh `csrf_token`.
+  No real login (owner will do it).
+
+- [x] 94.2 Runner findings fixed - not pushed. `philips.co.in` added to Philips and Philips India in the registry
+  (India first for Philips India) and, after passing the domain check, to the verified list; India pages
+  score higher in discovery (+6 .in host). Model codes keep "/" variant parts ("HL7756/00", "SM-A155F/DS")
+  in the printed-code and fallback patterns; unit pairs are dropped ("8GB/128GB" -> not part of the code).
+  Field measurement unchanged (brand 26/30; model 0 stored, 28 suggestions). Tests 444 passed, 2 skipped.
+
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
-| 94.0 | (next) | 442 passed, 2 skipped (+5) | Sign-up rate limit; friendly limit messages. |
+| 94.0 | `eac60ead` (pushed) | 442 passed, 2 skipped (+5) | Sign-up rate limit; friendly limit messages. |
+| 94.2 | (next) | 444 passed, 2 skipped (+2) | philips.co.in; "/" in model codes. |
 
