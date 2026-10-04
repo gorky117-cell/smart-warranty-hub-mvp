@@ -17,7 +17,7 @@ The current repo is positioned for MVP/investor review, not full production scal
 
 See `STATUS.md` for the full list (2026-10-04).
 
-- Full local regression: `437 passed, 2 skipped` (2026-10-04; the 2 skipped need the live internet: `SWH_LIVE_NETWORK_TESTS=1`).
+- Full local regression: `462 passed, 2 skipped` (2026-10-04; the 2 skipped need the live internet: `SWH_LIVE_NETWORK_TESTS=1`).
 - Invoice photo extraction (30 labelled **synthetic** images): brand 26 correct / 0 wrong; model and serial 0 stored wrong (uncertain values are offered to the customer to confirm); purchase date 24/30; stated warranty months 16/30.
 - Real customer invoices: **not yet measured**. `scripts/run_real_invoices.py` scores them stage by stage once `real_invoices/expected.csv` is filled in.
 - Phase 1C ingestion set: 50 synthetic PDFs processed. These are selectable-text PDFs only; image OCR not yet measured: text came from the PDF text layer and OCR did not run.

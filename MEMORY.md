@@ -2617,6 +2617,63 @@ Owner approved pushing entry 93 Parts 2 and 4. Rules as before; nothing after th
   - Tests: runner review mode + marks, provider comparison (offline, fake keys in the subprocess env only),
     corrections log (off by default, columns, masking, git-ignored path). Full suite 462 passed, 2 skipped.
 
+- [x] 94.6 Mistral for the vision tier - research only, nothing added or enabled.
+  - Code today: `vision_extraction.apply_vision_tier(..., provider=None)` takes any
+    `Provider = Callable[[bytes], dict]`; the only implementation is `_openai_vision_provider`, and
+    `enabled()` is VISION_AI_EXTRACTION=1 with the OpenAI lane configured. The image is redacted
+    (`redact_image`) before any provider gets it; values come back as suggestions to confirm.
+  - Mistral docs (docs.mistral.ai, read 2026-10-04): vision-capable chat models - Mistral Large 3
+    (`mistral-large-2512`), Mistral Medium 3.1 (`mistral-medium-2508`), Mistral Small 3.2
+    (`mistral-small-2506`), Ministral 3 14B/8B/3B (2512) - take `{"type": "image_url", "image_url": ...}` content
+    parts in Chat Completions, as a public URL or base64. Separate Document AI OCR: POST `/v1/ocr`, model
+    `mistral-ocr-latest`, `document` of type `image_url` (PNG/JPEG/AVIF) or `document_url` (PDF/PPTX/DOCX),
+    base64 accepted; returns `pages[].markdown`, optional confidence scores, and structured output via
+    `document_annotation_format` / `document_annotation_prompt`. Image size/count limits and prices are in
+    collapsed FAQ sections the fetch could not read - not confirmed.
+  - To add: `_mistral_vision_provider(png)` (Chat Completions, a vision model such as `mistral-small-2506`
+    set by MISTRAL_VISION_MODEL, the same JSON field contract {field: {value, source_line, confidence}},
+    base64 data URL of the redacted PNG); choose it via AI_PROVIDER and `ai_providers.run_with_fallback`
+    (image instead of text; redaction already done); relax `enabled()` from "OpenAI lane" to "any vision
+    provider with a key"; mocked tests; then measure on the 10 hard synthetic photos with a key.
+    Alternative: `/v1/ocr` as an OCR engine for the redacted image, feeding the deterministic extractor
+    (markdown in, same suggestions out). About 80-120 lines plus tests either way.
+- [x] 94.7 Terms cache - read-only review (no code changed).
+  - Table `warranty_terms_cache` (`WarrantyTermsCacheDB`): brand, category, region, source_url, fetched_at,
+    duration_months, raw_text, terms, exclusions, claim_steps. NOT stored: model, product name, confidence,
+    source type / trust, grounding result, duration evidence, who or what wrote it.
+  - Key: `brand == brand AND category == _normalize_category(category) AND region == region` (region None
+    matches only NULL), newest `fetched_at` first. Category is coarse (mobile / ev / appliance / electronics /
+    general ...), so one cached row serves every product of that brand and category in that region (a Samsung
+    TV page could answer a Samsung monitor). Brand is the resolved company (P2.7), so Bajaj Auto and Bajaj
+    Electricals do not share rows; a different region never matches.
+  - Read only when `force_refresh` is False: POST /warranties/from-artifact and POST /warranty/terms/refresh
+    (payload.force). The upload pipeline always forces a refresh, so for uploads the cache is write-only.
+  - Before the cache, the same non-forced path reuses terms from ANY saved WarrantyDB row with the same brand
+    and model (or product name, or brand alone when both are missing), across users, labelled "Confirmed
+    from saved warranty record" (status confirmed_internal) even when those terms were default-rule
+    estimates.
+  - Fresh = fetched within 30 days (`_cache_is_fresh`); served only with a real http(s) source
+    (`_cache_has_real_source`). Rows are never updated or deleted; every lookup that scrapes or falls back
+    adds a row. Default-rules results ARE written (source_url NULL) but never served from the cache.
+    "Needs check" results (P2.7/P2.8) are not written. Low-confidence or non-official scraped results can be
+    written (no confidence is stored; trust is recomputed from the URL when read).
+  - Failed refresh: discovery finds nothing -> default rules row written as newest -> the newest row has no
+    real source -> the cache is skipped, so the older good row is effectively hidden until a scrape succeeds.
+  - Counts: local `data/app.db` 3 rows (2 real-source Epson rows, 1 default row; 2 distinct keys);
+    `data/preflight_eval.db` 50 rows (synthetic eval). No endpoint exposes counts. For production (Postgres):
+    `SELECT count(*) AS rows, count(*) FILTER (WHERE source_url LIKE 'http%') AS real_source,
+    count(*) FILTER (WHERE fetched_at > now() - interval '30 days') AS fresh,
+    count(DISTINCT (brand, category, region)) AS keys, min(fetched_at), max(fetched_at) FROM warranty_terms_cache;`
+  - Proposal (not implemented), "verified knowledge base": a separate `verified_terms` table (or columns)
+    with brand company, region, category AND a product scope (model pattern or product line), source URL,
+    page snapshot hash, duration, terms, exclusions, claim steps, verified_by, verified_at, note, locked.
+    Lookup checks it first, also on force_refresh; refreshes never update or delete a locked row - a refresh
+    that disagrees is stored as a "drift" candidate and raises an admin notification for review. Admin-only
+    endpoints to add/lock/unlock with an audit log; customer label e.g. "From the official <Brand> website,
+    checked on <date>"; a re-check reminder after N days without un-locking. Implies fixing: use the newest
+    row WITH a real source, add a product scope to the cache key, and stop reusing other users' default-rule
+    terms as "confirmed".
+
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
@@ -2624,5 +2681,10 @@ Owner approved pushing entry 93 Parts 2 and 4. Rules as before; nothing after th
 | 94.2 | `bc85e1ca` | 444 passed, 2 skipped (+2) | philips.co.in; "/" in model codes. |
 | 94.3 | `025e21a8` | 446 passed, 2 skipped (+2) | Embed model env; Mistral redaction audit. |
 | 94.4 | `682af6ad` | 457 passed, 2 skipped (+11) | Provider fallback; mid-line buyer redaction. |
-| 94.5 | (next) | 462 passed, 2 skipped (+5) | Runner review mode / marks / --provider; corrections log. |
+| 94.5 | `557e6c6e` | 462 passed, 2 skipped (+5) | Runner review mode / marks / --provider; corrections log. |
+| 94.6-7 | (next) | 462 passed, 2 skipped | Vision research, terms-cache review, STATUS.md, README count. |
+
+### State at the end of this entry
+- origin/master = `eac60ead` (live). Local only: `bc85e1ca`, `025e21a8`, `682af6ad`, `557e6c6e` and the
+  94.6-7 commit. Nothing pushed after 94.1.
 
