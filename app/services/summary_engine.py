@@ -67,8 +67,9 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
     source_urls = alt.get("terms_source_urls") or ([source_url] if source_url else [])
     refreshed_at = alt.get("terms_last_refreshed_at")
 
+    oem_entity = alt.get("oem_entity") or {}
     source_trust = classify_terms_source(
-        brand=getattr(warranty, "brand", None),
+        brand=oem_entity.get("company") or getattr(warranty, "brand", None),
         source_url=source_url,
         source_type=source_type,
     )
@@ -79,6 +80,11 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
         label = "We couldn't read this invoice"
         note = (unreadable or {}).get("message") or "We couldn't read this invoice - retake the photo or enter the details."
         confidence = 0.0
+    elif source_type == "needs_check":
+        status = "needs_check"
+        label = "Estimated - please check your warranty card or the seller"
+        note = "No official warranty terms were confirmed for this product, so no warranty period is shown."
+        confidence = 0.2
     elif source_type == "approved_oem_source" and source_url:
         status = "confirmed"
         label = source_trust["label"]

@@ -38,6 +38,8 @@ AMBIGUOUS = frozenset(
 )
 
 RETAILERS = frozenset({"croma"})
+# Lenders that appear on EMI invoices; never the product's maker.
+NON_MAKERS = frozenset({"bajaj finserv"})
 
 # Words that mark a line as a seller/shop line rather than a product line.
 SELLER_MARKERS = (
@@ -139,12 +141,16 @@ def resolve_brand(product_line: Optional[str], seller_lines: Optional[List[str]]
     """Pick the manufacturer: a non-retailer brand in the product line wins; then a brand named in a
     seller line (e.g. "LG Authorized Store") unless it is a retailer; a retailer brand only when it is
     the sole brand in the product line (retailer own-label products)."""
-    in_product = find_brands(product_line or "")
+    in_product = [name for name in find_brands(product_line or "") if not is_non_maker(name)]
     makers = [name for name in in_product if not is_retailer(name)]
     if makers:
         return makers[0]
     for line in seller_lines or []:
         for name in find_brands(line):
-            if not is_retailer(name):
+            if not is_retailer(name) and not is_non_maker(name):
                 return name
     return in_product[0] if in_product else None
+
+
+def is_non_maker(name: Optional[str]) -> bool:
+    return " ".join(_tokens(name or "")) in NON_MAKERS

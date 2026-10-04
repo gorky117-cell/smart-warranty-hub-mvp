@@ -23,6 +23,7 @@ from .ingestion import (
     route_uncertain_identity,
     sanitize_invoice_identity_fields,
 )
+from .brand_families import resolve_oem_entity
 from .terms_lookup import classify_terms_source_url, lookup_terms
 from .warranty_parser import sanitize_base_terms
 from .oem_domain_verify import verify_or_suggest
@@ -253,6 +254,18 @@ def apply_terms_and_expiry(db: Session, warranty: WarrantyDB, fields: Dict[str, 
     meta = dict(warranty.alternatives or {})
     if meta.pop("unreadable_invoice", None) is not None and meta.get("terms_source_type") == "unreadable":
         meta.pop("terms_source_type", None)
+    # Whose terms apply when the brand name is shared by unrelated companies (consolidated run step 7).
+    entity = resolve_oem_entity(
+        warranty.brand,
+        product_name=warranty.product_name,
+        model_code=warranty.model_code,
+        category=fields.get("product_category"),
+    )
+    oem_brand = entity.company if entity.family else warranty.brand
+    if entity.family:
+        meta["oem_entity"] = {"family": entity.family, "segment": entity.segment, "company": entity.company}
+    else:
+        meta.pop("oem_entity", None)
     warranty.alternatives = meta
     terms_result = None
     terms_lookup_error = None
@@ -271,10 +284,10 @@ def apply_terms_and_expiry(db: Session, warranty: WarrantyDB, fields: Dict[str, 
         except Exception as exc:
             terms_lookup_error = exc.__class__.__name__
     # Auto-verify OEM domain on new brand (bounded attempts)
-    if os.getenv("OEM_AUTO_VERIFY", "true").lower() == "true" and warranty.brand:
+    if os.getenv("OEM_AUTO_VERIFY", "true").lower() == "true" and oem_brand:
         try:
             res = verify_or_suggest(
-                brand=warranty.brand,
+                brand=oem_brand,
                 domain="",
                 region=warranty.region_code,
             )
@@ -284,10 +297,10 @@ def apply_terms_and_expiry(db: Session, warranty: WarrantyDB, fields: Dict[str, 
                         db,
                         user_id="oem-1",
                         ntype="oem_domain_unverified",
-                        title=f"OEM domain unverified: {warranty.brand}",
+                        title=f"OEM domain unverified: {oem_brand}",
                         message=f"Auto-verify failed. Suggestions: {res.get('suggestions')}",
                         severity="warning",
-                        brand=warranty.brand,
+                        brand=oem_brand,
                         region=warranty.region_code,
                     )
                 except Exception:
@@ -296,7 +309,7 @@ def apply_terms_and_expiry(db: Session, warranty: WarrantyDB, fields: Dict[str, 
             pass
     terms_source_type = None
     if terms_result:
-        terms_source_type = classify_terms_source_url(terms_result.source_url or "", warranty.brand)
+        terms_source_type = classify_terms_source_url(terms_result.source_url or "", oem_brand)
     if terms_result and terms_result.duration_months and (
         terms_source_type == "approved_oem_source" or not warranty.coverage_months
     ):
@@ -320,7 +333,7 @@ def apply_terms_and_expiry(db: Session, warranty: WarrantyDB, fields: Dict[str, 
         source_url = terms_result.source_url or ""
         meta["terms_source_url"] = source_url or None
         meta["terms_source_urls"] = terms_result.source_urls or ([source_url] if source_url else [])
-        meta["terms_source_type"] = terms_source_type or classify_terms_source_url(source_url, warranty.brand)
+        meta["terms_source_type"] = terms_source_type or classify_terms_source_url(source_url, oem_brand)
         meta["terms_last_refreshed_at"] = datetime.utcnow().isoformat()
         meta.pop("terms_lookup_error", None)
     elif terms_lookup_error:

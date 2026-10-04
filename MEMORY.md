@@ -2420,7 +2420,24 @@ never print/commit secrets, no Railway changes. Push ONLY Part 1 (Steps 1-3 of e
   back to the form (no 500); `/ui/neo-dashboard` unauthenticated -> 303 to `/login?next=...`. No real
   login was done (no production credentials used).
 - [ ] P2.6 CSRF stale-cookie fix
-- [ ] P2.7 shared brand names by category
+- [x] P2.7 Shared brand names - not pushed. `data/brand_families.json` + `app/services/brand_families.py`:
+  `resolve_oem_entity(brand, product_name, model_code, category)` -> (family, segment, company).
+  Segments by keyword (vehicles first): two_wheeler, car, bicycle, mobile, audio, industrial,
+  home_appliance. Families: Bajaj (appliance -> Bajaj Electricals, 2W -> Bajaj Auto; never Bajaj Finserv),
+  Honda (car / 2W), Hero (2W -> Hero MotoCorp, bicycle -> Hero Cycles), Yamaha (2W / audio -> Yamaha Music
+  India), Hyundai (car only), Usha (appliance -> Usha International), Wipro (appliance -> Wipro Lighting),
+  Nokia (mobile -> HMD), Tata (car -> Tata Motors), Kenmore (none), Havells, Crompton (industrial -> CG Power).
+  No company for the segment, or segment unknown -> `lookup_terms` returns `needs_check_terms` (no
+  duration, no search; source `internal://needs_check_shared_brand`, type `needs_check`, label
+  "Estimated - please check your warranty card or the seller"). Otherwise lookup, auto-verify and source
+  classification use the company; `alternatives.oem_entity` records it; the stored brand stays as printed.
+  Registry: +9 company entries (Honda Cars India, Honda Motorcycle & Scooter India, Hero Cycles, Yamaha Motor
+  India, Yamaha Music India, Wipro Lighting, HMD, CG Power, Usha International); 7 passed the domain check
+  and were added to the verified list; honda2wheelersindia.com (no brand evidence) and
+  ushainternational.com (HTTPS failed) are registry-only. Hero Electric (heroelectric.in) DNS failed - not added.
+  Bugs found by the tests and fixed: the line joiner glued "Invoice No:"/"Date:" lines onto the product line
+  (the item was then discarded); a lender in the seller line ("Bajaj Finserv") became the brand -
+  `brand_registry.NON_MAKERS`. Tests: 416 passed, 2 skipped (+30). Field measurement unchanged.
 - [ ] P2.8 marketplace invoices
 - [ ] P3.9-11 real-invoice loop
 - [ ] P4.12-14 MEMORY/STATUS/README
@@ -2429,5 +2446,7 @@ never print/commit secrets, no Railway changes. Push ONLY Part 1 (Steps 1-3 of e
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
 | P1.1 | `f2e5d8e3` | 383 passed, 2 skipped | Paddle back in requirements. |
-| P1.3 | (next) | 386 passed, 2 skipped (+3) | Background Paddle warm-up. |
+| P1.3 | `25e9d895` | 386 passed, 2 skipped (+3) | Background Paddle warm-up. Pushed. |
+| P1.4-5 | `73e90793` | - | Push + live checks recorded. |
+| P2.7 | (next) | 416 passed, 2 skipped (+30) | Shared brands by product segment. |
 

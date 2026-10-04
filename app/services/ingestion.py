@@ -301,6 +301,10 @@ def _logical_invoice_lines(lines: List[str]) -> List[str]:
         r"^(?:invoice\s+date|order\s+date|shipping charges?|total|subtotal|taxable|igst|cgst|sgst|amount|grand total)\b",
         re.IGNORECASE,
     )
+    field_line_pattern = re.compile(
+        r"^(?:invoice|inv|bill|order|date|dated|gstin|warranty|sold by|seller|buyer|ship to|bill to)\b[^:\-]{0,20}[:\-]",
+        re.IGNORECASE,
+    )
     continuation_pattern = re.compile(
         r"\b("
         r"gb|ram|storage|hz|refresh|battery|mah|charger|os upgrades?|ai|gemini|"
@@ -330,7 +334,8 @@ def _logical_invoice_lines(lines: List[str]) -> List[str]:
             continue
 
         if current:
-            if stop_pattern.search(clean) and not _has_product_signal(clean):
+            if (stop_pattern.search(clean) and not _has_product_signal(clean)) or field_line_pattern.match(clean):
+                # A field line ("Invoice No: INV-77", "Date: 02-03-2025") never continues a product line.
                 flush_current()
                 logical.append(clean)
                 continue

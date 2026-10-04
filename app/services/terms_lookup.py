@@ -16,6 +16,7 @@ from .warranty_discovery import discover_sources
 from .warranty_parser import parse_terms_from_url, ParsedTerms, sanitize_base_terms, sanitize_support_items
 from . import regional_policy as regional_policy_service
 from . import oem_source_policy
+from .brand_families import resolve_oem_entity
 from . import oem_product_knowledge
 from .duration_selection import DurationContext, select_duration
 
@@ -37,6 +38,9 @@ _SCRAPE_ALLOW_RETAIL = os.getenv("TERMS_SCRAPE_ALLOW_RETAIL", "1").strip().lower
 _SOURCE_INTERNAL_WARRANTY = "internal://warranty_db"
 _SOURCE_INTERNAL_CACHE = "internal://terms_cache"
 _SOURCE_INTERNAL_DEFAULT = "internal://default_rules"
+# No OEM terms and no guessed duration: the customer is asked to check the warranty card or the seller.
+_SOURCE_NEEDS_CHECK_SHARED_BRAND = "internal://needs_check_shared_brand"
+NEEDS_CHECK_MESSAGE = "Estimated - please check your warranty card or the seller."
 _AUTO_MAX_SOURCES = int(os.getenv("TERMS_AUTO_MAX_SOURCES", "4"))
 
 
@@ -64,6 +68,21 @@ def _normalize_category(category: Optional[str]) -> str:
     if words & {"electronic", "electronics", "device", "devices"}:
         return "electronics"
     return "general"
+
+
+def needs_check_terms(source_url: str) -> TermsResult:
+    """Terms when no company's warranty can be trusted for this product: never a guessed duration."""
+    return TermsResult(
+        duration_months=None,
+        terms=[NEEDS_CHECK_MESSAGE],
+        exclusions=[],
+        claim_steps=[
+            "Check the warranty card that came with the product.",
+            "Ask the seller which company provides the warranty and for how long.",
+        ],
+        source_url=source_url,
+        source_urls=[],
+    )
 
 
 def _default_terms(duration_months: int) -> TermsResult:
@@ -368,6 +387,8 @@ def classify_terms_source_url(source_url: Optional[str], brand: Optional[str] = 
         return "synthetic_approved"
     if src.endswith("manual_url_blocked_by_oem_policy"):
         return "blocked_by_oem_policy"
+    if src.startswith("internal://needs_check"):
+        return "needs_check"
     if src.endswith("default_rules"):
         return "default_rules"
     if src.endswith("warranty_db"):
@@ -442,6 +463,13 @@ def lookup_terms(
     url_override: Optional[str] = None,
     force_refresh: bool = False,
 ) -> TermsResult:
+    # A brand name shared by unrelated companies (Bajaj, Honda, Hero, ...): the product decides whose
+    # terms apply; when it cannot, no company's terms are used (consolidated run step 7).
+    entity = resolve_oem_entity(brand, product_name=product_name, model_code=model_code, category=category)
+    if entity.family:
+        if not entity.company:
+            return needs_check_terms(_SOURCE_NEEDS_CHECK_SHARED_BRAND)
+        brand = entity.company
     norm_category = _normalize_category(category)
     duration_context = DurationContext(
         category=norm_category,
