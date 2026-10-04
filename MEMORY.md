@@ -2411,8 +2411,14 @@ never print/commit secrets, no Railway changes. Push ONLY Part 1 (Steps 1-3 of e
   an early upload never load the models twice. `/health/ocr` shows `paddle_warmup` {status, seconds,
   error}. Local start (Windows, OCR_ENGINE=paddle): server served requests during warm-up; warm-up
   failed after 5.3 s with the known local oneDNN error and was logged. Tests: 386 passed, 2 skipped.
-- [ ] P1.4 push
-- [ ] P1.5 live checks
+- [x] P1.4 Pushed `9e9bc278..25e9d895` to origin/master (entry 92 Steps 1-3, Paddle restore, warm-up).
+  Railway deployed it about 10 min later.
+- [x] P1.5 Live checks 2026-10-04 (https://www.smartwarrantyhub.com): `/api/health` 200
+  {"status":"ok"}; `/health/ocr` 200 ok, active engine paddle, `paddle_warmup` {"status":"ok",
+  "seconds":106.5} - the warm-up took 106.5 s in production and start-up did not wait for it; `/login` 200;
+  `/` 200; http://www -> 301 -> https, 1 redirect, no loop; login POST with an unknown probe user -> 303
+  back to the form (no 500); `/ui/neo-dashboard` unauthenticated -> 303 to `/login?next=...`. No real
+  login was done (no production credentials used).
 - [ ] P2.6 CSRF stale-cookie fix
 - [ ] P2.7 shared brand names by category
 - [ ] P2.8 marketplace invoices
