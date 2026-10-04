@@ -6,6 +6,7 @@ The current repo is positioned for MVP/investor review, not full production scal
 
 ## Review First
 
+- Current status, live vs local, measured numbers and known issues: `STATUS.md`
 - Investor/demo KPI baseline: `docs/INVESTOR_DEMO_KPI_BASELINE.md`
 - Documentation index: `docs/DOCS_INDEX.md`
 - Project reference: `docs/PROJECT_REFERENCE.md`
@@ -14,7 +15,11 @@ The current repo is positioned for MVP/investor review, not full production scal
 
 ## Current Evidence Snapshot
 
-- Full local regression: `249 passed` (2026-10-03)
+See `STATUS.md` for the full list (2026-10-04).
+
+- Full local regression: `437 passed, 2 skipped` (2026-10-04; the 2 skipped need the live internet: `SWH_LIVE_NETWORK_TESTS=1`).
+- Invoice photo extraction (30 labelled **synthetic** images): brand 26 correct / 0 wrong; model and serial 0 stored wrong (uncertain values are offered to the customer to confirm); purchase date 24/30; stated warranty months 16/30.
+- Real customer invoices: **not yet measured**. `scripts/run_real_invoices.py` scores them stage by stage once `real_invoices/expected.csv` is filled in.
 - Phase 1C ingestion set: 50 synthetic PDFs processed. These are selectable-text PDFs only; image OCR not yet measured: text came from the PDF text layer and OCR did not run.
 - Predictive risk accuracy (Phase 4): unverified after scoring changes in MEMORY.md entries 87-88.
 - Phase 8 KPI automation: 10/10 instrumented KPIs passing
@@ -47,11 +52,14 @@ uvicorn app.main:app --reload
 .\.venv\Scripts\python.exe scripts\eval_partner_kpi_phase10a.py
 .\.venv\Scripts\python.exe scripts\eval_kpi_phase8.py
 .\.venv\Scripts\python.exe scripts\eval_ingestion_ocr.py --csv test_data\ingestion_ocr_50_labeled_pdf.csv --base-dir . --out data\ingestion_eval_current_50_pdf.json
+.\.venv\Scripts\python.exe scripts\measure_invoice_fields.py --text-cache testsixtures\ocr_text_50.json --from-cache
+# Real invoices (local only; real_invoices/ is git-ignored and must never be committed):
+.\.venv\Scripts\python.exe scriptsun_real_invoices.py
 ```
 
 ## Optional OCR / LLM
 
-- Default OCR hook expects `paddleocr` for image/PDF ingestion.
+- OCR uses PaddleOCR when `OCR_ENGINE=paddle` and it is installed (production), warmed up in the background at start-up; Tesseract is the fallback whenever Paddle is missing or failing.
 - LLM connectors are optional. The platform keeps deterministic fallbacks so the core flow can work without a live LLM provider.
 - Connectors are configured in `data/connectors.json`.
 

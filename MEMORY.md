@@ -2494,7 +2494,25 @@ never print/commit secrets, no Railway changes. Push ONLY Part 1 (Steps 1-3 of e
     It surfaced two real gaps (not fixed): registry has philips.com but not philips.co.in; model
     "HL7756/00" is cut at "/" by extraction. `tests/test_run_real_invoices.py` runs it as a subprocess on 3
     synthetic invoices (offline, no AI) and checks the repo is untouched. Full suite 437 passed, 2 skipped.
-- [ ] P4.12-14 MEMORY/STATUS/README
+  - "Unknown brand" (P2.8) = `terms_lookup._known_brand`: not an exact registry name and not resolvable by
+    `brand_registry.resolve_brand`; empty brand counts as unknown.
+- [x] P4.12-14 This entry checked against the code; `STATUS.md` written (what works, measured numbers with
+  synthetic ones marked, live vs local, known issues, next steps); README "Review First", "Current Evidence
+  Snapshot", "Validation Commands" and "Optional OCR / LLM" updated to match. Not pushed.
+
+### Corrections to earlier entries
+- 92.3 removed PaddleOCR from requirements; P1.1 above restored it (owner decision). The Tesseract
+  fallback, test network blocking, httpx pin and faulthandler timeout from 92.3 remain.
+- 91.B8 / 92 "169 domains (153 brands)" counted brand-domain pairs: at B8 the verified list had 153 brand
+  names, 169 pairs, 117 distinct domains. Now (2026-10-04): 160 brand names, 176 pairs, 121 distinct
+  domains; registry 209 names; 5 manually confirmed brands; 12 shared-brand families.
+- README previously said the default OCR "expects paddleocr"; OCR falls back to Tesseract.
+
+### State at the end of this run
+- origin/master = `25e9d895` (live). Local master is ahead by P1.4-5 memory, P2.7, P2.8, P2.6 (2 commits), P3
+  and P4 - none pushed; the owner approves Part 2 and Part 4 before any push.
+- Separate session branch `claude/heuristic-davinci-19eae6` (worktree `.claude/worktrees/heuristic-davinci-19eae6`)
+  holds def3c278, already cherry-picked here as `2e472d20`; the branch/worktree can be removed.
 
 ### Step log
 | Step | Commit | Tests | Notes |
@@ -2505,5 +2523,6 @@ never print/commit secrets, no Railway changes. Push ONLY Part 1 (Steps 1-3 of e
 | P2.7 | `b53433eb` | 416 passed, 2 skipped (+30) | Shared brands by product segment. |
 | P2.8 | `b147af43` | 425 passed, 2 skipped (+9) | Marketplace invoices; unknown brand -> please check; India pages. |
 | P2.6 | `2e472d20` + `7e858a89` | 436 passed, 2 skipped (+11) | CSRF: cherry-picked exemption + stale-cookie middleware, friendly redirect. |
-| P3 | (next) | 437 passed, 2 skipped (+1) | real_invoices/ (ignored) + runner + runner test. |
+| P3 | `251bc733` | 437 passed, 2 skipped (+1) | real_invoices/ (ignored) + runner + runner test. |
+| P4 | (next) | 437 passed, 2 skipped | MEMORY check, STATUS.md, README status. |
 
