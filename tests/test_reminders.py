@@ -130,3 +130,21 @@ def test_care_reminders_from_guides_with_limits(monkeypatch):
         assert titles == ["Care reminder: Epson EcoTank L3250 Printer", "Care reminder: Voltas Split AC"]
         msg = db.query(NotificationDB).filter_by(user_id=USER, warranty_id="wty_rem_ac").one().message
         assert msg == "Clean the air filter every two weeks. (From Voltas's user manual.)"
+
+
+def test_daily_count_uses_the_utc_day_like_the_stored_times():
+    with SessionLocal() as db:
+        db.add(NotificationDB(id="ntf_rem_utc", user_id=USER, warranty_id="wty_rem_x", type="expiry_30d", title="t",
+                              message="m", severity="info", is_read=0, created_at=datetime.utcnow(), audience="user"))
+        db.commit()
+        assert ns.reminders_today(db, USER) == 1  # was 0 between local and UTC midnight (India: 00:00-05:30)
+
+
+def test_sweep_reaches_every_owned_product(monkeypatch):
+    monkeypatch.setenv("EXPIRY_REMINDER_SCAN_LIMIT", "1")  # the old cap stopped after this many rows
+    with SessionLocal() as db:
+        for i in range(3):
+            _add(db, f"wty_rem_all{i}", brand="LG", name=f"LG TV {i}", model=f"43UR75{i}", days_left=20)
+        db.commit()
+        ns.refresh_expiry_notifications(db)
+        assert _types(db) == ["expiry_30d"] * 3

@@ -1,10 +1,10 @@
 """Customers' original documents (invoice, warranty card, photos) and where their bytes are kept.
 
 `DOCUMENT_STORE` picks the backend for new files:
-- "local" (default, unchanged behaviour): the file stays in data/uploads on the app's disk. On a host without
-  a persistent volume (Railway by default) these files are lost on every redeploy.
-- "db": the bytes are stored in the `documents` row (Postgres BYTEA / SQLite BLOB), so they are kept with
-  the database and its backups.
+- "db" (default): the bytes are stored in the `documents` row (Postgres BYTEA / SQLite BLOB), so they are kept
+  with the database and its backups and survive redeploys.
+- "local" (only when set explicitly): the file stays in data/uploads on the app's disk. On a host without a
+  persistent volume (Railway by default) these files are lost on every redeploy.
 - "s3": via `object_store.put_bytes` (OBJECT_STORE_* settings); falls back to local when not configured.
 
 Every read checks the owner. A document whose bytes are gone is listed as "no longer available".
@@ -44,8 +44,8 @@ UPLOADS_DIR = Path(__file__).resolve().parents[2] / "data" / "uploads"
 
 
 def backend() -> str:
-    value = (os.getenv("DOCUMENT_STORE") or "local").strip().lower()
-    return value if value in ("local", "db", "s3") else "local"
+    value = (os.getenv("DOCUMENT_STORE") or "db").strip().lower()
+    return value if value in ("local", "db", "s3") else "db"
 
 
 def kind_for_artifact(artifact_type: Optional[str], suffix: str = "") -> str:
@@ -192,3 +192,40 @@ def delete(db: Session, doc: DocumentDB) -> None:
                 pass
     db.delete(doc)
     db.commit()
+
+
+def recover_old_uploads(db: Session, *, owner: str, warranty_id: str) -> List[dict]:
+    """Invoices uploaded before "My documents" existed have no document row, only the upload job's file path.
+    A file still on disk is saved now (so it survives the next redeploy); a file that is gone is listed as
+    "no longer available" so the owner knows to upload it again. Returns those placeholder entries."""
+    from ..db_models import PipelineJobDB
+
+    if db.query(DocumentDB.id).filter_by(owner_user_id=owner, warranty_id=warranty_id, kind="invoice").first():
+        return []
+    missing = []
+    jobs = (
+        db.query(PipelineJobDB)
+        .filter(PipelineJobDB.warranty_id == warranty_id, PipelineJobDB.source_path.isnot(None))
+        .order_by(PipelineJobDB.created_at.desc())
+        .all()
+    )
+    for job in jobs:
+        path = Path(job.source_path)
+        if path.is_file():
+            save(db, owner=owner, warranty_id=warranty_id, kind="invoice", filename=f"invoice{path.suffix.lower()}",
+                 data=path.read_bytes())
+            return []
+        missing.append({
+            "id": None,
+            "warranty_id": warranty_id,
+            "kind": "invoice",
+            "kind_label": KINDS["invoice"],
+            "filename": "Invoice you uploaded earlier",
+            "content_type": None,
+            "size_bytes": 0,
+            "uploaded_at": job.created_at.isoformat() if job.created_at else None,
+            "available": False,
+            "viewable": False,
+            "missing_upload": True,
+        })
+    return missing[:1]

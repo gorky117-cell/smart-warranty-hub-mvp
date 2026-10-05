@@ -32,6 +32,9 @@ def _reset():
         db.query(DocumentDB).filter(DocumentDB.owner_user_id.in_([OWNER, OTHER])).delete(synchronize_session=False)
         db.query(WarrantyOwnerDB).filter(WarrantyOwnerDB.user_id.in_([OWNER, OTHER])).delete(synchronize_session=False)
         db.query(WarrantyDB).filter(WarrantyDB.id.like("wty_doc_%")).delete(synchronize_session=False)
+        from app.db_models import PipelineJobDB
+
+        db.query(PipelineJobDB).filter(PipelineJobDB.warranty_id.like("wty_doc_%")).delete(synchronize_session=False)
         for name in (OWNER, OTHER):
             if not db.query(UserDB).filter_by(username=name).first():
                 db.add(UserDB(username=name, role="user", hashed_password=hash_password("secret123")))
@@ -139,4 +142,54 @@ def test_dashboard_has_my_documents_with_dropdown_and_owner_note(monkeypatch):
     assert '<summary>My documents</summary>' in html and "Only you can see them." in html
     assert '<select id="docKind"' in html and 'value="warranty_card"' in html  # a dropdown, not free text
     assert "loadDocuments(warrantyId);" in html  # refreshed whenever a product loads
-    assert "The original file is no longer available - please add it again." in html
+    assert "File no longer available - please upload again." in html
+
+
+def test_files_are_kept_in_the_database_by_default(monkeypatch):
+    monkeypatch.delenv("DOCUMENT_STORE", raising=False)
+    assert document_store.backend() == "db"
+    monkeypatch.setenv("DOCUMENT_STORE", "nonsense")
+    assert document_store.backend() == "db"
+    monkeypatch.setenv("DOCUMENT_STORE", "local")  # disk only when set explicitly
+    assert document_store.backend() == "local"
+    monkeypatch.delenv("DOCUMENT_STORE", raising=False)
+    client, auth = _client(OWNER)
+    doc = client.post("/warranties/wty_doc_printer/documents", files={"file": FILES["photo"]}, data={"kind": "photo"}, headers=auth).json()
+    with SessionLocal() as db:
+        row = db.query(DocumentDB).filter_by(id=doc["id"]).one()
+        assert row.storage == "db" and row.data == FILES["photo"][1] and row.location is None
+
+
+def _old_upload_job(wid, path):
+    from datetime import datetime
+
+    from app.db_models import PipelineJobDB
+
+    with SessionLocal() as db:
+        db.query(PipelineJobDB).filter_by(warranty_id=wid).delete()
+        db.add(PipelineJobDB(id=f"job_{wid}", warranty_id=wid, source_path=str(path), status="done",
+                             created_at=datetime(2026, 5, 2, 10, 30)))
+        db.commit()
+
+
+def test_old_upload_gone_says_upload_again(tmp_path, monkeypatch):
+    monkeypatch.delenv("DOCUMENT_STORE", raising=False)
+    _old_upload_job("wty_doc_phone", tmp_path / "upload_gone.pdf")  # the file was lost in a redeploy
+    client, auth = _client(OWNER)
+    docs = client.get("/warranties/wty_doc_phone/documents", headers=auth).json()["documents"]
+    assert docs == [{**docs[0], "id": None, "kind": "invoice", "available": False, "missing_upload": True}]
+    assert docs[0]["uploaded_at"].startswith("2026-05-02")
+    other, other_auth = _client(OTHER)
+    assert other.get("/warranties/wty_doc_phone/documents", headers=other_auth).status_code == 404
+
+
+def test_old_upload_still_on_disk_is_saved_to_the_database(tmp_path, monkeypatch):
+    monkeypatch.delenv("DOCUMENT_STORE", raising=False)
+    old = tmp_path / "upload_still_here.pdf"
+    old.write_bytes(b"%PDF-1.4 old invoice")
+    _old_upload_job("wty_doc_fridge", old)
+    client, auth = _client(OWNER)
+    docs = client.get("/warranties/wty_doc_fridge/documents", headers=auth).json()["documents"]
+    assert len(docs) == 1 and docs[0]["available"] and docs[0]["kind"] == "invoice"
+    old.unlink()  # a later redeploy: the copy in the database still opens
+    assert client.get(f"/documents/{docs[0]['id']}/file", headers=auth).content == b"%PDF-1.4 old invoice"

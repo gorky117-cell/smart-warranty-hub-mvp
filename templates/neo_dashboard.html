@@ -2042,11 +2042,11 @@
             const url = `/documents/${encodeURIComponent(d.id)}/file`;
             const actions = d.available
               ? `${d.viewable ? `<a href="${url}" target="_blank" rel="noopener">View</a> · ` : ''}<a href="${url}?download=1">Download</a> · `
-              : '<em>The original file is no longer available - please add it again.</em> · ';
+              : '<em>File no longer available - please upload again.</em>' + (d.id ? ' · ' : '');
             return `<div class="doc-row" style="padding:6px 0;border-bottom:1px solid #e5e7eb;">
                 <strong>${escapeHtml(d.kind_label)}</strong> - ${escapeHtml(d.filename)}
-                <span class="helper">(added ${escapeHtml(when)}, ${formatSize(d.size_bytes)})</span><br>
-                ${actions}<a href="javascript:void(0)" data-doc-delete="${escapeHtml(d.id)}" data-doc-name="${escapeHtml(d.filename)}">Delete</a>
+                <span class="helper">(added ${escapeHtml(when)}${d.size_bytes ? ', ' + formatSize(d.size_bytes) : ''})</span><br>
+                ${actions}${d.id ? `<a href="javascript:void(0)" data-doc-delete="${escapeHtml(d.id)}" data-doc-name="${escapeHtml(d.filename)}">Delete</a>` : ''}
               </div>`;
           }).join('');
         } catch (e) {

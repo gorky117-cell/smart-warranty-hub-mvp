@@ -269,7 +269,8 @@ def _expiry_payload(days_left: int, expiry_dt: date, label: str = "your product"
 
 def reminders_today(db: Session, user_id: str) -> int:
     """Reminders (expiry and care) already sent to this user today."""
-    since = datetime.combine(date.today(), datetime.min.time())
+    # Stored times are UTC, so the day is the UTC day (local midnight in India is 18:30 UTC the day before).
+    since = datetime.combine(datetime.utcnow().date(), datetime.min.time())
     return (
         db.query(NotificationDB.id)
         .filter(
@@ -331,7 +332,8 @@ def _distinct_user_warranty_pairs_for_expiry(db: Session, limit: int = 2000) -> 
     # product saved without either never got its 30/7-day reminders).
     from ..db_models import WarrantyOwnerDB
 
-    for user_id, warranty_id in db.query(WarrantyOwnerDB.user_id, WarrantyOwnerDB.warranty_id).limit(max(1, int(limit))).all():
+    # No limit here: every owned product is checked (EXPIRY_REMINDER_SCAN_LIMIT caps only the legacy sources).
+    for user_id, warranty_id in db.query(WarrantyOwnerDB.user_id, WarrantyOwnerDB.warranty_id).all():
         if user_id and warranty_id:
             pairs.add((str(user_id), str(warranty_id)))
     rows_a = (
@@ -371,13 +373,13 @@ def refresh_expiry_notifications(db: Session) -> Dict[str, int]:
     warranty_cache: Dict[str, Optional[WarrantyDB]] = {}
     due = []
     held_back = 0
-    for user_id, warranty_id in pairs:
+    ids = sorted({wid for _uid, wid in pairs})
+    for start in range(0, len(ids), 500):  # load products in bulk, not one query each
+        for row in db.query(WarrantyDB).filter(WarrantyDB.id.in_(ids[start:start + 500])).all():
+            warranty_cache[row.id] = row
+    for user_id, warranty_id in sorted(pairs):
         scanned += 1
-        if scanned > scan_limit:
-            break
-        if warranty_id not in warranty_cache:
-            warranty_cache[warranty_id] = db.query(WarrantyDB).filter(WarrantyDB.id == warranty_id).first()
-        w = warranty_cache[warranty_id]
+        w = warranty_cache.get(warranty_id)
         exp = resolve_expiry_date(w)
         if not exp:
             skipped_no_expiry += 1

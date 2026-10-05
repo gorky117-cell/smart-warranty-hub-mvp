@@ -3174,3 +3174,13 @@ Part 1 items 1-2 were already done in entry 97 (commits 0a9ac4bf..c7e48676); Par
 ### State at the end of entry 99
 Nothing pushed; origin/master = `03f6a0ab`. Waiting for the owner: storage switch approval, care sources
 approval, push approval (backup first; new tables documents, product_nicknames, care_guides).
+
+## 100. Owner decisions 1-4, then push after "backup done" (2026-10-06)
+- [x] 100.1 Documents in Postgres by default: document_store.backend() = "db" unless DOCUMENT_STORE=local|s3
+  (no Railway change). Old uploads (before My documents): recover_old_uploads() - a file still on disk is
+  copied into the database now; a file that is gone is listed as "Invoice you uploaded earlier" with "File no
+  longer available - please upload again." (410 uses the same words). Found while testing and fixed: (a) the
+  expiry sweep stopped after EXPIRY_REMINDER_SCAN_LIMIT unordered rows, so with many owners some products never
+  got reminders - every owned product is now checked (bulk-loaded); (b) the daily reminder cap counted from
+  local midnight while times are stored in UTC, so in India between 00:00 and 05:30 the cap never applied - UTC
+  day now. Tests: test_my_documents (+3), test_reminders (+2). Full suite 721 passed, 2 skipped.

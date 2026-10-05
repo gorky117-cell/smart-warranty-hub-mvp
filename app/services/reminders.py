@@ -69,8 +69,8 @@ def _care_sent_since(db: Session, user_id: str, since: datetime, ntype: Optional
 
 
 def refresh_care_reminders(db: Session, today: Optional[date] = None) -> Dict[str, int]:
-    today = today or date.today()
-    now = datetime.combine(today, datetime.min.time()) + timedelta(hours=9)
+    today = today or datetime.utcnow().date()
+    now = datetime.utcnow() if today == datetime.utcnow().date() else datetime.combine(today, datetime.min.time())
     stats = {"created": 0, "no_interval": 0, "expired_or_unknown": 0, "held_back": 0}
     guides = db.query(CareGuideDB).all()
     if not guides:

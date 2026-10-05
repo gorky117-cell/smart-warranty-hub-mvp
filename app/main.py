@@ -1960,8 +1960,9 @@ def _owned_document(db: Session, current: UserDB, doc_id: str) -> DocumentDB:
 @app.get("/warranties/{warranty_id}/documents", dependencies=[Depends(rbac_dependency)])
 def list_documents(warranty_id: str, db=Depends(get_db), current=Depends(require_user)):
     _require_own_product(db, current, warranty_id)
+    missing = document_store.recover_old_uploads(db, owner=current.username, warranty_id=warranty_id)
     docs = document_store.list_for(db, owner=current.username, warranty_id=warranty_id)
-    return {"documents": [document_store.describe(d) for d in docs], "kinds": document_store.KINDS}
+    return {"documents": [document_store.describe(d) for d in docs] + missing, "kinds": document_store.KINDS}
 
 
 @app.post("/warranties/{warranty_id}/documents", dependencies=[Depends(rbac_dependency)])
@@ -1997,7 +1998,7 @@ def open_document(doc_id: str, download: bool = False, db=Depends(get_db), curre
     doc = _owned_document(db, current, doc_id)
     data = document_store.read_bytes(doc)
     if data is None:
-        raise HTTPException(status_code=410, detail="The original file is no longer available. Please upload it again.")
+        raise HTTPException(status_code=410, detail="File no longer available - please upload again.")
     inline = (not download) and doc.content_type in document_store.INLINE_TYPES
     safe_name = re.sub(r'[^A-Za-z0-9._ -]', "_", doc.filename) or "document"
     return Response(
