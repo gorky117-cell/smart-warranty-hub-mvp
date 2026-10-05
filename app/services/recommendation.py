@@ -240,7 +240,10 @@ def get_recommendations_for_user(db: Session, user_id: str, warranty_id: Optiona
                 "id": rec.get("product_id", rec.get("title", "")),
                 "title": rec.get("title", ""),
                 "description": rec.get("why", rec.get("description", "")),
-                "action": rec.get("category", ""),
+                # The tip's own action ("oem_derived_care" feeds "How to look after it"); the category was
+                # put here before, which hid every terms-based care tip from the page.
+                "action": rec.get("action") or rec.get("category", ""),
+                "why": rec.get("why", rec.get("description", "")),
                 "reason": rec.get("why", rec.get("description", "")),
                 "region": rec.get("region"),
                 "risk_band": rec.get("risk_band", "MEDIUM"),

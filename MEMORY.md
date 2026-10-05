@@ -3146,3 +3146,11 @@ Part 1 items 1-2 were already done in entry 97 (commits 0a9ac4bf..c7e48676); Par
   carry-in, seller warranty, no warranty, refurbished, international, unknown brand -> "Estimated, please
   check", unknown brand on an invoice not guessed). Tests: tests/test_global_matrix.py (62: all text-PDF docs,
   all warranty types, the fixes). Full suite 715 passed, 2 skipped.
+- [x] 99.11b Browser check (local preview, seeded test customer, test values only). Seen working: product list
+  "📱 Samsung Galaxy M17e 5G - Bought 3 May 2026 from Appario Retail Private Ltd" / "🧊 LG GL-T292RPZY
+  Refrigerator - Bought 9 Jan 2026 from Croma", no ID field, nickname box, five lines (fridge tagged
+  "Estimated, please check", "Also: Compressor: 10 years"), My documents, claim PDF (200, application/pdf).
+  Two bugs found and fixed: (1) the OCR/AI/Pred chips lost `admin-only` when the health refresh rewrote their
+  classes (customers saw them); (2) BUG from 97.8+10: recommendation.py replaced each tip's action with the
+  product category, so "How to look after it" was always empty for customers - now the tip's own action is
+  kept (test added in tests/test_care_guides.py).

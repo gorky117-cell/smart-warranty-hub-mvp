@@ -107,3 +107,16 @@ def test_customers_cannot_save_guides_or_read_others_recommendations():
     other, other_auth = _client(OTHER)
     assert other.get("/recommendations?warranty_id=wty_care_phone", headers=other_auth).status_code == 403
     assert other.get(f"/recommendations?user_id={OWNER}", headers=other_auth).status_code == 403
+
+
+def test_terms_based_care_tips_reach_the_page_with_their_action():
+    """The API used to replace each tip's action with the product category, so the page (which shows
+    action == "oem_derived_care") hid every terms-based tip."""
+    with SessionLocal() as db:
+        w = db.query(WarrantyDB).filter_by(id="wty_care_tv").one()
+        w.exclusions = ["Damage caused by lightning or abnormal voltage is not covered."]
+        db.commit()
+    owner, auth = _client(OWNER)
+    recs = owner.get("/recommendations?warranty_id=wty_care_tv", headers=auth).json()["product_recommendations"]
+    care = [r for r in recs if r["action"] == "oem_derived_care"]
+    assert care and care[0]["source_label"] == "From the warranty exclusions" and care[0]["why"]
