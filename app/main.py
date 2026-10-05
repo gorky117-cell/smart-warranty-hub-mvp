@@ -3249,10 +3249,26 @@ def get_recommendations(
     return recs
 
 
+def _notification_owner(requested: str | None, current) -> str:
+    """Whose notifications: the signed-in user's own; another user's only for an admin (was any user)."""
+    if requested and requested != current.username:
+        if getattr(current, "role", None) != "admin":
+            raise HTTPException(status_code=403, detail="You can only see your own notifications")
+        return requested
+    return current.username
+
+
 @app.get("/notifications", dependencies=[Depends(require_user)])
 def get_notifications(user_id: str | None = None, only_unread: bool = True, current=Depends(require_user)):
-    uid = user_id or current.username
+    uid = _notification_owner(user_id, current)
     return notification_service.list_notifications(uid, only_unread)
+
+
+@app.get("/notifications/summary", dependencies=[Depends(require_user)])
+def get_notification_summary(user_id: str | None = None, current=Depends(require_user)):
+    """Unread notifications by type, and duplicates (same type on the same warranty, or on several uploads of
+    the same product). Counts and ids only."""
+    return notification_service.unread_summary(_notification_owner(user_id, current))
 
 
 class NotificationReadRequest(BaseModel):
@@ -3261,7 +3277,7 @@ class NotificationReadRequest(BaseModel):
 
 @app.post("/notifications/{notification_id}/read", dependencies=[Depends(require_user)])
 def mark_notification_read(notification_id: str, payload: NotificationReadRequest | None = None, current=Depends(require_user)):
-    uid = (payload.user_id if payload else None) or current.username
+    uid = _notification_owner(payload.user_id if payload else None, current)
     ok = notification_service.mark_notification_read(uid, notification_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Notification not found")

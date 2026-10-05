@@ -75,6 +75,61 @@ def _to_dict(n: NotificationDB) -> dict:
     }
 
 
+def product_key(warranty: Optional[WarrantyDB]) -> Optional[Tuple[str, str, str]]:
+    """The same product uploaded more than once (live test 1: one invoice, several warranties): brand +
+    model (or product name) + purchase date. None when any part is missing (no product-level de-dup)."""
+    if warranty is None:
+        return None
+    brand = (warranty.brand or "").strip().lower()
+    item = re.sub(r"[^a-z0-9]", "", (warranty.model_code or warranty.product_name or "").lower())
+    bought = warranty.purchase_date.date().isoformat() if getattr(warranty, "purchase_date", None) else ""
+    if not (brand and item and bought) or item == "product":
+        return None
+    return brand, item, bought
+
+
+def unread_summary(user_id: str, db: Optional[Session] = None) -> dict:
+    """Unread counts by type and duplicate groups for one user."""
+    from ..db import SessionLocal
+
+    close_db = db is None
+    db = db or SessionLocal()
+    try:
+        rows = db.query(NotificationDB).filter(NotificationDB.user_id == user_id, NotificationDB.is_read == 0).all()
+        by_type: Dict[str, int] = {}
+        for n in rows:
+            by_type[n.type] = by_type.get(n.type, 0) + 1
+        warranties = {
+            w.id: w for w in db.query(WarrantyDB).filter(WarrantyDB.id.in_({n.warranty_id for n in rows if n.warranty_id})).all()
+        } if rows else {}
+        same_warranty: Dict[Tuple[str, str], List[str]] = {}
+        same_product: Dict[Tuple[str, Tuple[str, str, str]], List[str]] = {}
+        for n in rows:
+            if not n.warranty_id or n.warranty_id not in warranties:
+                continue
+            same_warranty.setdefault((n.type, n.warranty_id), []).append(n.id)
+            key = product_key(warranties[n.warranty_id])
+            if key:
+                same_product.setdefault((n.type, key), []).append(n.id)
+        dup_warranty = [{"type": t, "warranty_id": w, "count": len(ids), "ids": ids} for (t, w), ids in same_warranty.items() if len(ids) > 1]
+        dup_product = [
+            {"type": t, "product": f"{k[0]} {k[1]} bought {k[2]}", "count": len(ids), "ids": ids}
+            for (t, k), ids in same_product.items() if len(ids) > 1
+        ]
+        return {
+            "user_id": user_id,
+            "unread_total": len(rows),
+            "unread_by_type": dict(sorted(by_type.items(), key=lambda kv: -kv[1])),
+            "duplicates_same_warranty": dup_warranty,
+            "duplicates_same_product": dup_product,
+            "extra_from_duplicates": sum(d["count"] - 1 for d in dup_product)
+            + sum(d["count"] - 1 for d in dup_warranty if not any(set(d["ids"]) <= set(p["ids"]) for p in dup_product)),
+        }
+    finally:
+        if close_db:
+            db.close()
+
+
 def _product_label(warranty: Optional[WarrantyDB], warranty_id: Optional[str]) -> str:
     if not warranty:
         return warranty_id or "Product"
@@ -345,6 +400,28 @@ def _supersede_stale_risk_notifications(
         return 0
 
 
+def _same_product_unread(db: Session, *, user_id: str, warranty_id: str, type: str, since: datetime):
+    key = product_key(db.query(WarrantyDB).filter_by(id=warranty_id).first())
+    if not key:
+        return None
+    candidates = (
+        db.query(NotificationDB)
+        .filter(
+            NotificationDB.user_id == user_id,
+            NotificationDB.type == type,
+            NotificationDB.audience == "user",
+            NotificationDB.is_read == 0,
+            NotificationDB.created_at >= since,
+            NotificationDB.warranty_id != warranty_id,
+        )
+        .all()
+    )
+    if not candidates:
+        return None
+    others = {w.id: w for w in db.query(WarrantyDB).filter(WarrantyDB.id.in_({c.warranty_id for c in candidates})).all()}
+    return next((c for c in candidates if product_key(others.get(c.warranty_id)) == key), None)
+
+
 def create_notification(
     user_id: str,
     warranty_id: str,
@@ -384,6 +461,11 @@ def create_notification(
         )
         if existing:
             return _to_dict(existing)
+        if (audience or "user") == "user" and warranty_id:
+            # The same product uploaded again (another warranty row): do not repeat the same alert.
+            twin = _same_product_unread(db, user_id=user_id, warranty_id=warranty_id, type=type, since=window_start)
+            if twin is not None:
+                return _to_dict(twin)
         _supersede_stale_risk_notifications(
             db,
             user_id=user_id,

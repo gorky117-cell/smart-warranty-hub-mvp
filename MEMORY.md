@@ -2948,6 +2948,21 @@ evidence/purchase date; all care tips "MEDIUM"; two note boxes describing notes 
     question about battery swelling; `_probable_issue` maps the new options.
   - Tests: tests/test_customer_ui.py (page markup gating, session role, phone options, form, session API).
 
+- [x] 97.4 Notifications. The owner's production account (59 unread) could not be counted from here (no
+  production credentials). Code review + local DBs: alerts are de-duplicated per (user, warranty, type, unread,
+  7 days), so every re-upload of the same invoice (a new warranty row) repeated onboarding / risk / expiry
+  alerts (local partd.db: 8 "warranty_onboarded" for 8 uploads); admin accounts also get OEM/KPI alerts.
+  - Fix: `notifications.product_key` (brand + model or product name + purchase date); `create_notification`
+    skips an alert when the same user already has an unread one of that type within 7 days for the same product
+    on another warranty (user audience only; needs all three parts; a different model or purchase date is a
+    different product).
+  - New GET /notifications/summary: unread_total, unread_by_type, duplicates_same_warranty,
+    duplicates_same_product (ids), extra_from_duplicates - the owner can open it in the browser while signed in.
+  - SECURITY FIX found here: GET /notifications?user_id=<anyone> and POST /notifications/{id}/read with a
+    user_id let any signed-in user read/mark another user's notifications. Now `_notification_owner`: own only;
+    another user's only for an admin (403 otherwise).
+  - Tests: tests/test_notification_dedup.py (3).
+
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
@@ -2956,5 +2971,6 @@ evidence/purchase date; all care tips "MEDIUM"; two note boxes describing notes 
 | 97.6 | `13cd7ebd` | 502 passed, 2 skipped (+2) | Easy summary: Pros/Limits, phone limits, no filler. |
 | 97.7 | `4dc3f37f` | 504 passed, 2 skipped (+2) | Claim wording when the serial is not confirmed. |
 | 97.9 | `6dd21ea2` | 506 passed, 2 skipped (+2) | Export with source/date/evidence/disclaimer; grounded limits. |
-| 97.2-3 | (next) | 511 passed, 2 skipped (+5) | Admin-only detail; guided check form and per-product options. |
+| 97.2-3 | `ce941e6b` | 511 passed, 2 skipped (+5) | Admin-only detail; guided check form and per-product options. |
+| 97.4 | (next) | 514 passed, 2 skipped (+3) | Product-level alert de-dup; summary; notification access fix. |
 
