@@ -1054,6 +1054,23 @@
           <div class="helper"><a href="javascript:void(0)" data-role="open-fullview" data-target="advisories"
               data-title="Care tips">Open in full view</a></div>
         </details>
+        <details id="myDocuments">
+          <summary>My documents</summary>
+          <div class="helper">Your bill, warranty card and photos for this product. Only you can see them.</div>
+          <div id="docList" class="helper">Load a product to see its documents.</div>
+          <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+            <select id="docKind" aria-label="What is this document?">
+              <option value="invoice">Invoice / bill</option>
+              <option value="warranty_card">Warranty card</option>
+              <option value="photo">Photo of the product</option>
+              <option value="manual">User manual</option>
+              <option value="other">Other document</option>
+            </select>
+            <input id="docFile" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.docx" aria-label="Choose a file">
+            <button type="button" class="btn" id="docAddBtn">Add document</button>
+          </div>
+          <div id="docStatus" class="helper"></div>
+        </details>
       </div>
     </details>
 
@@ -1911,6 +1928,72 @@
         }
       }
 
+      // --- My documents: the owner's originals for the loaded product ---
+      function formatSize(bytes) {
+        const n = Number(bytes) || 0;
+        return n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
+      }
+
+      async function loadDocuments(warrantyId) {
+        const list = document.getElementById('docList');
+        if (!list) return;
+        list.dataset.warrantyId = warrantyId || '';
+        if (!warrantyId) { list.textContent = 'Load a product to see its documents.'; return; }
+        list.textContent = 'Loading your documents...';
+        try {
+          const res = await fetch(`/warranties/${encodeURIComponent(warrantyId)}/documents`, { headers: h() });
+          if (!res.ok) { list.textContent = 'We could not load your documents.'; return; }
+          const docs = (await res.json()).documents || [];
+          if (!docs.length) { list.textContent = 'No documents saved for this product yet.'; return; }
+          list.innerHTML = docs.map((d) => {
+            const when = d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString() : '';
+            const url = `/documents/${encodeURIComponent(d.id)}/file`;
+            const actions = d.available
+              ? `${d.viewable ? `<a href="${url}" target="_blank" rel="noopener">View</a> · ` : ''}<a href="${url}?download=1">Download</a> · `
+              : '<em>The original file is no longer available - please add it again.</em> · ';
+            return `<div class="doc-row" style="padding:6px 0;border-bottom:1px solid #e5e7eb;">
+                <strong>${escapeHtml(d.kind_label)}</strong> - ${escapeHtml(d.filename)}
+                <span class="helper">(added ${escapeHtml(when)}, ${formatSize(d.size_bytes)})</span><br>
+                ${actions}<a href="javascript:void(0)" data-doc-delete="${escapeHtml(d.id)}" data-doc-name="${escapeHtml(d.filename)}">Delete</a>
+              </div>`;
+          }).join('');
+        } catch (e) {
+          list.textContent = 'We could not load your documents.';
+        }
+      }
+
+      document.addEventListener('click', async (event) => {
+        const link = event.target.closest && event.target.closest('[data-doc-delete]');
+        if (!link) return;
+        if (!window.confirm(`Delete "${link.dataset.docName}"? This cannot be undone.`)) return;
+        const res = await fetch(`/documents/${encodeURIComponent(link.dataset.docDelete)}`, { method: 'DELETE', headers: h() });
+        const status = document.getElementById('docStatus');
+        if (status) status.textContent = res.ok ? 'Document deleted.' : 'We could not delete it. Please try again.';
+        loadDocuments(document.getElementById('docList')?.dataset.warrantyId);
+      });
+
+      document.addEventListener('click', async (event) => {
+        if (!event.target || event.target.id !== 'docAddBtn') return;
+        const warrantyId = document.getElementById('docList')?.dataset.warrantyId;
+        const file = document.getElementById('docFile')?.files?.[0];
+        const status = document.getElementById('docStatus');
+        if (!warrantyId) { status.textContent = 'Load a product first.'; return; }
+        if (!file) { status.textContent = 'Choose a file first.'; return; }
+        const form = new FormData();
+        form.append('file', file);
+        form.append('kind', document.getElementById('docKind').value);
+        status.textContent = 'Saving...';
+        const res = await fetch(`/warranties/${encodeURIComponent(warrantyId)}/documents`, { method: 'POST', headers: h(), body: form });
+        if (res.ok) {
+          status.textContent = 'Document saved.';
+          document.getElementById('docFile').value = '';
+        } else {
+          const detail = (await res.json().catch(() => ({}))).detail;
+          status.textContent = typeof detail === 'string' ? detail : 'We could not save it. Please try again.';
+        }
+        loadDocuments(warrantyId);
+      });
+
       function escapeHtml(value) {
         return String(value || '')
           .replace(/&/g, '&amp;')
@@ -2451,6 +2534,7 @@
           loadBehaviourQuestion();
           console.info('neo-dashboard: fetch recommendations', { warrantyId, userId });
           fetchRecommendations();
+          loadDocuments(warrantyId);
           fetchResolutionChecklist();
           if (isEV) { fetchEvScore(); }
           console.info('neo-dashboard: fetch notifications', { userId });

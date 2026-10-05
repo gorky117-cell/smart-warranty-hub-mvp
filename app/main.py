@@ -148,7 +148,9 @@ from .db_models import (
     RiskSnapshotDB,
     NotificationDB,
     WarrantyOwnerDB,
+    DocumentDB,
 )
+from .services import document_store
 
 
 class ArtifactRequest(BaseModel):
@@ -1875,6 +1877,81 @@ def _placeholder_upload_warranty(artifact) -> CanonicalWarranty:
     return store.add_warranty(warranty)
 
 
+def _require_own_product(db: Session, current: UserDB, warranty_id: str) -> None:
+    """Documents are owner-only (also for admin/OEM/TPA accounts): not the owner -> 404."""
+    if not db.query(WarrantyOwnerDB).filter_by(user_id=current.username, warranty_id=warranty_id).first():
+        raise HTTPException(status_code=404, detail="Product not found")
+
+
+def _owned_document(db: Session, current: UserDB, doc_id: str) -> DocumentDB:
+    """Owner only: another user's document answers 404, the same as one that does not exist."""
+    doc = document_store.get_owned(db, owner=current.username, doc_id=doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return doc
+
+
+@app.get("/warranties/{warranty_id}/documents", dependencies=[Depends(rbac_dependency)])
+def list_documents(warranty_id: str, db=Depends(get_db), current=Depends(require_user)):
+    _require_own_product(db, current, warranty_id)
+    docs = document_store.list_for(db, owner=current.username, warranty_id=warranty_id)
+    return {"documents": [document_store.describe(d) for d in docs], "kinds": document_store.KINDS}
+
+
+@app.post("/warranties/{warranty_id}/documents", dependencies=[Depends(rbac_dependency)])
+async def add_document(
+    request: Request,
+    warranty_id: str,
+    file: UploadFile = File(...),
+    kind: str = Form(default="other"),
+    db=Depends(get_db),
+    current=Depends(require_user),
+):
+    """Add a warranty card, photo or other document to a product the user owns (no invoice reading)."""
+    check_rate_limit("upload", request, current.username)
+    _require_own_product(db, current, warranty_id)
+    filename = Path(file.filename or "document").name
+    if Path(filename).suffix.lower() not in _UPLOAD_SUFFIXES:
+        raise HTTPException(status_code=415, detail="Please add a PDF, photo, text file or Word document.")
+    data = b""
+    while chunk := await file.read(_UPLOAD_CHUNK_BYTES):
+        data += chunk
+        if len(data) > _UPLOAD_MAX_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"This file is too large. The limit is {_UPLOAD_MAX_BYTES // (1024 * 1024)} MB.",
+            )
+    await file.close()
+    doc = document_store.save(db, owner=current.username, warranty_id=warranty_id, kind=kind, filename=filename, data=data)
+    return document_store.describe(doc)
+
+
+@app.get("/documents/{doc_id}/file", dependencies=[Depends(rbac_dependency)])
+def open_document(doc_id: str, download: bool = False, db=Depends(get_db), current=Depends(require_user)):
+    doc = _owned_document(db, current, doc_id)
+    data = document_store.read_bytes(doc)
+    if data is None:
+        raise HTTPException(status_code=410, detail="The original file is no longer available. Please upload it again.")
+    inline = (not download) and doc.content_type in document_store.INLINE_TYPES
+    safe_name = re.sub(r'[^A-Za-z0-9._ -]', "_", doc.filename) or "document"
+    return Response(
+        content=data,
+        media_type=doc.content_type,
+        headers={
+            "Content-Disposition": f'{"inline" if inline else "attachment"}; filename="{safe_name}"',
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, no-store",
+        },
+    )
+
+
+@app.delete("/documents/{doc_id}", dependencies=[Depends(rbac_dependency)])
+def delete_document(doc_id: str, db=Depends(get_db), current=Depends(require_user)):
+    doc = _owned_document(db, current, doc_id)
+    document_store.delete(db, doc)
+    return {"deleted": doc_id}
+
+
 def _initial_analysis_after_job(user_id: str, warranty_id: str) -> None:
     """Run onboarding/risk/expiry notifications once the pipeline has filled the warranty."""
     try:
@@ -1957,7 +2034,19 @@ async def upload_artifact(
             owner_db.commit()
     except Exception:
         pass
-    
+    # Keep the original so the owner can view, download or delete it later ("My documents").
+    try:
+        document_store.save(
+            db,
+            owner=current.username,
+            warranty_id=warranty.id,
+            kind=document_store.kind_for_artifact(type, suffix),
+            filename=original_filename,
+            local_path=dest,
+        )
+    except Exception:
+        db.rollback()
+
     job = invoice_pipeline.create_job(
         db,
         warranty_id=warranty.id,

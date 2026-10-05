@@ -2996,3 +2996,38 @@ evidence/purchase date; all care tips "MEDIUM"; two note boxes describing notes 
 | 97.4 | `c5f7da96` | 514 passed, 2 skipped (+3) | Product-level alert de-dup; summary; notification access fix. |
 | 97.8+10+11 | (next) | 518 passed, 2 skipped (+4) | Grounded, ranked care tips; care section; notes wording. |
 
+
+## 98. Customer experience run (started 2026-10-05)
+Local commits, full tests after each step, no push. GLOBAL RULE from the owner for every step: fix the general
+cause (any product, OEM, invoice, warranty type); brand-specific code only when unavoidable, named and tested;
+test on a mix of product types, >=3 brands, text/scanned/photo, marketplace/shop invoices and warranty types;
+say in the report when a rule cannot be made general yet.
+
+### Checklist
+- [x] 98.1 Document storage (read-only check; NO change to where files go until the owner approves).
+  - `POST /artifacts/upload` (app/main.py ~1890) writes the file to `<repo>/data/uploads/upload_<id>.<ext>`
+    = `/app/data/uploads` in the container. The Dockerfile has no VOLUME and the repo has no railway.toml/json;
+    a Railway volume can only be set in the dashboard (not visible from here). Without a volume mounted at
+    /app/data, every redeploy starts with an empty folder: all originals are lost.
+  - No database row says which file belongs to which warranty or user: `artifacts` keeps only the extracted
+    text; only `invoice_jobs.source_path` holds the disk path. So even files that survive cannot be listed
+    per warranty, and older warranties have no original to show.
+  - `object_store.put_bytes` (local or S3/R2 via OBJECT_STORE_* env, boto3 installed) exists but is used
+    only by the review crawler.
+  - Proposal (needs approval): new `documents` table (owner, warranty, kind, file name, type, size, sha256,
+    uploaded_at) + a document store with three backends: `local` (today's behaviour, default), `db` (bytes in
+    Postgres, recommended now: no new service or secrets, covered by the existing pg_dump backup, deleted with
+    the row; 10 MB upload cap keeps it manageable) and `s3` (via object_store, for later at scale; needs a
+    bucket + keys set by the owner). Switch = env `DOCUMENT_STORE=db` set by the owner on Railway.
+- [x] 98.2 My documents. New `documents` table (DocumentDB; new table only, created by create_all, no ALTER),
+  `app/services/document_store.py` (backends local [default, unchanged] / db / s3 via DOCUMENT_STORE),
+  endpoints GET/POST /warranties/{id}/documents, GET /documents/{id}/file (?download=1), DELETE /documents/{id}.
+  Owner-only, also for admin/OEM/TPA accounts (404 for anyone else). Invoice uploads keep their original.
+  Same file twice for the same product is stored once. A file lost on redeploy shows "no longer available" (410).
+  Dashboard: "My documents" panel with a type dropdown, view/download/delete, upload date and size.
+  S3 delete of the bytes is not implemented yet (row is removed). Tests: tests/test_my_documents.py (8).
+  Full suite 526 passed, 2 skipped.
+- [ ] 98.7 STARTED, not committed: app/services/product_naming.py (short names, nickname, "Bought <date>
+  from <seller>", icons, support ref) - untracked, not wired in. Found a general taxonomy bug to fix next:
+  infer_product_category puts "Inverter" fridges/ACs under "inverter" (and "ups" matches as a substring).
+- [ ] 98.3-98.6 not started (plain language, 5-line summary, product care design + source list, reminders).

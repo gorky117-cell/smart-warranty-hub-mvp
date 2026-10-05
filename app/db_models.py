@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 import os
 
-from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text, UniqueConstraint, ForeignKey, JSON
+from sqlalchemy import Boolean, Column, DateTime, Float, Integer, LargeBinary, String, Text, UniqueConstraint, ForeignKey, JSON
 from sqlalchemy.dialects.sqlite import JSON as SqliteJSON
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -393,6 +393,29 @@ class VerifiedTermsReviewDB(Base):
     status: Mapped[str] = mapped_column(String, default="pending", index=True)  # pending / accepted / dismissed
     resolved_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
+class DocumentDB(Base):
+    """An original file a customer uploaded for a product (invoice, warranty card, photo).
+
+    The bytes live where `storage` says: "local" (path in `location`), "db" (`data`) or "s3" (`location` URI).
+    Only the owner can list, open or delete it.
+    """
+
+    __tablename__ = "documents"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    owner_user_id: Mapped[str] = mapped_column(String, index=True)
+    warranty_id: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    kind: Mapped[str] = mapped_column(String, default="other")  # invoice / warranty_card / photo / manual / other
+    filename: Mapped[str] = mapped_column(String)
+    content_type: Mapped[str] = mapped_column(String, default="application/octet-stream")
+    size_bytes: Mapped[int] = mapped_column(Integer, default=0)
+    sha256: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    storage: Mapped[str] = mapped_column(String, default="local")
+    location: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    data = Column(LargeBinary, nullable=True)
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
 
 class WarrantySummaryDB(Base):
