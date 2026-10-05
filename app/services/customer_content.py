@@ -56,13 +56,22 @@ def clean_claim_steps(steps: List[str], in_warranty: Optional[bool]) -> List[str
 
 # --- terms and exclusions (item 5) ---------------------------------------------------------------------------
 
-# Wording that only fits appliances (a phone has no "machine or cabinet" and is not installed on a site).
-_APPLIANCE_WORDING = re.compile(
-    r"\bmachine or cabinet\b|\bcabinet\b|\bmachine/unit\b|\bcompressor\b|\binstallation\b|\boutdoor unit\b|"
-    r"\bindoor unit\b|\bsite \(premises\b|\bhard disk\b",
-    re.IGNORECASE,
-)
-# The international/overseas clause is not the buyer's local warranty.
+# Brand pages often cover several product types. A term that names a part or wording only some product
+# types have belongs to another product on the page, so it is dropped for product lines that do not have it
+# (run 3 global check: was phones only). Nothing is dropped when the product line is unknown.
+_APPLIANCES = {"fridge", "air_conditioner", "washing_machine", "microwave", "water_heater", "heater", "fan", "cooler",
+               "purifier", "kitchen_appliance", "appliance", "tv", "inverter"}
+PART_LINES = [
+    (re.compile(r"\bcompressor\b|\brefrigerant\b|\bgas (?:charging|leak)", re.I), {"fridge", "air_conditioner", "appliance"}),
+    (re.compile(r"\boutdoor unit\b|\bindoor unit\b", re.I), {"air_conditioner"}),
+    (re.compile(r"\bmachine or cabinet\b|\bcabinet\b|\bmachine/unit\b|\bsite \(premises\b|\binstallation\b", re.I), _APPLIANCES),
+    (re.compile(r"\bhard dis[kc]\b", re.I), {"laptop"}),
+    (re.compile(r"\bdrum\b", re.I), {"washing_machine", "printer"}),
+    (re.compile(r"\bmagnetron\b", re.I), {"microwave"}),
+    (re.compile(r"\bprint ?head\b|\bink (?:cartridge|tank|bottle)s?\b", re.I), {"printer"}),
+]
+# The international/overseas clause is about products bought in another country, not the buyer's local
+# warranty (any product line).
 _INTERNATIONAL = re.compile(
     r"\binternational\b[^.]{0,40}\bwarranty\b|regardless of the warranty period of the country|"
     r"country where the product was (?:first )?sold|\boverseas\b",
@@ -102,13 +111,29 @@ def _jaccard(a: set, b: set) -> float:
     return len(a & b) / len(a | b) if (a | b) else 0.0
 
 
-def clean_terms(items: List[str], *, phone: bool) -> List[str]:
+def product_line_of(warranty) -> Optional[str]:
+    from .terms_cache import product_line
+
+    return product_line(getattr(warranty, "model_code", None), getattr(warranty, "product_name", None))
+
+
+def belongs_to_other_products(text: str, line: Optional[str]) -> bool:
+    if not line:
+        return False
+    return any(pattern.search(text) and line not in lines for pattern, lines in PART_LINES)
+
+
+def clean_terms(items: List[str], *, line: Optional[str] = None, phone: Optional[bool] = None) -> List[str]:
+    """Drop garbled fragments, the bought-abroad clause, terms about other product types, near-duplicates.
+    `phone=True` is the older call form for line="smartphone"."""
+    if phone:
+        line = line or "smartphone"
     out = []
     for raw in items or []:
         text = _clean(raw)
-        if not text or _GARBLED.search(text):
+        if not text or _GARBLED.search(text) or _INTERNATIONAL.search(text):
             continue
-        if phone and (_APPLIANCE_WORDING.search(text) or _INTERNATIONAL.search(text)):
+        if belongs_to_other_products(text, line):
             continue
         out.append(text)
     return drop_near_duplicates(out)
@@ -140,7 +165,7 @@ def tidy(warranty):
             f"Contact {brand} support or an authorized service center to raise a claim.",
         ]
     warranty.claim_steps = steps
-    phone = is_phone(warranty)
+    line = product_line_of(warranty)
     coverage = getattr(warranty, "coverage_months", None)
     terms = [
         t for t in (warranty.terms or [])
@@ -148,8 +173,8 @@ def tidy(warranty):
         if not (m := re.match(r"^\s*standard coverage for (\d+) months", str(t), re.IGNORECASE)) or not coverage
         or int(m.group(1)) == int(coverage)
     ]
-    warranty.terms = clean_terms(terms, phone=phone)
-    warranty.exclusions = clean_terms(list(warranty.exclusions or []), phone=phone)
+    warranty.terms = clean_terms(terms, line=line)
+    warranty.exclusions = clean_terms(list(warranty.exclusions or []), line=line)
     return warranty
 
 

@@ -60,6 +60,9 @@ _SPEC_ONLY_PATTERNS = (
     r"^(refresh\s+rate|resolution|capacity|colour|color|size|variant)\b",
     r"^\d+\s*(no|nos|pcs|piece|pieces|qty|quantity)$",
     r"^\d{1,3}$",
+    # Processor names are specs of laptops and phones, never the product's model (run 3 global check).
+    r"^i[3579]-?\d{4,5}[a-z]{0,2}$",
+    r"^(?:intel|amd|ryzen|core|celeron|pentium|athlon|snapdragon|helio|dimensity|exynos|tensor)\b",
 )
 
 
@@ -571,7 +574,8 @@ def _model_candidate_from_line(line: str, brand: Optional[str]) -> Tuple[Optiona
     code_text = _MARKETING_MODEL_RE.sub(" ", text) if marketing else text
     for match in _PRINTED_CODE_RE.finditer(code_text.upper()):
         candidate = _drop_spec_suffix(match.group(1))
-        if not _is_spec_only(candidate) and not re.fullmatch(r"\d+", candidate) and not is_listing_code(candidate):
+        if (not _is_spec_only(candidate) and not re.fullmatch(r"\d+", candidate) and not is_listing_code(candidate)
+                and not re.fullmatch(r"[A-Z]{1,5}\d+(?:\.\d+)?(?:KG|L|LTR|W|GB|TB|MAH)", candidate)):
             return candidate, "code"
     if marketing:
         # "Note" is part of the series name ("Redmi Note 12 Pro" is not a "Redmi 12 Pro").
@@ -586,10 +590,16 @@ def _model_candidate_from_line(line: str, brand: Optional[str]) -> Tuple[Optiona
         r"\b([A-Z0-9]{2,}-[A-Z0-9\-]{2,}(?:/[A-Z0-9]{1,6})*)\b",
     )
     for pat in patterns:
-        m = re.search(pat, text)
-        if m:
-            candidate = _drop_spec_suffix(_normalize_spaces(m.group(1)).replace(" ", "").upper())
+        for m in re.finditer(pat, text):
+            raw = m.group(1)
+            # "Monza EC 15L": a series word followed by a capacity is not a model code ("EC15L").
+            if re.search(r"\s", raw.strip()) and _is_spec_only(re.sub(r"^[A-Za-z]{1,5}\s*-?\s*", "", raw.strip())):
+                continue
+            candidate = _drop_spec_suffix(_normalize_spaces(raw).replace(" ", "").upper())
             if _is_spec_only(candidate):
+                continue
+            # Letters glued to a capacity ("WXS7KG", "EC15L"): a series name plus a size, not a model code.
+            if re.fullmatch(r"[A-Z]{1,5}\d+(?:\.\d+)?(?:KG|L|LTR|W|GB|TB|MAH)", candidate):
                 continue
             return candidate, "code"
     return None, ""

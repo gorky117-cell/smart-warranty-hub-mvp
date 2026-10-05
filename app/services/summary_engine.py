@@ -442,11 +442,17 @@ def _join(names: List[str]) -> str:
 
 
 def limits_from_text(text: str, *, phone: bool = False) -> List[str]:
+    """Short "not covered" lines naming only what the text names. Works for any product (`phone` is kept for
+    older callers and no longer changes anything)."""
     low = (text or "").lower()
     out: List[str] = []
     if re.search(r"wear and tear|wear & tear|normal wear", low):
         parts = _found(low, ((r"camera lens", "camera lenses"), (r"batter(?:y|ies)", "batteries"), (r"display", "displays"),
-                             (r"screen", "screens")))
+                             (r"screen", "screens"), (r"filters?\b", "filters"), (r"lamps?\b|bulbs?\b", "lamps and bulbs"),
+                             (r"knobs?\b", "knobs"), (r"gaskets?\b", "gaskets"), (r"rubber", "rubber parts"),
+                             (r"plastic", "plastic parts"), (r"remote", "remotes"), (r"belts?\b", "belts"),
+                             (r"brushes\b|brush\b", "brushes"), (r"cartridges?\b", "cartridges"),
+                             (r"cables?\b|cords?\b", "cables")))
         out.append(f"Normal wear and tear{' of ' + _join(parts) if parts else ''} is not covered.")
     causes = _found(low, ((r"lightning", "lightning"), (r"abnormal voltage", "abnormal voltage"),
                           (r"power surge", "power surges"), (r"voltage fluctuation", "voltage fluctuations")))

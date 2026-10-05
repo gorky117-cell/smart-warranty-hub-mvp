@@ -193,6 +193,9 @@ def infer_product_category(warranty: Dict) -> str:
         return "fan"
     if any(k in joined for k in ["air cooler", "desert cooler", "cooler"]):
         return "cooler"
+    # "1.5 Ton" is an air conditioner's size, whatever else the line says ("1.5 Ton Inverter Split AC").
+    if re.search(r"\b\d(?:\.\d)?\s*tons?\b", joined):
+        return "air_conditioner"
     # "Inverter" is also a technology word in fridges, ACs, washing machines and microwaves ("Smart Inverter
     # Double Door Refrigerator", "Inverter Split AC"): a power inverter/UPS only when no appliance is named.
     if re.search(r"\b(?:inverter|ups|home ups)\b", joined) and not re.search(
@@ -200,7 +203,13 @@ def infer_product_category(warranty: Dict) -> str:
         joined,
     ):
         return "inverter"
-    if "phone" in name or "phone" in pt or "galaxy" in name or "iphone" in name or "sm-" in model:
+    tablet = re.search(r"\btab\b|\btablet\b|\bipad\b|\bgalaxy tab", joined)
+    if not tablet and ("phone" in name or "phone" in pt or "galaxy" in name or "iphone" in name or "sm-" in model):
+        return "smartphone"
+    # Marketplace phone titles often never say "phone" ("Redmi 13C (4GB RAM, 128GB Storage)"): RAM plus storage
+    # without any computer or tablet word is a phone (run 3 global check; no brand list needed).
+    if (re.search(r"\b\d+\s*gb\s*ram\b", joined) and re.search(r"\b\d+\s*(?:gb|tb)\s*(?:storage|rom)\b", joined)
+            and not re.search(r"laptop|notebook|\bssd\b|\bhdd\b|intel|ryzen|core i\d|tablet|\btab\b|ipad|desktop|monitor", joined)):
         return "smartphone"
     if "laptop" in name or "notebook" in name or "laptop" in pt:
         return "laptop"

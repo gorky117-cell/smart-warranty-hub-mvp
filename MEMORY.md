@@ -3120,3 +3120,29 @@ Part 1 items 1-2 were already done in entry 97 (commits 0a9ac4bf..c7e48676); Par
   for expired or undated products (expired ones get only the one "ended" notice). Telemetry-triggered risk
   notification no longer says "Predictive model flagged ... for warranty wty_...".
   Tests: tests/test_reminders.py (16). Full suite 653 passed, 2 skipped.
+- [x] 99.11 Global check. Review of the M17e/Redmi changes -> made general here:
+  (a) customer_content.clean_terms: appliance wording/international clause were dropped for phones only ->
+  PART_LINES (compressor/refrigerant: fridge+AC; outdoor/indoor unit: AC; cabinet/installation/site: appliances
+  incl. TV; hard disk: laptop; drum: washer+printer; magnetron: microwave; print head/ink: printer) dropped for
+  any line that lacks the part; unknown line -> nothing dropped; the bought-abroad clause for every product.
+  (b) limits_from_text wear-and-tear parts were phone parts only -> + filters, lamps/bulbs, knobs, gaskets,
+  rubber/plastic parts, remotes, belts, brushes, cartridges, cables (still only what the text names).
+  (c) taxonomy: phones from "N GB RAM + N GB storage" without computer/tablet words (no brand list); tablets
+  never phones; "1.5 Ton" -> air conditioner. (d) model extraction: processor codes (i5-1235U, Ryzen...) are
+  specs; a series glued to a size ("EC 15L", "WXS7kg") is not a model.
+  Still brand-specific, named and documented: brand_registry.MAKER_OF_LINE (Redmi/POCO -> Xiaomi);
+  ingestion._MARKETING_MODEL_RE series list (Galaxy, iPhone, Pixel, Redmi, Note, Bravia, Vivobook, Ideapad,
+  Inspiron, Pavilion; pre-existing, general fallback after it); warranty_parser.PRODUCT_SECTION_HEADINGS
+  (heading words seen on Samsung's multi-product page; other wording -> whole page as before); taxonomy phone
+  words galaxy/iphone/sm- (pre-existing); the Epson "serial under the line item" exception (pre-existing).
+  Synthetic set: scripts/global_check.py -> docs/GLOBAL_CHECK.md. 27 products (9 categories x 3 brands),
+  marketplace + shop invoice, text PDF / scanned PDF / phone photo = 162 documents via the app's own OCR and
+  extraction (local OCR = Tesseract; PaddleOCR fails locally and falls back). Measured: text PDF 54/54 all
+  checks; scanned PDF 45/54; phone photo 42/54; invoice number and purchase date 162/162. Remaining failures
+  are OCR character confusions in codes (O/0, I/1: MTPO3HN/A, 82RKOOVWIN, OC1A3..., GHWAMECWHO015,
+  TS-QI9YNZE), one truncated model, and 2 photos where a short brand (HP, IFB) was not read - NOT made general
+  yet (would need per-field confirmation of OCR'd codes). Warranty types 16/16 pass (standard, compressor and
+  accessory periods, extended plan separate, pro-rata, installation vs purchase start, registration, on-site,
+  carry-in, seller warranty, no warranty, refurbished, international, unknown brand -> "Estimated, please
+  check", unknown brand on an invoice not guessed). Tests: tests/test_global_matrix.py (62: all text-PDF docs,
+  all warranty types, the fixes). Full suite 715 passed, 2 skipped.
