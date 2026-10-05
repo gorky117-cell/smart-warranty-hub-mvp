@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import time
 from datetime import datetime, timedelta
+import re
 from typing import Optional, Tuple, Dict, Any
 
 import requests
@@ -404,8 +405,7 @@ def _useful_customer_bullets(items: List[str], *, kind: str, coverage: str) -> L
                 bullets.append("Printhead coverage or limits are mentioned in the OEM terms.")
             elif any(k in low for k in ("repair", "replacement", "defective", "manufacturing")):
                 bullets.append("Manufacturing defects may be repaired or replaced under OEM terms.")
-            elif "international" in low:
-                bullets.append("International support may be limited; check the local OEM support route before a claim.")
+            # Cautions (international limits, wear, exclusions) belong under Limits, never Pros.
         elif kind == "exclusion":
             if any(k in low for k in ("liquid", "water", "moisture")):
                 bullets.append("Liquid or moisture damage may not be covered.")
@@ -427,6 +427,34 @@ def _useful_customer_bullets(items: List[str], *, kind: str, coverage: str) -> L
     return _dedupe_plain(bullets)
 
 
+# Limits read from the warranty text (terms + exclusions). Each rule: (pattern, bullet).
+_LIMIT_RULES = (
+    (r"wear and tear|wear & tear|normal wear", None),  # phone/other wording chosen below
+    (r"abnormal voltage|lightning|power surge|voltage fluctuation", "Damage from abnormal voltage, power surges or lightning is not covered."),
+    (r"unauthori[sz]ed|modification|alteration|tamper|opened by|carried (?:out )?at [a-z ]*authori[sz]ed service",
+     "Repairs or changes by anyone other than an authorized service center can void the warranty."),
+    (r"liquid|water|moisture|waterlogging", "Liquid or water damage is not covered."),
+    (r"physical damage|accidental|improper use|misuse|dropped", "Accidental damage, misuse or improper use is not covered."),
+    (r"serial number is removed|serial number.*(?:obliterated|altered)", "The warranty is void if the serial number is removed or altered."),
+    (r"consumable", "Consumables and replaceable parts are not covered."),
+)
+
+
+def limits_from_text(text: str, *, phone: bool) -> List[str]:
+    low = (text or "").lower()
+    out: List[str] = []
+    for pattern, bullet in _LIMIT_RULES:
+        if not re.search(pattern, low):
+            continue
+        if bullet is None:
+            if phone:
+                bullet = "Normal wear of the battery, display and camera lenses is not covered."
+            else:
+                bullet = "Normal wear and tear is not covered."
+        out.append(bullet)
+    return out
+
+
 def build_layman_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
     """
     Human-friendly warranty explanation for non-technical users.
@@ -441,30 +469,15 @@ def build_layman_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
     coverage = f"{warranty.coverage_months} months" if warranty.coverage_months else "not clearly stated"
 
     pros = _useful_customer_bullets(terms, kind="term", coverage=coverage)[:4]
-    if not pros:
-        pros = ["Coverage details are partially available from current records."]
-    cons = _useful_customer_bullets(exclusions, kind="exclusion", coverage=coverage)[:4]
-    if not cons:
-        cons = ["No explicit exclusions were parsed yet. Please verify on OEM page/bill."]
+    from .customer_content import is_phone
 
+    cons = limits_from_text(" ".join(terms + exclusions + claim_steps), phone=is_phone(warranty))
     claim_friction = _useful_customer_bullets(claim_steps, kind="claim", coverage=coverage)[:4]
-    if not claim_friction:
-        claim_friction.append("Claim process is not fully available yet.")
-
+    # Fine print: only what is not already a limit (no generic filler; empty sections are hidden).
     fine_print = []
     low_all = " ".join(exclusions).lower()
-    checks = [
-        ("physical damage", "Physical damage is usually excluded."),
-        ("liquid", "Liquid damage is often excluded."),
-        ("unauthor", "Unauthorized repair can void coverage."),
-        ("wear", "Normal wear-and-tear may not be covered."),
-        ("consum", "Consumables are usually not covered."),
-    ]
-    for key, note in checks:
-        if key in low_all:
-            fine_print.append(note)
-    if not fine_print:
-        fine_print.append("Read exclusions carefully before raising a claim.")
+    if "consum" in low_all and not any("consumable" in c.lower() for c in cons):
+        fine_print.append("Consumables are usually not covered.")
 
     red_flags = []
     if not warranty.coverage_months:

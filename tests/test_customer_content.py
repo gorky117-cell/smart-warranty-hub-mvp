@@ -135,3 +135,33 @@ def test_label_names_the_brand_and_country_page():
     trust = classify_terms_source(brand="Samsung", source_url="https://www.samsung.com/in/support/warranty/",
                                   source_type="approved_oem_source")
     assert trust["label"] == "From Samsung India's official warranty page"
+
+
+# --- item 6: Easy summary ------------------------------------------------------------------------------------
+
+from app.services.summary_engine import build_layman_summary  # noqa: E402
+
+FILLER = ("Read exclusions carefully", "partially available", "No explicit exclusions", "not fully available")
+
+
+def test_phone_easy_summary_has_no_cautions_in_pros_and_lists_phone_limits():
+    w = cc.tidy(_warranty(terms=LIVE_TERMS, exclusions=LIVE_EXCLUSIONS, claim_steps=LIVE_STEPS,
+                          alternatives={"terms_source_type": "approved_oem_source",
+                                        "terms_source_url": "https://www.samsung.com/in/support/warranty/"}))
+    s = build_layman_summary(w)
+    assert not any(word in " ".join(s["pros"]).lower() for word in ("may be limited", "not covered", "international"))
+    assert s["cons"][:2] == [
+        "Normal wear of the battery, display and camera lenses is not covered.",
+        "Damage from abnormal voltage, power surges or lightning is not covered.",
+    ]
+    assert "Repairs or changes by anyone other than an authorized service center can void the warranty." in s["cons"]
+    everything = " ".join(str(v) for v in s.values())
+    assert not any(f in everything for f in FILLER)
+
+
+def test_non_phone_wear_wording_and_empty_sections():
+    w = cc.tidy(_warranty(product_name="Philips Mixer Grinder", model_code="HL7756/00", terms=[],
+                          exclusions=["Normal wear and tear of jars is excluded."], claim_steps=[]))
+    s = build_layman_summary(w)
+    assert s["cons"] == ["Normal wear and tear is not covered."]
+    assert s["pros"] == [] and s["fine_print"] == [] and s["claim_friction"] == []  # hidden, not filler

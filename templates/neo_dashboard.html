@@ -2625,19 +2625,20 @@
           el.textContent = 'Simple summary not available yet.';
           return;
         }
-        const list = (items, ordered = false) => {
+        // Empty sections are left out rather than showing filler text.
+        const section = (title, items, ordered = false) => {
           const arr = Array.isArray(items) ? items.filter(Boolean) : [];
-          if (!arr.length) return '<div class="helper">Not available yet.</div>';
+          if (!arr.length) return '';
           const tag = ordered ? 'ol' : 'ul';
-          return `<${tag}>${arr.map(x => `<li>${x}</li>`).join('')}</${tag}>`;
+          return `<div style="margin-top:8px;"><strong>${title}</strong><${tag}>${arr.map(x => `<li>${escapeHtml(x)}</li>`).join('')}</${tag}></div>`;
         };
         el.innerHTML = `
-          <div><strong>What this means:</strong> ${layman.overview || 'N/A'}</div>
-          <div style="margin-top:8px;"><strong>Pros</strong>${list(layman.pros)}</div>
-          <div style="margin-top:8px;"><strong>Limits / Cons</strong>${list(layman.cons)}</div>
-          <div style="margin-top:8px;"><strong>Fine print</strong>${list(layman.fine_print)}</div>
-          <div style="margin-top:8px;"><strong>Claim effort</strong>${list(layman.claim_friction, true)}</div>
-          <div style="margin-top:8px;"><strong>Red flags</strong>${list(layman.red_flags)}</div>
+          <div><strong>What this means:</strong> ${escapeHtml(layman.overview || 'N/A')}</div>
+          ${section('Pros', layman.pros)}
+          ${section('Limits / Cons', layman.cons)}
+          ${section('Fine print', layman.fine_print)}
+          ${section('Claim effort', layman.claim_friction, true)}
+          ${section('Red flags', layman.red_flags)}
         `;
       }
 

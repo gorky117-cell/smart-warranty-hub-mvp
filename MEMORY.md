@@ -2895,9 +2895,22 @@ evidence/purchase date; all care tips "MEDIUM"; two note boxes describing notes 
     Confirmed labels still end "- checked on <date>".
   Tests: phone terms/exclusions; tidy on display; section parsing of a multi-product page; label.
 
+- [x] 97.6 Easy summary. Pros = positive facts only (coverage shown, repair/replacement of defects, printhead);
+  the "International support may be limited" caution is gone from Pros. Limits come from
+  `summary_engine.limits_from_text` over terms + exclusions + claim steps: wear and tear (phones: "Normal wear
+  of the battery, display and camera lenses is not covered."), abnormal voltage/power surges/lightning,
+  unauthorized repair/modification (also when repairs must be "carried at ... authorized service"),
+  liquid/water, accidental/misuse, serial number removed, consumables. Generic filler removed ("Read
+  exclusions carefully...", "Coverage details are partially available...", "No explicit exclusions...",
+  "Claim process is not fully available yet."); empty sections are hidden in the dashboard (was "Not
+  available yet."); layman text is HTML-escaped. Approved-source note: "Terms came from the brand's official
+  warranty page." Tests: phone summary from the live M17e text; non-phone wording; empty sections. One old
+  test updated to the new liquid wording.
+
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
 | 97.1 | `0a9ac4bf` | 495 passed, 2 skipped (+4) | Claim steps cleaned for display. |
-| 97.5 | (next) | 500 passed, 2 skipped (+5) | Phone section of multi-product pages; display filters; label. |
+| 97.5 | `5617482e` | 500 passed, 2 skipped (+5) | Phone section of multi-product pages; display filters; label. |
+| 97.6 | (next) | 502 passed, 2 skipped (+2) | Easy summary: Pros/Limits, phone limits, no filler. |
 

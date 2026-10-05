@@ -109,7 +109,7 @@ def classify_terms_source(
         if src_type == "approved_oem_source" and official:
             status = "approved_oem_source"
             label = official_page_label(_display_brand(load_oem_domains(), brand), src_url)
-            note = "Terms came from an approved OEM source path."
+            note = "Terms came from the brand's official warranty page."
             confidence = 0.88
         elif verified:
             status = "verified_official"
