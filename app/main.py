@@ -3387,8 +3387,12 @@ def predictive_score(
                 user_id=uid,
                 warranty_id=payload.warranty_id,
                 type=f"risk_{risk_label.lower()}",
-                title=f"Risk {risk_label.title()} detected",
-                message=f"Predictive model flagged {risk_label.lower()} risk for warranty {payload.warranty_id}.",
+                title="Worth a check" if risk_label == "MEDIUM" else "Higher chance of a problem",
+                message=(
+                    f"After your latest note, our estimate of the chance of a problem with your "
+                    f"{notification_service._product_label(db.query(WarrantyDB).filter_by(id=payload.warranty_id).first(), payload.warranty_id)} "
+                    f"is {risk_label.lower()}. See the care tips for it on your dashboard."
+                ),
                 severity=severity,
             )
         warranty = db.query(WarrantyDB).filter(WarrantyDB.id == payload.warranty_id).first()

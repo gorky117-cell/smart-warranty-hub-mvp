@@ -3108,3 +3108,15 @@ Part 1 items 1-2 were already done in entry 97 (commits 0a9ac4bf..c7e48676); Par
   SECURITY FIX: /recommendations took any user_id and any warranty_id; now own data only (_subject_user_id)
   and warranty access checked (403). Data issue noted, not changed: verified domains for "Bajaj" include
   bajajauto.com. Tests: tests/test_care_guides.py (12). Full suite 637 passed, 2 skipped.
+- [x] 99.10 Reminders. Expiry (stages EXPIRY_REMINDER_STAGE_DAYS default 30,7,0 + one "Warranty ended" notice;
+  each stage once per user+product, product-level de-dup as before) now say the product's short name and the
+  date: "Warranty ends in 25 days: Samsung Galaxy M17e 5G" / "The warranty for your ... ends on 3 May 2027."
+  BUG FIXED: the daily sweep only reached products that already had a notification or risk snapshot; it now
+  starts from warranty_owners. Frequency: REMINDER_MAX_PER_DAY (default 3) per user across expiry + care,
+  soonest first; held-back reminders go out on a later day (stats "held_back_by_daily_cap").
+  Care reminders (`app/services/reminders.py`, run in the scheduler after the expiry sweep): only from saved
+  care-guide quotes that state an interval (every two weeks / once a month / weekly / every 6 months); tips
+  without an interval never remind; once per tip per interval; REMINDER_CARE_MAX_PER_WEEK (default 2); none
+  for expired or undated products (expired ones get only the one "ended" notice). Telemetry-triggered risk
+  notification no longer says "Predictive model flagged ... for warranty wty_...".
+  Tests: tests/test_reminders.py (16). Full suite 653 passed, 2 skipped.

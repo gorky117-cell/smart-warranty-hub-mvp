@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, date
 from typing import Dict, List, Optional, Set, Tuple
 
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import or_, text
 
 from . import predictive, ev_battery
 from ..db_models import NotificationDB, WarrantyDB, RiskSnapshotDB
@@ -233,34 +233,60 @@ def _notification_exists(db: Session, user_id: str, warranty_id: str, ntype: str
     return bool(row)
 
 
-def _expiry_payload(days_left: int, expiry_dt: date) -> Tuple[str, str, str]:
+def _expiry_payload(days_left: int, expiry_dt: date, label: str = "your product") -> Tuple[str, str, str]:
+    """Plain reminder text with the product's name and the date ("3 May 2027")."""
+    from .customer_content import friendly_date
+
+    when = friendly_date(expiry_dt)
     if days_left < 0:
-        days_over = abs(days_left)
         return (
             "expiry_expired",
-            "Warranty expired",
-            f"Your warranty expired {days_over} day(s) ago on {expiry_dt.isoformat()}.",
+            f"Warranty ended: {label}",
+            f"The warranty for your {label} ended on {when}. Your invoice and documents stay saved here.",
         )
     if days_left == 0:
         return (
             "expiry_due",
-            "Warranty expires today",
-            f"Your warranty expires today ({expiry_dt.isoformat()}). Save documents and claim if needed.",
+            f"Warranty ends today: {label}",
+            f"The warranty for your {label} ends today ({when}). If something is wrong with it, contact the brand today.",
         )
     stage = _closest_stage(days_left, _parse_expiry_stages())
     if stage is None:
         return ("", "", "")
+    days = f"{days_left} day{'s' if days_left != 1 else ''}"
     if stage <= 7:
         return (
             f"expiry_{stage}d",
-            f"Warranty expires in {days_left} day(s)",
-            f"Your warranty ends on {expiry_dt.isoformat()} ({days_left} day(s) left). Finalize any pending claim steps now.",
+            f"Warranty ends in {days}: {label}",
+            f"The warranty for your {label} ends on {when}. If anything needs fixing, contact the brand now.",
         )
     return (
         f"expiry_{stage}d",
-        f"Warranty expires in {days_left} day(s)",
-        f"Your warranty ends on {expiry_dt.isoformat()} ({days_left} day(s) left). Keep invoice and service docs ready.",
+        f"Warranty ends in {days}: {label}",
+        f"The warranty for your {label} ends on {when}. Check it works well and keep your invoice ready.",
     )
+
+
+def reminders_today(db: Session, user_id: str) -> int:
+    """Reminders (expiry and care) already sent to this user today."""
+    since = datetime.combine(date.today(), datetime.min.time())
+    return (
+        db.query(NotificationDB.id)
+        .filter(
+            NotificationDB.user_id == user_id,
+            NotificationDB.audience == "user",
+            NotificationDB.created_at >= since,
+            or_(NotificationDB.type.like("expiry_%"), NotificationDB.type.like("care_%")),
+        )
+        .count()
+    )
+
+
+def reminder_daily_cap() -> int:
+    try:
+        return max(1, int(os.getenv("REMINDER_MAX_PER_DAY", "3")))
+    except ValueError:
+        return 3
 
 
 def create_expiry_notifications(
@@ -279,7 +305,7 @@ def create_expiry_notifications(
     if not expiry_dt:
         return []
     days_left = (expiry_dt - date.today()).days
-    ntype, title, message = _expiry_payload(days_left, expiry_dt)
+    ntype, title, message = _expiry_payload(days_left, expiry_dt, _product_label(w, warranty_id))
     if not ntype:
         return []
     if ntype in ((getattr(w, "alternatives", None) or {}).get("expiry_suppressed_types") or []):
@@ -301,6 +327,13 @@ def create_expiry_notifications(
 
 def _distinct_user_warranty_pairs_for_expiry(db: Session, limit: int = 2000) -> Set[Tuple[str, str]]:
     pairs: Set[Tuple[str, str]] = set()
+    # Every owned product (was: only products that already had a notification or a risk snapshot, so a
+    # product saved without either never got its 30/7-day reminders).
+    from ..db_models import WarrantyOwnerDB
+
+    for user_id, warranty_id in db.query(WarrantyOwnerDB.user_id, WarrantyOwnerDB.warranty_id).limit(max(1, int(limit))).all():
+        if user_id and warranty_id:
+            pairs.add((str(user_id), str(warranty_id)))
     rows_a = (
         db.query(NotificationDB.user_id, NotificationDB.warranty_id)
         .filter(NotificationDB.user_id.isnot(None), NotificationDB.warranty_id.isnot(None))
@@ -336,6 +369,8 @@ def refresh_expiry_notifications(db: Session) -> Dict[str, int]:
     skipped_no_expiry = 0
     pairs = _distinct_user_warranty_pairs_for_expiry(db, limit=scan_limit)
     warranty_cache: Dict[str, Optional[WarrantyDB]] = {}
+    due = []
+    held_back = 0
     for user_id, warranty_id in pairs:
         scanned += 1
         if scanned > scan_limit:
@@ -351,11 +386,19 @@ def refresh_expiry_notifications(db: Session) -> Dict[str, int]:
         # Only evaluate near-expiry and overdue windows.
         if days_left > max_days:
             continue
+        due.append((days_left, user_id, warranty_id, w))
+    # Soonest first; at most REMINDER_MAX_PER_DAY reminders per user per day. A reminder held back today is
+    # sent on a later run (stages are re-evaluated each day), so nothing is lost, only spread out.
+    for days_left, user_id, warranty_id, w in sorted(due, key=lambda item: item[0] if item[0] >= 0 else 10_000):
+        if reminders_today(db, user_id) >= reminder_daily_cap():
+            held_back += 1
+            continue
         created += len(create_expiry_notifications(db=db, user_id=user_id, warranty_id=warranty_id, warranty=w))
     return {
         "scanned": scanned,
         "created": created,
         "skipped_no_expiry": skipped_no_expiry,
+        "held_back_by_daily_cap": held_back,
     }
 
 

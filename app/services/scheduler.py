@@ -120,6 +120,9 @@ def oem_refresh_loop(interval_minutes: int = 60):
                     try:
                         stats = notification_service.refresh_expiry_notifications(db)
                         log_action("expiry_reminder_refresh", f"{stats}")
+                        from .reminders import refresh_care_reminders
+
+                        log_action("care_reminder_refresh", f"{refresh_care_reminders(db)}")
                     except Exception as exc:
                         log_action("expiry_reminder_refresh_fail", str(exc))
                     last_expiry_refresh = now
