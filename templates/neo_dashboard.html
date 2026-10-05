@@ -880,9 +880,9 @@
         <h1 style="display:flex; align-items:center; gap:8px; margin:0;">
           Care Dashboard
           <span id="healthBadges" style="display:none;">
-            <span class="badge badge-warn" id="hb-ocr" title="OCR status">OCR</span>
-            <span class="badge badge-warn" id="hb-llm" title="AI summary status">AI</span>
-            <span class="badge badge-warn" id="hb-pred" title="Predictive status">Pred</span>
+            <span class="badge badge-warn admin-only" id="hb-ocr" title="OCR status">OCR</span>
+            <span class="badge badge-warn admin-only" id="hb-llm" title="AI summary status">AI</span>
+            <span class="badge badge-warn admin-only" id="hb-pred" title="Predictive status">Pred</span>
           </span>
         </h1>
       </div>
@@ -912,7 +912,7 @@
     <!-- Section: Your Warranty Data -->
     <div class="section-title" id="step1">Step 1 - Your product</div>
     <div class="card hero" id="step1Card">
-      <div class="step-kicker">Primary setup</div>
+      <div class="step-kicker">Start here</div>
       <div class="card-title">Your product</div>
       <div class="form-grid two-col">
         <div class="field admin-only">
@@ -921,9 +921,9 @@
           <div class="helper field-inline-note" id="userIdHint">Auto-linked to your login session.</div>
         </div>
         <div class="field">
-          <label>Select from saved warranties</label>
+          <label>Your products</label>
           <select id="warrantyDropdown" onchange="selectWarrantyFromDropdown()" style="margin-bottom:8px;">
-            <option value="">-- Loading warranties... --</option>
+            <option value="">Loading your products...</option>
           </select>
 <!--ADMIN_ONLY-->          <div class="helper field-inline-note admin-only">Or enter ID manually below</div><!--/ADMIN_ONLY-->
           <div id="nicknameRow" style="display:none;gap:6px;align-items:center;flex-wrap:wrap;">
@@ -940,24 +940,24 @@
         <input id="warrantyId" placeholder="wty_xxx" aria-label="Warranty number">
       </div>
 <!--/ADMIN_ONLY--><!--CUSTOMER_ONLY--><input type="hidden" id="warrantyId"><!--/CUSTOMER_ONLY-->
-      <div class="toggle advanced-toggle" aria-hidden="true" style="display:none; margin:4px 0 8px 0;">
+      <div class="toggle advanced-toggle admin-only" aria-hidden="true" style="display:none; margin:4px 0 8px 0;">
         <input type="checkbox" id="advancedKeyToggle" onchange="toggleKey()">
         <label for="advancedKeyToggle" style="margin:0; text-transform:none;">Advanced settings</label>
       </div>
-      <div id="apiKeyWrap" class="hidden" aria-hidden="true" style="display:none;">
+      <div id="apiKeyWrap" class="hidden admin-only" aria-hidden="true" style="display:none;">
         <div class="field">
           <label>Access Key</label>
           <input id="apiKey" placeholder="optional" aria-label="Access Key">
         </div>
       </div>
-      <button id="show-warranty-btn" type="button" data-role="show-warranty-btn">Load product details</button>
+      <button id="show-warranty-btn" type="button" data-role="show-warranty-btn">Show this product</button>
       <div class="helper">Pick a product from your list to see what its warranty covers.</div>
       <div id="status" class="status-line"></div>
       <hr class="card-divider">
 
       <div id="overviewData" class="hidden" style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
         <div class="placeholder" id="summaryShort"></div>
-        <div class="helper" id="summaryMeta">Summary source details appear after load.</div>
+        <div class="helper" id="summaryMeta">Where these details came from will show here.</div>
         <div class="evidence-panel hidden" id="evidenceTrustPanel"></div>
         <div class="actions">
           <a class="button-link mobile-soft-btn" id="btnSeeFullSummary" href="#detailsCare">See full summary</a>
@@ -977,9 +977,9 @@
           <div class="pill pill-warn" id="pillTime"><span class="pill-label">Time left: --</span><span class="pill-info"
               onclick="toggleTip('tipTime')">i</span></div>
         </div>
-        <div class="pill-tip" id="tipStatus">Warranty status based on coverage dates.</div>
-        <div class="pill-tip" id="tipHealth">Predictive health from the risk score.</div>
-        <div class="pill-tip" id="tipTime">Days remaining before expiry.</div>
+        <div class="pill-tip" id="tipStatus">Whether the warranty is still running, from your purchase date.</div>
+        <div class="pill-tip" id="tipHealth">Our estimate of how likely a problem is.</div>
+        <div class="pill-tip" id="tipTime">Days left until the warranty ends.</div>
         <div id="summary" class="hidden"></div>
         <div id="predictive" class="hidden"></div>
       </div>
@@ -1001,7 +1001,7 @@
           <summary>More product details</summary>
           <div id="riskDebug" class="helper" style="display:none; margin-bottom:10px;">
             <details>
-              <summary><strong>Why this risk?</strong></summary>
+              <summary><strong>Why this estimate?</strong></summary>
               <div id="riskWhyContent" class="helper" style="margin-top:6px;"></div>
             </details>
           </div>
@@ -1026,7 +1026,8 @@
             <div id="unreadableInvoice" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px solid #b3261e;border-radius:8px;">
               <div><strong id="unreadableMessage">We couldn't read this invoice - retake the photo or enter the details.</strong></div>
               <div style="margin-top:6px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;">
-                <input id="manualBrand" type="text" maxlength="40" placeholder="Brand" aria-label="Brand">
+                <input id="manualBrand" type="text" maxlength="40" placeholder="Brand (pick or type)" aria-label="Brand" list="brandOptions">
+                <datalist id="brandOptions">__SWH_BRAND_OPTIONS__</datalist>
                 <input id="manualProduct" type="text" maxlength="80" placeholder="Product (e.g. iPhone 15)" aria-label="Product">
                 <input id="manualModel" type="text" maxlength="40" placeholder="Model code" aria-label="Model code">
                 <input id="manualSerial" type="text" maxlength="40" placeholder="Serial number" aria-label="Serial number">
@@ -1048,7 +1049,7 @@
             <div id="warrantyFriendly" class="helper" style="margin-bottom:10px;">Load data to see warranty details.
             </div>
             <div class="helper" id="rawWarrantyToggleWrap" style="display:none;">
-              <a href="javascript:void(0)" onclick="toggleRawWarranty()" id="rawWarrantyToggle">View raw JSON</a>
+              <a href="javascript:void(0)" onclick="toggleRawWarranty()" id="rawWarrantyToggle" class="admin-only">View raw JSON</a>
             </div>
             <pre id="warranty" class="placeholder raw-warranty hidden">Load data to see warranty details.</pre>
             <div class="helper"><a href="javascript:void(0)" data-role="open-fullview" data-target="warranty"
@@ -1056,7 +1057,7 @@
           </details>
           <details>
             <summary>Easy summary (pros, limits, fine print)</summary>
-            <div class="helper">Short, non-technical view from extracted warranty terms.</div>
+            <div class="helper">The warranty in short, from the brand's terms.</div>
             <div id="laymanSummary" class="placeholder">Load data to see a simple summary.</div>
           </details>
         </details>
@@ -1136,7 +1137,7 @@
         <label>Invoice date</label>
         <input id="mDate" type="date">
         <label>Invoice amount</label>
-        <input id="mAmount" placeholder="e.g., 14999" inputmode="numeric">
+        <input id="mAmount" type="number" min="0" step="1" placeholder="e.g., 14999" inputmode="numeric">
         <label>Invoice number (optional)</label>
         <input id="mInvoiceNo" placeholder="e.g., INV-12345">
         <button id="btnSaveManual" type="button">Save</button>
@@ -1147,17 +1148,17 @@
     <!-- Section: Device Health Logs -->
     <div class="section-title" id="step4">Step 4 - Usage & health</div>
     <div class="card card-locked" data-step-lock="true">
-      <div class="step-kicker">Care intelligence</div>
+      <div class="step-kicker">Looking after it</div>
       <div class="card-title">Usage notes (optional)</div>
       <div class="card-hint" id="step4Hint">Load your product in Step 1 to unlock these details.</div>
       <div class="helper" id="productContextStep4" style="display:none;"></div>
       <div class="helper" style="margin-top:-2px;">Notes are saved with this product. Errors and breakdowns raise its risk estimate, maintenance lowers it, and usage hours count when you enter a number. Brands only see anonymous totals by note type, never your text, and only for groups of at least __SWH_OEM_MIN_COHORT__ people.</div>
       <div class="subtle-panel" id="diagCard" style="margin-top:10px; display:none;">
         <div class="card-title">Diagnostics assistant</div>
-        <div class="helper" id="diagMode">Detecting device type...</div>
+        <div class="helper" id="diagMode">Checking what kind of product this is...</div>
         <div class="helper" id="diagReason" style="margin-top:4px;"></div>
         <div class="actions" style="margin-top:8px;">
-          <button type="button" id="btnRunRemoteDiag" class="hidden" onclick="requestRemoteDiag()">Request remote check</button>
+          <button type="button" id="btnRunRemoteDiag" class="hidden" onclick="requestRemoteDiag()">Ask for a remote check</button>
           <button type="button" id="btnRunGuidedDiag" class="hidden" onclick="startGuidedDiagFlow()">Start guided check</button>
         </div>
         <form id="diagForm" class="hidden" style="margin-top:8px;" onsubmit="return false;"></form>
@@ -1204,14 +1205,14 @@
             id="saveContextModel">-</span><span class="admin-only"> | Warranty: <span id="saveContextWarrantyId">-</span></span></div>
         <div class="helper">Notes are saved with this product. Errors and breakdowns raise its risk estimate, maintenance lowers it, and usage hours count when you enter a number. Brands only see anonymous totals by note type, never your text, and only for groups of at least __SWH_OEM_MIN_COHORT__ people.</div>
         <label>What would you like to log?</label>
-        <select id="telType">
+        <select id="telType" onchange="syncNoteInput()">
           <option value="usage">Usage hours</option>
           <option value="error">Error message</option>
           <option value="failure">Breakdown / repair</option>
           <option value="maintenance">Maintenance</option>
         </select>
-        <input id="telPayloadSimple" placeholder="Add a short note or value" />
-        <div class="toggle toggle-switch">
+        <input id="telPayloadSimple" type="number" min="0" step="0.5" placeholder="Hours used, e.g. 6" />
+        <div class="toggle toggle-switch admin-only">
           <label class="slider-wrap" for="advancedToggle">
             <input type="checkbox" id="advancedToggle" onchange="toggleAdvanced()" />
             <span class="slider" aria-hidden="true"></span>
@@ -1255,17 +1256,17 @@
   <div id="scanModal" class="modal-backdrop">
     <div class="modal">
       <div class="title">Scan bill or receipt</div>
-      <label>How do you want to add it-</label>
+      <label>How do you want to add it?</label>
       <select id="docSource" onchange="toggleDocSource()">
         <option value="upload">Upload from phone / computer</option>
         <option value="camera">Use camera</option>
       </select>
       <label>Document type</label>
       <select id="docType">
-        <option value="invoice">Invoice</option>
-        <option value="manual">Manual</option>
-        <option value="label">Label</option>
-        <option value="portal">Portal</option>
+        <option value="invoice">Invoice / bill</option>
+        <option value="manual">User manual</option>
+        <option value="label">Warranty card or label</option>
+        <option value="portal">Page from the brand's website</option>
       </select>
       <div id="fileInputWrap">
         <input id="fileInput" type="file" aria-label="Choose file">
@@ -1279,9 +1280,9 @@
   </div>
   </div>
 
-  <div id="oemModal" class="modal-backdrop">
+  <div id="oemModal" class="modal-backdrop admin-only">
     <div class="modal">
-      <div class="title">Fetch Brand Info</div>
+      <div class="title">Fetch Brand Info</div><!-- admin tool -->
       <input id="oemBrand" placeholder="Brand">
       <input id="oemModel" placeholder="Model">
       <input id="oemRegion" placeholder="Region">
@@ -1698,7 +1699,7 @@
         setText('predictive', '');
         setText('summary', '');
         setText('summaryShort', '');
-        setText('summaryMeta', 'Summary source details appear after load.');
+        setText('summaryMeta', 'Where these details came from will show here.');
         renderEvidenceTrustPanel(null);
         setText('advisories', 'Load data to see guidance.');
         setText('warranty', 'Load data to see warranty details.');
@@ -1710,7 +1711,7 @@
         setText('detailsHelper', 'Load your product in Step 1 to unlock these details.');
         setText('step3Hint', 'After your product appears in Step 1, you can add your bill or receipt here.');
         setText('step4Hint', 'Once your product is loaded, you can save how you are using the device or any issues here.');
-        setText('diagMode', 'Detecting device type...');
+        setText('diagMode', 'Checking what kind of product this is...');
         setText('diagReason', '');
         setText('diagMsg', 'Load your product to start diagnostics.');
         updateProductContext();
@@ -1945,6 +1946,17 @@
           return false;
         }
       }
+
+      // Usage hours is a number; the other note types are a short text.
+      function syncNoteInput() {
+        const type = document.getElementById('telType');
+        const input = document.getElementById('telPayloadSimple');
+        if (!type || !input) return;
+        const hours = type.value === 'usage';
+        input.type = hours ? 'number' : 'text';
+        input.placeholder = hours ? 'Hours used, e.g. 6' : (type.value === 'maintenance' ? 'What was done, e.g. filter cleaned' : 'What happened, e.g. error E4 on screen');
+      }
+      window.syncNoteInput = syncNoteInput;
 
       // --- Claim PDF: summary page + original invoice, made on request, never stored ---
       document.addEventListener('click', async (event) => {
@@ -2275,7 +2287,7 @@
           }, 'resolution checklist');
           if (data.status === 'disabled') {
             if (!IS_ADMIN) { card.style.display = 'none'; return; }
-            status.textContent = 'Resolution checklist is not enabled for this deployment.';
+            status.textContent = 'The checklist is not available yet.';
             list.innerHTML = `<div class="helper">${escapeHtml(data.message || 'Controlled agent is disabled.')}</div>`;
             return;
           }
@@ -2288,7 +2300,7 @@
             <div class="helper">${escapeHtml(data.safety_note || 'Draft guidance only.')}</div>
           `;
         } catch (e) {
-          status.textContent = `Resolution checklist not available: ${e}`;
+          status.textContent = 'The checklist is not available right now. Please try again later.';
         }
       }
 
@@ -2315,7 +2327,7 @@
         if (m === 'remote') {
           mode.textContent = 'IoT device detected: remote check available';
           reason.textContent = cap.reason || '';
-          msg.textContent = 'Tap "Request remote check". OEM team will run it safely.';
+          msg.textContent = 'Tap "Ask for a remote check". The brand runs it safely on your connected product.';
           btnRemote.classList.remove('hidden');
           btnGuided.classList.remove('hidden');
         } else {
@@ -2697,7 +2709,7 @@
         const status = evidence.status || '';
         const label = evidence.status_label || evidenceBadgeText(status);
         const note = evidence.note || 'Source evidence is not available yet.';
-        const requiresVerification = evidence.requires_oem_verification ? 'Verify with OEM before relying on this for a claim.' : '';
+        const requiresVerification = evidence.requires_oem_verification ? "Please check these terms with the brand before making a claim." : '';
         const sourceUrl = evidence.source_url || (Array.isArray(evidence.sources) && evidence.sources[0] && evidence.sources[0].url) || '';
         const sourceHtml = sourceUrl && /^https?:\/\//i.test(String(sourceUrl))
           ? ` <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener">View source</a>`
@@ -3265,7 +3277,7 @@
             const warnMsg = data && data.guardrail && data.guardrail.decision === 'warn'
               ? data.guardrail.message
               : null;
-            msg.textContent = warnMsg ? `${warnMsg} Loading extracted data...` : 'Uploaded. Loading extracted data...';
+            msg.textContent = warnMsg ? `${warnMsg} Reading it now...` : 'Uploaded. Reading it now...';
           }
 
           // Update warranty ID and reload
@@ -3277,30 +3289,30 @@
               if (data.job_id) {
                 const job = await waitForInvoiceJob(data.job_id, msg);
                 if (job && job.status === 'failed') {
-                  if (msg) msg.textContent = `Uploaded, but extraction needs review: ${job.error || 'pipeline failed'}`;
+                  if (msg) msg.textContent = IS_ADMIN ? `Uploaded, but extraction needs review: ${job.error || 'pipeline failed'}` : 'We saved your file but could not read all of it. Please check the details below.';
                 }
               }
               if (typeof loadWarrantyDropdown === 'function') loadWarrantyDropdown();
               const showBtn = document.getElementById('show-warranty-btn');
               if (showBtn) showBtn.click();
-              if (msg) msg.textContent = 'Uploaded and extracted successfully!';
+              if (msg) msg.textContent = 'Done! Your product details are ready.';
             } catch (e) {
               if (msg) msg.textContent = 'Uploaded. Still processing; refresh or load again in a moment.';
             }
           }
         } catch (e) {
-          if (msg) msg.textContent = `Upload error: ${e}`;
+          if (msg) msg.textContent = 'The upload did not work. Please try again.';
         }
       }
 
       async function waitForInvoiceJob(jobId, msg) {
         const terminal = new Set(['done', 'failed']);
         const labels = {
-          uploaded: 'Uploaded. Waiting for extraction...',
+          uploaded: 'Uploaded. Getting ready to read it...',
           extracting_text: 'Reading invoice...',
-          ocr_if_needed: 'Checking OCR text...',
-          parsed_fields: 'Extracting product details...',
-          terms_lookup: 'Checking OEM warranty source...',
+          ocr_if_needed: 'Reading the text in your photo...',
+          parsed_fields: 'Finding the product details...',
+          terms_lookup: "Checking the brand's warranty terms...",
           summarized: 'Preparing summary...'
         };
         const maxAttempts = 30;
@@ -3573,7 +3585,7 @@
         if (changePasswordBtn) changePasswordBtn.addEventListener('click', changePasswordFlow);
         const notice = new URLSearchParams(window.location.search).get('notice');
         if (notice === 'oem_admin_only') {
-          showToast('Access limited', 'This account is user-only. Sign in with OEM/TPA/Admin account to open OEM/Admin pages.');
+          showToast('Page not available', 'That page is for brand and support staff. You are back on your dashboard.');
         }
       }
 

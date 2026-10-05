@@ -3069,3 +3069,17 @@ Part 1 items 1-2 were already done in entry 97 (commits 0a9ac4bf..c7e48676); Par
   General taxonomy bug fixed: "Inverter" fridges/ACs/washers/microwaves were power inverters and "ups"
   matched inside words (also scoped the terms lookup wrongly). Tests: tests/test_product_names.py (25),
   one older list test updated to the new label. Full suite 589 passed, 2 skipped.
+- [x] 99.6 Plain language. Customer page: OCR/AI/Pred chips, raw JSON link, "Advanced settings"/access key,
+  "Technical view" JSON box and the brand-fetch modal are admin-only; reworded labels ("Your products", "Show
+  this product", "Why this estimate?", "Looking after it", upload progress "Reading the text in your photo...",
+  "Checking the brand's warranty terms...", "Done! Your product details are ready."); raw job errors and
+  "Upload error: <exception>" only for admin. Where-the-terms-came-from labels/notes (summary_engine +
+  source_trust) rewritten without OEM/cache/default rules/fixture ("Estimated, please check" for typical terms).
+  behaviour_questions: "The brand's warranty terms mention ..." (was "The OEM source mentions").
+  Notifications: product label = nickname or short name, never "(wty_...)"; IDs left in older stored text are
+  shown as the name; onboarding/risk texts plain and no longer claim "started health checks".
+  Pickers: brand datalist from the registry (manual entry), number inputs for invoice amount and usage hours
+  (note box switches to text for other note types), document-type options in plain words.
+  Not done: dynamic JS strings were reviewed by search, not one by one; the OEM/admin pages were not changed.
+  Tests: tests/test_plain_language.py (12; the visible-text check parses the customer page), 3 older tests
+  updated to the new wording. Full suite 601 passed, 2 skipped.

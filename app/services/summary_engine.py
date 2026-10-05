@@ -124,33 +124,33 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
     elif source_type == "internal_warranty_db":
         # Legacy rows (before cache fix 2) copied another record's terms, estimates included: not confirmed.
         status = "not_confirmed"
-        label = "From a saved warranty record - not confirmed"
-        note = "These terms were copied from another saved record and may be an estimate. Verify with the OEM."
+        label = "Copied from another saved product - not confirmed"
+        note = "These terms came from another product saved here and may be an estimate. Please check them with the brand."
         confidence = 0.4
     elif source_type == "internal_terms_cache":
         status = "cached"
-        label = "Cached source"
-        note = "Warranty terms came from the local terms cache. Refresh from OEM source if claim certainty is required."
+        label = "Saved copy of the terms"
+        note = "These terms come from a copy we saved earlier. Please check the brand's website before making a claim."
         confidence = 0.7
     elif source_type == "default_rules":
         status = "estimated"
-        label = "Estimated, not confirmed"
-        note = "Warranty terms are estimated from category/default rules, not confirmed by an OEM source."
+        label = "Estimated, please check"
+        note = "We could not find this brand's own warranty terms, so these are typical terms for this kind of product. Please check your warranty card."
         confidence = 0.45
     elif source_type == "invoice_only":
         status = "not_confirmed"
-        label = "Not confirmed"
-        note = "Invoice data was found, but official warranty terms have not been confirmed."
+        label = "Not confirmed yet"
+        note = "We read your invoice but have not found the brand's warranty terms yet."
         confidence = 0.35
     elif source_type == "synthetic_approved":
         status = "not_confirmed"
-        label = "Synthetic test source"
-        note = "Warranty terms came from a synthetic test fixture, not an official OEM source. Verify with OEM before relying on this for a claim."
+        label = "Test data - not real terms"
+        note = "These terms are test data, not the brand's real terms."
         confidence = 0.6
     else:
         status = "not_confirmed"
-        label = "Not confirmed"
-        note = "Source evidence is missing. Do not treat these warranty terms as confirmed."
+        label = "Not confirmed yet"
+        note = "We don't know where these terms came from yet, so please don't rely on them for a claim."
         confidence = 0.3
 
     sources = []
@@ -177,7 +177,7 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
         # Cache fix 5: say when the official page was checked; older than 30 days needs a refresh.
         label = f"{label} - checked on {checked_on}" + (", needs refresh" if needs_refresh else "")
         if needs_refresh:
-            note = f"{note} Last checked on {checked_on}, more than {TERMS_FRESH_DAYS} days ago; refresh before relying on it."
+            note = f"{note} Last checked on {checked_on}. The terms may have changed since; please check the brand's website."
     return {
         "checked_on": checked_on,
         "needs_refresh": needs_refresh,

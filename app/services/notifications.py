@@ -130,14 +130,16 @@ def unread_summary(user_id: str, db: Optional[Session] = None) -> dict:
             db.close()
 
 
-def _product_label(warranty: Optional[WarrantyDB], warranty_id: Optional[str]) -> str:
+def _product_label(warranty: Optional[WarrantyDB], warranty_id: Optional[str], nickname: Optional[str] = None) -> str:
+    """The customer's name for the product (nickname, else the short name); never the internal ID."""
+    from .product_naming import short_name
+
+    if nickname:
+        return nickname
     if not warranty:
-        return warranty_id or "Product"
-    product_name = (getattr(warranty, "product_name", None) or "").strip()
-    brand = (getattr(warranty, "brand", None) or "").strip()
-    model = (getattr(warranty, "model_code", None) or "").strip()
-    base = product_name or " ".join(part for part in [brand, model] if part).strip() or "Product"
-    return f"{base} ({warranty_id})" if warranty_id else base
+        return "Your product"
+    return short_name(getattr(warranty, "brand", None), getattr(warranty, "product_name", None),
+                      getattr(warranty, "model_code", None))
 
 
 def _upgrade_legacy_message(message: str, warranty_id: Optional[str], label: str) -> str:
@@ -515,16 +517,26 @@ def list_notifications(user_id: str, only_unread: bool = False, db: Optional[Ses
         if warranty_ids:
             rows = db.query(WarrantyDB).filter(WarrantyDB.id.in_(warranty_ids)).all()
             warranties = {w.id: w for w in rows}
+        from ..db_models import ProductNicknameDB
+
+        nicknames = {
+            row.warranty_id: row.nickname
+            for row in db.query(ProductNicknameDB).filter(ProductNicknameDB.user_id == user_id).all()
+        } if warranty_ids else {}
         changed = False
         items = []
         for n in notifications:
-            label = _product_label(warranties.get(n.warranty_id), n.warranty_id)
+            label = _product_label(warranties.get(n.warranty_id), n.warranty_id, nicknames.get(n.warranty_id))
             upgraded_message = _upgrade_legacy_message(n.message, n.warranty_id, label)
             if upgraded_message != n.message:
                 n.message = upgraded_message
                 db.add(n)
                 changed = True
             item = _to_dict(n)
+            if n.warranty_id:  # any ID left in older text is shown as the product's name
+                for key in ("title", "message"):
+                    if isinstance(item.get(key), str):
+                        item[key] = item[key].replace(n.warranty_id, label)
             item["product_label"] = label
             items.append(item)
         if changed:
@@ -659,8 +671,8 @@ def run_initial_analysis_and_notifications(db: Session, user_id: str, warranty_i
         user_id=user_id,
         warranty_id=warranty_id,
         type="warranty_onboarded",
-        title="Warranty onboarded",
-        message=f"We’ve registered your {getattr(warranty, 'product_name', '') or 'device'} and started health checks.",
+        title="Product saved",
+        message=f"We’ve saved your {_product_label(warranty, None)} and its warranty details.",
         severity="info",
     )
 
@@ -690,8 +702,8 @@ def run_initial_analysis_and_notifications(db: Session, user_id: str, warranty_i
                 user_id=user_id,
                 warranty_id=warranty_id,
                 type="risk_medium",
-                title="Medium risk detected",
-                message="Our checks suggest this device may need some care soon.",
+                title="Worth a check",
+                message=f"Our estimate says your {_product_label(warranty, None)} may need some care soon. See the tips for it on your dashboard.",
                 severity="warning",
             )
         elif label == "HIGH":
@@ -700,8 +712,8 @@ def run_initial_analysis_and_notifications(db: Session, user_id: str, warranty_i
                 user_id=user_id,
                 warranty_id=warranty_id,
                 type="risk_high",
-                title="High risk detected",
-                message="This device shows a high risk of issues. Consider backup or service.",
+                title="Higher chance of a problem",
+                message=f"Our estimate shows a higher chance of problems with your {_product_label(warranty, None)}. If it stores data, back it up, and consider a service check.",
                 severity="critical",
             )
 

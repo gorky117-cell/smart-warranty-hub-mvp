@@ -124,13 +124,13 @@ def classify_terms_source(
             confidence = 0.88
         elif official:
             status = "official"
-            label = "Official OEM domain"
-            note = "Terms came from a known OEM domain. Verify before claim submission."
+            label = "From the brand's website"
+            note = "These terms came from the brand's website. Please check them before making a claim."
             confidence = 0.85
         else:
             status = "external_unverified"
-            label = "External source, not verified"
-            note = "Terms came from an external source that is not in the approved OEM source list."
+            label = "From another website - not confirmed"
+            note = "These terms came from a website that is not the brand's own. Please check them with the brand."
             confidence = 0.55
         return {
             "status": status,
@@ -148,8 +148,8 @@ def classify_terms_source(
     if src_type == "internal_warranty_db":
         return {
             "status": "internal_record",
-            "label": "Saved warranty record",
-            "note": "Terms came from an existing saved warranty record.",
+            "label": "From a saved product",
+            "note": "These terms came from a product already saved here.",
             "confidence": 0.8,
             "source_url": src_url,
             "host": host,
@@ -161,8 +161,8 @@ def classify_terms_source(
     if src_type == "internal_terms_cache":
         return {
             "status": "cache",
-            "label": "Local cache",
-            "note": "Terms came from the local terms cache. Refresh from OEM source if claim certainty is required.",
+            "label": "Saved copy of the terms",
+            "note": "These terms come from a copy we saved earlier. Please check the brand's website before making a claim.",
             "confidence": 0.7,
             "source_url": src_url,
             "host": host,
@@ -174,8 +174,8 @@ def classify_terms_source(
     if src_type == "default_rules":
         return {
             "status": "default_rules",
-            "label": "Default rules only",
-            "note": "Terms are estimated from category/default rules and are not confirmed by an OEM source.",
+            "label": "Estimated, please check",
+            "note": "We could not find this brand's own warranty terms, so these are typical terms for this kind of product. Please check your warranty card.",
             "confidence": 0.45,
             "source_url": src_url,
             "host": host,
@@ -187,8 +187,8 @@ def classify_terms_source(
     if src_type == "invoice_only":
         return {
             "status": "invoice_only",
-            "label": "Invoice only",
-            "note": "Invoice data was found, but official warranty terms have not been confirmed.",
+            "label": "Not confirmed yet",
+            "note": "We read your invoice but have not found the brand's warranty terms yet.",
             "confidence": 0.35,
             "source_url": src_url,
             "host": host,
@@ -200,8 +200,8 @@ def classify_terms_source(
     if src_type == "synthetic_approved":
         return {
             "status": "synthetic_test_source",
-            "label": "Synthetic approved test source",
-            "note": "Terms came from a synthetic source fixture for testing only. Verify with OEM before relying on it for a claim.",
+            "label": "Test data - not real terms",
+            "note": "These terms are test data, not the brand's real terms.",
             "confidence": 0.6,
             "source_url": src_url,
             "host": host,
@@ -212,8 +212,8 @@ def classify_terms_source(
 
     return {
         "status": "missing",
-        "label": "No approved source",
-        "note": "Source evidence is missing. Do not treat these warranty terms as confirmed.",
+        "label": "Not confirmed yet",
+        "note": "We don't know where these terms came from yet, so please don't rely on them for a claim.",
         "confidence": 0.3,
         "source_url": src_url,
         "host": host,

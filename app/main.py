@@ -3117,6 +3117,10 @@ def neo_dashboard(request: Request, current: Optional[UserDB] = Depends(get_curr
     from .services.telemetry_intelligence import _MIN_OEM_COHORT
 
     html = html.replace("__SWH_OEM_MIN_COHORT__", str(_MIN_OEM_COHORT))  # notes wording matches the setting
+    html = html.replace(
+        "__SWH_BRAND_OPTIONS__",
+        "".join(f'<option value="{escape(name)}">' for name in brand_registry.brand_names()),
+    )
     # Customers pick products from their list: the typed-ID field is not sent to them at all (admin keeps it).
     drop = "CUSTOMER_ONLY" if current and current.role == "admin" else "ADMIN_ONLY"
     html = re.sub(rf"<!--{drop}-->.*?<!--/{drop}-->", "", html, flags=re.S)

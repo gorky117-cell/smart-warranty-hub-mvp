@@ -83,6 +83,11 @@ def reset_cache() -> None:
     _index.cache_clear()
 
 
+def brand_names() -> List[str]:
+    """Every known maker name once, sorted (for the brand picker)."""
+    return sorted({name for _key, name in _index()}, key=str.lower)
+
+
 def brand_count() -> int:
     return len({name for _key, name in _index()})
 

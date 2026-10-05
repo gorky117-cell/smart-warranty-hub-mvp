@@ -132,8 +132,9 @@ def test_list_notifications_upgrades_legacy_warranty_id_text():
 
         items = list_notifications("notif_user_legacy", only_unread=True, db=db)
 
-        assert items[0]["message"] == "Predictive model flagged high risk for Microwave Oven (w_notif_legacy)."
-        assert items[0]["product_label"] == "Microwave Oven (w_notif_legacy)"
+        # Run 3 item 6: the product's short name, never the internal ID.
+        assert items[0]["message"] == "Predictive model flagged high risk for Acmeco Microwave Oven."
+        assert items[0]["product_label"] == "Acmeco Microwave Oven"
         row = db.query(NotificationDB).filter_by(id="ntf_link_notif_user_legacy").first()
         assert row.message == items[0]["message"]
 

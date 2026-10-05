@@ -198,33 +198,33 @@ def _official_question_text(category: str, question_id: str) -> str:
     product_label = category.replace("_", " ")
     if question_id == "oq_usage_limit":
         if category == "printer":
-            return "The OEM source mentions print or usage limits. Has this printer been used heavily?"
-        return f"The OEM source mentions usage limits. Has this {product_label} been used heavily?"
+            return "The brand's warranty terms mention print or usage limits. Has this printer been used heavily?"
+        return f"The brand's warranty terms mention usage limits. Has this {product_label} been used heavily?"
     if question_id == "oq_printhead":
-        return "The OEM source mentions printhead/nozzle terms. Have you noticed missing lines, faded print, or nozzle issues?"
+        return "The brand's warranty terms mention printhead/nozzle terms. Have you noticed missing lines, faded print, or nozzle issues?"
     if question_id == "oq_filter":
-        return f"The OEM source mentions filter or cartridge care. Has the {product_label} filter/cartridge been cleaned or replaced recently?"
+        return f"The brand's warranty terms mention filter or cartridge care. Has the {product_label} filter/cartridge been cleaned or replaced recently?"
     if question_id == "oq_power":
         if category == "smartphone":
-            return "The OEM source mentions charging or battery terms. Have you noticed charging, battery, heat, or power issues?"
-        return f"The OEM source mentions power conditions. Have you noticed voltage fluctuation, power trips, or adapter issues with this {product_label}?"
+            return "The brand's warranty terms mention charging or battery terms. Have you noticed charging, battery, heat, or power issues?"
+        return f"The brand's warranty terms mention power conditions. Have you noticed voltage fluctuation, power trips, or adapter issues with this {product_label}?"
     if question_id == "oq_water":
         if category in {"camera", "wearable", "audio"}:
-            return f"The OEM source mentions water or moisture limits. Has this {product_label} had any liquid, rain, sweat, or moisture exposure?"
-        return f"The OEM source mentions water or leakage terms. Have you noticed leaks, moisture, or water exposure around this {product_label}?"
+            return f"The brand's warranty terms mention water or moisture limits. Has this {product_label} had any liquid, rain, sweat, or moisture exposure?"
+        return f"The brand's warranty terms mention water or leakage terms. Have you noticed leaks, moisture, or water exposure around this {product_label}?"
     if question_id == "oq_cooling":
-        return f"The OEM source mentions cooling or temperature terms. Have you noticed unstable cooling, weak airflow, or temperature changes?"
+        return f"The brand's warranty terms mention cooling or temperature terms. Have you noticed unstable cooling, weak airflow, or temperature changes?"
     if question_id == "oq_motor":
-        return f"The OEM source mentions motor/drum terms. Have you noticed vibration, slowing, burning smell, or unusual noise?"
+        return f"The brand's warranty terms mention motor/drum terms. Have you noticed vibration, slowing, burning smell, or unusual noise?"
     if question_id == "oq_battery":
         if category == "smartphone":
-            return "The OEM source mentions battery or charging terms. Have you noticed fast drain, slow charging, overheating, or shutdowns?"
-        return f"The OEM source mentions battery or charging terms. Have you noticed backup, charging, or battery issues?"
+            return "The brand's warranty terms mention battery or charging terms. Have you noticed fast drain, slow charging, overheating, or shutdowns?"
+        return f"The brand's warranty terms mention battery or charging terms. Have you noticed backup, charging, or battery issues?"
     if question_id == "oq_service_route":
         if category == "smartphone":
             return "For a phone claim, do you have the invoice, IMEI/serial, photos, and a short issue note ready?"
-        return f"The OEM source includes a support route. Do you have the invoice, model/serial details, photos, and issue notes ready?"
-    return f"The OEM source mentions a {product_label} warranty condition. Is this relevant to your current use or claim?"
+        return f"The brand's warranty terms include a support route. Do you have the invoice, model/serial details, photos, and issue notes ready?"
+    return f"The brand's warranty terms mention a {product_label} warranty condition. Is this relevant to your current use or claim?"
 
 
 def _official_care_questions(warranty: object | None) -> List[Tuple[str, str, str]]:

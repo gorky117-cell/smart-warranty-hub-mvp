@@ -202,7 +202,7 @@ def test_customer_label_says_when_it_was_checked_and_flags_old_checks():
     old = (datetime.utcnow() - timedelta(days=45)).isoformat()
     evidence = _evidence(old)
     assert evidence["status_label"].endswith(f"checked on {old[:10]}, needs refresh")
-    assert evidence["requires_oem_verification"] is True and "refresh" in evidence["note"]
+    assert evidence["requires_oem_verification"] is True and "may have changed since" in evidence["note"]
 
 
 def test_reused_official_record_carries_its_checked_date():
