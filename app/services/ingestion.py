@@ -541,6 +541,19 @@ _PRINTED_CODE_RE = re.compile(
 )
 
 
+# Marketplace listing codes are not model codes or serials: Amazon ASIN ("B0CMTVYVRS") and FNSKU
+# ("X0011PGZX7"), Flipkart FSN ("MOBGTAGPAQNVFZZY", 16 chars, 3-letter category prefix).
+_LISTING_CODE_RE = re.compile(r"(?:B0|X0)[A-Z0-9]{8}|[A-Z]{3}[A-Z0-9]{13}")
+
+
+def is_listing_code(value: Optional[str]) -> bool:
+    code = re.sub(r"[\s()]", "", str(value or "")).upper()
+    if not _LISTING_CODE_RE.fullmatch(code):
+        return False
+    # An FSN-shaped code with a hyphen or few letters is more likely a real code; FSNs are mostly letters.
+    return code.startswith(("B0", "X0")) or len(re.findall(r"[A-Z]", code)) >= 10
+
+
 def _drop_spec_suffix(code: str) -> str:
     """Keep "/" variant parts of a model code, but not spec pairs: "HL7756/00" stays, "8GB/128GB" -> "8GB"."""
     parts = code.split("/")
@@ -558,10 +571,12 @@ def _model_candidate_from_line(line: str, brand: Optional[str]) -> Tuple[Optiona
     code_text = _MARKETING_MODEL_RE.sub(" ", text) if marketing else text
     for match in _PRINTED_CODE_RE.finditer(code_text.upper()):
         candidate = _drop_spec_suffix(match.group(1))
-        if not _is_spec_only(candidate) and not re.fullmatch(r"\d+", candidate) and not re.fullmatch(r"B0[A-Z0-9]{8}", candidate):
+        if not _is_spec_only(candidate) and not re.fullmatch(r"\d+", candidate) and not is_listing_code(candidate):
             return candidate, "code"
     if marketing:
-        return _normalize_spaces(marketing.group(1)).upper(), "marketing"
+        # "Note" is part of the series name ("Redmi Note 12 Pro" is not a "Redmi 12 Pro").
+        series = "NOTE " if re.search(r"\bnote\b", marketing.group(0), re.IGNORECASE) else ""
+        return series + _normalize_spaces(marketing.group(1)).upper(), "marketing"
     product_words = "|".join(re.escape(term) for term in _PRODUCT_TERMS)
     text = re.sub(rf"\b({product_words})\b", " ", text, flags=re.IGNORECASE)
     text = _normalize_spaces(text)
@@ -601,7 +616,7 @@ def sanitize_invoice_identity_fields(
         removed.append(f"brand:{brand}")
 
     model = sanitized_fields.get("model_code")
-    if model and (_is_boilerplate_line(model) or _is_spec_only(model)):
+    if model and (_is_boilerplate_line(model) or _is_spec_only(model) or is_listing_code(model)):
         sanitized_fields.pop("model_code", None)
         sanitized_confidence.pop("model_code", None)
         removed.append(f"model_code:{model}")
@@ -650,10 +665,53 @@ def _plausible_serial(value: str) -> bool:
     return True
 
 
+def luhn_ok(digits: str) -> bool:
+    if not digits.isdigit():
+        return False
+    total = 0
+    for i, ch in enumerate(reversed(digits)):
+        d = int(ch)
+        if i % 2:
+            d = d * 2 - 9 if d > 4 else d * 2
+        total += d
+    return total % 10 == 0
+
+
+_IMEI_LABEL_RE = re.compile(r"\bimei\s*(?:no\.?|number|1|2|#)?\s*(?:/\s*serial\s*(?:no\.?)?)?\s*[:\-#.]?\s*", re.IGNORECASE)
+
+
+def _imei_candidate(lines: List[str]) -> Tuple[Optional[str], float, str, str]:
+    """An IMEI (15 digits, Luhn check). Digit groups split by OCR ("86543206 1234567") are joined only
+    when the result passes the Luhn check; anything else near an IMEI label becomes a suggestion."""
+    for i, line in enumerate(lines):
+        label = _IMEI_LABEL_RE.search(line)
+        if not label:
+            continue
+        rest = line[label.end():] or next((nxt for nxt in lines[i + 1:i + 3] if nxt), "")
+        first = rest.split()[0] if rest.split() else ""
+        if re.search(r"[A-Za-z]", first):
+            continue  # letters in the value: a serial printed after an IMEI label, handled as a serial
+        groups = re.findall(r"\d+", rest.split("IMEI")[0].split("imei")[0])
+        whole = next((g for g in groups if len(g) == 15), None)
+        if whole and luhn_ok(whole):
+            return whole, 0.7, "labelled", line
+        joined = ""
+        for g in groups:  # leading digit groups, as OCR split them
+            joined += g
+            if len(joined) >= 15:
+                break
+        if len(joined) == 15 and luhn_ok(joined):
+            return joined, 0.7, "imei_repaired", line
+        if whole or 13 <= len(joined) <= 17:
+            return (whole or joined), 0.4, "misread_label", line
+    return None, 0.0, "", ""
+
+
 def _serial_candidate(lines: List[str], product_line: Optional[str]) -> Tuple[Optional[str], float, str, str]:
     """Return (serial, confidence, kind, source_line); kind is "labelled", "misread_label" (the label
-    itself was garbled by OCR, e.g. "seriat"), "under_line_item" or "" when nothing was found."""
+    itself was garbled by OCR, e.g. "seriat"), "imei_repaired", "under_line_item" or "" when nothing was found."""
     clean_lines = [_normalize_spaces(line) for line in lines]
+    misread = None
     for i, line in enumerate(clean_lines):
         for label in _SERIAL_LABEL_RE.finditer(line):
             exact = label.group(0).strip(" :-#.").lower().split()[0] in {"serial", "s/n", "sn", "imei"}
@@ -664,8 +722,13 @@ def _serial_candidate(lines: List[str], product_line: Optional[str]) -> Tuple[Op
             value = _SERIAL_VALUE_RE.match(rest)
             if value and _plausible_serial(value.group(0)):
                 if exact:
-                    return value.group(0).upper(), 0.7, "labelled", line
-                return value.group(0).upper(), 0.5, "misread_label", line
+                    return value.group(0).upper(), 0.7, "labelled", line  # a labelled serial wins over an IMEI
+                misread = misread or (value.group(0).upper(), 0.5, "misread_label", line)
+    imei = _imei_candidate(clean_lines)
+    if imei[0]:
+        return imei
+    if misread:
+        return misread
     if product_line:
         # Unlabelled fallback: a single code on the line directly under a real line item
         # (e.g. "1 Epson L 3250 Printer ..." followed by "XAHT699208").
@@ -993,13 +1056,19 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
             "value": serial_value,
             "source_line": serial_line,
             "status": "pending",
-            "reason": "Serial label was misread by OCR; please confirm the number.",
+            "reason": (
+                "This IMEI did not pass the IMEI check; please confirm the number."
+                if re.search(r"imei", serial_line, re.IGNORECASE)
+                else "Serial label was misread by OCR; please confirm the number."
+            ),
         }
     elif serial_value:
         fields["serial_no"] = serial_value
         confidence["serial_no"] = serial_confidence
         if serial_kind == "under_line_item":
             alternatives["serial_evidence"] = serial_kind  # the Epson exception: stored, not suggested
+        elif serial_kind == "imei_repaired":
+            alternatives["serial_evidence"] = serial_kind  # OCR split the IMEI; joined only because Luhn passes
 
     # === PURCHASE DATE ===
     # Look specifically for "Date:" labeled date first
@@ -1036,6 +1105,13 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
             continue
         invoice_value = candidate
         break
+    # Marketplace order IDs ("Order Number: 408-1234567-8901234", "Order ID: OD4312...") are not invoice
+    # numbers: kept separately, and never stored as the invoice number.
+    order_match = re.search(r"\border\s*(?:id|no|number|#)\.?\s*[:\-#]?\s*([A-Z0-9][A-Z0-9\-]{5,30})", text, re.IGNORECASE)
+    if order_match:
+        alternatives["order_id"] = [order_match.group(1).strip().upper()]
+        if invoice_value and invoice_value == alternatives["order_id"][0]:
+            invoice_value = None
     if invoice_value:
         fields["invoice_no"] = invoice_value
         confidence["invoice_no"] = 0.7

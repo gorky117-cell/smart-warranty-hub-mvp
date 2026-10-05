@@ -411,8 +411,10 @@ def _useful_customer_bullets(items: List[str], *, kind: str, coverage: str) -> L
                 bullets.append("Liquid or moisture damage may not be covered.")
             elif any(k in low for k in ("wear", "tear", "consumable", "filter", "lamp", "bulb")):
                 bullets.append("Normal wear, consumables or replaceable parts may not be covered.")
-            elif any(k in low for k in ("unauthor", "unauthorized", "authorised", "authorized")):
-                bullets.append("Unauthorized repair can affect claim eligibility.")
+            elif "unauthor" in low:  # grounded: only when the text itself speaks of unauthorized repair
+                bullets.append("Repairs by unauthorized people are mentioned as not covered.")
+            elif any(k in low for k in ("authorised", "authorized")):
+                bullets.append("Repairs are done at authorized service centres.")
             elif any(k in low for k in ("screen", "accidental", "physical")):
                 bullets.append("Screen, accidental or physical damage may have limits or exclusions.")
         elif kind == "claim":

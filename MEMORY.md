@@ -3031,3 +3031,28 @@ say in the report when a rule cannot be made general yet.
   from <seller>", icons, support ref) - untracked, not wired in. Found a general taxonomy bug to fix next:
   infer_product_category puts "Inverter" fridges/ACs under "inverter" (and "ups" matches as a substring).
 - [ ] 98.3-98.6 not started (plain language, 5-line summary, product care design + source list, reminders).
+
+## 99. Consolidated run 3 (2026-10-05). Same rules as 98 (global rule, local commits, no push).
+Part 1 items 1-2 were already done in entry 97 (commits 0a9ac4bf..c7e48676); Part 2 items 4-5 in entry 98
+(98.1 report, 98.2 = 1995378c). Storage switch to Postgres still waits for the owner's approval.
+
+- [x] 99.3 Redmi live test B-D (synthetic invoices; no real Redmi file used).
+  - Brand from the title, never the seller: `brand_registry.MAKER_OF_LINE` (Redmi, POCO -> Xiaomi). BRAND-SPECIFIC
+    DATA on purpose: a general "domain owner" rule was measured over all 209 registry brands and rejected (it
+    would rename 20 brands, e.g. Bajaj -> Bajaj Auto, Hero -> Hero MotoCorp). "Redmi Note 12 Pro" keeps "NOTE".
+  - `ingestion.is_listing_code`: Amazon ASIN (B0...) / FNSKU (X0...) and Flipkart FSN never become a model.
+  - IMEI: `luhn_ok`, `_imei_candidate`. 15 digits + Luhn -> stored; OCR-split groups joined only if Luhn passes
+    (serial_evidence "imei_repaired"); otherwise a suggestion "This IMEI did not pass the IMEI check".
+    A labelled "Serial Number" wins over an IMEI line; letters after "IMEI" are handled as a serial.
+  - Order ID kept in alternatives["order_id"], never the invoice number.
+  - Expired: `claim_wording` -> "Expired on 5 Jan 2024", claim_eligibility "expired"; unknown dates -> "Please
+    check the purchase date on your invoice". Summary bullet "Unauthorized repair can affect claim eligibility"
+    was ungrounded when terms only said "authorized" -> now "Repairs are done at authorized service centres."
+  - Combined PDF: GET /warranties/{id}/export/combined?include_invoice&hide_address (owner-only, in memory,
+    Cache-Control no-store, nothing stored). `app/services/combined_export.py`: summary + invoice (PDF pages,
+    photo, text). Hide address = customer block under Bill to/Ship to/Billing/Shipping/Delivery address/
+    Customer/Buyer (+ phone) removed with real PDF redaction (text gone), OCR boxes for photos/scans; if no
+    block is found -> 422 "We could not find your address..." (never claims it was hidden). Dashboard:
+    "Include invoice" / "Hide my address" checkboxes + "Download claim PDF".
+  - Tests: tests/test_redmi_steps.py (38; brands Xiaomi/Samsung/LG/Voltas/Philips/Epson; Amazon, Flipkart,
+    shop; text PDF, photo with OCR, text file). Full suite 564 passed, 2 skipped.

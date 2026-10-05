@@ -156,6 +156,18 @@ def tidy(warranty):
 # --- claim wording (item 7) ------------------------------------------------------------------------------------
 
 
+def friendly_date(value) -> str:
+    """"12 Mar 2025" (no leading zero); "" when unknown."""
+    if not value:
+        return ""
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value[:10])
+        except ValueError:
+            return ""
+    return f"{value.day} {value.strftime('%b %Y')}"
+
+
 def serial_confirmed(warranty) -> bool:
     """A serial is stored (labelled on the invoice or confirmed by the customer)."""
     return bool((getattr(warranty, "serial_no", None) or "").strip())
@@ -164,6 +176,14 @@ def serial_confirmed(warranty) -> bool:
 def claim_wording(status: dict, warranty) -> dict:
     """Never tell the customer "eligible" on our own: with no confirmed serial, the brand decides."""
     status = dict(status or {})
+    if status.get("status") == "expired":
+        when = friendly_date(status.get("expiry_date_used"))
+        status["claim_eligibility"] = "expired"
+        status["claim_message"] = f"Expired on {when}" if when else "The warranty period has ended"
+        return status
+    if status.get("status") == "unknown":
+        status["claim_message"] = "Please check the purchase date on your invoice"
+        return status
     if status.get("claim_eligibility") == "eligible" and not serial_confirmed(warranty):
         brand = (getattr(warranty, "brand", None) or "").strip() or "The brand"
         status["claim_eligibility"] = "within_period"

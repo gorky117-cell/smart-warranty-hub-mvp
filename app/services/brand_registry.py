@@ -27,13 +27,22 @@ ALIASES: Dict[str, str] = {
     "i phone": "Apple",
 }
 
+# Product lines sold under another maker's name and warranty ("Redmi 13C" is a Xiaomi phone; the warranty
+# is Xiaomi's). Brand-specific data, kept here on purpose: a general rule from the registry domains was
+# tried and rejected (it would rename "Bajaj" fans to "Bajaj Auto"). Add a line here only when the maker's
+# official warranty page covers it.
+MAKER_OF_LINE: Dict[str, str] = {
+    "redmi": "Xiaomi",
+    "poco": "Xiaomi",
+}
+
 # Registry names that are ordinary words, people/places or 2-letter codes.
 AMBIGUOUS = frozenset(
     {
         "nothing", "noise", "honor", "carrier", "singer", "sharp", "hero", "polar", "orient", "symphony",
         "butterfly", "pigeon", "glen", "kent", "titan", "surya", "cello", "prestige", "usha", "pioneer",
         "google", "tata", "mg", "mi", "hp", "lg", "kia", "tcl", "bpl", "hpl", "byd", "ifb", "msi", "cera",
-        "candes", "eureka forbes", "anker", "boult", "casio", "fossil",
+        "candes", "eureka forbes", "anker", "boult", "casio", "fossil", "poco",
     }
 )
 
@@ -62,6 +71,8 @@ def _index() -> Tuple[Tuple[Tuple[str, ...], str], ...]:
             canonical_by_key[key] = base
     for alias, target in ALIASES.items():
         canonical_by_key.setdefault(" ".join(_tokens(alias)), target)
+    for line, maker in MAKER_OF_LINE.items():
+        canonical_by_key[" ".join(_tokens(line))] = maker
     entries = [(tuple(key.split()), name) for key, name in canonical_by_key.items()]
     # Longest token sequence first so "bajaj electricals" wins over "bajaj".
     entries.sort(key=lambda item: (-len(item[0]), -len(" ".join(item[0]))))

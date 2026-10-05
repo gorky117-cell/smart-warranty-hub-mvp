@@ -956,6 +956,12 @@
           <a class="button-link mobile-soft-btn" id="btnSeeFullSummary" href="#detailsCare">See full summary</a>
           <a class="button-link mobile-soft-btn" id="exportPdf" target="_blank">Download summary</a>
         </div>
+        <div class="helper" id="claimPackRow" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+          <label style="text-transform:none;"><input type="checkbox" id="packIncludeInvoice" checked> Include invoice</label>
+          <label style="text-transform:none;"><input type="checkbox" id="packHideAddress"> Hide my address</label>
+          <button type="button" class="btn secondary" id="claimPackBtn">Download claim PDF</button>
+          <span id="claimPackStatus"></span>
+        </div>
         <div id="snapshotRow" class="pill-row hidden">
           <div class="pill pill-warn" id="pillStatus"><span class="pill-label">Status: --</span><span class="pill-info"
               onclick="toggleTip('tipStatus')">i</span></div>
@@ -1928,6 +1934,32 @@
         }
       }
 
+      // --- Claim PDF: summary page + original invoice, made on request, never stored ---
+      document.addEventListener('click', async (event) => {
+        if (!event.target || event.target.id !== 'claimPackBtn') return;
+        const warrantyId = event.target.dataset.warrantyId;
+        const status = document.getElementById('claimPackStatus');
+        if (!warrantyId) { status.textContent = 'Load a product first.'; return; }
+        const params = new URLSearchParams({
+          include_invoice: document.getElementById('packIncludeInvoice').checked ? 'true' : 'false',
+          hide_address: document.getElementById('packHideAddress').checked ? 'true' : 'false',
+        });
+        status.textContent = 'Preparing your PDF...';
+        const res = await fetch(`/warranties/${encodeURIComponent(warrantyId)}/export/combined?${params}`, { headers: h() });
+        if (!res.ok) {
+          const detail = (await res.json().catch(() => ({}))).detail;
+          status.textContent = typeof detail === 'string' ? detail : 'We could not make the PDF. Please try again.';
+          return;
+        }
+        const blob = await res.blob();
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = (res.headers.get('content-disposition') || '').split('filename=')[1] || 'warranty-claim-pack.pdf';
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 5000);
+        status.textContent = '';
+      });
+
       // --- My documents: the owner's originals for the loaded product ---
       function formatSize(bytes) {
         const n = Number(bytes) || 0;
@@ -2464,6 +2496,8 @@
           document.getElementById('warranty').textContent = JSON.stringify(w, null, 2);
           document.getElementById('exportPdf').href = `/warranties/${warrantyId}/export?format=pdf`;
           document.getElementById('exportPdf').classList.remove('disabled');
+          const packBtn = document.getElementById('claimPackBtn');
+          if (packBtn) packBtn.dataset.warrantyId = warrantyId;
           renderCoverage(w);
           updateWarrantyLabel(w);
           updateProductContext(w);

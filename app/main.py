@@ -4262,6 +4262,53 @@ def warranty_export(warranty_id: str, format: str = "txt", db=Depends(get_db), c
     return Response(content=data, media_type=media, headers={"Content-Disposition": f"attachment; filename={fname}"})
 
 
+@app.get("/warranties/{warranty_id}/export/combined", dependencies=[Depends(rbac_dependency)])
+def warranty_export_combined(
+    warranty_id: str,
+    include_invoice: bool = True,
+    hide_address: bool = False,
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    """Summary page + the original invoice in one PDF. Owner-only; made on request and never stored."""
+    from .services import combined_export
+
+    _require_own_product(db, current, warranty_id)
+    warranty = store.get_warranty_db(warranty_id)
+    if not warranty:
+        raise HTTPException(status_code=404, detail="Product not found")
+    summary = customer_content.export_text(warranty, summary_engine.build_evidence_summary(warranty))
+    invoice = None
+    if include_invoice:
+        doc = next(
+            (d for d in document_store.list_for(db, owner=current.username, warranty_id=warranty_id)
+             if d.kind == "invoice" and document_store.available(d)),
+            None,
+        )
+        data = document_store.read_bytes(doc) if doc else None
+        if data is not None:
+            invoice = (data, doc.content_type)
+        summary += "\n\nOriginal invoice: " + (
+            "attached on the next page(s)" + (" (your address is hidden)" if hide_address else "")
+            if invoice else "not available - add it under My documents to include it"
+        )
+    summary_pdf = export_warranty_pdf(summary, title=customer_content.export_title(warranty))
+    try:
+        data = combined_export.build(summary_pdf, invoice, hide_address=hide_address)
+    except combined_export.AddressNotFound:
+        raise HTTPException(
+            status_code=422,
+            detail="We could not find your address on this invoice to hide it. "
+            "Download it without the invoice, or with the invoice as it is.",
+        )
+    fname = customer_content.export_filename(warranty, "pdf").replace("warranty-summary-", "warranty-claim-pack-")
+    return Response(
+        content=data,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={fname}", "Cache-Control": "private, no-store"},
+    )
+
+
 @app.get("/reviews", dependencies=[Depends(require_admin)])
 def list_reviews(status: str | None = None):
     return store.list_reviews(status)
