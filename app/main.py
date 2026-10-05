@@ -4323,6 +4323,28 @@ def warranty_export(warranty_id: str, format: str = "txt", db=Depends(get_db), c
     return Response(content=data, media_type=media, headers={"Content-Disposition": f"attachment; filename={fname}"})
 
 
+@app.get("/warranties/{warranty_id}/five-lines", dependencies=[Depends(rbac_dependency)])
+def warranty_five_lines(warranty_id: str, db=Depends(get_db), current: UserDB = Depends(require_user)):
+    """'Your warranty in 5 lines' from the stored dates, terms and invoice text; 'please confirm' when unsure."""
+    from .services import warranty_card
+
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
+    warranty = store.get_warranty_db(warranty_id)
+    if not warranty:
+        raise HTTPException(status_code=404, detail="Product not found")
+    parsed = (
+        db.query(ParsedFieldDB).filter_by(warranty_id=warranty_id).order_by(ParsedFieldDB.created_at.desc()).first()
+    )
+    docs = document_store.list_for(db, owner=current.username, warranty_id=warranty_id)  # owner's documents only
+    invoice = next((d for d in docs if d.kind == "invoice"), None) or (docs[0] if docs else None)
+    return warranty_card.five_lines(
+        warranty,
+        evidence=summary_engine.build_evidence_summary(warranty),
+        document=document_store.describe(invoice) if invoice else None,
+        invoice_text=(parsed.raw_text if parsed else "") or "",
+    )
+
+
 @app.get("/warranties/{warranty_id}/export/combined", dependencies=[Depends(rbac_dependency)])
 def warranty_export_combined(
     warranty_id: str,

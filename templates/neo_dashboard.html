@@ -956,6 +956,12 @@
       <hr class="card-divider">
 
       <div id="overviewData" class="hidden" style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
+        <div id="fiveLines" class="panel subtle-panel" style="display:none;">
+          <p class="panel-title" style="margin:0 0 6px 0;">Your warranty in 5 lines</p>
+          <ol id="fiveLinesList" style="margin:0;padding-left:20px;"></ol>
+          <div id="fiveLinesExtras" class="helper"></div>
+          <div id="fiveLinesConfirm" class="helper" style="display:none;margin-top:6px;padding:6px;border:1px dashed #b98900;border-radius:8px;"></div>
+        </div>
         <div class="placeholder" id="summaryShort"></div>
         <div class="helper" id="summaryMeta">Where these details came from will show here.</div>
         <div class="evidence-panel hidden" id="evidenceTrustPanel"></div>
@@ -1984,6 +1990,36 @@
         status.textContent = '';
       });
 
+      // --- Your warranty in 5 lines (shown as soon as a product loads, e.g. right after an upload) ---
+      async function loadFiveLines(warrantyId) {
+        const box = document.getElementById('fiveLines');
+        const list = document.getElementById('fiveLinesList');
+        if (!box || !list || !warrantyId) return;
+        try {
+          const res = await fetch(`/warranties/${encodeURIComponent(warrantyId)}/five-lines`, { headers: h() });
+          if (!res.ok) { box.style.display = 'none'; return; }
+          const card = await res.json();
+          list.innerHTML = (card.lines || []).map((line) => {
+            const text = escapeHtml(line.text);
+            const body = line.url ? `<a href="${escapeHtml(line.url)}" target="_blank" rel="noopener">${text}</a>` : text;
+            const tag = line.tag ? ` <span class="pill pill-warn" style="font-size:11px;">${escapeHtml(line.tag)}</span>` : '';
+            const style = line.confirm ? ' style="color:#8a6100;"' : '';
+            return `<li${style}>${body}${tag}</li>`;
+          }).join('');
+          const extras = card.extras || [];
+          document.getElementById('fiveLinesExtras').innerHTML = extras.length
+            ? 'Also: ' + extras.map((x) => `<span title="${escapeHtml(x.source_sentence)}">${escapeHtml(x.text)}</span>`).join(' · ')
+            : '';
+          const confirm = document.getElementById('fiveLinesConfirm');
+          const fields = card.please_confirm || [];
+          confirm.style.display = fields.length ? 'block' : 'none';
+          confirm.innerHTML = fields.length ? `<strong>Please confirm:</strong> ${fields.map(escapeHtml).join(', ')} - see "Please check these details" below.` : '';
+          box.style.display = 'block';
+        } catch (e) {
+          box.style.display = 'none';
+        }
+      }
+
       // --- My documents: the owner's originals for the loaded product ---
       function formatSize(bytes) {
         const n = Number(bytes) || 0;
@@ -2592,6 +2628,7 @@
           loadBehaviourQuestion();
           console.info('neo-dashboard: fetch recommendations', { warrantyId, userId });
           fetchRecommendations();
+          loadFiveLines(warrantyId);
           loadDocuments(warrantyId);
           fetchResolutionChecklist();
           if (isEV) { fetchEvScore(); }

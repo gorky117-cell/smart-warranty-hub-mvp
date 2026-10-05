@@ -3083,3 +3083,17 @@ Part 1 items 1-2 were already done in entry 97 (commits 0a9ac4bf..c7e48676); Par
   Not done: dynamic JS strings were reviewed by search, not one by one; the OEM/admin pages were not changed.
   Tests: tests/test_plain_language.py (12; the visible-text check parses the customer page), 3 older tests
   updated to the new wording. Full suite 601 passed, 2 skipped.
+- [x] 99.7 "Your warranty in 5 lines". `app/services/warranty_card.py`: five_lines() = (1) "Covered until 3 May 2027
+  (6 months left)." / "Expired on ..." / "Your invoice says there is no warranty" / "Please confirm your purchase
+  date..."; (2) "Covered: <first coverage term as written>"; (3) "Not covered: <grounded limits_from_text, else the
+  first exclusion>"; (4) "If it breaks: <service route line or first claim step>", else "contact <brand or the
+  seller> with your invoice and serial number"; (5) link to the original invoice in My documents, else "add it".
+  Lines without a source say "Please confirm ..." with confirm=True; estimated terms or no brand -> tag
+  "Estimated, please check". please_confirm = pending brand/model/serial/vision suggestions + missing date.
+  detect_types(): part periods (compressor/motor/panel/battery/accessories/...), extended or protection plan
+  bought (offers like "Extended Warranty Available" are not), pro-rata, starts at installation (line 1 asks to
+  confirm the installation date), registration required, on-site, carry-in, seller warranty, no warranty and
+  refurbished (invoice text only), international - each with the sentence it came from; shown as "Also: ...".
+  GET /warranties/{id}/five-lines (warranty access; documents owner-only). Card at the top of the overview.
+  Tests: tests/test_five_lines.py (24, 15 warranty-type cases over fridge/AC/phone/TV/laptop/battery/
+  purifier/washer/small appliance/printer/camera + 3 no-false-positive cases). Full suite 625 passed, 2 skipped.
