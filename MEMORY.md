@@ -2907,10 +2907,18 @@ evidence/purchase date; all care tips "MEDIUM"; two note boxes describing notes 
   warranty page." Tests: phone summary from the live M17e text; non-phone wording; empty sections. One old
   test updated to the new liquid wording.
 
+- [x] 97.7 Claim wording. `customer_content.claim_wording` (used by `_build_warranty_status_info` and the
+  warranties list): within the period and no serial stored -> claim_eligibility "within_period", message
+  "Within warranty period - <Brand> decides eligibility"; with a serial -> still "eligible" but the message
+  says "Within warranty period - <Brand> confirms each claim" (was "Claim is within coverage window.").
+  Expired/unknown unchanged. Dashboard line shows only the sentence ("Claim: Within warranty period -
+  Samsung decides eligibility"), not the raw code. Tests: helper + GET /warranties/{id}.
+
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
 | 97.1 | `0a9ac4bf` | 495 passed, 2 skipped (+4) | Claim steps cleaned for display. |
 | 97.5 | `5617482e` | 500 passed, 2 skipped (+5) | Phone section of multi-product pages; display filters; label. |
-| 97.6 | (next) | 502 passed, 2 skipped (+2) | Easy summary: Pros/Limits, phone limits, no filler. |
+| 97.6 | `13cd7ebd` | 502 passed, 2 skipped (+2) | Easy summary: Pros/Limits, phone limits, no filler. |
+| 97.7 | (next) | 504 passed, 2 skipped (+2) | Claim wording when the serial is not confirmed. |
 

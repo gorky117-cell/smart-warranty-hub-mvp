@@ -2831,7 +2831,7 @@
           `Coverage months: ${coverageMonths || 'N/A'}`,
           `Expiry: ${(expInfo.expiryDate ? expInfo.expiryDate.toISOString().slice(0, 10) : (w.expiry_date || 'N/A'))}${expInfo.derived ? ' (estimated from purchase + coverage)' : ''}`,
           `Status: ${w.warranty_status || cov.text}`,
-          `Claim: ${w.claim_eligibility || 'review'}${w.claim_message ? ` - ${w.claim_message}` : ''}`
+          `Claim: ${w.claim_message || 'Please check the dates on your invoice'}`
         ].join('\n');
         const coverageCanvas = document.getElementById('coverageChart');
         if (coverageCanvas && coverageCanvas.getContext) {

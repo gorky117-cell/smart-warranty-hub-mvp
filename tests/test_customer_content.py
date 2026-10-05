@@ -165,3 +165,39 @@ def test_non_phone_wear_wording_and_empty_sections():
     s = build_layman_summary(w)
     assert s["cons"] == ["Normal wear and tear is not covered."]
     assert s["pros"] == [] and s["fine_print"] == [] and s["claim_friction"] == []  # hidden, not filler
+
+
+# --- item 7: claim wording -----------------------------------------------------------------------------------
+
+
+def test_claim_wording_without_a_confirmed_serial():
+    st = {"claim_eligibility": "eligible", "claim_message": "Claim is within coverage window."}
+    out = cc.claim_wording(st, _warranty(serial_no=None))
+    assert out["claim_eligibility"] == "within_period"
+    assert out["claim_message"] == "Within warranty period - Samsung decides eligibility"
+    with_serial = cc.claim_wording(st, _warranty(serial_no="R5CX40VP8LA"))
+    assert with_serial["claim_eligibility"] == "eligible" and "Samsung" in with_serial["claim_message"]
+    expired = {"claim_eligibility": "not_eligible", "claim_message": "Warranty lapsed 2 months ago."}
+    assert cc.claim_wording(expired, _warranty()) == expired
+
+
+def test_warranty_api_reports_within_period_when_serial_not_confirmed(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from app.db import SessionLocal
+    from app.db_models import WarrantyDB
+    from app.main import app
+    from app.storage import store
+
+    monkeypatch.setenv("RATE_LIMIT_ENABLED", "0")
+    with SessionLocal() as db:
+        db.query(WarrantyDB).filter_by(id="wty_cc_claim").delete()
+        db.add(WarrantyDB(id="wty_cc_claim", brand="Samsung", product_name="Galaxy M17e", coverage_months=12,
+                          purchase_date=__import__("datetime").datetime.utcnow() - timedelta(days=30), alternatives={}))
+        db.commit()
+    store.warranties.pop("wty_cc_claim", None)
+    client = TestClient(app)
+    token = client.post("/auth/login", data={"username": "admin", "password": "admin123"}, headers={"accept": "application/json"}).json()["access_token"]
+    body = client.get("/warranties/wty_cc_claim", headers={"Authorization": f"Bearer {token}"}).json()
+    assert body["claim_eligibility"] == "within_period"
+    assert body["claim_message"] == "Within warranty period - Samsung decides eligibility"

@@ -29,6 +29,7 @@ from .services.canonical import canonicalize_artifact
 from .services.ingestion import ingest_artifact
 from .services import brand_registry
 from .services import corrections_log
+from .services import customer_content
 from .services.llm import generate_text
 from .services.nudge import generate_nudges
 from .services.predictive import compute_predictive_score, predictive_model, build_feature_vector, score_warranty, unified_risk
@@ -1034,11 +1035,11 @@ def _risk_label_changed(
 
 
 def _build_warranty_status_info(warranty) -> Dict[str, object]:
-    st = compute_warranty_status(
+    st = customer_content.claim_wording(compute_warranty_status(
         purchase_date=getattr(warranty, "purchase_date", None),
         coverage_months=getattr(warranty, "coverage_months", None),
         expiry_date=getattr(warranty, "expiry_date", None),
-    )
+    ), warranty)
     return {
         "warranty_status": st.get("status"),
         "claim_eligibility": st.get("claim_eligibility"),
@@ -2125,7 +2126,7 @@ def list_warranties_sorted(
             "risk_score": risk_meta.get("risk_score"),
             "alert_count": unread_alert_count.get(w.id, 0),
             "warranty_status": st.get("status"),
-            "claim_eligibility": st.get("claim_eligibility"),
+            "claim_eligibility": customer_content.claim_wording(st, w).get("claim_eligibility"),
             "days_left": st.get("days_left"),
             "lapsed_text": st.get("lapsed_text"),
         })

@@ -144,3 +144,24 @@ def tidy(warranty):
     warranty.terms = clean_terms(list(warranty.terms or []), phone=phone)
     warranty.exclusions = clean_terms(list(warranty.exclusions or []), phone=phone)
     return warranty
+
+
+# --- claim wording (item 7) ------------------------------------------------------------------------------------
+
+
+def serial_confirmed(warranty) -> bool:
+    """A serial is stored (labelled on the invoice or confirmed by the customer)."""
+    return bool((getattr(warranty, "serial_no", None) or "").strip())
+
+
+def claim_wording(status: dict, warranty) -> dict:
+    """Never tell the customer "eligible" on our own: with no confirmed serial, the brand decides."""
+    status = dict(status or {})
+    if status.get("claim_eligibility") == "eligible" and not serial_confirmed(warranty):
+        brand = (getattr(warranty, "brand", None) or "").strip() or "The brand"
+        status["claim_eligibility"] = "within_period"
+        status["claim_message"] = f"Within warranty period - {brand} decides eligibility"
+    elif status.get("claim_eligibility") == "eligible":
+        brand = (getattr(warranty, "brand", None) or "").strip() or "the brand"
+        status["claim_message"] = f"Within warranty period - {brand} confirms each claim"
+    return status
