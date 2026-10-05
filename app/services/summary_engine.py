@@ -428,31 +428,54 @@ def _useful_customer_bullets(items: List[str], *, kind: str, coverage: str) -> L
 
 
 # Limits read from the warranty text (terms + exclusions). Each rule: (pattern, bullet).
-_LIMIT_RULES = (
-    (r"wear and tear|wear & tear|normal wear", None),  # phone/other wording chosen below
-    (r"abnormal voltage|lightning|power surge|voltage fluctuation", "Damage from abnormal voltage, power surges or lightning is not covered."),
-    (r"unauthori[sz]ed|modification|alteration|tamper|opened by|carried (?:out )?at [a-z ]*authori[sz]ed service",
-     "Repairs or changes by anyone other than an authorized service center can void the warranty."),
-    (r"liquid|water|moisture|waterlogging", "Liquid or water damage is not covered."),
-    (r"physical damage|accidental|improper use|misuse|dropped", "Accidental damage, misuse or improper use is not covered."),
-    (r"serial number is removed|serial number.*(?:obliterated|altered)", "The warranty is void if the serial number is removed or altered."),
-    (r"consumable", "Consumables and replaceable parts are not covered."),
-)
+# Limits read from the warranty text (terms + exclusions). Every line names only what the source names
+# (live test 1 correction: no conclusions the terms do not state).
+def _found(low: str, words) -> List[str]:
+    """The words of ``words`` that appear in ``low`` (each a (pattern, display name) pair), in order."""
+    return [name for pattern, name in words if re.search(pattern, low)]
 
 
-def limits_from_text(text: str, *, phone: bool) -> List[str]:
+def _join(names: List[str]) -> str:
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " or " + names[-1]
+
+
+def limits_from_text(text: str, *, phone: bool = False) -> List[str]:
     low = (text or "").lower()
     out: List[str] = []
-    for pattern, bullet in _LIMIT_RULES:
-        if not re.search(pattern, low):
-            continue
-        if bullet is None:
-            if phone:
-                bullet = "Normal wear of the battery, display and camera lenses is not covered."
-            else:
-                bullet = "Normal wear and tear is not covered."
-        out.append(bullet)
+    if re.search(r"wear and tear|wear & tear|normal wear", low):
+        parts = _found(low, ((r"camera lens", "camera lenses"), (r"batter(?:y|ies)", "batteries"), (r"display", "displays"),
+                             (r"screen", "screens")))
+        out.append(f"Normal wear and tear{' of ' + _join(parts) if parts else ''} is not covered.")
+    causes = _found(low, ((r"lightning", "lightning"), (r"abnormal voltage", "abnormal voltage"),
+                          (r"power surge", "power surges"), (r"voltage fluctuation", "voltage fluctuations")))
+    if causes:
+        out.append(f"Damage from {_join(causes)} is not covered.")
+    if re.search(r"unauthori[sz]ed", low):
+        out.append("Repairs or changes by unauthorized people are not covered.")
+    elif re.search(r"modification|alteration", low):
+        out.append("Modifications or alterations are not covered.")
+    wet = _found(low, ((r"liquid", "liquid"), (r"waterlogging", "waterlogging"), (r"\bwater\b", "water"), (r"moisture", "moisture")))
+    if wet:
+        out.append(f"Damage from {_join(wet)} is not covered.")
+    misuse = _found(low, ((r"physical damage", "physical damage"), (r"accidental", "accidental damage"),
+                          (r"improper use", "improper use"), (r"misuse", "misuse")))
+    if misuse:
+        text_ = _join(misuse)
+        out.append(f"{text_[0].upper() + text_[1:]} {'is' if len(misuse) == 1 else 'are'} not covered.")
+    if re.search(r"serial number is removed|serial number.*(?:obliterated|altered)", low):
+        out.append("The warranty does not apply if the serial number is removed or altered.")
+    if re.search(r"consumable", low):
+        out.append("Consumables are not covered.")
     return out
+
+
+def service_route_lines(claim_text: str, brand: Optional[str]) -> List[str]:
+    """Grounded lines about where repairs happen ("carried at Samsung authorized service center")."""
+    low = (claim_text or "").lower()
+    if re.search(r"authori[sz]ed service (?:center|centre)", low):
+        owner = brand.strip() if brand and brand.strip() else "the brand's"
+        return [f"Repairs are done at {owner} authorized service centres."]
+    return []
 
 
 def build_layman_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
@@ -471,8 +494,11 @@ def build_layman_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
     pros = _useful_customer_bullets(terms, kind="term", coverage=coverage)[:4]
     from .customer_content import is_phone
 
-    cons = limits_from_text(" ".join(terms + exclusions + claim_steps), phone=is_phone(warranty))
-    claim_friction = _useful_customer_bullets(claim_steps, kind="claim", coverage=coverage)[:4]
+    cons = limits_from_text(" ".join(terms + exclusions), phone=is_phone(warranty))
+    claim_friction = service_route_lines(" ".join(claim_steps), warranty.brand) + [
+        line for line in _useful_customer_bullets(claim_steps, kind="claim", coverage=coverage)
+        if "authorized service center" not in line  # replaced by the grounded line above
+    ][:4]
     # Fine print: only what is not already a limit (no generic filler; empty sections are hidden).
     fine_print = []
     low_all = " ".join(exclusions).lower()

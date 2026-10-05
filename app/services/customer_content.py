@@ -141,7 +141,14 @@ def tidy(warranty):
         ]
     warranty.claim_steps = steps
     phone = is_phone(warranty)
-    warranty.terms = clean_terms(list(warranty.terms or []), phone=phone)
+    coverage = getattr(warranty, "coverage_months", None)
+    terms = [
+        t for t in (warranty.terms or [])
+        # A generated "Standard coverage for N months" line must agree with the coverage shown.
+        if not (m := re.match(r"^\s*standard coverage for (\d+) months", str(t), re.IGNORECASE)) or not coverage
+        or int(m.group(1)) == int(coverage)
+    ]
+    warranty.terms = clean_terms(terms, phone=phone)
     warranty.exclusions = clean_terms(list(warranty.exclusions or []), phone=phone)
     return warranty
 
@@ -165,3 +172,64 @@ def claim_wording(status: dict, warranty) -> dict:
         brand = (getattr(warranty, "brand", None) or "").strip() or "the brand"
         status["claim_message"] = f"Within warranty period - {brand} confirms each claim"
     return status
+
+
+# --- export (item 9) -----------------------------------------------------------------------------------------
+
+EXPORT_DISCLAIMER = (
+    "Smart Warranty Hub is not the warranty provider. This summary is for information; the terms on the "
+    "brand's official warranty page and the brand's decision on each claim apply."
+)
+
+
+def _product_title(warranty) -> str:
+    name = (getattr(warranty, "product_name", None) or "").strip()
+    if not name or name == "Product":
+        name = " ".join(x for x in (getattr(warranty, "brand", None), getattr(warranty, "model_code", None)) if x) or "Product"
+    return name
+
+
+def export_title(warranty) -> str:
+    return f"Warranty summary - {_product_title(warranty)}"
+
+
+def export_filename(warranty, fmt: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", _product_title(warranty).lower()).strip("-")[:60] or "product"
+    return f"warranty-summary-{slug}-{datetime.utcnow().date().isoformat()}.{fmt}"
+
+
+def export_text(warranty, evidence: dict) -> str:
+    """The downloaded summary: key facts, where the terms came from and when they were checked, then the
+    cleaned terms, exclusions and claim steps, and a disclaimer."""
+    def fmt_date(value) -> str:
+        if not value:
+            return "not known"
+        return value.isoformat() if isinstance(value, (date, datetime)) else str(value)[:10]
+
+    from .warranty_status import compute_warranty_status
+
+    status = claim_wording(compute_warranty_status(
+        purchase_date=getattr(warranty, "purchase_date", None),
+        coverage_months=getattr(warranty, "coverage_months", None),
+        expiry_date=getattr(warranty, "expiry_date", None),
+    ), warranty)
+    expiry = getattr(warranty, "expiry_date", None) or status.get("expiry_date_used")
+    lines = [
+        f"Product: {_product_title(warranty)}",
+        f"Brand: {getattr(warranty, 'brand', None) or 'not known'}    Model: {getattr(warranty, 'model_code', None) or 'not known'}",
+        f"Serial: {getattr(warranty, 'serial_no', None) or 'not confirmed'}",
+        f"Purchase date: {fmt_date(getattr(warranty, 'purchase_date', None))}",
+        f"Coverage: {str(getattr(warranty, 'coverage_months', None)) + ' months' if getattr(warranty, 'coverage_months', None) else 'not confirmed'}"
+        f"    Expiry: {fmt_date(expiry)}",
+        f"Claim: {status.get('claim_message') or 'Please check the dates on your invoice'}",
+        "",
+        f"Evidence: {evidence.get('status_label') or evidence.get('status') or 'not confirmed'}",
+        f"Checked on: {evidence.get('checked_on') or 'not recorded'}",
+        f"Source: {evidence.get('source_url') or 'no official page recorded'}",
+    ]
+    for title, items in (("Coverage / terms", warranty.terms), ("Not covered", warranty.exclusions), ("How to claim", warranty.claim_steps)):
+        items = [i for i in (items or []) if str(i).strip()]
+        if items:
+            lines += ["", f"{title}:"] + [f"- {i}" for i in items]
+    lines += ["", EXPORT_DISCLAIMER]
+    return "\n".join(lines)

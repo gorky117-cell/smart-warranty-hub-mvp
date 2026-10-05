@@ -147,9 +147,9 @@ def test_layman_summary_turns_oem_text_into_customer_guidance():
     joined = " ".join(summary["pros"] + summary["cons"] + summary["claim_friction"]).lower()
 
     assert "standard warranty coverage shown: 12 months" in joined
-    assert "liquid or water damage is not covered" in joined
+    assert "damage from liquid or water is not covered" in joined
     assert "check warranty status" in joined
-    assert "authorized service center" in joined
+    assert "authorized service centres" in joined
     assert "and we’ll guide" not in joined
     assert "with us, so that" not in joined
 

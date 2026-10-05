@@ -151,10 +151,12 @@ def test_phone_easy_summary_has_no_cautions_in_pros_and_lists_phone_limits():
     s = build_layman_summary(w)
     assert not any(word in " ".join(s["pros"]).lower() for word in ("may be limited", "not covered", "international"))
     assert s["cons"][:2] == [
-        "Normal wear of the battery, display and camera lenses is not covered.",
-        "Damage from abnormal voltage, power surges or lightning is not covered.",
+        "Normal wear and tear of camera lenses, batteries or displays is not covered.",
+        "Damage from lightning or abnormal voltage is not covered.",
     ]
-    assert "Repairs or changes by anyone other than an authorized service center can void the warranty." in s["cons"]
+    # The source only says repairs happen at authorized centres: no "void" claim, a grounded route line instead.
+    assert not any("unauthorized" in c.lower() or "void" in c.lower() for c in s["cons"])
+    assert s["claim_friction"][0] == "Repairs are done at Samsung authorized service centres."
     everything = " ".join(str(v) for v in s.values())
     assert not any(f in everything for f in FILLER)
 
@@ -163,7 +165,7 @@ def test_non_phone_wear_wording_and_empty_sections():
     w = cc.tidy(_warranty(product_name="Philips Mixer Grinder", model_code="HL7756/00", terms=[],
                           exclusions=["Normal wear and tear of jars is excluded."], claim_steps=[]))
     s = build_layman_summary(w)
-    assert s["cons"] == ["Normal wear and tear is not covered."]
+    assert s["cons"] == ["Normal wear and tear is not covered."]  # no parts named in the source
     assert s["pros"] == [] and s["fine_print"] == [] and s["claim_friction"] == []  # hidden, not filler
 
 
@@ -201,3 +203,54 @@ def test_warranty_api_reports_within_period_when_serial_not_confirmed(monkeypatc
     body = client.get("/warranties/wty_cc_claim", headers={"Authorization": f"Bearer {token}"}).json()
     assert body["claim_eligibility"] == "within_period"
     assert body["claim_message"] == "Within warranty period - Samsung decides eligibility"
+
+
+# --- item 9: export ------------------------------------------------------------------------------------------
+
+
+def test_export_has_source_date_evidence_purchase_and_disclaimer(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from app.db import SessionLocal
+    from app.db_models import WarrantyDB
+    from app.main import app
+    from app.storage import store
+
+    monkeypatch.setenv("RATE_LIMIT_ENABLED", "0")
+    with SessionLocal() as db:
+        db.query(WarrantyDB).filter_by(id="wty_cc_export").delete()
+        db.add(WarrantyDB(
+            id="wty_cc_export", brand="Samsung", model_code="M17E", coverage_months=12,
+            product_name="Samsung Galaxy M17e 5G Mobile", purchase_date=__import__("datetime").datetime(2026, 5, 1),
+            terms=["Standard coverage for 60 months from purchase date."] + LIVE_TERMS, exclusions=LIVE_EXCLUSIONS,
+            claim_steps=LIVE_STEPS,
+            alternatives={"terms_source_type": "approved_oem_source", "terms_source_url": "https://www.samsung.com/in/support/warranty/",
+                          "terms_last_refreshed_at": "2026-10-05T06:00:00"},
+        ))
+        db.commit()
+    store.warranties.pop("wty_cc_export", None)
+    client = TestClient(app)
+    token = client.post("/auth/login", data={"username": "admin", "password": "admin123"}, headers={"accept": "application/json"}).json()["access_token"]
+    resp = client.get("/warranties/wty_cc_export/export?format=txt", headers={"Authorization": f"Bearer {token}"})
+    text = resp.text
+    assert resp.status_code == 200 and "warranty-summary-samsung-galaxy-m17e-5g-mobile" in resp.headers["content-disposition"]
+    for expected in ("Purchase date: 2026-05-01", "Source: https://www.samsung.com/in/support/warranty/",
+                     "Checked on: 2026-10-05", "Evidence: From Samsung India's official warranty page",
+                     "Claim: Within warranty period - Samsung decides eligibility", "is not the warranty provider"):
+        assert expected in text, expected
+    assert "60 months" not in text and "Digital Service Center" not in text and "machine or cabinet" not in text
+    html = client.get("/warranties/wty_cc_export/export?format=html", headers={"Authorization": f"Bearer {token}"})
+    assert html.status_code == 200 and "<pre>" in html.text
+    pdf = client.get("/warranties/wty_cc_export/export?format=pdf", headers={"Authorization": f"Bearer {token}"})
+    assert pdf.status_code == 200 and pdf.content.startswith(b"%PDF")
+
+
+def test_every_limit_names_only_what_the_source_names():
+    from app.services.summary_engine import limits_from_text
+
+    assert limits_from_text("Defects due to lightning are not covered.") == ["Damage from lightning is not covered."]
+    assert limits_from_text("Repairs by unauthorized personnel void the warranty.") == [
+        "Repairs or changes by unauthorized people are not covered."]
+    assert limits_from_text("If the product failed under Waterlogging or Misuse.") == [
+        "Damage from waterlogging is not covered.", "Misuse is not covered."]
+    assert limits_from_text("Warranty applies from purchase date.") == []

@@ -2914,11 +2914,31 @@ evidence/purchase date; all care tips "MEDIUM"; two note boxes describing notes 
   Expired/unknown unchanged. Dashboard line shows only the sentence ("Claim: Within warranty period -
   Samsung decides eligibility"), not the raw code. Tests: helper + GET /warranties/{id}.
 
+- [x] 97.9 Export + grounding correction (one commit).
+  - Export (`/warranties/{id}/export`, txt/html/pdf) is built by `customer_content.export_text` from the cleaned
+    warranty: product, brand/model, serial (or "not confirmed"), purchase date, coverage + expiry, claim
+    wording, evidence label, "Checked on", source URL, terms / not covered / how to claim, and a disclaimer
+    ("Smart Warranty Hub is not the warranty provider..."). Title "Warranty summary - <product>" (was the raw
+    warranty id); file name warranty-summary-<product-slug>-<date>.<fmt>. HTML export now escapes the text.
+    fpdf deprecations fixed (Helvetica, text=, output()).
+  - `tidy` drops a generated "Standard coverage for N months" line that contradicts the stored coverage.
+  - Owner correction (2026-10-05): every customer-facing line must be grounded in the source text.
+    `limits_from_text` now names only what the source names: wear and tear lists only the parts mentioned
+    ("of camera lenses, batteries or displays"); causes ("lightning or abnormal voltage"), water words,
+    misuse words as found; "Repairs or changes by unauthorized people are not covered." only if the source
+    says "unauthorized" ("Modifications or alterations are not covered." if it only names those). A source
+    that only says repairs are carried at authorized service centres gives the Claim-effort line "Repairs are
+    done at <Brand> authorized service centres." (`service_route_lines`), not a "void" warning.
+  - Two older tests updated to the grounded wording. Tests: export endpoint (all fields, no 60 months, no nav
+    labels, no appliance wording; html/pdf), limits grounding.
+- Redmi live-test steps B-D: none exist (owner: "no Redmi live test"); skipped.
+
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
 | 97.1 | `0a9ac4bf` | 495 passed, 2 skipped (+4) | Claim steps cleaned for display. |
 | 97.5 | `5617482e` | 500 passed, 2 skipped (+5) | Phone section of multi-product pages; display filters; label. |
 | 97.6 | `13cd7ebd` | 502 passed, 2 skipped (+2) | Easy summary: Pros/Limits, phone limits, no filler. |
-| 97.7 | (next) | 504 passed, 2 skipped (+2) | Claim wording when the serial is not confirmed. |
+| 97.7 | `4dc3f37f` | 504 passed, 2 skipped (+2) | Claim wording when the serial is not confirmed. |
+| 97.9 | (next) | 506 passed, 2 skipped (+2) | Export with source/date/evidence/disclaimer; grounded limits. |
 

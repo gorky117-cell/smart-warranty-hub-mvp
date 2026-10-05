@@ -4134,16 +4134,18 @@ def warranty_export(warranty_id: str, format: str = "txt", db=Depends(get_db), c
     warranty = store.get_warranty_db(warranty_id)
     if not warranty:
         raise HTTPException(status_code=404, detail="Warranty not found")
-    summary = _build_warranty_summary_response(SummaryRequest(warranty_id=warranty_id), db, current).get("summary", "")
-    fname = f"warranty_{warranty_id}.{format}"
+    # Key facts, source, checked-on date, evidence status and a disclaimer, from the cleaned warranty.
+    summary = customer_content.export_text(warranty, summary_engine.build_evidence_summary(warranty))
+    title = customer_content.export_title(warranty)
+    fname = customer_content.export_filename(warranty, format)
     if format == "txt":
-        data = export_warranty_txt(summary)
+        data = export_warranty_txt(f"{title}\n\n{summary}")
         media = "text/plain"
     elif format == "html":
-        data = export_warranty_html(summary)
+        data = export_warranty_html(summary, title=title)
         media = "text/html"
     elif format == "pdf":
-        data = export_warranty_pdf(summary, title=f"Warranty {warranty_id}")
+        data = export_warranty_pdf(summary, title=title)
         media = "application/pdf"
     else:
         raise HTTPException(status_code=400, detail="Unsupported format")
