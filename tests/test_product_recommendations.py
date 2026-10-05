@@ -112,10 +112,10 @@ def test_oem_facts_create_source_labeled_phone_care():
     titles = " ".join(rec["title"].lower() for rec in recs)
     labels = {rec.get("source_label") for rec in recs}
 
-    assert recs[0]["source_label"] == "OEM claim step"
+    # Ordered by care priority (live test 1): protecting the screen comes before paperwork.
+    assert recs[0]["title"] == "Protect the screen and body" and recs[0]["source_label"] == "From the warranty terms"
     assert "claim documents" in titles
-    assert "screen" in titles
-    assert "OEM warranty exclusion" in labels
+    assert "From the claim steps" in labels
     assert any(rec.get("source_label") == "General product care" for rec in recs)
 
 
@@ -142,5 +142,5 @@ def test_oem_facts_create_source_labeled_printer_care():
 
     assert "printhead" in titles
     assert "usage limits" in titles
-    assert "OEM warranty term" in labels
-    assert "OEM claim step" in labels
+    assert "From the warranty terms" in labels
+    assert "From the claim steps" in labels

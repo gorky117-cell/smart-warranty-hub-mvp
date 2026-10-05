@@ -239,11 +239,36 @@ def _text_items(warranty: Dict, key: str) -> List[str]:
     return [str(item).strip() for item in raw if str(item).strip()]
 
 
+_PORTABLE = {"smartphone", "laptop", "camera", "wearable", "audio"}
+# Care priority by how directly the tip protects against something the brand's terms exclude.
+_TIP_PRIORITY = {
+    "oem_power_protection": ("HIGH", 1),
+    "oem_liquid_damage": ("HIGH", 2),
+    "oem_screen_protection": ("MEDIUM", 3),
+    "oem_authorized_service": ("MEDIUM", 4),
+    "oem_printer_printhead": ("MEDIUM", 4),
+    "oem_filter_cartridge": ("MEDIUM", 5),
+    "oem_claim_ready": ("LOW", 6),
+}
+
+
+def _named(text: str, pairs) -> List[str]:
+    return [name for pattern, name in pairs if re.search(pattern, text)]
+
+
+def _join_names(names: List[str]) -> str:
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+
+
 def _append_oem_care(results: List[ProductRecommendation], *, category: str, region: Optional[str], warranty: Dict) -> None:
+    """Care tips tied to what the brand's own terms say (live test 1). Each "why" names only what the text
+    names; priority follows the hazard (HIGH: excluded damage you can prevent; LOW: paperwork)."""
     terms = _text_items(warranty, "terms")
     exclusions = _text_items(warranty, "exclusions")
     claim_steps = _text_items(warranty, "claim_steps")
+    terms_text = " ".join(terms + exclusions).lower()
     text = " ".join(terms + exclusions + claim_steps).lower()
+    brand = (warranty.get("brand") or "").strip() or "The brand"
     source_url = ((warranty.get("alternatives") or {}).get("terms_source_url")) or warranty.get("terms_source_url")
     if not (source_url or terms or exclusions or claim_steps):
         return
@@ -251,15 +276,16 @@ def _append_oem_care(results: List[ProductRecommendation], *, category: str, reg
     def add(product_id: str, title: str, why: str, source_label: str) -> None:
         if any(rec.get("product_id") == product_id for rec in results):
             return
+        band, priority = _TIP_PRIORITY.get(product_id, ("MEDIUM", 5))
         results.append(
             {
                 "product_id": product_id,
                 "title": title,
                 "category": category,
                 "region": region,
-                "risk_band": "MEDIUM",
+                "risk_band": band,
                 "why": why,
-                "priority": len(results) + 1,
+                "priority": priority,
                 "cta_label": "View care note",
                 "cta_url": None,
                 "action": "oem_derived_care",
@@ -269,20 +295,38 @@ def _append_oem_care(results: List[ProductRecommendation], *, category: str, reg
             }
         )
 
-    if any(k in text for k in ["warranty check", "service center", "service centre", "authorized service", "authorised service"]):
-        add("oem_claim_ready", "Keep claim documents ready", "OEM claim route found: keep invoice, model/serial details and photos ready before contacting support.", "OEM claim step")
-    if any(k in text for k in ["unauthor", "authorized service", "authorised service"]):
-        add("oem_authorized_service", "Use authorized service routes", "OEM terms mention authorized service or repair conditions. Avoid unsupported repair routes before a claim.", "OEM warranty exclusion")
-    if any(k in text for k in ["liquid", "water", "moisture"]) and category in {"smartphone", "laptop", "camera", "wearable", "audio", "tv"}:
-        add("oem_liquid_damage", "Avoid liquid and moisture exposure", "OEM terms mention liquid, water or moisture exclusions. Treat this as care guidance, not added coverage.", "OEM warranty exclusion")
-    if any(k in text for k in ["screen protector", "screen replacement", "accidental damage"]) and category == "smartphone":
-        add("oem_screen_protection", "Protect screen and body from accidental damage", "OEM terms mention screen/accidental-damage limits. Use protection if practical; coverage still follows OEM terms.", "OEM warranty exclusion")
+    power = _named(terms_text, ((r"lightning", "lightning"), (r"abnormal voltage", "abnormal voltage"),
+                                (r"power surge", "power surges"), (r"voltage fluctuation", "voltage fluctuations")))
+    if power:
+        if category in _PORTABLE or category == "smartphone":
+            add("oem_power_protection", "Charge with the original charger and use surge protection",
+                f"{brand}'s terms exclude damage from {_join_names(power)}. Use the original charger and plug into a "
+                "surge-protected socket, especially during storms.", "From the warranty exclusions")
+        else:
+            add("oem_power_protection", "Use a stabilizer or surge protector",
+                f"{brand}'s terms exclude damage from {_join_names(power)}. A voltage stabilizer or surge protector "
+                "helps avoid it.", "From the warranty exclusions")
+    wet = _named(terms_text, ((r"liquid", "liquid"), (r"waterlogging", "waterlogging"), (r"\bwater\b", "water"), (r"moisture", "moisture")))
+    if wet and (category in _PORTABLE or category in {"smartphone", "tv"}):
+        add("oem_liquid_damage", "Keep it away from water",
+            f"{brand}'s terms exclude damage from {_join_names(wet)}.", "From the warranty exclusions")
+    if any(k in terms_text for k in ["screen protector", "screen replacement", "accidental damage"]) and category == "smartphone":
+        add("oem_screen_protection", "Protect the screen and body",
+            f"{brand}'s terms limit screen or accidental-damage cover. A case and screen guard help.", "From the warranty terms")
+    if re.search(r"unauthori[sz]ed", terms_text):
+        add("oem_authorized_service", "Use only authorized service centres",
+            f"{brand}'s terms exclude repairs or changes by unauthorized people.", "From the warranty exclusions")
+    elif re.search(r"authori[sz]ed service (?:center|centre)", text):
+        add("oem_authorized_service", f"Go to a {brand} authorized service centre",
+            f"Repairs are done at {brand} authorized service centres.", "From the claim steps")
     if any(k in text for k in ["printhead", "nozzle", "prints", "page yield"]) and category == "printer":
-        add("oem_printer_printhead", "Watch printhead, nozzle and usage limits", "OEM terms mention printhead/nozzle or print-count limits. Track usage and run maintenance only when needed.", "OEM warranty term")
+        add("oem_printer_printhead", "Watch printhead, nozzle and usage limits", "OEM terms mention printhead/nozzle or print-count limits. Track usage and run maintenance only when needed.", "From the warranty terms")
     if any(k in text for k in ["filter", "cartridge"]) and category in {"printer", "air_conditioner", "washing_machine", "purifier", "cooler"}:
-        add("oem_filter_cartridge", "Track filter or cartridge maintenance", "OEM terms mention filter/cartridge conditions. Keep maintenance notes and replacement dates.", "OEM-derived care")
-    if any(k in text for k in ["voltage", "surge", "power"]) and category in {"tv", "air_conditioner", "fridge", "appliance", "router", "inverter"}:
-        add("oem_power_conditions", "Use stable power where required", "OEM terms mention power conditions. Consider stable power practices and keep issue notes for support.", "OEM-derived care")
+        add("oem_filter_cartridge", "Track filter or cartridge maintenance", "OEM terms mention filter/cartridge conditions. Keep maintenance notes and replacement dates.", "From the warranty terms")
+    if any(k in text for k in ["warranty check", "service center", "service centre", "invoice"]):
+        add("oem_claim_ready", "Keep claim documents ready",
+            "Keep the invoice, model and serial number ready before contacting support.", "From the claim steps")
+    results.sort(key=lambda rec: rec.get("priority", 99))
 
 
 def build_product_recommendations(

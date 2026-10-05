@@ -2971,6 +2971,9 @@ def neo_dashboard(request: Request, current: Optional[UserDB] = Depends(get_curr
     html = html_path.read_text(encoding="utf-8")
     html = html.replace("__SWH_CURRENT_USER__", escape(current.username if current else ""))
     html = html.replace("__SWH_CURRENT_ROLE__", escape(current.role if current else ""))
+    from .services.telemetry_intelligence import _MIN_OEM_COHORT
+
+    html = html.replace("__SWH_OEM_MIN_COHORT__", str(_MIN_OEM_COHORT))  # notes wording matches the setting
     return HTMLResponse(content=html, status_code=200)
 
 

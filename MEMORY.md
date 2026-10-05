@@ -2963,6 +2963,27 @@ evidence/purchase date; all care tips "MEDIUM"; two note boxes describing notes 
     another user's only for an admin (403 otherwise).
   - Tests: tests/test_notification_dedup.py (3).
 
+- [x] 97.8+10+11 Care tips, "How to look after it", notes wording (one commit, same template).
+  - Item 10: `product_recommendations._append_oem_care` rewritten: every "why" names only what the terms say
+    ("Samsung's terms exclude damage from lightning and abnormal voltage."); abnormal voltage/lightning/
+    surges -> phones/laptops "Charge with the original charger and use surge protection", appliances "Use a
+    stabilizer or surge protector" (was appliances only); water words -> "Keep it away from water";
+    unauthorized -> "Use only authorized service centres" only if the terms say "unauthorized", otherwise
+    "Go to a <Brand> authorized service centre" / "Repairs are done at <Brand> authorized service centres.";
+    claim docs. Priority by hazard (`_TIP_PRIORITY`): power HIGH, liquid HIGH, screen MEDIUM, authorized
+    service MEDIUM, claim docs LOW; sorted; labels "From the warranty exclusions/terms/claim steps".
+  - Item 8: "How to look after it" (#careSection) shows these terms-based tips (renderCareTips) with source
+    and care priority, and is hidden when there are none; generic nudges ("Coverage Quick View") no longer
+    fill it; Smart suggestions shows the other suggestions only (no duplicates).
+  - Item 11: what the code does with notes (checked in code): saved with the product (needs analytics
+    consent); identifiers stripped (sanitize_payload); error/failure raise the risk score, maintenance lowers
+    it (derive_score), usage counts only as a number in "hours"; OEMs get counts by note type, never text,
+    only for cohorts >= OEM_TELEMETRY_MIN_COHORT (default 10). Both note boxes now say exactly that (cohort
+    size filled from the setting via __SWH_OEM_MIN_COHORT__); removed "used only to personalize care guidance"
+    and "help improve risk insights and reminders". A typed number for "Usage hours" is now sent as hours.
+    Bug fixed: sendTelemetry returned before setting "Saved.", so the status never changed.
+  - Tests: tests/test_customer_ui.py (+4); two older recommendation tests updated to the new labels/order.
+
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
@@ -2972,5 +2993,6 @@ evidence/purchase date; all care tips "MEDIUM"; two note boxes describing notes 
 | 97.7 | `4dc3f37f` | 504 passed, 2 skipped (+2) | Claim wording when the serial is not confirmed. |
 | 97.9 | `6dd21ea2` | 506 passed, 2 skipped (+2) | Export with source/date/evidence/disclaimer; grounded limits. |
 | 97.2-3 | `ce941e6b` | 511 passed, 2 skipped (+5) | Admin-only detail; guided check form and per-product options. |
-| 97.4 | (next) | 514 passed, 2 skipped (+3) | Product-level alert de-dup; summary; notification access fix. |
+| 97.4 | `c5f7da96` | 514 passed, 2 skipped (+3) | Product-level alert de-dup; summary; notification access fix. |
+| 97.8+10+11 | (next) | 518 passed, 2 skipped (+4) | Grounded, ranked care tips; care section; notes wording. |
 

@@ -1047,9 +1047,9 @@
             <div id="laymanSummary" class="placeholder">Load data to see a simple summary.</div>
           </details>
         </details>
-        <details>
+        <details id="careSection" style="display:none;">
           <summary>How to look after it</summary>
-          <div class="helper">Friendly tips to avoid failures.</div>
+          <div class="helper">Tips based on what the warranty does not cover.</div>
           <div id="advisories" class="placeholder">Load data to see guidance.</div>
           <div class="helper"><a href="javascript:void(0)" data-role="open-fullview" data-target="advisories"
               data-title="Care tips">Open in full view</a></div>
@@ -1121,7 +1121,7 @@
       <div class="card-title">Usage notes (optional)</div>
       <div class="card-hint" id="step4Hint">Load your product in Step 1 to unlock these details.</div>
       <div class="helper" id="productContextStep4" style="display:none;"></div>
-      <div class="helper" style="margin-top:-2px;">Optional notes help improve risk insights and reminders.</div>
+      <div class="helper" style="margin-top:-2px;">Notes are saved with this product. Errors and breakdowns raise its risk estimate, maintenance lowers it, and usage hours count when you enter a number. Brands only see anonymous totals by note type, never your text, and only for groups of at least __SWH_OEM_MIN_COHORT__ people.</div>
       <div class="subtle-panel" id="diagCard" style="margin-top:10px; display:none;">
         <div class="card-title">Diagnostics assistant</div>
         <div class="helper" id="diagMode">Detecting device type...</div>
@@ -1168,11 +1168,11 @@
         <div id="evReasons" class="helper"></div>
       </div>
       <details id="saveInfoDetails">
-        <summary>Add a quick note (optional) <span style="font-weight:400; color:var(--muted); font-size:13px;">- Short updates can make guidance
-            more accurate over time.</span></summary>
+        <summary>Add a quick note (optional) <span style="font-weight:400; color:var(--muted); font-size:13px;">- errors, repairs,
+            maintenance or usage hours</span></summary>
         <div class="helper" style="margin-top:8px;">Saving for: <span id="saveContextBrand">-</span> <span
             id="saveContextModel">-</span><span class="admin-only"> | Warranty: <span id="saveContextWarrantyId">-</span></span></div>
-        <div class="helper">These notes are used only to personalize care guidance for this product.</div>
+        <div class="helper">Notes are saved with this product. Errors and breakdowns raise its risk estimate, maintenance lowers it, and usage hours count when you enter a number. Brands only see anonymous totals by note type, never your text, and only for groups of at least __SWH_OEM_MIN_COHORT__ people.</div>
         <label>What would you like to log?</label>
         <select id="telType">
           <option value="usage">Usage hours</option>
@@ -1644,7 +1644,7 @@
         } else {
           if (detailsHelper) detailsHelper.textContent = 'Loaded from your product. Scroll to read more.';
           if (step3Hint) step3Hint.textContent = 'Upload your bill or use the camera to keep everything in one place.';
-          if (step4Hint) step4Hint.textContent = 'Save simple notes about usage, errors or repairs so the system can help you earlier.';
+          if (step4Hint) step4Hint.textContent = 'Save short notes about errors, repairs, maintenance or usage hours.';
         }
       }
 
@@ -2089,7 +2089,10 @@
           if (!res.ok) throw new Error('Could not load recommendations');
           const data = await res.json();
           const recs = Array.isArray(data) ? data : (Array.isArray(data?.recommendations) ? data.recommendations : []);
-          const productRecs = Array.isArray(data?.product_recommendations) ? data.product_recommendations : [];
+          const allProductRecs = Array.isArray(data?.product_recommendations) ? data.product_recommendations : [];
+          renderCareTips(allProductRecs);
+          // Care tips tied to the terms are shown under "How to look after it"; only other suggestions here.
+          const productRecs = allProductRecs.filter((p) => p.action !== 'oem_derived_care');
 
           const parts = [];
           if (recs && recs.length) {
@@ -2939,20 +2942,23 @@
       }
 
       function renderAdvisories(adv) {
+        // Generic nudges (e.g. "Coverage Quick View") are not care tips (live test 1); "How to look after it"
+        // is filled by renderCareTips from tips tied to the warranty terms.
+      }
+
+      function renderCareTips(tips) {
+        const section = document.getElementById('careSection');
         const container = document.getElementById('advisories');
-        if (!container) return;
-        container.innerHTML = '';
-        const items = adv?.items || adv?.nudges || [];
-        if (!items.length) {
-          container.textContent = 'No advisories yet.';
-          return;
-        }
-        items.forEach(n => {
-          const el = document.createElement('div');
-          el.className = 'nudge';
-          el.innerHTML = `<strong>${n.title}</strong><div>${n.message || n.body || ''}</div>`;
-          container.appendChild(el);
-        });
+        if (!section || !container) return;
+        const list = (Array.isArray(tips) ? tips : []).filter((t) => t && t.action === 'oem_derived_care');
+        if (!list.length) { section.style.display = 'none'; container.innerHTML = ''; return; }
+        container.classList.remove('placeholder');
+        container.innerHTML = list.map((t) => `<div class="nudge">
+            <strong>${escapeHtml(t.title || '')}</strong>
+            <div>${escapeHtml(t.why || t.reason || '')}</div>
+            <div class="helper" style="font-size:12px;">${escapeHtml(t.source_label || '')}${t.risk_band ? ` - Care priority: ${escapeHtml(t.risk_band)}` : ''}</div>
+          </div>`).join('');
+        section.style.display = '';
       }
 
       async function handleDocCapture() {
@@ -3008,19 +3014,21 @@
         if (document.getElementById('advancedToggle').checked) {
           try { payload = JSON.parse(document.getElementById('telPayload').value || '{}'); } catch { payload = {}; }
         } else {
-          const simple = document.getElementById('telPayloadSimple').value;
+          const simple = document.getElementById('telPayloadSimple').value.trim();
           payload = simple ? { note: simple } : {};
+          // Usage hours are read as a number (the risk estimate uses "hours"); text alone is only saved.
+          const hours = Number(simple.replace(/[^0-9.]/g, ''));
+          if (type === 'usage' && simple && Number.isFinite(hours) && /\d/.test(simple)) payload.hours = hours;
         }
         if (!warrantyId) { document.getElementById('telStatus').textContent = 'Add your warranty first'; return; }
         try {
-          return await fetch('/telemetry', {
+          const res = await fetch('/telemetry', {
             method: 'POST', headers: h({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ user_id: userId, warranty_id: warrantyId, event_type: type, payload })
-          }).then(r => {
-            if (!r.ok) throw new Error(r.statusText);
-            return r;
-          }).then(r => r);
-          document.getElementById('telStatus').textContent = 'Saved.';
+          });
+          if (!res.ok) throw new Error(res.statusText);
+          document.getElementById('telStatus').textContent = 'Saved.';  // was never reached (returned first)
+          return res;
         } catch (e) {
           document.getElementById('telStatus').textContent = 'Error: ' + e;
           throw e;
