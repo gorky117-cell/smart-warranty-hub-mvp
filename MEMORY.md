@@ -2849,5 +2849,33 @@ and not /health/ocr. Rules as before; nothing in this entry is pushed without ap
 | 96.1 | `1d8c127d` | 491 passed, 2 skipped (+3) | Guarded schema upgrade; cache/KB fall back when it fails. |
 | 96.2 | `49cdfc7d` + `03f6a0ab` | 491 passed, 2 skipped | Backup script; table count fix. |
 | 96.3 | `5b479703` | 491 passed, 2 skipped | Push + live checks; STATUS.md. |
-| 96.4 | (next) | - | Deploy-log check not possible here; re-check. |
+| 96.4 | `31476ad6` | - | Deploy-log check not possible here; re-check. |
+
+## 97. UI + content fixes from live test 1 (Samsung M17e invoice, 2026-10-05)
+
+Owner tested the live site with a real Samsung Galaxy M17e 5G invoice (warranty wty_2cd9b3be) and sent the
+downloaded summary PDF (image-only; rendered locally to read it) and screenshots. 11 items; local commits,
+not pushed. Live findings (the owner's screenshots): claim steps "Out of Warranty Repair Charges / Digital
+Service Center / Service Center" first; "Loaded (variant B)", a debug "Summary: template | Terms: ..." line,
+raw warranty-ID inputs and "AGENTIC_WORKFLOW_ENABLED" text shown to the customer; guided check via
+browser prompt() with "Not turning on" pre-filled and "Noise" offered for a phone; 59 notifications badge;
+appliance wording ("machine or cabinet"), international-warranty clause, "external factors/medium/data
+types" fragment and two near-identical "company's obligation" terms; label "Approved OEM source - checked
+on ..."; Easy summary Pros containing a caution; "Claim: eligible - Claim is within coverage window" with
+serial not confirmed; "How to look after it" showing only a placeholder; export without source/date/
+evidence/purchase date; all care tips "MEDIUM"; two note boxes describing notes differently.
+
+### Checklist
+- [x] 97.1 Claim steps. New `app/services/customer_content.py`; `tidy()` runs in
+  `MemoryStore._row_to_warranty`, so every display path (dashboard payload, summaries, export) gets cleaned
+  content for new and old records; the database keeps the parsed OEM text. `clean_claim_steps`: drops labels
+  (no instruction verb, <= 6 words, not a sentence), strips "Type of Service (X) -" prefixes, de-duplicates,
+  and for an in-warranty product moves out-of-warranty/chargeable steps to the end. If every step was a
+  label: two neutral steps (keep invoice + serial; contact <Brand> support or an authorized service center).
+  Tests: tests/test_customer_content.py (live steps; ordering; fallback; store vs DB).
+
+### Step log
+| Step | Commit | Tests | Notes |
+|---|---|---|---|
+| 97.1 | (next) | 495 passed, 2 skipped (+4) | Claim steps cleaned for display. |
 

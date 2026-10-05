@@ -272,6 +272,11 @@ class MemoryStore:
         return {}
 
     def _row_to_warranty(self, row_dict: dict) -> CanonicalWarranty:
+        from .services.customer_content import tidy
+
+        return tidy(self._raw_row_to_warranty(row_dict))
+
+    def _raw_row_to_warranty(self, row_dict: dict) -> CanonicalWarranty:
         return CanonicalWarranty(
             id=row_dict["id"],
             product_name=row_dict.get("product_name"),
