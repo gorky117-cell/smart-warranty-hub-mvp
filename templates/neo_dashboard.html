@@ -925,14 +925,21 @@
           <select id="warrantyDropdown" onchange="selectWarrantyFromDropdown()" style="margin-bottom:8px;">
             <option value="">-- Loading warranties... --</option>
           </select>
-          <div class="helper field-inline-note admin-only">Or enter ID manually below</div>
+<!--ADMIN_ONLY-->          <div class="helper field-inline-note admin-only">Or enter ID manually below</div><!--/ADMIN_ONLY-->
+          <div id="nicknameRow" style="display:none;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input id="nicknameInput" type="text" maxlength="40" placeholder="Your name for it, e.g. Mom's phone" aria-label="Your name for this product">
+            <button type="button" class="btn secondary" id="nicknameSaveBtn">Save name</button>
+            <span id="nicknameStatus" class="helper"></span>
+          </div>
         </div>
       </div>
 
+<!--ADMIN_ONLY-->
       <div class="field admin-only">
         <label>Product / Warranty ID</label>
         <input id="warrantyId" placeholder="wty_xxx" aria-label="Warranty number">
       </div>
+<!--/ADMIN_ONLY--><!--CUSTOMER_ONLY--><input type="hidden" id="warrantyId"><!--/CUSTOMER_ONLY-->
       <div class="toggle advanced-toggle" aria-hidden="true" style="display:none; margin:4px 0 8px 0;">
         <input type="checkbox" id="advancedKeyToggle" onchange="toggleKey()">
         <label for="advancedKeyToggle" style="margin:0; text-transform:none;">Advanced settings</label>
@@ -944,7 +951,7 @@
         </div>
       </div>
       <button id="show-warranty-btn" type="button" data-role="show-warranty-btn">Load product details</button>
-      <div class="helper">Enter an ID or select from dropdown to fetch your product + coverage details.</div>
+      <div class="helper">Pick a product from your list to see what its warranty covers.</div>
       <div id="status" class="status-line"></div>
       <hr class="card-divider">
 
@@ -1413,6 +1420,7 @@
       }
 
       function productLabel(w) {
+        if (w && w.display_name) return String(w.display_name);
         const name = (w && w.product_name) ? String(w.product_name).trim() : '';
         const brand = (w && (w.brand || w.make)) ? String(w.brand || w.make).trim() : '';
         const model = (w && (w.model_code || w.model)) ? String(w.model_code || w.model).trim() : '';
@@ -1435,7 +1443,8 @@
         return `${label}${model ? ` - ${model}` : ''} (Exp: ${expiry})`;
       }
 
-      function buildProductLabel({ brand, model, type, warrantyId, product_name }) {
+      function buildProductLabel({ brand, model, type, warrantyId, product_name, display_name }) {
+        if (display_name) return (warrantyId && IS_ADMIN) ? `${display_name} (${warrantyId})` : display_name;
         const base = (product_name || [brand, model].filter(Boolean).join(' ').trim() || 'Product').trim();
         const typeLabel = (type && typeof type === 'string') ? type.trim() : '';
         const context = typeLabel ? `${typeLabel} - ${base}` : base;
@@ -1499,8 +1508,11 @@
         const model = w && (w.model_code || w.model) || '';
         const type = w && (w.product_type_label || (typeof w.product_type === 'string' ? w.product_type : '')) || '';
         const product_name = w && (w.product_name || '') || '';
-        const label = buildProductLabel({ brand, model, type, warrantyId, product_name });
-        warrantyLabelMap[warrantyId] = { brand, model, type, product_name, warrantyId, label };
+        // The list gives the short name (and nickname); keep it when a detail record without one arrives.
+        const display_name = (w && w.display_name) || (warrantyLabelMap[warrantyId] || {}).display_name || '';
+        const label = buildProductLabel({ brand, model, type, warrantyId, product_name, display_name });
+        warrantyLabelMap[warrantyId] = { brand, model, type, product_name, warrantyId, label, display_name,
+          nickname: (w && w.nickname !== undefined) ? w.nickname : (warrantyLabelMap[warrantyId] || {}).nickname };
       }
 
       function getProductLabel(warrantyId) {
@@ -3543,7 +3555,7 @@
           dropdown.textContent = '';
           const placeholder = document.createElement('option');
           placeholder.value = '';
-          placeholder.textContent = `-- Select a warranty (${warranties.length} saved) --`;
+          placeholder.textContent = warranties.length ? `Choose a product (${warranties.length} saved)` : 'No products saved yet';
           dropdown.appendChild(placeholder);
           warranties.forEach(w => {
             const option = document.createElement('option');
@@ -3565,9 +3577,38 @@
         }
       }
 
+      function showNickname(warrantyId) {
+        const row = document.getElementById('nicknameRow');
+        if (!row) return;
+        row.style.display = warrantyId ? 'flex' : 'none';
+        row.dataset.warrantyId = warrantyId || '';
+        const entry = warrantyLabelMap[warrantyId] || {};
+        document.getElementById('nicknameInput').value = entry.nickname || '';
+        document.getElementById('nicknameStatus').textContent = '';
+      }
+
+      document.addEventListener('click', async (event) => {
+        if (!event.target || event.target.id !== 'nicknameSaveBtn') return;
+        const row = document.getElementById('nicknameRow');
+        const warrantyId = row && row.dataset.warrantyId;
+        if (!warrantyId) return;
+        const status = document.getElementById('nicknameStatus');
+        const res = await fetch(`/warranties/${encodeURIComponent(warrantyId)}/nickname`, {
+          method: 'PUT', headers: h({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ nickname: document.getElementById('nicknameInput').value }),
+        });
+        status.textContent = res.ok ? 'Saved.' : 'We could not save the name. Please try again.';
+        if (res.ok) {
+          await loadWarrantyDropdown();
+          const dropdown = document.getElementById('warrantyDropdown');
+          if (dropdown) dropdown.value = warrantyId;
+        }
+      });
+
       function selectWarrantyFromDropdown() {
         const dropdown = document.getElementById('warrantyDropdown');
         const warrantyInput = document.getElementById('warrantyId');
+        showNickname(dropdown && dropdown.value);
         if (dropdown && warrantyInput && dropdown.value) {
           warrantyInput.value = dropdown.value;
           const showBtn = document.getElementById('show-warranty-btn');

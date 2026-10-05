@@ -3056,3 +3056,16 @@ Part 1 items 1-2 were already done in entry 97 (commits 0a9ac4bf..c7e48676); Par
     "Include invoice" / "Hide my address" checkboxes + "Download claim PDF".
   - Tests: tests/test_redmi_steps.py (38; brands Xiaomi/Samsung/LG/Voltas/Philips/Epson; Amazon, Flipkart,
     shop; text PDF, photo with OCR, text file). Full suite 564 passed, 2 skipped.
+- [x] 99.8 Product names instead of IDs. `app/services/product_naming.py`: short name from the title (cut at the
+  first separator, sizes/specs/colours removed, brand in front; long feature lists -> brand + model + type),
+  else brand + model, else type, else "Your product" (never an ID). Nickname per owner (new table
+  `product_nicknames`, PUT /warranties/{id}/nickname, owner-only, 40 chars, empty clears) shown first.
+  Second line "Bought 3 May 2026 from Croma"; identical name + line get "(2)", "(3)" (oldest first). Type icon.
+  /warranties/list adds display_name, product_name_short, nickname, subtitle, icon, type_label; display_label
+  is "<icon> <name> - <second line>" (admin also gets "| Ref XXXXXX | <old label with invoice no>" and
+  support_ref). Placeholder records fall back to the parsed invoice fields. Customer dashboard: the typed
+  "Product / Warranty ID" field is not sent at all (server removes <!--ADMIN_ONLY--> blocks; hidden input
+  keeps the state); nickname box. PDF/text export: short name + "Support reference: Ref XXXXXX".
+  General taxonomy bug fixed: "Inverter" fridges/ACs/washers/microwaves were power inverters and "ups"
+  matched inside words (also scoped the terms lookup wrongly). Tests: tests/test_product_names.py (25),
+  one older list test updated to the new label. Full suite 589 passed, 2 skipped.

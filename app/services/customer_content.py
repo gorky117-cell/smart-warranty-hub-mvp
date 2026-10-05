@@ -202,11 +202,17 @@ EXPORT_DISCLAIMER = (
 )
 
 
+def support_ref(warranty_id) -> str:
+    from .product_naming import support_ref as ref
+
+    return ref(warranty_id)
+
+
 def _product_title(warranty) -> str:
-    name = (getattr(warranty, "product_name", None) or "").strip()
-    if not name or name == "Product":
-        name = " ".join(x for x in (getattr(warranty, "brand", None), getattr(warranty, "model_code", None)) if x) or "Product"
-    return name
+    from .product_naming import short_name
+
+    return short_name(getattr(warranty, "brand", None), getattr(warranty, "product_name", None),
+                      getattr(warranty, "model_code", None))
 
 
 def export_title(warranty) -> str:
@@ -242,6 +248,7 @@ def export_text(warranty, evidence: dict) -> str:
         f"Coverage: {str(getattr(warranty, 'coverage_months', None)) + ' months' if getattr(warranty, 'coverage_months', None) else 'not confirmed'}"
         f"    Expiry: {fmt_date(expiry)}",
         f"Claim: {status.get('claim_message') or 'Please check the dates on your invoice'}",
+        f"Support reference: Ref {support_ref(getattr(warranty, 'id', None))}",
         "",
         f"Evidence: {evidence.get('status_label') or evidence.get('status') or 'not confirmed'}",
         f"Checked on: {evidence.get('checked_on') or 'not recorded'}",

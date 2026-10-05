@@ -418,6 +418,19 @@ class DocumentDB(Base):
     uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
 
+class ProductNicknameDB(Base):
+    """The owner's own name for a product ("Mom's phone"); one per owner and product."""
+
+    __tablename__ = "product_nicknames"
+    __table_args__ = (UniqueConstraint("user_id", "warranty_id", name="uq_product_nickname_user_warranty"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String, index=True)
+    warranty_id: Mapped[str] = mapped_column(String, index=True)
+    nickname: Mapped[str] = mapped_column(String)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class WarrantySummaryDB(Base):
     __tablename__ = "warranty_summaries"
 

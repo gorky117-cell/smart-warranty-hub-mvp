@@ -149,7 +149,9 @@ from .db_models import (
     NotificationDB,
     WarrantyOwnerDB,
     DocumentDB,
+    ProductNicknameDB,
 )
+from .services import product_naming
 from .services import document_store
 
 
@@ -1883,6 +1885,27 @@ def _require_own_product(db: Session, current: UserDB, warranty_id: str) -> None
         raise HTTPException(status_code=404, detail="Product not found")
 
 
+class NicknameRequest(BaseModel):
+    nickname: str = ""
+
+
+@app.put("/warranties/{warranty_id}/nickname", dependencies=[Depends(rbac_dependency)])
+def set_nickname(warranty_id: str, payload: NicknameRequest, db=Depends(get_db), current=Depends(require_user)):
+    """The owner's own name for a product; an empty name removes it."""
+    _require_own_product(db, current, warranty_id)
+    nickname = " ".join((payload.nickname or "").split())[:40]
+    row = db.query(ProductNicknameDB).filter_by(user_id=current.username, warranty_id=warranty_id).first()
+    if not nickname:
+        if row:
+            db.delete(row)
+    elif row:
+        row.nickname, row.updated_at = nickname, datetime.utcnow()
+    else:
+        db.add(ProductNicknameDB(user_id=current.username, warranty_id=warranty_id, nickname=nickname))
+    db.commit()
+    return {"nickname": nickname or None}
+
+
 def _owned_document(db: Session, current: UserDB, doc_id: str) -> DocumentDB:
     """Owner only: another user's document answers 404, the same as one that does not exist."""
     doc = document_store.get_owned(db, owner=current.username, doc_id=doc_id)
@@ -2189,9 +2212,30 @@ def list_warranties_sorted(
         parts.append(f"Exp {_date_label(w.expiry_date)}" if w.expiry_date else "Exp No expiry")
         return " | ".join([p for p in parts if p])
 
+    nicknames = {
+        n.warranty_id: n.nickname
+        for n in db.query(ProductNicknameDB).filter_by(user_id=uid).all()
+    } if uid else {}
+    names = {
+        # A placeholder record (still being read) falls back to what the invoice reading found.
+        w.id: product_naming.describe(
+            warranty_id=w.id,
+            brand=w.brand or getattr(latest_parsed_by_warranty.get(w.id), "brand", None),
+            product_name=(w.product_name if (w.product_name or "").strip() not in ("", "Product")
+                          else getattr(latest_parsed_by_warranty.get(w.id), "product_name", None)),
+            model_code=w.model_code or getattr(latest_parsed_by_warranty.get(w.id), "model_code", None),
+            purchase_date=w.purchase_date or getattr(latest_parsed_by_warranty.get(w.id), "purchase_date", None),
+            alternatives=w.alternatives, nickname=nicknames.get(w.id),
+        )
+        for w in warranties
+    }
+    product_naming.tell_apart(list(reversed([names[w.id] for w in warranties])))  # oldest gets no number
+    is_admin = current.role == "admin"
+
     result = []
     for w in warranties:
         parsed = latest_parsed_by_warranty.get(w.id)
+        name = names[w.id]
         risk_meta = latest_risk_by_warranty.get(w.id, {})
         st = compute_warranty_status(
             purchase_date=w.purchase_date,
@@ -2210,7 +2254,17 @@ def list_warranties_sorted(
             "created_at": w.created_at.isoformat() if w.created_at else None,
             "uploaded_at": w.created_at.isoformat() if w.created_at else None,
             "invoice_no": parsed.invoice_no if parsed else None,
-            "display_label": _warranty_display_label(w, parsed),
+            "display_label": (
+                f"{name['icon']} {name['display_name']} - {name['subtitle']}"
+                + (f" | Ref {name['support_ref']} | {_warranty_display_label(w, parsed)}" if is_admin else "")
+            ),
+            "display_name": name["display_name"],
+            "product_name_short": name["product_name_short"],
+            "nickname": name["nickname"],
+            "subtitle": name["subtitle"],
+            "icon": name["icon"],
+            "type_label": name["type_label"],
+            **({"support_ref": name["support_ref"]} if is_admin else {}),
             "risk_label": risk_meta.get("risk_label"),
             "risk_score": risk_meta.get("risk_score"),
             "alert_count": unread_alert_count.get(w.id, 0),
@@ -3063,6 +3117,9 @@ def neo_dashboard(request: Request, current: Optional[UserDB] = Depends(get_curr
     from .services.telemetry_intelligence import _MIN_OEM_COHORT
 
     html = html.replace("__SWH_OEM_MIN_COHORT__", str(_MIN_OEM_COHORT))  # notes wording matches the setting
+    # Customers pick products from their list: the typed-ID field is not sent to them at all (admin keeps it).
+    drop = "CUSTOMER_ONLY" if current and current.role == "admin" else "ADMIN_ONLY"
+    html = re.sub(rf"<!--{drop}-->.*?<!--/{drop}-->", "", html, flags=re.S)
     return HTMLResponse(content=html, status_code=200)
 
 

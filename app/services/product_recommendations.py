@@ -193,7 +193,12 @@ def infer_product_category(warranty: Dict) -> str:
         return "fan"
     if any(k in joined for k in ["air cooler", "desert cooler", "cooler"]):
         return "cooler"
-    if any(k in joined for k in ["inverter", "ups", "home ups"]):
+    # "Inverter" is also a technology word in fridges, ACs, washing machines and microwaves ("Smart Inverter
+    # Double Door Refrigerator", "Inverter Split AC"): a power inverter/UPS only when no appliance is named.
+    if re.search(r"\b(?:inverter|ups|home ups)\b", joined) and not re.search(
+        r"refrigerator|fridge|air conditioner|split ac|window ac|\bac\b|washing|washer|microwave|oven|compressor",
+        joined,
+    ):
         return "inverter"
     if "phone" in name or "phone" in pt or "galaxy" in name or "iphone" in name or "sm-" in model:
         return "smartphone"

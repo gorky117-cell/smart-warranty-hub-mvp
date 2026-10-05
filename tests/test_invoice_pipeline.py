@@ -1004,7 +1004,10 @@ def test_warranty_list_prefers_parsed_product_when_warranty_is_placeholder():
     res = client.get("/warranties/list")
     assert res.status_code == 200
     item = next(w for w in res.json()["warranties"] if w["id"] == warranty_id)
-    assert item["display_label"].startswith("Samsung Galaxy M17e 5G Mobile | Inv DEL5-53804")
+    # Run 3 item 8: short name first; the admin label still carries the invoice number and upload time.
+    assert item["display_name"] == "Samsung Galaxy M17e 5G Mobile"
+    assert item["display_label"].startswith("📱 Samsung Galaxy M17e 5G Mobile - Bought 1 May 2026")
+    assert "Samsung Galaxy M17e 5G Mobile | Inv DEL5-53804" in item["display_label"]
     assert "Uploaded 2026-05-02 10:30" in item["display_label"]
 
 
