@@ -2933,6 +2933,21 @@ evidence/purchase date; all care tips "MEDIUM"; two note boxes describing notes 
     labels, no appliance wording; html/pdf), limits grounding.
 - Redmi live-test steps B-D: none exist (owner: "no Redmi live test"); skipped.
 
+- [x] 97.2-3 Customer UI and guided check (one commit, same template).
+  - Item 2: CSS `body:not(.is-admin) .admin-only {display:none}`; `loadSessionRole()` reads /auth/session and sets
+    body.is-admin for role=admin. Admin-only: the "Your ID" field, the manual Product/Warranty ID field and its
+    "Or enter ID manually" note, warranty ids in "Saving for ..." labels and the notes context line, the raw
+    "Summary: template | Terms: ... | Evidence ..." line (customers see the evidence panel), "Loaded (variant X)"
+    (customers: "Product details loaded."), and the agent card when the agent is disabled (the
+    AGENTIC_WORKFLOW_ENABLED message). The hidden inputs stay in the DOM, so the page still works.
+  - Item 3: `askDiagQuestion` renders each question as an inline form (radio buttons, nothing pre-selected,
+    Next disabled until an answer is picked, "Not sure / skip"); no window.prompt in the guided check.
+    `guided_diagnostics._question_flow` now uses the product-line taxonomy (was raw substrings, so "Black" in a
+    phone's name matched "ac"): per-line main-problem options (phone: not turning on, battery drains fast,
+    overheating, screen or display, charging, camera, network, other - no "Noise"), phone/laptop safety
+    question about battery swelling; `_probable_issue` maps the new options.
+  - Tests: tests/test_customer_ui.py (page markup gating, session role, phone options, form, session API).
+
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
@@ -2940,5 +2955,6 @@ evidence/purchase date; all care tips "MEDIUM"; two note boxes describing notes 
 | 97.5 | `5617482e` | 500 passed, 2 skipped (+5) | Phone section of multi-product pages; display filters; label. |
 | 97.6 | `13cd7ebd` | 502 passed, 2 skipped (+2) | Easy summary: Pros/Limits, phone limits, no filler. |
 | 97.7 | `4dc3f37f` | 504 passed, 2 skipped (+2) | Claim wording when the serial is not confirmed. |
-| 97.9 | (next) | 506 passed, 2 skipped (+2) | Export with source/date/evidence/disclaimer; grounded limits. |
+| 97.9 | `6dd21ea2` | 506 passed, 2 skipped (+2) | Export with source/date/evidence/disclaimer; grounded limits. |
+| 97.2-3 | (next) | 511 passed, 2 skipped (+5) | Admin-only detail; guided check form and per-product options. |
 

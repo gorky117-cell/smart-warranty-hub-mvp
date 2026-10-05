@@ -438,6 +438,11 @@
       color: #4b5563;
     }
 
+    /* Admin/debug detail (live test 1): hidden for customers, shown when /auth/session says role=admin. */
+    body:not(.is-admin) .admin-only {
+      display: none !important;
+    }
+
     .hidden {
       display: none;
     }
@@ -910,7 +915,7 @@
       <div class="step-kicker">Primary setup</div>
       <div class="card-title">Your product</div>
       <div class="form-grid two-col">
-        <div class="field">
+        <div class="field admin-only">
           <label>Your ID</label>
           <input id="userId" value="__SWH_CURRENT_USER__" aria-label="Your ID">
           <div class="helper field-inline-note" id="userIdHint">Auto-linked to your login session.</div>
@@ -920,11 +925,11 @@
           <select id="warrantyDropdown" onchange="selectWarrantyFromDropdown()" style="margin-bottom:8px;">
             <option value="">-- Loading warranties... --</option>
           </select>
-          <div class="helper field-inline-note">Or enter ID manually below</div>
+          <div class="helper field-inline-note admin-only">Or enter ID manually below</div>
         </div>
       </div>
 
-      <div class="field">
+      <div class="field admin-only">
         <label>Product / Warranty ID</label>
         <input id="warrantyId" placeholder="wty_xxx" aria-label="Warranty number">
       </div>
@@ -1125,6 +1130,7 @@
           <button type="button" id="btnRunRemoteDiag" class="hidden" onclick="requestRemoteDiag()">Request remote check</button>
           <button type="button" id="btnRunGuidedDiag" class="hidden" onclick="startGuidedDiagFlow()">Start guided check</button>
         </div>
+        <form id="diagForm" class="hidden" style="margin-top:8px;" onsubmit="return false;"></form>
         <div id="diagMsg" class="status-line placeholder" style="margin-top:8px;">Load your product to start diagnostics.</div>
       </div>
       <div id="behaviourCard" class="subtle-panel"
@@ -1165,7 +1171,7 @@
         <summary>Add a quick note (optional) <span style="font-weight:400; color:var(--muted); font-size:13px;">- Short updates can make guidance
             more accurate over time.</span></summary>
         <div class="helper" style="margin-top:8px;">Saving for: <span id="saveContextBrand">-</span> <span
-            id="saveContextModel">-</span> | Warranty: <span id="saveContextWarrantyId">-</span></div>
+            id="saveContextModel">-</span><span class="admin-only"> | Warranty: <span id="saveContextWarrantyId">-</span></span></div>
         <div class="helper">These notes are used only to personalize care guidance for this product.</div>
         <label>What would you like to log?</label>
         <select id="telType">
@@ -1312,6 +1318,19 @@
           : 'Enter your user ID to link alerts and risk history.';
       }
 
+      let IS_ADMIN = false;
+      async function loadSessionRole() {
+        try {
+          const res = await fetch('/auth/session', { headers: h() });
+          const data = res.ok ? await res.json() : {};
+          IS_ADMIN = !!(data && data.authenticated && data.role === 'admin');
+        } catch (_) {
+          IS_ADMIN = false;
+        }
+        document.body.classList.toggle('is-admin', IS_ADMIN);
+        return IS_ADMIN;
+      }
+
       async function ensureSessionUser() {
         const userIdInput = document.getElementById('userId');
         if (!userIdInput) return '';
@@ -1397,7 +1416,7 @@
         const base = (product_name || [brand, model].filter(Boolean).join(' ').trim() || 'Product').trim();
         const typeLabel = (type && typeof type === 'string') ? type.trim() : '';
         const context = typeLabel ? `${typeLabel} - ${base}` : base;
-        return warrantyId ? `${context} (${warrantyId})` : context;
+        return (warrantyId && IS_ADMIN) ? `${context} (${warrantyId})` : context;
       }
 
       function computeWarrantyLong(w) {
@@ -2125,6 +2144,7 @@
             body: JSON.stringify({ warranty_id: warrantyId, question: 'Create a draft claim checklist.' })
           }, 'resolution checklist');
           if (data.status === 'disabled') {
+            if (!IS_ADMIN) { card.style.display = 'none'; return; }
             status.textContent = 'Resolution checklist is not enabled for this deployment.';
             list.innerHTML = `<div class="helper">${escapeHtml(data.message || 'Controlled agent is disabled.')}</div>`;
             return;
@@ -2195,6 +2215,38 @@
         }
       }
 
+      // One guided-check question as an inline form (no browser prompt, nothing pre-selected).
+      function askDiagQuestion(q) {
+        const form = document.getElementById('diagForm');
+        return new Promise((resolve) => {
+          const isChoice = q.type === 'choice' && Array.isArray(q.options) && q.options.length;
+          const field = isChoice
+            ? q.options.map((opt, i) => `<label style="display:block; margin:4px 0; text-transform:none; font-weight:400;">
+                <input type="radio" name="diagAnswer" value="${escapeHtml(opt)}" id="diagOpt${i}"> ${escapeHtml(opt)}</label>`).join('')
+            : '<input type="text" id="diagText" maxlength="120" aria-label="Your answer">';
+          form.innerHTML = `<fieldset style="border:none; padding:0; margin:0;">
+              <legend style="font-weight:600; margin-bottom:6px;">${escapeHtml(q.text)}</legend>${field}</fieldset>
+            <div class="actions" style="margin-top:8px;">
+              <button type="button" id="diagNext" ${isChoice ? 'disabled' : ''}>Next</button>
+              <button type="button" class="secondary" id="diagSkip">Not sure / skip</button>
+            </div>`;
+          form.classList.remove('hidden');
+          const next = form.querySelector('#diagNext');
+          if (isChoice) {
+            form.querySelectorAll('input[name="diagAnswer"]').forEach((el) => el.addEventListener('change', () => { next.disabled = false; }));
+          }
+          const finish = (value) => { form.classList.add('hidden'); form.innerHTML = ''; resolve(value); };
+          next.onclick = () => {
+            const value = isChoice
+              ? (form.querySelector('input[name="diagAnswer"]:checked') || {}).value
+              : (form.querySelector('#diagText').value || '').trim();
+            finish(value || 'Not sure');
+          };
+          form.querySelector('#diagSkip').onclick = () => finish('Not sure');
+          (form.querySelector('input') || next).focus();
+        });
+      }
+
       async function startGuidedDiagFlow() {
         const warrantyId = document.getElementById('warrantyId').value.trim();
         const userId = document.getElementById('userId').value.trim();
@@ -2215,12 +2267,8 @@
             if (!nq.ok) throw new Error(nq.detail || 'next_question_failed');
             if (nq.done || !nq.question) break;
             const q = nq.question;
-            let answer = '';
-            if (q.type === 'choice' && Array.isArray(q.options) && q.options.length) {
-              answer = window.prompt(`${q.text}\nOptions: ${q.options.join(' / ')}`, q.options[0] || '') || '';
-            } else {
-              answer = window.prompt(q.text, '') || '';
-            }
+            if (msg) msg.textContent = 'Answer the question below.';
+            let answer = await askDiagQuestion(q);
             if (!answer.trim()) answer = 'Not sure';
             const ansRes = await fetch(`/guided-diagnostics/${encodeURIComponent(sid)}/answer`, {
               method: 'POST',
@@ -2404,7 +2452,7 @@
           if (isEV) { fetchEvScore(); }
           console.info('neo-dashboard: fetch notifications', { userId });
           fetchNotifications(true);
-          setStatus(`Loaded (variant ${adv.variant || ''})`);
+          setStatus(IS_ADMIN ? `Loaded (variant ${adv.variant || ''})` : 'Product details loaded.');
         } catch (err) {
           console.error('neo-dashboard: loadAll error', err);
           setStatus('Error: ' + err);
@@ -2458,7 +2506,9 @@
           renderEvidenceTrustPanel(null);
           return;
         }
-        el.innerHTML = labels.map((x) => escapeHtml(x)).join(' | ');
+        // Raw source types are for admins; customers see the evidence panel below.
+        el.innerHTML = IS_ADMIN ? labels.map((x) => escapeHtml(x)).join(' | ') : '';
+        el.style.display = IS_ADMIN ? '' : 'none';
         renderEvidenceTrustPanel(sum);
       }
 
@@ -3245,6 +3295,7 @@
           userIdInput.value = (userIdInput.value || '').trim();
         }
         await ensureSessionUser();
+        await loadSessionRole();
         updateUserIdHint();
         toggleDocSource();
         toggleKey();

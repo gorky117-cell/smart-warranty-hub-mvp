@@ -36,29 +36,52 @@ def _load_centers() -> List[Dict]:
     return []
 
 
-def _question_flow(product_name: Optional[str]) -> List[Dict]:
-    p = (product_name or "").lower()
+# Main-problem options per product line (live test 1: a phone was offered "Noise"; options must fit the product).
+_ISSUE_OPTIONS = {
+    "smartphone": ["Not turning on", "Battery drains fast", "Overheating", "Screen or display problem",
+                   "Charging problem", "Camera problem", "Network or connectivity", "Other"],
+    "laptop": ["Not turning on", "Slow performance", "Overheating", "Battery problem", "Screen or display problem",
+               "Keyboard or touchpad", "Other"],
+    "tv": ["Not turning on", "No picture", "No sound", "Lines or spots on screen", "Remote not working",
+           "Network or connectivity", "Other"],
+    "fridge": ["Not cooling", "Unusual noise", "Water leak", "Not turning on", "Other"],
+    "air_conditioner": ["Not cooling", "Water leak", "Unusual noise", "Not turning on", "Other"],
+    "washing_machine": ["Not spinning", "Water not draining", "Unusual noise", "Not turning on", "Other"],
+    "fan": ["Not turning on", "Slow speed", "Unusual noise", "Wobbling", "Other"],
+}
+_DEFAULT_ISSUES = ["Not turning on", "Performance issue", "Heating", "Noise", "Connectivity", "Other"]
+
+
+def _line_for(product_name: Optional[str], model_code: Optional[str] = None) -> Optional[str]:
+    from .terms_cache import product_line
+
+    return product_line(model_code, product_name)
+
+
+def _question_flow(product_name: Optional[str], model_code: Optional[str] = None) -> List[Dict]:
+    line = _line_for(product_name, model_code)
     extra = []
-    if "ac" in p or "air" in p:
+    if line == "air_conditioner":
         extra = [
             {"id": "q_temp", "text": "Is cooling weak or uneven?", "type": "choice", "options": ["Yes", "No", "Not sure"]},
         ]
-    elif "fridge" in p or "refrigerator" in p:
+    elif line == "fridge":
         extra = [
             {"id": "q_noise", "text": "Do you hear unusual noise from the back side?", "type": "choice", "options": ["Yes", "No"]},
         ]
-    elif "phone" in p or "mobile" in p:
+    elif line == "smartphone":
         extra = [
             {"id": "q_battery", "text": "Battery draining unusually fast?", "type": "choice", "options": ["Yes", "No", "Sometimes"]},
         ]
-
+    safety = "Any swelling battery, smoke or burning smell?" if line in ("smartphone", "laptop") else         "Any smoke, burning smell, sparking, or leak?"
     base = [
-        {"id": "q_issue", "text": "What is the main problem you see?", "type": "choice", "options": ["Not turning on", "Performance issue", "Heating", "Noise", "Connectivity", "Other"]},
+        {"id": "q_issue", "text": "What is the main problem you see?", "type": "choice",
+         "options": _ISSUE_OPTIONS.get(line or "", _DEFAULT_ISSUES)},
         {"id": "q_since", "text": "Since when is this happening?", "type": "choice", "options": ["Today", "2-3 days", "1 week", "More than 1 week"]},
         {"id": "q_severity", "text": "How bad is it right now?", "type": "choice", "options": ["Mild", "Moderate", "Severe"]},
         {"id": "q_restart", "text": "Did restart/power cycle help?", "type": "choice", "options": ["Yes", "No", "Not tried"]},
         {"id": "q_error", "text": "Any error code/message (if visible)?", "type": "text", "options": []},
-        {"id": "q_safety", "text": "Any smoke, burning smell, sparking, or leak?", "type": "choice", "options": ["Yes", "No"]},
+        {"id": "q_safety", "text": safety, "type": "choice", "options": ["Yes", "No"]},
     ]
     return base[:3] + extra + base[3:]
 
@@ -77,6 +100,21 @@ def _probable_issue(answers: Dict[str, str]) -> Tuple[str, float, str]:
     if "not turning on" in issue:
         probable = "Power path issue (adapter/board/fuse)"
         confidence = 0.76
+    elif "battery" in issue:
+        probable = "Battery wear or unusual power drain"
+        confidence = 0.68
+    elif "charging" in issue:
+        probable = "Charging port, cable or adapter issue"
+        confidence = 0.66
+    elif any(k in issue for k in ("screen", "display", "picture", "lines or spots")):
+        probable = "Display panel or display connection issue"
+        confidence = 0.66
+    elif "camera" in issue:
+        probable = "Camera module or camera app issue"
+        confidence = 0.6
+    elif "not cooling" in issue:
+        probable = "Cooling system issue (gas, compressor or airflow)"
+        confidence = 0.68
     elif "heating" in issue:
         probable = "Thermal stress or ventilation issue"
         confidence = 0.71
