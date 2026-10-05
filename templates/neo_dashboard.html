@@ -1069,7 +1069,7 @@
         </details>
         <details id="careSection" style="display:none;">
           <summary>How to look after it</summary>
-          <div class="helper">Tips based on what the warranty does not cover.</div>
+          <div class="helper">Tips from what the warranty does not cover and from the brand's own manual or FAQ.</div>
           <div id="advisories" class="placeholder">Load data to see guidance.</div>
           <div class="helper"><a href="javascript:void(0)" data-role="open-fullview" data-target="advisories"
               data-title="Care tips">Open in full view</a></div>
@@ -3135,7 +3135,7 @@
         container.innerHTML = list.map((t) => `<div class="nudge">
             <strong>${escapeHtml(t.title || '')}</strong>
             <div>${escapeHtml(t.why || t.reason || '')}</div>
-            <div class="helper" style="font-size:12px;">${escapeHtml(t.source_label || '')}${t.risk_band ? ` - Care priority: ${escapeHtml(t.risk_band)}` : ''}</div>
+            <div class="helper" style="font-size:12px;">${t.source_url ? `<a href="${escapeHtml(t.source_url)}" target="_blank" rel="noopener">${escapeHtml(t.source_label || 'Source')}</a>` : escapeHtml(t.source_label || '')}${t.risk_band ? ` - Care priority: ${escapeHtml(t.risk_band)}` : ''}</div>
           </div>`).join('');
         section.style.display = '';
       }

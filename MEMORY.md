@@ -3097,3 +3097,14 @@ Part 1 items 1-2 were already done in entry 97 (commits 0a9ac4bf..c7e48676); Par
   GET /warranties/{id}/five-lines (warranty access; documents owner-only). Card at the top of the overview.
   Tests: tests/test_five_lines.py (24, 15 warranty-type cases over fridge/AC/phone/TV/laptop/battery/
   purifier/washer/small appliance/printer/camera + 3 no-false-positive cases). Full suite 625 passed, 2 skipped.
+- [x] 99.9 Product-specific care: design + v1. Design in docs/PRODUCT_CARE_DESIGN.md (with the planned-sources
+  table: brand official manual/FAQ pages on verified domains; terms of use / robots.txt NOT checked yet; NO
+  crawling done - needs the owner's approval). v1: table `care_guides` (company, model:/line: scope like the
+  knowledge base, source_kind manual|faq, source_url, tips [{text, quote, page}], knowledge_base_id link).
+  POST/GET /admin/care-guides (admin; official verified domain; model or line, never brand-wide; each tip
+  needs the exact quote and `grounded_tip`: content words subset of the quote and numbers kept exactly;
+  re-saving a page replaces its tips). /recommendations adds saved tips to "How to look after it" with
+  "From <Brand>'s user manual, page N" linked to the page; no guide -> nothing added.
+  SECURITY FIX: /recommendations took any user_id and any warranty_id; now own data only (_subject_user_id)
+  and warranty access checked (403). Data issue noted, not changed: verified domains for "Bajaj" include
+  bajajauto.com. Tests: tests/test_care_guides.py (12). Full suite 637 passed, 2 skipped.

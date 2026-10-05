@@ -431,6 +431,26 @@ class ProductNicknameDB(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class CareGuideDB(Base):
+    """Care advice for one model or product line of a brand, researched once from the brand's own user manual
+    or FAQ and saved. Every tip keeps the exact sentence it came from (quote) and the page (source_url)."""
+
+    __tablename__ = "care_guides"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    company: Mapped[str] = mapped_column(String, index=True)
+    product_scope: Mapped[str] = mapped_column(String, index=True)  # "model:SMM175F" or "line:smartphone"
+    region: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    source_kind: Mapped[str] = mapped_column(String, default="manual")  # manual / faq
+    source_title: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    source_url: Mapped[str] = mapped_column(String)
+    knowledge_base_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)  # verified_terms.id
+    tips = Column(SqliteJSON)  # [{"text", "quote", "page"}]
+    checked_by: Mapped[str] = mapped_column(String)
+    checked_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class WarrantySummaryDB(Base):
     __tablename__ = "warranty_summaries"
 

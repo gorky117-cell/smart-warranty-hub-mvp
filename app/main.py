@@ -559,6 +559,49 @@ def admin_kb_create(payload: Dict[str, Any] = Body(...), db=Depends(get_db), cur
     return knowledge_base.to_dict(entry)
 
 
+@app.get("/admin/care-guides")
+def admin_care_guides(db=Depends(get_db), current: UserDB = Depends(require_admin)):
+    from .db_models import CareGuideDB
+    from .services import care_guides
+
+    rows = db.query(CareGuideDB).order_by(CareGuideDB.company, CareGuideDB.product_scope).all()
+    return {"guides": [care_guides.to_dict(r) for r in rows]}
+
+
+@app.post("/admin/care-guides")
+def admin_care_guide_save(payload: Dict[str, Any] = Body(...), db=Depends(get_db), current: UserDB = Depends(require_admin)):
+    """Admin-only: save care tips read in the brand's user manual or FAQ. The page must be on the brand's
+    verified official website; each tip needs the exact quote and may not say more than it."""
+    from .services import care_guides, terms_cache
+
+    company = " ".join(str(payload.get("company") or "").split())
+    exact = next((name for name in load_oem_domains() if name.lower() == company.lower()), None)
+    if not exact:
+        raise HTTPException(status_code=422, detail="company must be a name in the OEM registry")
+    source_url = str(payload.get("source_url") or "").strip()
+    if not terms_cache.verified_official(source_url, exact):
+        raise HTTPException(status_code=422, detail="source_url must be a page on the company's verified official website")
+    kind = str(payload.get("source_kind") or "manual").strip().lower()
+    if kind not in care_guides.SOURCE_KINDS:
+        raise HTTPException(status_code=422, detail="source_kind must be manual or faq")
+    model = terms_cache.model_key(payload.get("model_code"))
+    line = str(payload.get("product_line") or "").strip().lower() or None
+    if not model and not line:
+        raise HTTPException(status_code=422, detail="give model_code or product_line")
+    try:
+        tips = care_guides.validate(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    kb_id = payload.get("knowledge_base_id")
+    guide = care_guides.save(
+        db, company=exact, scope=f"model:{model}" if model else f"line:{line}", source_kind=kind, source_url=source_url,
+        source_title=(str(payload.get("source_title") or "")[:200] or None), tips=tips, admin=current.username,
+        region=(str(payload.get("region") or "").strip().upper() or None),
+        knowledge_base_id=int(kb_id) if str(kb_id or "").isdigit() else None,
+    )
+    return care_guides.to_dict(guide)
+
+
 @app.post("/admin/knowledge-base/{entry_id}/lock")
 def admin_kb_lock(entry_id: int, db=Depends(get_db), current: UserDB = Depends(require_admin)):
     from .services import knowledge_base
@@ -3393,8 +3436,22 @@ def get_recommendations(
     db=Depends(get_db),
     current=Depends(require_user),
 ):
-    uid = user_id or current.username
+    # Own data only (was: any user_id / warranty_id could be read); staff accounts keep their access.
+    uid = _subject_user_id(current, user_id)
+    if warranty_id:
+        _require_warranty_access(db, user=current, warranty_id=warranty_id)
     recs = recommendation_service.get_recommendations_for_user(db, uid, warranty_id)
+    if warranty_id and isinstance(recs, dict):
+        # Product-specific care from the brand's own manual/FAQ (saved care guides), after the exclusion tips.
+        from .services import care_guides
+
+        w = db.query(WarrantyDB).filter_by(id=warranty_id).first()
+        if w:
+            tips = care_guides.customer_tips(
+                care_guides.find(db, company=w.brand, model_code=w.model_code, product_name=w.product_name)
+            )
+            if tips:
+                recs["product_recommendations"] = list(recs.get("product_recommendations") or []) + tips
     if legacy:
         # legacy shape: just the recommendations list
         from fastapi.responses import JSONResponse
