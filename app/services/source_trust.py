@@ -24,6 +24,12 @@ def _domains_for_brand(domain_map: Dict[str, list], brand: Optional[str]) -> lis
     wanted = _normalize(brand)
     if not wanted:
         return []
+    from .brand_families import is_unresolved_family
+
+    if is_unresolved_family(brand):
+        # A name shared by unrelated companies ("Bajaj", "Honda", "Bajaj Finserv") is not a company: no site is
+        # its official one. Only the company chosen from the product category has official domains.
+        return []
     for key, values in domain_map.items():
         if _normalize(key) == wanted:
             return [_normalize(v) for v in (values or []) if _normalize(v)]

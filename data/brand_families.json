@@ -1,18 +1,55 @@
 {
-  "_note": "Brand names used by unrelated companies. The invoice's product segment decides which company's warranty terms are used. A segment that is not listed (or cannot be told) means no OEM terms: the customer sees 'Estimated - please check your warranty card or the seller'. Company names must be keys in oem_domains.json. Reviewed 2026-10-04 (docs/REGISTRY_REVIEW_2026-10-04.md).",
+  "_note": "Brand names used by unrelated companies. The invoice's product segment decides which company's warranty terms are used. A segment that is not listed (or cannot be told) means no OEM terms: the customer sees 'Estimated - please check your warranty card or the seller'. Company names must be keys in oem_domains.json. Reviewed 2026-10-04 (docs/REGISTRY_REVIEW_2026-10-04.md). 2026-10-06: a shared name that is not itself one of its family's companies (Bajaj, Honda, Hero, Yamaha, Tata, Wipro, Nokia, Hyundai, Usha, TVS, Godrej, Hindware, Kenmore, and aliases such as Bajaj Finserv) has no official domains of its own (source_trust); added TVS (TVS Electronics printers/keyboards are not TVS Motor), Godrej and Hindware.",
   "families": {
-    "Bajaj": {"home_appliance": "Bajaj Electricals", "two_wheeler": "Bajaj Auto"},
-    "Honda": {"car": "Honda Cars India", "two_wheeler": "Honda Motorcycle & Scooter India"},
-    "Hero": {"two_wheeler": "Hero MotoCorp", "bicycle": "Hero Cycles"},
-    "Yamaha": {"two_wheeler": "Yamaha Motor India", "audio": "Yamaha Music India"},
-    "Hyundai": {"car": "Hyundai India"},
-    "Usha": {"home_appliance": "Usha International"},
-    "Wipro": {"home_appliance": "Wipro Lighting"},
-    "Nokia": {"mobile": "HMD"},
-    "Tata": {"car": "Tata Motors"},
+    "Bajaj": {
+      "home_appliance": "Bajaj Electricals",
+      "two_wheeler": "Bajaj Auto"
+    },
+    "Honda": {
+      "car": "Honda Cars India",
+      "two_wheeler": "Honda Motorcycle & Scooter India"
+    },
+    "Hero": {
+      "two_wheeler": "Hero MotoCorp",
+      "bicycle": "Hero Cycles"
+    },
+    "Yamaha": {
+      "two_wheeler": "Yamaha Motor India",
+      "audio": "Yamaha Music India"
+    },
+    "Hyundai": {
+      "car": "Hyundai India"
+    },
+    "Usha": {
+      "home_appliance": "Usha International"
+    },
+    "Wipro": {
+      "home_appliance": "Wipro Lighting"
+    },
+    "Nokia": {
+      "mobile": "HMD"
+    },
+    "Tata": {
+      "car": "Tata Motors"
+    },
     "Kenmore": {},
-    "Havells": {"home_appliance": "Havells", "industrial": "Havells"},
-    "Crompton": {"home_appliance": "Crompton", "industrial": "CG Power"}
+    "Havells": {
+      "home_appliance": "Havells",
+      "industrial": "Havells"
+    },
+    "Crompton": {
+      "home_appliance": "Crompton",
+      "industrial": "CG Power"
+    },
+    "TVS": {
+      "two_wheeler": "TVS Motor"
+    },
+    "Godrej": {
+      "home_appliance": "Godrej Appliances"
+    },
+    "Hindware": {
+      "home_appliance": "Hindware Appliances"
+    }
   },
   "aliases": {
     "USHA": "Usha",

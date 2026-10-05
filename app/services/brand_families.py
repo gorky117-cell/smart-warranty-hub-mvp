@@ -23,6 +23,7 @@ _SEGMENT_KEYWORDS = (
         "pulsar", "platina", "avenger", "dominar", "chetak", "ct 100", "ct100", "splendor", "passion", "glamour",
         "hf deluxe", "xtreme", "xpulse", "destini", "maestro", "pleasure", "activa", "dio", "shine", "unicorn",
         "hornet", "sp 125", "livo", "fz", "r15", "mt 15", "mt-15", "fascino", "ray zr", "aerox", "rx100",
+        "apache", "jupiter", "ntorq", "raider", "iqube", "xl100", "xl 100", "ronin",
     )),
     ("car", (
         "car", "suv", "sedan", "hatchback", "creta", "venue", "verna", "i20", "i10", "exter", "alcazar", "tucson",
@@ -82,6 +83,17 @@ def family_of(brand: Optional[str]) -> Optional[str]:
         if family.lower() == key:
             return family
     return None
+
+
+def is_unresolved_family(name: Optional[str]) -> bool:
+    """True for a shared brand name (or an alias of one, e.g. "Bajaj Finserv") that is not itself one of the
+    companies its product categories resolve to. "Bajaj" -> True (Bajaj Electricals / Bajaj Auto);
+    "Crompton" -> False (it is the home-appliance company of its family)."""
+    family = family_of(name)
+    if not family:
+        return False
+    companies = {str(c).strip().lower() for c in ((_load().get("families") or {}).get(family) or {}).values()}
+    return (name or "").strip().lower() not in companies
 
 
 def product_segment(*texts: Optional[str]) -> Optional[str]:

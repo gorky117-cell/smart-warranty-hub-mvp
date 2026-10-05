@@ -3184,3 +3184,12 @@ approval, push approval (backup first; new tables documents, product_nicknames, 
   got reminders - every owned product is now checked (bulk-loaded); (b) the daily reminder cap counted from
   local midnight while times are stored in UTC, so in India between 00:00 and 05:30 the cap never applied - UTC
   day now. Tests: test_my_documents (+3), test_reminders (+2). Full suite 721 passed, 2 skipped.
+- [x] 100.2 Shared brand names. General rule (brand_families.is_unresolved_family + source_trust): a shared name
+  that is not itself one of its family's companies has NO official domains (was: "Bajaj" held bajaj.com +
+  bajajauto.com, "Honda" honda.com + hondacarindia.com, "Bajaj Finserv" bajajfinserv.in), so only the company
+  chosen from the product category can make a page official, be cached or anchor a knowledge-base/care entry.
+  Checked every registry name that is shared: added families TVS (two-wheeler -> TVS Motor; TVS Electronics
+  keyboards/printers -> no terms), Godrej (appliances -> Godrej Appliances), Hindware (appliances -> Hindware
+  Appliances); TVS model words added to the two-wheeler segment. Same-company aliases (IFB/IFB Appliances,
+  Khaitan/Khaitan Fans, MG/MG Motor India, Crompton Greaves/Crompton, Ather/Ather Energy) need no family.
+  Tests: tests/test_shared_brand_registry.py (34). Full suite 755 passed, 2 skipped.

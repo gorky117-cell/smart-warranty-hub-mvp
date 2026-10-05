@@ -41,8 +41,8 @@ user agent. Until then, guides are entered by hand from pages a person opened.
 | Philips | philips.co.in, philips.com | product support: user manual, FAQ | Not yet |
 | Havells, Lenovo, Daikin, Canon, Brother | see registry | manuals / FAQ | Not yet |
 
-Data issue found while listing: the verified domains for "Bajaj" include bajajauto.com (the motorcycle
-maker), while Bajaj fans and mixers are Bajaj Electricals. Not changed here; needs an owner decision.
+Bajaj (fixed 2026-10-06): the bare name "Bajaj" no longer has official domains; a Bajaj appliance resolves to
+Bajaj Electricals (bajajelectricals.com), a two-wheeler to Bajaj Auto, and Bajaj Finserv never.
 
 ## v2 (not built)
 1. After approval, a fetcher limited to the approved pages above that saves the page text and fingerprint
