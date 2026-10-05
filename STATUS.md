@@ -31,7 +31,16 @@ invoices. No real-invoice accuracy has been measured yet (see "Next steps").
     - knowledge base v1 (empty);
     - guarded start-up schema upgrade;
     - backup script.
-- **Local only:** nothing except this status update.
+- **Local only (not pushed; waiting for the owner's approval):** 19 commits after `03f6a0ab`, plus this status update.
+  - Run 97, live test 1 (Samsung M17e): `5b479703`, `31476ad6`, `0a9ac4bf`, `5617482e`, `13cd7ebd`,
+    `4dc3f37f`, `6dd21ea2`, `ce941e6b`, `c5f7da96`, `c7e48676`.
+  - Run 98-99, customer experience and global check: `1995378c` My documents, `15228725` Redmi B-D and claim
+    PDF, `cd202472` product names, `38c8e213` plain language, `f6518088` five lines, `b11dbc93` product care
+    v1, `6cd4f0f2` reminders, `30ee8514` global check, `2e84ebaf` browser-found fixes.
+  - Two **security fixes** are in these commits: any signed-in user could read or mark another user's
+    notifications (`c5f7da96`), and `/recommendations` accepted any user and product (`b11dbc93`).
+  - New tables (created at start-up, nothing existing is altered): `documents`, `product_nicknames`,
+    `care_guides`. Take a backup before the push, as last time.
 - **Production backup before this deploy:** `swh_prod_2026-10-05_0106.dump`, 1.23 MB, 36 tables, verified
   with `pg_restore --list`, kept on the owner's machine.
 
@@ -101,11 +110,32 @@ A real sign-in was not tested by me; no production credentials were used.
   - Optional corrections log (`CORRECTIONS_LOG=1`, off by default) records what customers confirm or
     correct in the UI, with no personal data. *Local only.*
 
+## What changed for customers (local only)
+
+- **My documents:** view, download and delete the invoice, warranty card and photos per product; owner-only.
+- **Claim PDF:** summary page + original invoice, with "Include invoice" and "Hide my address" (real
+  redaction; refuses when no address block is found). Made on request, never stored.
+- **Your warranty in 5 lines** right after upload, with "Please confirm" lines and warranty types found in
+  the text (part periods, extended plans, pro-rata, installation start, registration, on-site/carry-in,
+  seller warranty, no warranty, refurbished, international).
+- **Product names:** "📱 Samsung Galaxy M17e 5G - Bought 3 May 2026 from Appario Retail Private Ltd",
+  nicknames, identical products numbered, no internal IDs; "Ref XXXXXX" only in the PDF and admin views.
+- **Plain language:** technical controls admin-only; plain source labels ("Estimated, please check").
+- **Care:** tips from the exclusions (now actually shown - they were hidden by a bug) and from saved
+  care guides quoting the brand's manual/FAQ (none saved yet; no crawling).
+- **Reminders:** 30 and 7 days before expiry, on the day, and one "Warranty ended" notice, with product
+  name and date; care reminders only when the brand's text gives an interval; per-user daily cap.
+- **Extraction:** Redmi/POCO -> Xiaomi; Amazon/Flipkart listing codes, processor codes and sizes never a
+  model; IMEI Luhn check (split IMEIs joined only when valid); order ID kept apart from the invoice number;
+  "Expired on <date>".
+
 ## Measured numbers
 
 | What | Result | Data |
 |---|---|---|
-| Test suite | 491 passed, 2 skipped (live-network tests, opt-in with `SWH_LIVE_NETWORK_TESTS=1`) | - |
+| Test suite (local) | 716 passed, 2 skipped (live-network tests, opt-in with `SWH_LIVE_NETWORK_TESTS=1`) | - |
+| Global check, 162 documents (9 categories x 3 brands, marketplace + shop) | all checks: text PDF 54/54, scanned PDF 45/54, phone photo 42/54; invoice number and date 162/162 (docs/GLOBAL_CHECK.md) | synthetic |
+| Warranty types (16 cases) | 16 pass | synthetic |
 | Brand (30 labelled invoice photos) | 26 correct, 0 wrong, 4 missing | synthetic |
 | Model | 0 stored wrong; 28 offered to confirm (2 exact, 26 need an edit); 0 stored correct | synthetic |
 | Serial | 0 stored wrong; 30 offered to confirm, all need an edit | synthetic |
@@ -120,6 +150,19 @@ A real sign-in was not tested by me; no production credentials were used.
 | OpenAI vs Mistral on invoices | **not measured** (no keys locally; the local venv also lacks the `openai` package) | - |
 
 ## Known issues
+
+- **Uploaded files are lost on every redeploy** (stored on the app's own disk, no volume in the repo).
+  My documents is built on a switchable store; `DOCUMENT_STORE=db` (bytes in Postgres, covered by the
+  existing backup) is the proposed fix and needs the owner's approval and a Railway variable set by the
+  owner. Older uploads cannot be shown (no record linked them to products).
+- **OCR'd codes:** O/0 and I/1 confusions in model and serial codes are stored as read (global check:
+  17 of 108 OCR documents). Not made general yet; would need per-field confirmation of OCR'd codes.
+- **Brand-specific code left on purpose:** Redmi/POCO -> Xiaomi table, marketing-series list for model
+  names, Samsung-style section headings for multi-product pages, phone words galaxy/iphone/sm-, the Epson
+  "serial under the line item" rule.
+- **Registry data:** the verified domains for "Bajaj" include bajajauto.com (the motorcycle maker).
+- **Care sources:** no brand site's terms of use or robots.txt checked yet; nothing crawled
+  (docs/PRODUCT_CARE_DESIGN.md lists the planned sources).
 
 - **Start-up schema upgrade on Postgres:** first run in production with this deploy (adds 5 nullable cache
   columns and 2 tables). If it failed, the app still runs with the terms cache and knowledge base off and
@@ -145,6 +188,9 @@ A real sign-in was not tested by me; no production credentials were used.
   - The first `/health/ocr` after a deploy takes about a minute.
 
 ## Next steps
+
+0. Owner: approve (or not) `DOCUMENT_STORE=db`, review the local commits, take a backup, then push.
+   Approve the planned care sources before any crawling.
 
 1. Owner puts invoices in `real_invoices/`, runs `python scripts/run_real_invoices.py` (add
    `--provider both` once keys are in the local `.env` and `pip install -r requirements.txt` is done), and

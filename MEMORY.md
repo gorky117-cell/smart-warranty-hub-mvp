@@ -3154,3 +3154,23 @@ Part 1 items 1-2 were already done in entry 97 (commits 0a9ac4bf..c7e48676); Par
   classes (customers saw them); (2) BUG from 97.8+10: recommendation.py replaced each tip's action with the
   product category, so "How to look after it" was always empty for customers - now the tip's own action is
   kept (test added in tests/test_care_guides.py).
+- [x] 99.12 STATUS.md updated (local-only commit list, security fixes, new tables, customer changes, global
+  check numbers, known issues incl. storage on local disk, OCR O/0, brand-specific code kept, Bajaj domain,
+  care sources unchecked; next step 0 = owner approvals + backup + push).
+
+### Step log (99)
+| Step | Commit | Tests |
+|---|---|---|
+| 99.3 Redmi B-D + claim PDF | `15228725` | 564 passed, 2 skipped |
+| 99.8 product names | `cd202472` | 589 passed, 2 skipped |
+| 99.6 plain language | `38c8e213` | 601 passed, 2 skipped |
+| 99.7 five lines | `f6518088` | 625 passed, 2 skipped |
+| 99.9 product care v1 | `b11dbc93` | 637 passed, 2 skipped |
+| 99.10 reminders | `6cd4f0f2` | 653 passed, 2 skipped |
+| 99.11 global check | `30ee8514` | 715 passed, 2 skipped |
+| 99.11b browser fixes | `2e84ebaf` | 716 passed, 2 skipped |
+| 99.12 STATUS/MEMORY | (next) | docs only |
+
+### State at the end of entry 99
+Nothing pushed; origin/master = `03f6a0ab`. Waiting for the owner: storage switch approval, care sources
+approval, push approval (backup first; new tables documents, product_nicknames, care_guides).
