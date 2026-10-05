@@ -73,13 +73,13 @@ def test_verified_domain_is_labelled_verified_official(monkeypatch):
     trust = classify_terms_source(brand="HP", source_url="https://support.hp.com/warranty", source_type="scraped")
     assert trust["status"] == "verified_official"
     assert trust["verified"] is True and trust["official"] is True
-    assert trust["label"] == "From the official HP website"
+    assert trust["label"] == "From HP's official warranty page"
 
 
 def test_verified_label_uses_registry_brand_spelling(monkeypatch):
     monkeypatch.setattr(source_trust, "load_verified_domains", lambda: {"OnePlus": ["oneplus.in"]})
     trust = classify_terms_source(brand="oneplus", source_url="https://www.oneplus.in/support", source_type="scraped")
-    assert trust["label"] == "From the official OnePlus website"
+    assert trust["label"] == "From OnePlus India's official warranty page"  # oneplus.in
 
 
 def test_orient_points_to_orient_electric_not_the_tiles_company():
@@ -93,7 +93,7 @@ def test_orient_points_to_orient_electric_not_the_tiles_company():
 def test_manually_confirmed_site_has_its_own_label(no_verified_domains):
     trust = classify_terms_source(brand="LG", source_url="https://www.lg.com/in/support/warranty", source_type="scraped")
     assert trust["status"] == "manually_confirmed_official"
-    assert trust["label"] == "From the official LG website (manually confirmed)"
+    assert trust["label"] == "From LG India's official warranty page (manually confirmed)"
     assert trust["manually_confirmed"] is True and trust["official"] is True
 
 

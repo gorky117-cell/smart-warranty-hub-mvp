@@ -2874,8 +2874,30 @@ evidence/purchase date; all care tips "MEDIUM"; two note boxes describing notes 
   label: two neutral steps (keep invoice + serial; contact <Brand> support or an authorized service center).
   Tests: tests/test_customer_content.py (live steps; ordering; fallback; store vs DB).
 
+- [x] 97.5 Terms for phones (done before 2-4: same module). Live finding: samsung.com/in/support/warranty is one
+  page with product sections (h3 "Mobile Phones", "TV & AV", "Home Appliances", "PC & OFFICE"); the parser
+  read the whole page, so phones got appliance terms. Measured on the live page 2026-10-05: whole page ->
+  duration 120 months (!), appliance exclusions, nav claim steps; mobile section -> 12 months, mobile
+  terms, the mobile exclusion list.
+  - `warranty_parser.section_text(html, product_line)`: when a page has >= 2 known product-section headings,
+    only the section(s) for the product line are read (PRODUCT_SECTION_HEADINGS; smartphone = "mobile
+    phones"/"mobile"/...). `parse_terms_from_url(..., product_line=)` / `parse_terms_from_html` use it and skip
+    the page-wide OEM blocks when a section was used; `lookup_terms` passes the scope's product line.
+  - Exclusion headings now include "not applicable in any of the following" and up to 12 exclusions are kept
+    (was 6, which cut "lightning, abnormal voltage").
+  - Display (customer_content.clean_terms, via tidy): for phones drop appliance wording (machine or cabinet,
+    machine/unit, compressor, installation, site (premises, hard disk) and the international/overseas clause;
+    for all products drop slash-joined fragments ("external factors/medium/data types") and near-duplicates
+    (stem Jaccard >= 0.55, the longer one kept). Cleans stored records such as wty_2cd9b3be on display.
+  - Label: `source_trust.official_page_label` -> "From <Brand> <Country>'s official warranty page" (country
+    from a path segment like /in/, en-in, us-en, or a country domain like .in / .co.in; registry " India"
+    suffix dropped from the brand), for approved, verified and (with " (manually confirmed)") manual sources.
+    Confirmed labels still end "- checked on <date>".
+  Tests: phone terms/exclusions; tidy on display; section parsing of a multi-product page; label.
+
 ### Step log
 | Step | Commit | Tests | Notes |
 |---|---|---|---|
-| 97.1 | (next) | 495 passed, 2 skipped (+4) | Claim steps cleaned for display. |
+| 97.1 | `0a9ac4bf` | 495 passed, 2 skipped (+4) | Claim steps cleaned for display. |
+| 97.5 | (next) | 500 passed, 2 skipped (+5) | Phone section of multi-product pages; display filters; label. |
 

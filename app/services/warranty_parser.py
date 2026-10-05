@@ -224,7 +224,7 @@ def _split_lines(text: str) -> List[str]:
     return sentences
 
 
-def _extract_section(lines: List[str], keywords: Tuple[str, ...]) -> List[str]:
+def _extract_section(lines: List[str], keywords: Tuple[str, ...], max_items: int = 6) -> List[str]:
     out: List[str] = []
     capturing = False
     for line in lines:
@@ -238,7 +238,7 @@ def _extract_section(lines: List[str], keywords: Tuple[str, ...]) -> List[str]:
                     break
             if len(line) >= 6:
                 out.append(line)
-                if len(out) >= 6:
+                if len(out) >= max_items:
                     break
     return out
 
@@ -710,7 +710,7 @@ def parse_terms_from_text(text: str) -> ParsedTerms:
     lines = _split_lines(text)
 
     duration_months = _best_duration_months(text)
-    exclusions = _dedupe_keep_order(_extract_section(lines, ("exclusion", "not covered", "limitations")))
+    exclusions = _dedupe_keep_order(_extract_section(lines, ("exclusion", "not covered", "limitations", "not applicable in any of the following"), max_items=12))
     claim_steps = _dedupe_keep_order(
         _extract_section(lines, ("claim", "how to claim", "procedure", "steps"))
         + _extract_claim_service_steps(lines)
@@ -751,7 +751,61 @@ def parse_terms_from_text(text: str) -> ParsedTerms:
     )
 
 
-def parse_terms_from_html(html: str) -> ParsedTerms:
+# Product sections on multi-product OEM warranty pages (e.g. samsung.com/in/support/warranty has
+# "Mobile Phones", "TV & AV", "Home Appliances", "PC & OFFICE"). Keys are product lines from
+# terms_cache.product_line; values are heading texts that open that line's section.
+PRODUCT_SECTION_HEADINGS: Dict[str, Tuple[str, ...]] = {
+    "smartphone": ("mobile phones", "mobile phone", "mobiles", "mobile", "smartphones", "handsets"),
+    "tv": ("tv & av", "tv & audio", "televisions", "tv"),
+    "audio": ("tv & av", "tv & audio", "audio"),
+    "laptop": ("pc & office", "laptops", "computers", "pc"),
+    "fridge": ("home appliances", "refrigerators"),
+    "air_conditioner": ("home appliances", "air conditioners"),
+    "washing_machine": ("home appliances", "washing machines"),
+    "microwave": ("home appliances", "microwave ovens"),
+}
+_ALL_SECTION_HEADINGS = {name for names in PRODUCT_SECTION_HEADINGS.values() for name in names} | {
+    "home appliances", "pc & office", "tv & av", "monitors", "wearables", "tablets", "printers",
+}
+_HEADING_MARK = "\u0000H\u0000"
+
+
+def section_text(html: str, product_line: Optional[str]) -> Optional[str]:
+    """Text of the page's section(s) for ``product_line`` when the page is split into product sections
+    (at least two different product headings); None when it is not, or the line has no section."""
+    targets = set(PRODUCT_SECTION_HEADINGS.get(product_line or "", ()))
+    if not targets:
+        return None
+    soup = BeautifulSoup(html, "html.parser")
+    for tag in soup(["script", "style", "noscript"]):
+        tag.decompose()
+    for heading in soup.find_all(re.compile(r"^h[1-5]$")):
+        heading.insert_before(f"\n{_HEADING_MARK}{' '.join(heading.get_text(' ').split()).lower()}\n")
+        heading.decompose()
+    current: Optional[str] = None
+    seen_sections = set()
+    kept: List[str] = []
+    for line in soup.get_text("\n", strip=True).splitlines():
+        if line.startswith(_HEADING_MARK):
+            name = line[len(_HEADING_MARK):].strip()
+            if name in _ALL_SECTION_HEADINGS:
+                current = name
+                seen_sections.add(name)
+            elif current in targets:
+                kept.append(line[len(_HEADING_MARK):].strip())  # e.g. "warranty terms" inside the section
+            continue
+        if current in targets:
+            kept.append(line)
+    if len(seen_sections) < 2 or not (seen_sections & targets):
+        return None
+    text = "\n".join(kept).strip()
+    return text if len(text) >= 200 else None
+
+
+def parse_terms_from_html(html: str, product_line: Optional[str] = None) -> ParsedTerms:
+    section = section_text(html, product_line) if product_line else None
+    if section:
+        return parse_terms_from_text(section)
     soup = BeautifulSoup(html, "html.parser")
     text = soup.get_text("\n", strip=True)
     return parse_terms_from_text(text)
@@ -828,7 +882,11 @@ def response_text(resp: Any) -> str:
         return content.decode("utf-8", errors="replace")
 
 
-def parse_terms_from_url(url: str, timeout: int = 10) -> Tuple[Optional[ParsedTerms], Optional[str]]:
+def parse_terms_from_url(
+    url: str, timeout: int = 10, product_line: Optional[str] = None
+) -> Tuple[Optional[ParsedTerms], Optional[str]]:
+    """Parse warranty terms from a page. With ``product_line`` (e.g. "smartphone"), a page split into product
+    sections is read only in that product's section (see ``section_text``)."""
     url = (url or "").strip()
     if not url:
         return None, "Empty URL"
@@ -842,7 +900,7 @@ def parse_terms_from_url(url: str, timeout: int = 10) -> Tuple[Optional[ParsedTe
             parsed = parse_terms_from_text(text or "")
             return _finalize_parsed(parsed, raw_text_for_enrich=text), None
         if local_path.suffix.lower() in (".html", ".htm"):
-            parsed = parse_terms_from_html(text or "")
+            parsed = parse_terms_from_html(text or "", product_line)
             return _finalize_parsed(parsed, raw_text_for_enrich=text), None
         parsed = parse_terms_from_text(text or "")
         return _finalize_parsed(parsed, raw_text_for_enrich=text), None
@@ -856,7 +914,7 @@ def parse_terms_from_url(url: str, timeout: int = 10) -> Tuple[Optional[ParsedTe
             parsed = parse_terms_from_text(text or "")
             return _finalize_parsed(parsed, raw_text_for_enrich=text), None
         if local_path.suffix.lower() in (".html", ".htm"):
-            parsed = parse_terms_from_html(text or "")
+            parsed = parse_terms_from_html(text or "", product_line)
             return _finalize_parsed(parsed, raw_text_for_enrich=text), None
         parsed = parse_terms_from_text(text or "")
         return _finalize_parsed(parsed, raw_text_for_enrich=text), None
@@ -888,6 +946,11 @@ def parse_terms_from_url(url: str, timeout: int = 10) -> Tuple[Optional[ParsedTe
                 pass
 
     html = response_text(resp)
+    section = section_text(html, product_line) if product_line else None
+    if section:
+        # Only this product's section: page-wide OEM blocks would bring back other products' terms.
+        parsed = parse_terms_from_text(section)
+        return _finalize_parsed(parsed, raw_text_for_enrich=section), None
     parsed = parse_terms_from_html(html)
     # OEM-specific rules (brand-specific selectors/regex)
     try:

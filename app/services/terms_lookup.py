@@ -599,7 +599,7 @@ def lookup_terms(
                     model_code=model_code,
                     product_type=category,
                 )
-            parsed, err = parse_terms_from_url(url_override)
+            parsed, err = parse_terms_from_url(url_override, product_line=scope_line)
             if parsed and not err:
                 result = _to_terms_result(parsed, url_override)
                 if _source_conflicts_product_context(
@@ -668,7 +668,7 @@ def lookup_terms(
                     break
                 if _source_region_conflicts(src.url, region):
                     continue
-                parsed, err = parse_terms_from_url(src.url)
+                parsed, err = parse_terms_from_url(src.url, product_line=scope_line)
                 if not parsed or err:
                     continue
                 result = _to_terms_result(parsed, src.url)

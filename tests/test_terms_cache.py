@@ -147,7 +147,7 @@ def test_legacy_rows_count_as_official_only_if_the_url_verifies():
 
 def _scrape(monkeypatch, url):
     monkeypatch.setattr(terms_lookup, "discover_sources", lambda **kw: [DiscoverySource(url=url, source_type="oem_warranty", score=90, official=True)])
-    monkeypatch.setattr(terms_lookup, "parse_terms_from_url", lambda u: (ParsedTerms(
+    monkeypatch.setattr(terms_lookup, "parse_terms_from_url", lambda u, **_kw: (ParsedTerms(
         duration_months=24, terms=["Warranty of 24 months from the date of purchase."], exclusions=["Liquid damage"],
         claim_steps=["Call support"], raw_text="This TV carries a warranty of 24 months from the date of purchase.",
         confidence=0.8,

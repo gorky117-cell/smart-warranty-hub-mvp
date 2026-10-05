@@ -625,7 +625,7 @@ def test_terms_lookup_merges_multiple_controlled_oem_sources(monkeypatch):
             DiscoverySource(url=urls[2], source_type="oem_warranty", score=80, official=True),
         ]
 
-    def fake_parse_terms_from_url(url):
+    def fake_parse_terms_from_url(url, **_kw):
         if url.endswith("/product/zx-100"):
             return ParsedTerms(
                 duration_months=12,
@@ -714,7 +714,7 @@ def test_terms_lookup_normalizes_samsung_mobile_official_page(monkeypatch):
             )
         ]
 
-    def fake_parse_terms_from_url(url):
+    def fake_parse_terms_from_url(url, **_kw):
         assert url == samsung_url
         return ParsedTerms(
             duration_months=60,
@@ -808,7 +808,7 @@ def test_terms_lookup_skips_auto_source_with_conflicting_country_path(monkeypatc
 
     calls = []
 
-    def fake_parse_terms_from_url(url):
+    def fake_parse_terms_from_url(url, **_kw):
         calls.append(url)
         if "/uk/" in url:
             return ParsedTerms(
@@ -857,7 +857,7 @@ def test_terms_lookup_skips_samsung_phone_source_for_mobile_connected_pc(monkeyp
 
     calls = []
 
-    def fake_parse_terms_from_url(url):
+    def fake_parse_terms_from_url(url, **_kw):
         calls.append(url)
         if url == pc_url:
             return ParsedTerms(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Dict, Optional
 from urllib.parse import urlparse
 
@@ -37,6 +38,43 @@ def _display_brand(domain_map: Dict[str, list], brand: Optional[str]) -> str:
     return (brand or "").strip()
 
 
+# Country from the page address: a path segment (/in/, /en-in/, /uk/) or a country domain (.co.in, .in).
+_COUNTRY_NAMES = {
+    "in": "India", "us": "US", "uk": "UK", "gb": "UK", "ae": "UAE", "sg": "Singapore", "au": "Australia",
+    "ca": "Canada", "my": "Malaysia", "sa": "Saudi Arabia", "nz": "New Zealand", "za": "South Africa",
+    "bd": "Bangladesh", "lk": "Sri Lanka", "np": "Nepal", "ph": "Philippines", "id": "Indonesia",
+}
+
+
+def country_from_url(url: Optional[str]) -> Optional[str]:
+    if not url:
+        return None
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return None
+    for part in [p.lower() for p in (parsed.path or "").split("/") if p]:
+        codes = part.split("-") if "-" in part and len(part) == 5 else [part]  # "en-in" and "us-en"
+        for code in codes:
+            if code in _COUNTRY_NAMES:
+                return _COUNTRY_NAMES[code]
+    host = (parsed.hostname or "").lower()
+    tld = host.rsplit(".", 1)[-1] if "." in host else ""
+    if tld in _COUNTRY_NAMES:
+        return _COUNTRY_NAMES[tld]
+    if host.endswith("india.com") or "india" in host.split(".")[0]:
+        return "India"
+    return None
+
+
+def official_page_label(brand: Optional[str], url: Optional[str]) -> str:
+    """'From Samsung India's official warranty page' (country when the page address shows one)."""
+    name = re.sub(r"\s+India$", "", (brand or "the brand").strip()) or "the brand"
+    country = country_from_url(url)
+    owner = f"{name} {country}" if country else name
+    return f"From {owner}'s official warranty page"
+
+
 def _matches_domain(host: str, domains: list[str]) -> bool:
     if not host:
         return False
@@ -70,18 +108,18 @@ def classify_terms_source(
         official = verified or manual or _matches_domain(host, official_domains)
         if src_type == "approved_oem_source" and official:
             status = "approved_oem_source"
-            label = "Approved OEM source"
+            label = official_page_label(_display_brand(load_oem_domains(), brand), src_url)
             note = "Terms came from an approved OEM source path."
             confidence = 0.88
         elif verified:
             status = "verified_official"
             # The check proves the website belongs to the brand, not that the scraped terms are correct.
-            label = f"From the official {_display_brand(load_verified_domains(), brand)} website"
+            label = official_page_label(_display_brand(load_verified_domains(), brand), src_url)
             note = "Terms came from a website confirmed to belong to the brand."
             confidence = 0.9
         elif manual:
             status = "manually_confirmed_official"
-            label = f"From the official {_display_brand(manual_map, brand)} website (manually confirmed)"
+            label = official_page_label(_display_brand(manual_map, brand), src_url) + " (manually confirmed)"
             note = "Terms came from a website a person confirmed belongs to the brand."
             confidence = 0.88
         elif official:

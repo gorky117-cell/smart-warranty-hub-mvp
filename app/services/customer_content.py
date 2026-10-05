@@ -54,6 +54,66 @@ def clean_claim_steps(steps: List[str], in_warranty: Optional[bool]) -> List[str
     return kept
 
 
+# --- terms and exclusions (item 5) ---------------------------------------------------------------------------
+
+# Wording that only fits appliances (a phone has no "machine or cabinet" and is not installed on a site).
+_APPLIANCE_WORDING = re.compile(
+    r"\bmachine or cabinet\b|\bcabinet\b|\bmachine/unit\b|\bcompressor\b|\binstallation\b|\boutdoor unit\b|"
+    r"\bindoor unit\b|\bsite \(premises\b|\bhard disk\b",
+    re.IGNORECASE,
+)
+# The international/overseas clause is not the buyer's local warranty.
+_INTERNATIONAL = re.compile(
+    r"\binternational\b[^.]{0,40}\bwarranty\b|regardless of the warranty period of the country|"
+    r"country where the product was (?:first )?sold|\boverseas\b",
+    re.IGNORECASE,
+)
+# Slash-joined word lists left by page layout ("external factors/medium/data types").
+_GARBLED = re.compile(r"\b[a-z]+/[a-z]+/[a-z]+\b", re.IGNORECASE)
+_WORD = re.compile(r"[a-z]+")
+_STOP = {"the", "a", "an", "of", "or", "and", "to", "in", "is", "be", "by", "for", "under", "this", "which", "are", "on"}
+
+
+def is_phone(warranty) -> bool:
+    from .terms_cache import product_line
+
+    return product_line(getattr(warranty, "model_code", None), getattr(warranty, "product_name", None)) == "smartphone"
+
+
+def _stems(text: str) -> set:
+    words = {w for w in _WORD.findall(text.lower()) if w not in _STOP and len(w) > 2}
+    return {re.sub(r"(ing|ed|es|s)$", "", w) for w in words}
+
+
+def drop_near_duplicates(items: List[str], threshold: float = 0.55) -> List[str]:
+    """Keep the more complete of two items that say nearly the same thing."""
+    kept: List[str] = []
+    for item in items:
+        stems = _stems(item)
+        clash = next((i for i, other in enumerate(kept) if stems and _jaccard(stems, _stems(other)) >= threshold), None)
+        if clash is None:
+            kept.append(item)
+        elif len(item) > len(kept[clash]):
+            kept[clash] = item
+    return kept
+
+
+def _jaccard(a: set, b: set) -> float:
+    return len(a & b) / len(a | b) if (a | b) else 0.0
+
+
+def clean_terms(items: List[str], *, phone: bool) -> List[str]:
+    out = []
+    for raw in items or []:
+        text = _clean(raw)
+        if not text or _GARBLED.search(text):
+            continue
+        if phone and (_APPLIANCE_WORDING.search(text) or _INTERNATIONAL.search(text)):
+            continue
+        out.append(text)
+    return drop_near_duplicates(out)
+
+
 def in_warranty(warranty) -> Optional[bool]:
     from .warranty_status import compute_warranty_status
 
@@ -80,4 +140,7 @@ def tidy(warranty):
             f"Contact {brand} support or an authorized service center to raise a claim.",
         ]
     warranty.claim_steps = steps
+    phone = is_phone(warranty)
+    warranty.terms = clean_terms(list(warranty.terms or []), phone=phone)
+    warranty.exclusions = clean_terms(list(warranty.exclusions or []), phone=phone)
     return warranty
