@@ -3272,3 +3272,12 @@ built). Local commits, full tests, no push. Global rule applies.
   fact matched "dent" inside "rodents" - word boundaries; its wording no longer names examples the brand may not
   list. Browser check (local, test admin): one bulk save made line:fridge + model:GLT292RPZY, no console errors.
   Tests: tests/test_kb_admin_screen.py (15). Full suite 846 passed, 2 skipped.
+- [x] 101.5 Report: docs/TERMS_SOURCES_REPORT.md - source order and coverage (partner feed none; KB/cache in
+  production unknown from here; registry 209 names, 160 verified sites + 5 manual; robots checked for 16 sites,
+  12 allow support pages, 3 x 403 now treated as not allowed; defaults mobile 12 / electronics 12 / appliance 24
+  / EV 36 / general 12 months); audit of brand wording: none on customer screens, exports or notifications;
+  care guides only by policy; admin-only raw views listed; AI summary text hidden on the page. Top 30 brand +
+  category pairs (estimate, not measured - no real-invoice volume yet); Godrej Appliances, Acer and Prestige
+  have no verified site, so KB entries for them are refused until the domain is verified.
+  Not done / not built: warranty card upload (owner: later add-on); partner feed (placeholder);
+  warranty_discovery still probes brand home pages without a robots check (domain verification, not terms).
