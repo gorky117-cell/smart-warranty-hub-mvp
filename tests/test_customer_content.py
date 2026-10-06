@@ -40,9 +40,11 @@ def test_in_warranty_product_never_starts_with_an_out_of_warranty_step():
 
 def test_tidy_applies_to_loaded_warranties_and_never_leaves_steps_empty():
     w = cc.tidy(_warranty(claim_steps=LIVE_STEPS))
-    assert "Service Center" not in w.claim_steps and w.claim_steps[0].startswith("Repair service")
+    # Own words (2026-10-06): the claim route as SWH facts, never the brand's sentences or site labels.
+    assert w.claim_steps == ["Repairs are done at Samsung's authorized service centres."]
     only_labels = cc.tidy(_warranty(claim_steps=["Service Center", "Digital Service Center"]))
-    assert only_labels.claim_steps[1] == "Contact Samsung support or an authorized service center to raise a claim."
+    assert only_labels.claim_steps  # never empty: route facts from SWH's fallback steps
+    assert "Repairs are done at Samsung's authorized service centres." in only_labels.claim_steps
 
 
 def test_store_shows_cleaned_steps_but_database_keeps_the_oem_text():
@@ -151,12 +153,12 @@ def test_phone_easy_summary_has_no_cautions_in_pros_and_lists_phone_limits():
     s = build_layman_summary(w)
     assert not any(word in " ".join(s["pros"]).lower() for word in ("may be limited", "not covered", "international"))
     assert s["cons"][:2] == [
+        "Damage from lightning or voltage changes is not covered.",
         "Normal wear and tear of camera lenses, batteries or displays is not covered.",
-        "Damage from lightning or abnormal voltage is not covered.",
     ]
     # The source only says repairs happen at authorized centres: no "void" claim, a grounded route line instead.
     assert not any("unauthorized" in c.lower() or "void" in c.lower() for c in s["cons"])
-    assert s["claim_friction"][0] == "Repairs are done at Samsung authorized service centres."
+    assert s["claim_friction"][0] == "Repairs are done at Samsung's authorized service centres."
     everything = " ".join(str(v) for v in s.values())
     assert not any(f in everything for f in FILLER)
 

@@ -13,7 +13,7 @@ import re
 from datetime import date, datetime
 from typing import Dict, List, Optional
 
-from .customer_content import friendly_date, is_phone
+from .customer_content import friendly_date
 from .warranty_status import compute_warranty_status
 
 _SENTENCE = re.compile(r"(?<=[.!?])\s+")
@@ -94,7 +94,7 @@ def detect_types(invoice_text: str = "", terms: Optional[List[str]] = None, excl
         if re.search(r"regist(?:er|ration)[^.]{0,60}(?:within|mandatory|required|must|necessary|to avail)|"
                      r"(?:must|should|need to) (?:be )?regist", low):
             add("registration_required", "Registration is required", sentence, source)
-        if re.search(r"\bon[\s-]?site\b|at (?:your|customer'?s?) (?:home|premises)|home service", low):
+        if re.search(r"\bon[\s-]?site\b|at (?:the )?(?:your|customer'?s?) (?:home|premises|residence)|home service", low):
             add("on_site", "Service at your home (on-site)", sentence, source)
         if re.search(r"carry[\s-]?in|walk[\s-]?in|bring the (?:product|unit|device)|take the (?:product|unit|device) to", low):
             add("carry_in", "Take the product to a service centre (carry-in)", sentence, source)
@@ -132,8 +132,6 @@ def five_lines(warranty, evidence: Optional[dict] = None, document: Optional[dic
                invoice_text: str = "", today: Optional[date] = None) -> Dict:
     """The card: five lines (dates, covered, not covered, if it breaks, original document), extra lines for
     warranty types found in the text, and the fields to confirm."""
-    from .summary_engine import limits_from_text, service_route_lines
-
     today = today or datetime.utcnow().date()
     evidence = evidence or {}
     alternatives = getattr(warranty, "alternatives", None) or {}
@@ -143,7 +141,7 @@ def five_lines(warranty, evidence: Optional[dict] = None, document: Optional[dic
     terms = list(getattr(warranty, "terms", None) or [])
     exclusions = list(getattr(warranty, "exclusions", None) or [])
     claim_steps = list(getattr(warranty, "claim_steps", None) or [])
-    types = detect_types(invoice_text, terms, exclusions)
+    types = detect_types(invoice_text, terms, exclusions + claim_steps)  # claim steps say on-site / carry-in
     kinds = {t["type"] for t in types}
     lines: List[Dict] = []
 
@@ -168,28 +166,36 @@ def five_lines(warranty, evidence: Optional[dict] = None, document: Optional[dic
     else:
         lines.append({"key": "dates", "text": "Please confirm your purchase date so we can work out the end date.", "confirm": True})
 
-    # 2. What is covered: the first term that says what is covered.
-    covered = next((t for t in terms if re.search(r"defect|repair|replace|cover|free of (?:cost|charge)|manufactur", t, re.I)
-                    and not re.match(r"\s*standard coverage for \d+ months", t, re.I)), None)
+    # 2-4 from facts in SWH's own words (never the brand's sentences).
+    from .warranty_facts import build as build_facts
+
+    facts = alternatives.get("facts") or build_facts(
+        brand=brand or None, coverage_months=getattr(warranty, "coverage_months", None), terms=terms,
+        exclusions=exclusions, claim_steps=claim_steps, source_url=alternatives.get("terms_source_url"))
+
+    # 2. What is covered.
+    covered = [f["text"] for f in (facts.get("covers") or []) + (facts.get("part_periods") or [])]
     if covered:
-        lines.append({"key": "covered", "text": f"Covered: {_first_sentence(covered)}", "confirm": bool(tag), "tag": tag})
+        lines.append({"key": "covered", "text": f"Covered: {covered[0]}.", "confirm": bool(tag), "tag": tag})
     else:
         lines.append({"key": "covered", "text": "Please confirm what is covered: we have not found the brand's terms yet.", "confirm": True})
 
-    # 3. What is not covered: grounded short limits, else the first exclusion as written.
-    limits = limits_from_text(" ".join(exclusions), phone=is_phone(warranty)) if exclusions else []
-    if limits:
-        lines.append({"key": "not_covered", "text": "Not covered: " + " ".join(limits[:2]), "confirm": bool(tag), "tag": tag})
+    # 3. What is not covered (the first two kinds of damage or use the brand excludes).
+    excluded = [f["text"] for f in facts.get("exclusions") or []]
+    if excluded:
+        listed = "; ".join(t[0].lower() + t[1:] for t in excluded[:2])
+        lines.append({"key": "not_covered", "text": f"Not covered: {listed}.", "confirm": bool(tag), "tag": tag})
     elif exclusions:
-        lines.append({"key": "not_covered", "text": f"Not covered: {_first_sentence(exclusions[0])}", "confirm": bool(tag), "tag": tag})
+        who = brand or "the brand"
+        lines.append({"key": "not_covered", "text": f"Not covered: see {who}'s warranty page for the limits.",
+                      "confirm": bool(tag), "tag": tag})
     else:
         lines.append({"key": "not_covered", "text": "Please confirm what is not covered: no exclusions found yet.", "confirm": True})
 
     # 4. If it breaks.
-    route = service_route_lines(" ".join(claim_steps), brand or None)
-    step = route[0] if route else (_first_sentence(claim_steps[0]) if claim_steps else None)
-    if step:
-        lines.append({"key": "if_it_breaks", "text": f"If it breaks: {step}", "confirm": False})
+    route = [f["text"] for f in facts.get("claim_route") or [] if f["key"] != "invoice_needed"]
+    if route:
+        lines.append({"key": "if_it_breaks", "text": f"If it breaks: {route[0]}.", "confirm": False})
     else:
         who = brand or "the seller"
         lines.append({"key": "if_it_breaks", "text": f"If it breaks: contact {who} with your invoice and serial number.",
@@ -203,7 +209,8 @@ def five_lines(warranty, evidence: Optional[dict] = None, document: Optional[dic
         lines.append({"key": "document", "text": "Your original invoice is not saved here yet - add it under My documents.",
                       "confirm": True})
 
-    extras = [{"type": t["type"], "text": t["text"], "source": t["source"], "source_sentence": t["source_sentence"]}
+    # SWH's short labels only; the brand's sentence (source_sentence) stays out of the customer view.
+    extras = [{"type": t["type"], "text": t["text"], "source": t["source"]}
               for t in types if t["type"] != "extended_plan_offer"]
     return {
         "lines": lines,

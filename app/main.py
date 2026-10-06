@@ -559,6 +559,17 @@ def admin_kb_create(payload: Dict[str, Any] = Body(...), db=Depends(get_db), cur
     return knowledge_base.to_dict(entry)
 
 
+@app.get("/admin/warranties/{warranty_id}/oem-text")
+def admin_oem_text(warranty_id: str, db=Depends(get_db), current: UserDB = Depends(require_admin)):
+    """Admin-only: the brand's own wording as stored (customers see SWH's facts instead)."""
+    row = store._load_warranty_row(db, warranty_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Product not found")
+    raw = store._raw_row_to_warranty(row)
+    return {"terms": raw.terms, "exclusions": raw.exclusions, "claim_steps": raw.claim_steps,
+            "source_url": (raw.alternatives or {}).get("terms_source_url")}
+
+
 @app.get("/admin/care-guides")
 def admin_care_guides(db=Depends(get_db), current: UserDB = Depends(require_admin)):
     from .db_models import CareGuideDB

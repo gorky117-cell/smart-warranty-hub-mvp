@@ -3236,3 +3236,17 @@ built). Local commits, full tests, no push. Global rule applies.
   counts with granted_by + granted_on. No brand has permission. Note: warranty_discovery still probes brand home
   pages (domain checks, not terms reading) without a robots check.
   Tests: tests/test_terms_source_order.py (16). Full suite 791 passed, 2 skipped.
+- [x] 101.2 Facts in our own words. app/services/warranty_facts.py: build() reads the brand's text (and the
+  invoice for plans) into facts - period + start rule (purchase/installation), per-part periods, extended
+  plans on the invoice (separate), covers (defects, free repairs), exclusions as 15 SWH-worded categories
+  (power names only the problems the brand names; wear names the parts it names; exclusions also from
+  negative sentences in the terms list), claim route (service centres - "authorized" only when the brand says
+  so -, customer care, online, invoice needed), on-site/carry-in, registration (+ days), pro-rata. Each fact has
+  source_url + checked_on. customer_lists() gives the three customer lists; generic claim steps only when the
+  brand gave claim text we could not read into facts. customer_content.tidy -> in_own_words(): customers see
+  only these lists unless reuse_policy full_text_ok; facts kept in alternatives["facts"]. Layman summary, five
+  lines (Covered / Not covered / If it breaks), exports and care tips now use them; five-lines "Also:" tooltips
+  no longer carry the brand's sentence. "Full warranty text" is now "Warranty facts" with a source link + checked
+  date. Admin-only GET /admin/warranties/{id}/oem-text returns the stored brand wording. DB keeps the raw text.
+  Tests: tests/test_own_words.py (22; incl. no 8-word run of brand text in any customer output for 9 product
+  types); 6 older tests updated to the new wording. Full suite 813 passed, 2 skipped.

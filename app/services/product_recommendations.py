@@ -310,7 +310,8 @@ def _append_oem_care(results: List[ProductRecommendation], *, category: str, reg
         )
 
     power = _named(terms_text, ((r"lightning", "lightning"), (r"abnormal voltage", "abnormal voltage"),
-                                (r"power surge", "power surges"), (r"voltage fluctuation", "voltage fluctuations")))
+                                (r"power surge", "power surges"), (r"voltage fluctuation", "voltage fluctuations"),
+                                (r"voltage change", "voltage changes"), (r"electrical supply", "electrical supply problems")))
     if power:
         if category in _PORTABLE or category == "smartphone":
             add("oem_power_protection", "Charge with the original charger and use surge protection",
@@ -334,9 +335,9 @@ def _append_oem_care(results: List[ProductRecommendation], *, category: str, reg
         add("oem_authorized_service", f"Go to a {brand} authorized service centre",
             f"Repairs are done at {brand} authorized service centres.", "From the claim steps")
     if any(k in text for k in ["printhead", "nozzle", "prints", "page yield"]) and category == "printer":
-        add("oem_printer_printhead", "Watch printhead, nozzle and usage limits", "OEM terms mention printhead/nozzle or print-count limits. Track usage and run maintenance only when needed.", "From the warranty terms")
+        add("oem_printer_printhead", "Watch printhead, nozzle and usage limits", "The warranty terms mention printhead, nozzle or print-count limits. Track usage and run maintenance only when needed.", "From the warranty terms")
     if any(k in text for k in ["filter", "cartridge"]) and category in {"printer", "air_conditioner", "washing_machine", "purifier", "cooler"}:
-        add("oem_filter_cartridge", "Track filter or cartridge maintenance", "OEM terms mention filter/cartridge conditions. Keep maintenance notes and replacement dates.", "From the warranty terms")
+        add("oem_filter_cartridge", "Track filter or cartridge maintenance", "The warranty terms mention filter or cartridge conditions. Keep maintenance notes and replacement dates.", "From the warranty terms")
     if any(k in text for k in ["warranty check", "service center", "service centre", "invoice"]):
         add("oem_claim_ready", "Keep claim documents ready",
             "Keep the invoice, model and serial number ready before contacting support.", "From the claim steps")

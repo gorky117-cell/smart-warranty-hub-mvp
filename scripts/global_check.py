@@ -261,7 +261,8 @@ WARRANTY_TYPES = [
      lambda c: any(x["type"] == "on_site" for x in c["extras"])),
     ("carry-in", "phone", dict(brand="Xiaomi", product_name="Redmi 13C", model_code="13C",
                                claim_steps=["Carry-in warranty: bring the product to the nearest service centre."]),
-     lambda c: c["lines"][3]["text"].startswith("If it breaks: Carry-in warranty")),
+     lambda c: c["lines"][3]["text"] == "If it breaks: Repairs are done at Xiaomi's service centres."
+     and any(x["type"] == "carry_in" for x in c["extras"])),
     ("seller warranty vs brand warranty", "small appliance", dict(brand="Bajaj", product_name="Bajaj Mixer Grinder", model_code="GX 3701",
                                                                   invoice="Warranty provided by the seller: 6 months shop warranty"),
      lambda c: any(x["type"] == "seller_warranty" for x in c["extras"])),

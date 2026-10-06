@@ -36,9 +36,10 @@ def test_five_lines_for_an_in_warranty_phone():
     card = five_lines(_w(), CONFIRMED, {"id": "doc_1", "kind_label": "Invoice / bill", "filename": "bill.pdf", "available": True}, today=TODAY)
     lines = _text(card)
     assert lines[0] == "Covered until 3 May 2027 (6 months left)."
-    assert lines[1].startswith("Covered: Samsung warrants the product against manufacturing defects")
-    assert lines[2] == "Not covered: Damage from lightning or abnormal voltage is not covered. Damage from liquid is not covered."
-    assert lines[3] == "If it breaks: Repairs are done at Samsung authorized service centres."
+    # SWH's own words, never the brand's sentences (2026-10-06).
+    assert lines[1] == "Covered: Repairs or replacement of parts for manufacturing defects."
+    assert lines[2] == "Not covered: damage from lightning or voltage changes; damage from water or other liquids."
+    assert lines[3] == "If it breaks: Repairs are done at Samsung's authorized service centres."
     assert lines[4] == "Your original invoice / bill: bill.pdf" and card["lines"][4]["url"] == "/documents/doc_1/file"
     assert not any(line["confirm"] for line in card["lines"]) and card["please_confirm"] == [] and not card["estimated"]
 

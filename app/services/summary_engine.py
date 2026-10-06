@@ -502,23 +502,33 @@ def build_layman_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
     product = " ".join([x for x in [warranty.brand, warranty.model_code] if x]) or (warranty.product_name or "product")
     coverage = f"{warranty.coverage_months} months" if warranty.coverage_months else "not clearly stated"
 
-    pros = _useful_customer_bullets(terms, kind="term", coverage=coverage)[:4]
-    from .customer_content import is_phone
+    facts = (getattr(warranty, "alternatives", None) or {}).get("facts")
+    if facts:
+        # Own words (owner decision): facts written by SWH, never the brand's sentences.
+        from .warranty_facts import customer_lists
 
-    cons = limits_from_text(" ".join(terms + exclusions), phone=is_phone(warranty))
-    claim_friction = service_route_lines(" ".join(claim_steps), warranty.brand) + [
-        line for line in _useful_customer_bullets(claim_steps, kind="claim", coverage=coverage)
-        if "authorized service center" not in line  # replaced by the grounded line above
-    ][:4]
+        lists = customer_lists(facts, warranty.brand)
+        pros = [f["text"] + "." for f in (facts.get("covers") or []) + (facts.get("part_periods") or [])][:4]
+        cons = lists["exclusions"]
+        claim_friction = lists["claim_steps"][:4]
+    else:
+        pros = _useful_customer_bullets(terms, kind="term", coverage=coverage)[:4]
+        from .customer_content import is_phone
+
+        cons = limits_from_text(" ".join(terms + exclusions), phone=is_phone(warranty))
+        claim_friction = service_route_lines(" ".join(claim_steps), warranty.brand) + [
+            line for line in _useful_customer_bullets(claim_steps, kind="claim", coverage=coverage)
+            if "authorized service center" not in line  # replaced by the grounded line above
+        ][:4]
     # Fine print: only what is not already a limit (no generic filler; empty sections are hidden).
     fine_print = []
     low_all = " ".join(exclusions).lower()
-    if "consum" in low_all and not any("consumable" in c.lower() for c in cons):
+    if not facts and "consum" in low_all and not any("consumable" in c.lower() for c in cons):
         fine_print.append("Consumables are usually not covered.")
 
     red_flags = []
     if not warranty.coverage_months:
-        red_flags.append("Coverage term is unclear. Verify with OEM source.")
+        red_flags.append("The warranty period is not clear yet. Please check it with the brand.")
     if not warranty.expiry_date and warranty.purchase_date and warranty.coverage_months:
         red_flags.append("Expiry date is derived estimate from purchase date + coverage.")
     if not terms and not exclusions and not claim_steps:

@@ -1050,8 +1050,8 @@
                 data-title="What is covered">Open in full view</a></div>
           </details>
           <details>
-            <summary>Full warranty text</summary>
-            <div class="helper">Read the complete warranty.</div>
+            <summary>Warranty facts</summary>
+            <div class="helper">The warranty in our own words. The brand's page has the full terms.</div>
             <div id="warrantyFriendly" class="helper" style="margin-bottom:10px;">Load data to see warranty details.
             </div>
             <div class="helper" id="rawWarrantyToggleWrap" style="display:none;">
@@ -1059,7 +1059,7 @@
             </div>
             <pre id="warranty" class="placeholder raw-warranty hidden">Load data to see warranty details.</pre>
             <div class="helper"><a href="javascript:void(0)" data-role="open-fullview" data-target="warranty"
-                data-title="Full warranty text" id="warrantyFullLink" style="display:none;">Open full-screen</a></div>
+                data-title="Warranty facts" id="warrantyFullLink" style="display:none;">Open full-screen</a></div>
           </details>
           <details>
             <summary>Easy summary (pros, limits, fine print)</summary>
@@ -2008,7 +2008,7 @@
           }).join('');
           const extras = card.extras || [];
           document.getElementById('fiveLinesExtras').innerHTML = extras.length
-            ? 'Also: ' + extras.map((x) => `<span title="${escapeHtml(x.source_sentence)}">${escapeHtml(x.text)}</span>`).join(' · ')
+            ? 'Also: ' + extras.map((x) => `<span title="${escapeHtml(x.source === 'invoice' ? 'From your invoice' : "From the brand's warranty terms")}">${escapeHtml(x.text)}</span>`).join(' · ')
             : '';
           const confirm = document.getElementById('fiveLinesConfirm');
           const fields = card.please_confirm || [];
@@ -2839,13 +2839,18 @@
           parts.push(`<div><strong>Purchase:</strong> ${escapeHtml(data.purchase_date || 'N/A')} &nbsp; <strong>Expiry:</strong> ${escapeHtml(data.expiry_date || 'N/A')}</div>`);
         }
         if (Array.isArray(data.terms) && data.terms.length) {
-          parts.push('<div><strong>Coverage / Terms:</strong><ul>' + data.terms.map(t => `<li>${escapeHtml(t)}</li>`).join('') + '</ul></div>');
+          parts.push('<div><strong>What is covered:</strong><ul>' + data.terms.map(t => `<li>${escapeHtml(t)}</li>`).join('') + '</ul></div>');
         }
         if (Array.isArray(data.exclusions) && data.exclusions.length) {
-          parts.push('<div><strong>Exclusions:</strong><ul>' + data.exclusions.map(t => `<li>${escapeHtml(t)}</li>`).join('') + '</ul></div>');
+          parts.push('<div><strong>Not covered:</strong><ul>' + data.exclusions.map(t => `<li>${escapeHtml(t)}</li>`).join('') + '</ul></div>');
         }
         if (Array.isArray(data.claim_steps) && data.claim_steps.length) {
-          parts.push('<div><strong>Claim steps:</strong><ol>' + data.claim_steps.map(t => `<li>${escapeHtml(t)}</li>`).join('') + '</ol></div>');
+          parts.push('<div><strong>If it breaks:</strong><ol>' + data.claim_steps.map(t => `<li>${escapeHtml(t)}</li>`).join('') + '</ol></div>');
+        }
+        // Every fact links to its source and says when it was checked (our words, the brand's page for detail).
+        const facts = (data.alternatives && data.alternatives.facts) || {};
+        if (facts.source_url && /^https?:\/\//i.test(String(facts.source_url))) {
+          parts.push(`<div class="helper">Source: <a href="${escapeHtml(facts.source_url)}" target="_blank" rel="noopener">the brand's warranty page</a>${facts.checked_on ? ` (checked ${escapeHtml(facts.checked_on)})` : ''}</div>`);
         }
         friendly.innerHTML = parts.join('') || 'No details available yet.';
         lastWarrantyPlainText = renderWarrantyPlainText(data);

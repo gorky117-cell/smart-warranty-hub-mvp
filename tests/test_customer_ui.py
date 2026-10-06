@@ -93,7 +93,7 @@ def test_care_tips_follow_the_exclusions_with_varied_priority():
     tips = build_product_recommendations("u", "w", warranty=_m17e(), predictive={"risk_label": "LOW"})
     care = [t for t in tips if t["action"] == "oem_derived_care"]
     assert care[0]["title"] == "Charge with the original charger and use surge protection"
-    assert care[0]["why"].startswith("Samsung's terms exclude damage from lightning and abnormal voltage.")
+    assert care[0]["why"].startswith("Samsung's terms exclude damage from lightning and voltage changes.")
     assert len({t["risk_band"] for t in care}) >= 2  # not all MEDIUM any more
     assert [t["priority"] for t in care] == sorted(t["priority"] for t in care)
     # only a statement about where repairs happen -> a grounded line, no "void" claim

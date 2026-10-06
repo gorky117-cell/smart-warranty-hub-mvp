@@ -175,6 +175,34 @@ def tidy(warranty):
     ]
     warranty.terms = clean_terms(terms, line=line)
     warranty.exclusions = clean_terms(list(warranty.exclusions or []), line=line)
+    return in_own_words(warranty)
+
+
+def in_own_words(warranty):
+    """Replace the brand's wording with SWH-written facts (source link + checked date kept in
+    alternatives["facts"]), unless the brand allows its full text (reuse_policy full_text_ok)."""
+    from . import reuse_policy, warranty_facts
+    from .brand_families import resolve_oem_entity
+
+    brand = getattr(warranty, "brand", None)
+    company = resolve_oem_entity(brand, product_name=getattr(warranty, "product_name", None),
+                                 model_code=getattr(warranty, "model_code", None)).company or brand
+    alternatives = dict(getattr(warranty, "alternatives", None) or {})
+    facts = warranty_facts.build(
+        brand=company or brand,
+        coverage_months=getattr(warranty, "coverage_months", None),
+        terms=list(warranty.terms or []),
+        exclusions=list(warranty.exclusions or []),
+        claim_steps=list(warranty.claim_steps or []),
+        source_url=alternatives.get("terms_source_url"),
+        checked_on=str(alternatives.get("terms_last_refreshed_at") or "")[:10] or None,
+    )
+    alternatives["facts"] = facts
+    warranty.alternatives = alternatives
+    if reuse_policy.allows(company, reuse_policy.FULL_TEXT_OK):
+        return warranty
+    lists = warranty_facts.customer_lists(facts, company or brand)
+    warranty.terms, warranty.exclusions, warranty.claim_steps = lists["terms"], lists["exclusions"], lists["claim_steps"]
     return warranty
 
 
