@@ -3281,3 +3281,14 @@ built). Local commits, full tests, no push. Global rule applies.
   have no verified site, so KB entries for them are refused until the domain is verified.
   Not done / not built: warranty card upload (owner: later add-on); partner feed (placeholder);
   warranty_discovery still probes brand home pages without a robots check (domain verification, not terms).
+
+## 102. Robots everywhere, Right to Repair citation, worksheet, CLAUDE.md/BACKLOG (2026-10-06)
+Local commits, full tests, no push. Global and single-entry rules apply.
+- [x] 102.1 Every read of a brand's site obeys robots.txt: robots_guard.guarded_get / RobotsDisallowed /
+  site_answered. oem_domain_verify (background domain check after uploads) -> reason "robots_disallowed", page
+  never loaded; warranty_discovery._domain_alive loads the home page only where allowed, and counts a site that
+  answered its robots.txt request as alive; oem_adapters.fetch -> status blocked "robots_disallowed: ..."; manual
+  OEM fetch (oem.py) -> ValueError("robots_disallowed"). Effect: sites that block robots.txt itself (mi.com,
+  sony.co.in, lenovo.com answered 403) can no longer be re-verified automatically; the stored verified list is
+  unchanged. Not covered (not brand sites): review crawler (off in production), issue feeds, web search APIs.
+  Tests: tests/test_robots_everywhere.py (7). Full suite 853 passed, 2 skipped.

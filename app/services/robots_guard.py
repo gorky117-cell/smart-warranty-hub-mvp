@@ -54,6 +54,25 @@ def check(url: Optional[str]) -> Tuple[bool, str]:
     return allowed, "allowed by robots.txt" if allowed else "disallowed by robots.txt"
 
 
+class RobotsDisallowed(requests.exceptions.RequestException):
+    """Raised instead of fetching a page robots.txt does not allow (callers already handle RequestException)."""
+
+
+def guarded_get(url: str, **kwargs):
+    """requests.get, but only where robots.txt allows; otherwise RobotsDisallowed."""
+    ok, reason = check(url)
+    if not ok:
+        raise RobotsDisallowed(reason)
+    return requests.get(url, **kwargs)
+
+
+def site_answered(url: Optional[str]) -> bool:
+    """True when the site answered the robots.txt request at all (any HTTP status) - proof it is alive."""
+    _ok, reason = check(url)
+    return reason in ("no robots.txt", "robots.txt read", "allowed by robots.txt", "disallowed by robots.txt") \
+        or reason.startswith("robots.txt answered")
+
+
 def allowed(url: Optional[str]) -> bool:
     return check(url)[0]
 

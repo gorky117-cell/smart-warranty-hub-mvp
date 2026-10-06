@@ -129,6 +129,12 @@ def _domain_alive(domain: str, timeout: int) -> bool:
     except OSError:
         return False
 
+    from .robots_guard import check as robots_check, site_answered
+
+    # robots.txt first: the home page is loaded only where it is allowed; a site that answered its robots.txt
+    # request is alive either way.
+    if not robots_check(f"https://{host}/")[0]:
+        return site_answered(f"https://{host}/")
     headers = {"User-Agent": "SmartWarrantyHub/1.0"}
     try:
         resp = requests.get(f"https://{host}", timeout=timeout, headers=headers, allow_redirects=True)

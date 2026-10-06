@@ -68,7 +68,10 @@ def _brand_in(text: str, brand: str) -> bool:
 
 
 def _get(url: str):
-    return requests.get(url, timeout=_TIMEOUT, headers={"User-Agent": USER_AGENT}, allow_redirects=True)
+    # Background domain checks obey robots.txt like every other read of a brand's site.
+    from .robots_guard import guarded_get
+
+    return guarded_get(url, timeout=_TIMEOUT, headers={"User-Agent": USER_AGENT}, allow_redirects=True)
 
 
 def verify_domain_detail(brand: str, domain: str) -> Dict[str, object]:
@@ -103,8 +106,10 @@ def verify_domain_detail(brand: str, domain: str) -> Dict[str, object]:
     try:
         resp = _get(f"https://{host}")
     except requests.exceptions.RequestException as exc:
+        from .robots_guard import RobotsDisallowed
+
         out["steps"]["https"] = exc.__class__.__name__
-        out["reason"] = "https_failed"
+        out["reason"] = "robots_disallowed" if isinstance(exc, RobotsDisallowed) else "https_failed"
         return out
     out["steps"]["https"] = resp.status_code
     chain = [urlparse(r.url).hostname or "" for r in list(resp.history) + [resp]]

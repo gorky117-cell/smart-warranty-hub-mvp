@@ -48,6 +48,10 @@ def fetch_oem_page(url: str, brand: str, model: str, region: Optional[str] = Non
     else:
         if not oem_source_policy.manual_url_allowed(url, brand):
             raise ValueError("url_not_approved_for_oem_fetch")
+        from .robots_guard import allowed as robots_allowed
+
+        if not robots_allowed(url):
+            raise ValueError("robots_disallowed")
         import requests
 
         resp = requests.get(url, headers=oem_adapters.HEADERS, timeout=20)

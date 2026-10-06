@@ -36,6 +36,11 @@ class OemAdapter:
                 "brand": self.brand,
                 "url": url,
             }
+        from .robots_guard import check as robots_check
+
+        allowed, reason = robots_check(url)
+        if not allowed:
+            return {"ok": False, "status": "blocked", "reason": f"robots_disallowed: {reason}", "brand": self.brand, "url": url}
         resp = requests.get(url, headers=HEADERS, timeout=timeout)
         resp.raise_for_status()
         from .warranty_parser import response_text
