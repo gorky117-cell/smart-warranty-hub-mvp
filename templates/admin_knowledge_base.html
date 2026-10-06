@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Knowledge base - Smart Warranty Hub admin</title>
+  <style>
+    :root { --bg: #f5f7fb; --card: #fff; --ink: #0f172a; --muted: #475569; --line: #dbe2ee; --brand: #1d4ed8; --ok: #166534; --bad: #b3261e; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif; color: var(--ink); background: var(--bg); }
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 16px; }
+    .top { background: linear-gradient(120deg, #0f172a, #1e3a8a); color: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; }
+    .top h1 { margin: 0 0 4px; font-size: 1.2rem; }
+    .top p { margin: 0; opacity: .85; font-size: .9rem; }
+    .top a { color: #c7d2fe; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+    h2 { font-size: 1rem; margin: 0 0 10px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+    label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 3px; }
+    input, select, textarea { width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+    textarea { min-height: 64px; }
+    .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 4px 12px; font-size: .88rem; }
+    .checks label { color: var(--ink); font-size: .88rem; display: flex; gap: 6px; align-items: flex-start; }
+    .checks input { width: auto; margin-top: 3px; }
+    .parts-row { display: flex; gap: 8px; margin-bottom: 6px; }
+    .parts-row select { flex: 2; } .parts-row input { flex: 1; }
+    button { background: var(--brand); color: #fff; border: 0; border-radius: 8px; padding: 8px 14px; font: inherit; cursor: pointer; }
+    button.secondary { background: #e2e8f0; color: var(--ink); }
+    .status { margin-top: 8px; font-size: .9rem; }
+    .status.ok { color: var(--ok); } .status.bad { color: var(--bad); }
+    .hint { font-size: .8rem; color: var(--muted); margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    th, td { text-align: left; border-bottom: 1px solid var(--line); padding: 6px 4px; vertical-align: top; }
+    .pill { display: inline-block; padding: 1px 7px; border-radius: 10px; background: #e0e7ff; font-size: .75rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <h1>Knowledge base: add warranty facts</h1>
+      <p>Facts are saved in our own words with the source link and the date you checked it. Customers never see the brand's text.
+        <a href="/ui/admin-hub">Back to Admin Hub</a></p>
+    </div>
+
+    <form id="kbForm" class="card" autocomplete="off">
+      <h2>1. Which products</h2>
+      <div class="grid">
+        <div><label for="company">Brand (company)</label><input id="company" list="companyList" required placeholder="Start typing, e.g. Samsung"><datalist id="companyList"></datalist></div>
+        <div><label for="category">Category</label><input id="category" placeholder="e.g. mobile, refrigerator"></div>
+        <div><label for="productLine">Product line (whole category)</label><select id="productLine"><option value="">- none: models only -</option></select></div>
+        <div><label for="region">Region</label><select id="region"><option value="IN" selected>India (IN)</option><option value="">Any region</option></select></div>
+      </div>
+      <div style="margin-top:10px;">
+        <label for="models">Models (bulk: one per line, optional)</label>
+        <textarea id="models" placeholder="SM-M175F&#10;SM-A155F"></textarea>
+        <div class="hint">A product line covers every model of that line for this brand. Models listed here get their own entry (a model entry wins over the line).</div>
+      </div>
+
+      <h2 style="margin-top:14px;">2. The warranty</h2>
+      <div class="grid">
+        <div><label for="months">Period (months)</label><input id="months" type="number" min="1" max="240" placeholder="12"></div>
+        <div><label for="startRule">Period starts from</label><select id="startRule"><option value="purchase">Purchase date</option><option value="installation">Installation date</option></select></div>
+        <div><label for="regDays">Registration needed within (days)</label><input id="regDays" type="number" min="1" max="365" placeholder="leave empty if not needed"></div>
+        <div class="checks" style="align-content:end;"><label><input type="checkbox" id="coversDefects" checked> Manufacturing defects covered</label><label><input type="checkbox" id="proRata"> Part of the period is pro-rata</label></div>
+      </div>
+      <div style="margin-top:10px;">
+        <label>Parts with their own period</label>
+        <div id="partRows"></div>
+        <button type="button" class="secondary" id="addPart">+ Add a part</button>
+      </div>
+      <div style="margin-top:12px;">
+        <label>Key exclusions (what the terms say is not covered)</label>
+        <div class="checks" id="exclusionChecks"></div>
+      </div>
+      <div style="margin-top:12px;">
+        <label>How to claim</label>
+        <div class="checks" id="routeChecks"></div>
+      </div>
+
+      <h2 style="margin-top:14px;">3. Where it comes from</h2>
+      <div class="grid">
+        <div style="grid-column: span 2;"><label for="sourceUrl">Source link (the brand's own page)</label><input id="sourceUrl" type="url" required placeholder="https://www.samsung.com/in/support/warranty/"></div>
+        <div><label for="checkedOn">Checked on</label><input id="checkedOn" type="date" required></div>
+      </div>
+      <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+        <button type="submit" id="saveBtn">Save facts</button>
+        <button type="button" class="secondary" id="resetBtn">Clear</button>
+      </div>
+      <div id="status" class="status"></div>
+    </form>
+
+    <div class="card">
+      <h2>Entries <span class="pill" id="entryCount">0</span></h2>
+      <input id="filter" placeholder="Filter by brand or scope" style="max-width:320px; margin-bottom:8px;">
+      <table><thead><tr><th>Brand</th><th>Scope</th><th>Region</th><th>Period</th><th>Facts</th><th>Checked</th><th>Source</th></tr></thead>
+        <tbody id="entries"><tr><td colspan="7">Loading...</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const $ = (id) => document.getElementById(id);
+      let options = { parts: [], exclusions: {}, routes: {} };
+      let entries = [];
+
+      function cookieValue(name) {
+        const hit = document.cookie.split('; ').find((c) => c.startsWith(name + '='));
+        return hit ? hit.split('=').slice(1).join('=') : '';
+      }
+      function headers(extra = {}) {
+        const out = { ...extra };
+        const csrf = cookieValue('csrf_token');
+        if (csrf) out['X-CSRF-Token'] = decodeURIComponent(csrf);
+        return out;
+      }
+      function esc(v) {
+        return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+      function label(key) { return key.replace(/_/g, ' '); }
+
+      function addPartRow(part = '', months = '') {
+        const row = document.createElement('div');
+        row.className = 'parts-row';
+        row.innerHTML = `<select aria-label="Part"><option value="">Choose a part</option>${options.parts.map((p) => `<option value="${esc(p)}"${p === part ? ' selected' : ''}>${esc(p)}</option>`).join('')}</select>
+          <input type="number" min="1" max="360" placeholder="months" aria-label="Months" value="${esc(months)}">
+          <button type="button" class="secondary" aria-label="Remove part">x</button>`;
+        row.querySelector('button').onclick = () => row.remove();
+        $('partRows').appendChild(row);
+      }
+
+      function checks(containerId, map, name) {
+        $(containerId).innerHTML = Object.entries(map).map(([key, text]) =>
+          `<label><input type="checkbox" name="${name}" value="${esc(key)}"> ${esc(text)}</label>`).join('');
+      }
+
+      async function loadOptions() {
+        const res = await fetch('/admin/knowledge-base/options', { credentials: 'same-origin' });
+        options = await res.json();
+        $('companyList').innerHTML = options.companies.map((c) => `<option value="${esc(c)}">`).join('');
+        $('productLine').innerHTML += options.product_lines.map((l) => `<option value="${esc(l)}">${esc(label(l))}</option>`).join('');
+        checks('exclusionChecks', options.exclusions, 'exclusion');
+        checks('routeChecks', options.routes, 'route');
+        addPartRow();
+      }
+
+      function renderEntries() {
+        const q = $('filter').value.trim().toLowerCase();
+        const rows = entries.filter((e) => !q || `${e.company} ${e.product_scope}`.toLowerCase().includes(q));
+        $('entryCount').textContent = String(entries.length);
+        $('entries').innerHTML = rows.length ? rows.map((e) => `<tr>
+            <td>${esc(e.company)}</td><td>${esc(e.product_scope)}</td><td>${esc(e.region || 'any')}</td>
+            <td>${e.duration_months ? esc(e.duration_months) + ' mo' : '-'}</td>
+            <td>${esc((e.terms || []).length + (e.exclusions || []).length + (e.claim_steps || []).length)}</td>
+            <td>${esc((e.verified_at || '').slice(0, 10))}</td>
+            <td><a href="${esc(e.source_url)}" target="_blank" rel="noopener">link</a></td></tr>`).join('')
+          : '<tr><td colspan="7">No entries yet.</td></tr>';
+      }
+
+      async function loadEntries() {
+        const res = await fetch('/admin/knowledge-base', { credentials: 'same-origin' });
+        const data = await res.json().catch(() => ({}));
+        entries = data.entries || [];
+        renderEntries();
+      }
+
+      $('addPart').onclick = () => addPartRow();
+      $('filter').oninput = renderEntries;
+      $('resetBtn').onclick = () => { $('kbForm').reset(); $('partRows').innerHTML = ''; addPartRow(); $('status').textContent = ''; };
+      $('checkedOn').value = new Date().toISOString().slice(0, 10);
+
+      $('kbForm').onsubmit = async (event) => {
+        event.preventDefault();
+        const status = $('status');
+        const payload = {
+          company: $('company').value.trim(),
+          category: $('category').value.trim(),
+          product_line: $('productLine').value,
+          region: $('region').value,
+          models: $('models').value,
+          duration_months: $('months').value,
+          start_rule: $('startRule').value,
+          registration_days: $('regDays').value,
+          covers_defects: $('coversDefects').checked,
+          pro_rata: $('proRata').checked,
+          part_periods: [...$('partRows').querySelectorAll('.parts-row')]
+            .map((r) => ({ part: r.querySelector('select').value, months: r.querySelector('input').value }))
+            .filter((p) => p.part && p.months),
+          exclusion_keys: [...document.querySelectorAll('input[name=exclusion]:checked')].map((c) => c.value),
+          route_keys: [...document.querySelectorAll('input[name=route]:checked')].map((c) => c.value),
+          source_url: $('sourceUrl').value.trim(),
+          checked_on: $('checkedOn').value,
+        };
+        status.className = 'status';
+        status.textContent = 'Saving...';
+        const res = await fetch('/admin/knowledge-base/quick', {
+          method: 'POST', credentials: 'same-origin',
+          headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          status.className = 'status ok';
+          status.textContent = `Saved ${data.saved} entr${data.saved === 1 ? 'y' : 'ies'}.`;
+          loadEntries();
+        } else {
+          status.className = 'status bad';
+          status.textContent = typeof data.detail === 'string' ? data.detail : 'Could not save. Check the fields.';
+        }
+      };
+
+      loadOptions().then(loadEntries);
+    })();
+  </script>
+</body>
+</html>

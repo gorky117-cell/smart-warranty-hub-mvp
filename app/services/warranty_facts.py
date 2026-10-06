@@ -23,7 +23,7 @@ from typing import Dict, List, Optional
 EXCLUSION_RULES = [
     ("power", r"lightning|voltage|surge|power fluctuation|electrical (?:supply|fault)", "Damage from power problems such as lightning, surges or voltage changes"),
     ("liquid", r"liquid|water|moisture|rain|humidity|spill", "Damage from water or other liquids"),
-    ("physical", r"physical damage|accident|dropped|drop |breakage|broken|crack|dent", "Accidental or physical damage, such as drops, cracks or dents"),
+    ("physical", r"physical damage|accident|\bdrop(?:ped|s)?\b|breakage|broken|\bcrack(?:s|ed)?\b|\bdent(?:s|ed)?\b", "Accidental or physical damage"),
     ("unauthorized_repair", r"unauthori[sz]ed|tamper(?:ing|ed)? with the (?:product|unit|device|appliance)", "Repairs or changes by unauthorized people"),
     ("wear", r"wear and tear|wear & tear|normal wear", "Normal wear and tear"),
     ("consumables", r"consumable|filters?\b|bulbs?\b|lamps?\b|cartridges?\b|\bink\b|remote|accessor", "Consumable and replaceable parts"),
@@ -32,7 +32,7 @@ EXCLUSION_RULES = [
     ("commercial", r"commercial|industrial|rental|business use", "Commercial, industrial or rental use"),
     ("serial", r"serial (?:number|no)[^.]{0,60}(?:removed|altered|tampered|obliterat|illegible|defaced)"
                r"|(?:removed|altered|tampered|obliterated|defaced)[^.]{0,30}serial (?:number|no)", "Products whose serial number has been removed or changed"),
-    ("natural", r"act(?:s)? of god|natural calamit|flood|fire|earthquake|riot|war\b", "Fire, floods and other events beyond anyone's control"),
+    ("natural", r"act(?:s)? of god|natural calamit|flood|fire|earthquake|riot|\bwar\b", "Fire, floods and other events beyond anyone's control"),
     ("pests", r"insect|rodent|pest|rat\b|cockroach|lizard", "Damage caused by insects or rodents"),
     ("transit", r"transit|transport|shifting|relocat", "Damage while moving or transporting the product"),
     ("cosmetic", r"cosmetic|plastic parts|glass parts|paint|scratch", "Cosmetic damage such as scratches"),

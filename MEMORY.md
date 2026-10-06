@@ -3258,3 +3258,17 @@ built). Local commits, full tests, no push. Global rule applies.
   full_text_ok -> tip + quote. conftest resets the policy cache after every test. Tests:
   tests/test_care_own_words.py (16) + care-guide/reminder tests updated (permission granted in the test where
   tips are expected; new test: hidden without permission). Full suite 831 passed, 2 skipped.
+- [x] 101.4 Admin knowledge-base screen: /ui/admin/knowledge-base (admin only; linked from Admin Hub). Form: brand
+  (registry picker), category, product line (whole category) and/or models (bulk, one per line, <=200), region,
+  period, start rule, registration days, defects covered, pro-rata, part periods (part picker + months), key
+  exclusions (the 15 fact categories as checkboxes), claim route (authorized centres, customer care, online,
+  on-site, carry-in, invoice), source link, checked date; entry list with filter. Backend: app/services/kb_quick.py
+  + POST /admin/knowledge-base/quick, GET /admin/knowledge-base/options. Stored in the existing verified_terms
+  table as SWH-worded sentences that warranty_facts reads back to the same facts (no DB change); one entry per
+  scope, re-entry updates it; verified_at = checked date (not in the future). Same rules as before: registry
+  company, page on its verified official site (bare "Bajaj" refused), never brand-wide.
+  Bugs found and fixed: (a) the KB category was stored as typed ("refrigerator") but lookups use normalised
+  names ("appliance"), so such entries never matched - both KB endpoints now normalise; (b) the physical-damage
+  fact matched "dent" inside "rodents" - word boundaries; its wording no longer names examples the brand may not
+  list. Browser check (local, test admin): one bulk save made line:fridge + model:GLT292RPZY, no console errors.
+  Tests: tests/test_kb_admin_screen.py (15). Full suite 846 passed, 2 skipped.

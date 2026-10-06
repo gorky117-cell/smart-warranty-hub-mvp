@@ -521,7 +521,7 @@ def admin_kb_create(payload: Dict[str, Any] = Body(...), db=Depends(get_db), cur
     """Admin-only: add a hand-checked entry. The page must be on the company's verified official domain and
     the entry must name a model or a product line (never brand-wide)."""
     _kb_available()
-    from .services import knowledge_base, terms_cache
+    from .services import kb_quick, knowledge_base, terms_cache
 
     company = " ".join(str(payload.get("company") or "").split())
     exact = next((name for name in load_oem_domains() if name.lower() == company.lower()), None)
@@ -547,7 +547,7 @@ def admin_kb_create(payload: Dict[str, Any] = Body(...), db=Depends(get_db), cur
     entry = knowledge_base.create_entry(db, {
         "company": exact,
         "region": (str(payload.get("region") or "").strip().upper() or None),
-        "category": (str(payload.get("category") or "").strip().lower() or None),
+        "category": kb_quick.normalized_category(payload.get("category")),  # same names as the lookup
         "product_scope": f"model:{model}" if model else f"line:{line}",
         "source_url": source_url,
         "page_fingerprint": payload.get("page_fingerprint") or knowledge_base.page_fingerprint(payload.get("page_text")),
@@ -611,6 +611,56 @@ def admin_care_guide_save(payload: Dict[str, Any] = Body(...), db=Depends(get_db
         knowledge_base_id=int(kb_id) if str(kb_id or "").isdigit() else None,
     )
     return care_guides.to_dict(guide)
+
+
+@app.get("/admin/knowledge-base/options")
+def admin_kb_options(current: UserDB = Depends(require_admin)):
+    """Choices for the admin knowledge-base screen."""
+    from .services import kb_quick
+
+    return {
+        "companies": sorted({n for n in brand_registry.brand_names()}),
+        "product_lines": kb_quick.PRODUCT_LINES,
+        "parts": kb_quick.PARTS,
+        "exclusions": kb_quick.EXCLUSIONS,
+        "routes": kb_quick.ROUTES,
+    }
+
+
+@app.post("/admin/knowledge-base/quick")
+def admin_kb_quick(payload: Dict[str, Any] = Body(...), db=Depends(get_db), current: UserDB = Depends(require_admin)):
+    """Admin-only quick or bulk entry: structured facts stored in SWH's words for a product line and/or a list
+    of models of one brand. Same rules as POST /admin/knowledge-base: registry company, page on its verified
+    official website, never brand-wide."""
+    _kb_available()
+    from .services import kb_quick, knowledge_base, terms_cache
+
+    company = " ".join(str(payload.get("company") or "").split())
+    exact = next((name for name in load_oem_domains() if name.lower() == company.lower()), None)
+    if not exact:
+        raise HTTPException(status_code=422, detail="company must be a name in the OEM registry")
+    source_url = str(payload.get("source_url") or "").strip()
+    if not terms_cache.verified_official(source_url, exact):
+        raise HTTPException(status_code=422, detail="source_url must be a page on the company's verified official website")
+    try:
+        entries = kb_quick.save(db, {**payload, "source_url": source_url}, company=exact, admin=current.username)
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=422, detail=str(exc))
+    return {"saved": len(entries), "entries": [knowledge_base.to_dict(e) for e in entries]}
+
+
+@app.get("/ui/admin/knowledge-base")
+def admin_kb_ui(request: Request, current: Optional[UserDB] = Depends(get_current_user_optional)):
+    ui_redirect = _ensure_ui_oem_or_admin(request, current)
+    if ui_redirect:
+        return ui_redirect
+    if not current or current.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    from fastapi.responses import HTMLResponse
+
+    html_path = Path(__file__).resolve().parents[1] / "templates" / "admin_knowledge_base.html"
+    return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
 
 
 @app.post("/admin/knowledge-base/{entry_id}/lock")
