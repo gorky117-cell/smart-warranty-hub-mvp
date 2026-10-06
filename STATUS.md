@@ -1,4 +1,4 @@
-# Smart Warranty Hub - status (2026-10-05)
+# Smart Warranty Hub - status (2026-10-06)
 
 Measured numbers only. **Synthetic** marks results from generated test files, not real customer
 invoices. No real-invoice accuracy has been measured yet (see "Next steps").
@@ -6,7 +6,14 @@ invoices. No real-invoice accuracy has been measured yet (see "Next steps").
 ## Live vs local
 
 - **Live** (https://www.smartwarrantyhub.com, Railway deploys `origin/master`): everything, up to commit
-  `03f6a0ab` (deployed 2026-10-05 01:10).
+  `7971a633` (pushed 2026-10-06, live by 05:02 UTC).
+  - Runs 97-100 (24 commits after `03f6a0ab`): live test 1 fixes (Samsung M17e), My documents with files
+    stored in Postgres by default, Redmi B-D and the claim PDF, product names and nicknames, plain language,
+    "Your warranty in 5 lines", product care v1 (no guides saved yet), reminders, the global check, shared
+    brand names by product category, "please confirm" for codes read from scans/photos.
+  - Two **security fixes** are live: users can no longer read or mark another user's notifications, and
+    `/recommendations` no longer accepts another user or someone else's product.
+  - New tables created at start-up: `documents`, `product_nicknames`, `care_guides` (nothing existing altered).
   - Fix run 91: redaction before AI calls, Paddle back-off with Tesseract fallback, one risk scorer,
     domain verification, vision tier (off by default), expiry recalculation guard, admin security banner.
   - Follow-up run 92: "From the official <Brand> website" label, Orient Electric fix, manually confirmed
@@ -31,20 +38,26 @@ invoices. No real-invoice accuracy has been measured yet (see "Next steps").
     - knowledge base v1 (empty);
     - guarded start-up schema upgrade;
     - backup script.
-- **Local only (not pushed; waiting for the owner's approval):** 19 commits after `03f6a0ab`, plus this status update.
-  - Run 97, live test 1 (Samsung M17e): `5b479703`, `31476ad6`, `0a9ac4bf`, `5617482e`, `13cd7ebd`,
-    `4dc3f37f`, `6dd21ea2`, `ce941e6b`, `c5f7da96`, `c7e48676`.
-  - Run 98-99, customer experience and global check: `1995378c` My documents, `15228725` Redmi B-D and claim
-    PDF, `cd202472` product names, `38c8e213` plain language, `f6518088` five lines, `b11dbc93` product care
-    v1, `6cd4f0f2` reminders, `30ee8514` global check, `2e84ebaf` browser-found fixes.
-  - Two **security fixes** are in these commits: any signed-in user could read or mark another user's
-    notifications (`c5f7da96`), and `/recommendations` accepted any user and product (`b11dbc93`).
-  - New tables (created at start-up, nothing existing is altered): `documents`, `product_nicknames`,
-    `care_guides`. Take a backup before the push, as last time.
-- **Production backup before this deploy:** `swh_prod_2026-10-05_0106.dump`, 1.23 MB, 36 tables, verified
-  with `pg_restore --list`, kept on the owner's machine.
+- **Local only:** nothing except this status update.
+- **Production backup before this deploy:** taken by the owner with `scripts/backup_prod_db.ps1` on
+  2026-10-06 ("backup done"); file name and size not reported to me. Previous one:
+  `swh_prod_2026-10-05_0106.dump`, 1.23 MB, 36 tables.
 
-Live checks on 2026-10-05 01:10 after the deploy:
+Live checks on 2026-10-06 after the deploy (05:02 UTC):
+
+| Check | Result |
+|---|---|
+| New code live? | `/warranties/x/five-lines` (added in this push) answers 401 instead of 404, about 260 s after the push |
+| `/api/health` | 200 `{"status":"ok"}`, 0.44 s |
+| `/health/ocr` | 200 ok, Paddle active ("PaddleOCR read the test image"); first call after deploy took 98 s |
+| `/login` | 200, 0.48 s |
+| http to https | one 301 redirect to https://www.smartwarrantyhub.com/login, then 200; no loop |
+| Notifications / recommendations of another user, without login | 401 (`/notifications?user_id=...`, `/notifications/summary?user_id=...`, `/recommendations?user_id=...`, `/recommendations?warranty_id=...`) |
+| Cross-user denial while signed in (403) | **not checked by me in production**: it needs two signed-in accounts, and I do not use production credentials or create accounts there. Covered by tests (test_notification_dedup, test_care_guides). Owner check: signed in, open `/notifications?user_id=<another username>` and `/recommendations?user_id=<another username>` - both must answer 403 |
+| `/warranties/x/documents`, `/admin/care-guides`, `/admin/terms-cache/stats` without login | 401 |
+| Schema upgrade | owner to check the `schema` block of `/admin/terms-cache/stats` (needs admin) |
+
+Earlier live checks on 2026-10-05 01:10 after the previous deploy:
 
 | Check | Result |
 |---|---|
@@ -151,10 +164,8 @@ A real sign-in was not tested by me; no production credentials were used.
 
 ## Known issues
 
-- **Uploaded files are lost on every redeploy** (stored on the app's own disk, no volume in the repo).
-  My documents is built on a switchable store; `DOCUMENT_STORE=db` (bytes in Postgres, covered by the
-  existing backup) is the proposed fix and needs the owner's approval and a Railway variable set by the
-  owner. Older uploads cannot be shown (no record linked them to products).
+- **Uploads before 2026-10-06** were kept only on the app's disk and are gone after redeploys; My documents
+  shows them as "File no longer available - please upload again." New uploads are stored in Postgres.
 - **OCR'd codes:** O/0 and I/1 confusions in model and serial codes are stored as read (global check:
   17 of 108 OCR documents). Not made general yet; would need per-field confirmation of OCR'd codes.
 - **Brand-specific code left on purpose:** Redmi/POCO -> Xiaomi table, marketing-series list for model
@@ -189,8 +200,10 @@ A real sign-in was not tested by me; no production credentials were used.
 
 ## Next steps
 
-0. Owner: approve (or not) `DOCUMENT_STORE=db`, review the local commits, take a backup, then push.
-   Approve the planned care sources before any crawling.
+0. Owner: signed in, check that `/notifications?user_id=<another username>` and
+   `/recommendations?user_id=<another username>` answer 403; check the `schema` block of
+   `/admin/terms-cache/stats`; upload one invoice and confirm it opens under My documents after the next
+   redeploy. Decide on care-guide quotes (permission or legal advice; docs/CARE_SOURCES_CHECK.md).
 
 1. Owner puts invoices in `real_invoices/`, runs `python scripts/run_real_invoices.py` (add
    `--provider both` once keys are in the local `.env` and `pip install -r requirements.txt` is done), and

@@ -3213,3 +3213,10 @@ approval, push approval (backup first; new tables documents, product_nicknames, 
   not copy), Epson (no reproduction without consent) restrict reuse and Apple forbids robots/spiders outright;
   IFB/Philips need a person to read; others' terms not found. Voltas robots explicitly allows AI crawlers.
   Owner decision needed on short quotes + links in v1 and on asking brands for permission before any crawler.
+- [x] 100.5 PUSH after the owner's "backup done": `03f6a0ab..7971a633` (24 commits) to origin/master; live about
+  260 s later (a route added in the push changed from 404 to 401). Live checks 2026-10-06 ~05:02 UTC:
+  /api/health 200; /health/ocr 200 Paddle ok (first call 98 s); /login 200; http -> https one 301 then 200.
+  Another user's notifications/summary/recommendations and a product's recommendations without login: 401.
+  Cross-user denial WHILE SIGNED IN (403) not checked in production (needs two accounts; no production
+  credentials, no account creation) - owner to check; covered by tests. Schema block of
+  /admin/terms-cache/stats: owner to check. STATUS.md updated (live section, owner checks, old uploads).
