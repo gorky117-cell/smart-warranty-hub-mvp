@@ -3316,3 +3316,4 @@ Local commits, full tests, no push. Global and single-entry rules apply.
 - [x] 102.5 CLAUDE.md (rules, commands, map) and docs/BACKLOG.md created. No "handover prep" spec was found in
   the repo or this session, so both were built from MEMORY.md and STATUS.md. STATUS.md: stale bullets corrected
   (OCR'd codes, Bajaj, care sources).
+- [x] 102.6 Owner said "backup done": CLAUDE.md reshaped to the handover spec (what SWH is, priorities, GLOBAL RULE, single-entry rule, safety rules, where things are; under 80 lines) and docs/BACKLOG.md in priority order with [LOCAL]/[GAURAV] tags; then push. From now on code changes happen in the cloud.

@@ -7,23 +7,33 @@ HTML templates. Live at https://www.smartwarrantyhub.com; Railway deploys `origi
 Read first: `STATUS.md` (what is live, measured numbers, known issues) and `MEMORY.md` (numbered log of every
 run, newest at the bottom; resume from its last entry). Open work: `docs/BACKLOG.md`.
 
-## Owner's standing rules
-- **Never push** until the owner approves; take a production backup first (`scripts/backup_prod_db.ps1`, the
-  owner runs it). Never change Railway settings.
-- **Never read, print, log or commit secrets** (`.env`, API keys, `cookies.txt`, database URLs).
-- **Never commit `real_invoices/`** or results from real invoices.
-- **One local commit per step; full test suite before each commit**, commit only when it passes; update
-  `MEMORY.md` after each step (and `STATUS.md` when asked). Report measured numbers only.
-- **Global rule:** fix the general cause for any product, brand, invoice and warranty type; brand-specific code
-  only when unavoidable, named, documented and tested. Test on a mix (phone, laptop, TV, fridge, AC, washing
-  machine, geyser, small appliance, printer; 3+ brands; text PDF, scanned PDF, phone photo; marketplace and
-  shop invoices). Say so in the report when something cannot be made general yet.
-- **Single entry:** customers upload only the invoice. The warranty card is a later add-on (not built).
-- **Grounded and own words:** every customer line comes from the source; customers see SWH-written facts,
-  never the brand's sentences, unless `data/brand_reuse_policy.json` grants permission (none today).
-- **robots.txt:** every read of a brand's site goes through `app/services/robots_guard.py`. The Right to Repair
-  portal is a secondary citation only (admin-entered), never fetched automatically.
-- Plain language for customers; technical detail admin-only.
+## Priorities
+1. Correct, grounded warranty facts for the invoice the customer uploaded (dates, cover, what to do).
+2. Never mislead: unsure -> "please confirm" / "Estimated, please check"; never a guess.
+3. Plain language for customers; technical detail admin-only.
+4. Fill the knowledge base (docs/KB_WORKSHEET.md) before adding new features. Open work: docs/BACKLOG.md.
+
+## GLOBAL RULE
+Fix the general cause for any product, brand, invoice and warranty type; brand-specific code only when
+unavoidable, named, documented and tested. Test on a mix (phone, laptop, TV, fridge, AC, washing machine,
+geyser, small appliance, printer; 3+ brands; text PDF, scanned PDF, phone photo; marketplace and shop
+invoices; warranty types incl. part periods, extended plans, installation start, no warranty). Say so when
+something cannot be made general yet.
+
+## Single-entry rule
+Customers upload only the invoice. The warranty card is a later add-on (not built).
+
+## Safety rules
+- Never push without the owner's approval and a production backup (`scripts/backup_prod_db.ps1`, owner runs
+  it). Never change Railway settings.
+- Never read, print, log or commit secrets (`.env`, API keys, `cookies.txt`, database URLs).
+- Never commit `real_invoices/` or results from real invoices.
+- One commit per step; full test suite before each commit (commit only when it passes); update `MEMORY.md`
+  after each step. Report measured numbers only.
+- Own words: customers see SWH-written facts, never a brand's sentences, unless
+  `data/brand_reuse_policy.json` grants permission (none today). Every customer line grounded in the source.
+- Every read of a brand's site goes through `app/services/robots_guard.py`. The Right to Repair portal is a
+  secondary, admin-entered citation only; never fetched automatically.
 
 ## Commands (Windows, Git Bash or PowerShell)
 - Tests: `.venv/Scripts/python -m pytest -q -p no:cacheprovider` (~2-3 min; network is blocked in tests unless
