@@ -3250,3 +3250,11 @@ built). Local commits, full tests, no push. Global rule applies.
   date. Admin-only GET /admin/warranties/{id}/oem-text returns the stored brand wording. DB keeps the raw text.
   Tests: tests/test_own_words.py (22; incl. no 8-word run of brand text in any customer output for 9 product
   types); 6 older tests updated to the new wording. Full suite 813 passed, 2 skipped.
+- [x] 101.3 Care tips in our own words. CARE_CATALOG (SWH's general tips for 21 product types): every "why"
+  rewritten as a plain reason (64), no "OEM", "official terms" or "not a warranty coverage promise" filler;
+  label "Smart Warranty Hub care tip". Exclusion-based tips read the facts (power wording "voltage changes",
+  "electrical supply problems" added). Care guides follow the brand's reuse policy: link_only (all brands
+  today) -> not shown to customers and no care reminders from them; summary_ok -> short tip + link, no quote;
+  full_text_ok -> tip + quote. conftest resets the policy cache after every test. Tests:
+  tests/test_care_own_words.py (16) + care-guide/reminder tests updated (permission granted in the test where
+  tips are expected; new test: hidden without permission). Full suite 831 passed, 2 skipped.

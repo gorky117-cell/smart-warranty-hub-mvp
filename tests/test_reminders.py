@@ -109,7 +109,17 @@ def test_care_interval_only_when_the_text_gives_one(text, days):
     assert interval_days(text) == days
 
 
-def test_care_reminders_from_guides_with_limits(monkeypatch):
+def test_care_reminders_from_guides_with_limits(monkeypatch, tmp_path):
+    import json
+
+    from app.services import reuse_policy
+
+    path = tmp_path / "policy.json"  # guide tips are condensed from the brand's text: only with permission
+    path.write_text(json.dumps({"default": "link_only", "brands": {
+        b: {"policy": "summary_ok", "granted_by": f"{b} (test)", "granted_on": "2026-10-06"} for b in ("Voltas", "Epson")}}),
+        encoding="utf-8")
+    monkeypatch.setattr(reuse_policy, "_PATH", path)
+    reuse_policy.reset_cache()
     monkeypatch.setenv("REMINDER_CARE_MAX_PER_WEEK", "2")
     with SessionLocal() as db:
         _add(db, "wty_rem_ac", brand="Voltas", name="Voltas Split AC", model="183V", days_left=200)

@@ -63,7 +63,38 @@ def test_tip_may_shorten_but_not_add_to_its_quote(text, quote, ok):
     assert care_guides.grounded_tip(text, quote) is ok
 
 
-def test_admin_saves_guides_and_customers_see_sourced_tips():
+def _permit(monkeypatch, tmp_path, policy="summary_ok", brands=("Samsung", "LG", "Epson", "Voltas")):
+    import json
+
+    from app.services import reuse_policy
+
+    path = tmp_path / "policy.json"
+    path.write_text(json.dumps({"default": "link_only", "brands": {
+        b: {"policy": policy, "granted_by": f"{b} (test)", "granted_on": "2026-10-06"} for b in brands}}), encoding="utf-8")
+    monkeypatch.setattr(reuse_policy, "_PATH", path)
+    reuse_policy.reset_cache()
+
+
+def test_guides_are_hidden_without_the_brands_permission():
+    admin, auth = _client("admin")
+    assert admin.post("/admin/care-guides", json=GUIDES[0], headers=auth).status_code == 200
+    owner, owner_auth = _client(OWNER)
+    recs = owner.get("/recommendations?warranty_id=wty_care_phone", headers=owner_auth).json()["product_recommendations"]
+    assert not any(r["product_id"].startswith("care_guide_") for r in recs)  # link_only by default
+
+
+def test_full_text_permission_shows_the_quote(monkeypatch, tmp_path):
+    _permit(monkeypatch, tmp_path, policy="full_text_ok")
+    admin, auth = _client("admin")
+    admin.post("/admin/care-guides", json=GUIDES[0], headers=auth)
+    owner, owner_auth = _client(OWNER)
+    recs = owner.get("/recommendations?warranty_id=wty_care_phone", headers=owner_auth).json()["product_recommendations"]
+    tip = next(r for r in recs if r["product_id"].startswith("care_guide_"))
+    assert tip["why"] == "\u201cDo not expose the device to water or other liquids.\u201d"
+
+
+def test_admin_saves_guides_and_customers_see_sourced_tips(monkeypatch, tmp_path):
+    _permit(monkeypatch, tmp_path)  # summary_ok: the short tip and a link, no quote
     admin, auth = _client("admin")
     for guide in GUIDES:
         resp = admin.post("/admin/care-guides", json=guide, headers=auth)
@@ -81,7 +112,7 @@ def test_admin_saves_guides_and_customers_see_sourced_tips():
         recs = owner.get(f"/recommendations?warranty_id={wid}", headers=owner_auth).json()["product_recommendations"]
         tip = next(r for r in recs if r["product_id"].startswith("care_guide_"))
         assert tip["title"] == title and tip["source_label"] == label and tip["source_url"].startswith("https://")
-        assert tip["action"] == "oem_derived_care" and tip["why"].startswith("“")
+        assert tip["action"] == "oem_derived_care" and "“" not in tip["why"]  # summary_ok: no quote
     recs = owner.get("/recommendations?warranty_id=wty_care_tv", headers=owner_auth).json()["product_recommendations"]
     assert not any(r["product_id"].startswith("care_guide_") for r in recs)  # no guide for this model: nothing invented
 

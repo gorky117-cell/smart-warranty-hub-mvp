@@ -88,7 +88,11 @@ def refresh_care_reminders(db: Session, today: Optional[date] = None) -> Dict[st
             stats["expired_or_unknown"] += 1
             continue
         label = _product_label(w, w.id)
+        from . import reuse_policy
+
         for guide in found:
+            if not reuse_policy.allows(guide.company, reuse_policy.SUMMARY_OK):
+                continue  # the tip text is condensed from the brand's text: only with the brand's permission
             for i, tip in enumerate(guide.tips or []):
                 days = interval_days(tip.get("quote", ""))
                 if not days:

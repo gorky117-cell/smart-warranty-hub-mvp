@@ -125,17 +125,27 @@ def find(db: Session, *, company: Optional[str], model_code: Optional[str], prod
 
 
 def customer_tips(guides: List[CareGuideDB], *, category: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Tips in the shape of the care list ("How to look after it"), each with its source and link."""
+    """Tips in the shape of the care list ("How to look after it"), each with its source and link.
+
+    Brand reuse policy decides what customers see: link_only (default) -> nothing from the guide (its tips are
+    condensed from the brand's text); summary_ok -> the short tip with a link, no quote; full_text_ok -> the
+    tip and the brand's quote."""
+    from . import reuse_policy
+
     out = []
     for guide in guides:
+        if not reuse_policy.allows(guide.company, reuse_policy.SUMMARY_OK):
+            continue
+        quote_ok = reuse_policy.allows(guide.company, reuse_policy.FULL_TEXT_OK)
         kind = SOURCE_KINDS.get(guide.source_kind, "user manual")
         for i, tip in enumerate(guide.tips or []):
+            why = f"\u201c{tip['quote']}\u201d" if quote_ok else f"From {guide.company}'s {kind} - see the page for details."
             out.append({
                 "product_id": f"care_guide_{guide.id}_{i}",
                 "title": tip["text"],
-                "why": f"“{tip['quote']}”",
-                "reason": tip["quote"],
-                "description": tip["quote"],
+                "why": why,
+                "reason": why,
+                "description": why,
                 "source_label": f"From {guide.company}'s {kind}" + (f", page {tip['page']}" if tip.get("page") else ""),
                 "source_url": guide.source_url,
                 "action": "oem_derived_care",

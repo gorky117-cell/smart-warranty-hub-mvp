@@ -18,8 +18,8 @@ def test_printer_recommendations_are_product_aware_not_generic_backup():
     assert "ink" in titles
     assert "nozzle" in titles
     assert "print" in titles
-    assert "general care" in reasons
-    assert "warranty coverage promise" in reasons
+    # SWH's own reasons, in plain words (2026-10-06): no filler such as "general care advice".
+    assert "print head" in reasons and "general care" not in reasons and "oem" not in reasons
 
 
 def test_unknown_product_recommendations_stay_safe_and_general():
@@ -116,7 +116,7 @@ def test_oem_facts_create_source_labeled_phone_care():
     assert recs[0]["title"] == "Protect the screen and body" and recs[0]["source_label"] == "From the warranty terms"
     assert "claim documents" in titles
     assert "From the claim steps" in labels
-    assert any(rec.get("source_label") == "General product care" for rec in recs)
+    assert any(rec.get("source_label") == "Smart Warranty Hub care tip" for rec in recs)
 
 
 def test_oem_facts_create_source_labeled_printer_care():

@@ -58,3 +58,12 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if "live_network" in item.keywords:
             item.add_marker(skip)
+
+
+@pytest.fixture(autouse=True)
+def _reset_reuse_policy_cache():
+    """A test that grants a brand permission (patched policy file) must not leak it into later tests."""
+    yield
+    from app.services import reuse_policy
+
+    reuse_policy.reset_cache()
