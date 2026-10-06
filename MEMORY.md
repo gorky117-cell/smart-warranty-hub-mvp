@@ -3205,3 +3205,11 @@ approval, push approval (backup first; new tables documents, product_nicknames, 
   models 46+44, serials 42+42 of 54 each. Remaining photo failures: 2 brands not read (HP, IFB), 1 Redmi model
   not read, 1 truncated LG model stored ("GL-T292R": no confusable character, so kept as read).
   Tests: tests/test_confusable_codes.py (20). Full suite 775 passed, 2 skipped.
+- [x] 100.4 Care sources, read-only: robots.txt (16 hosts) and terms-of-use pages (found for 10 brands; the
+  Daikin address was a 404) checked; no content page fetched, nothing crawled. Report: docs/CARE_SOURCES_CHECK.md
+  (scratch copies of the fetched files stay outside the repo). Cleared for crawling + reuse: none. robots allows
+  the support paths on 12/16 hosts (Xiaomi, Sony, Lenovo returned 403; canon.co.in served HTML), but Samsung (no
+  transfer to third parties), LG (personal non-commercial only, written consent for commercial), HP (link but
+  not copy), Epson (no reproduction without consent) restrict reuse and Apple forbids robots/spiders outright;
+  IFB/Philips need a person to read; others' terms not found. Voltas robots explicitly allows AI crawlers.
+  Owner decision needed on short quotes + links in v1 and on asking brands for permission before any crawler.

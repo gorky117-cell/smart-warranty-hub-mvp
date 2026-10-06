@@ -26,20 +26,20 @@ Only the brand's own pages on its verified official domain. Before any automated
 read its terms of use and robots.txt, and fetch only pages they allow, at a low rate, with a named
 user agent. Until then, guides are entered by hand from pages a person opened.
 
-| Brand (test mix) | Verified domain(s) in the registry | Planned pages | Terms / robots checked |
+| Brand (test mix) | Verified domain(s) in the registry | Planned pages | Terms / robots checked (2026-10-06, docs/CARE_SOURCES_CHECK.md) |
 |---|---|---|---|
-| Samsung | samsung.com | /in/support/ model pages: user manual PDF, "Troubleshooting" FAQ | Not yet |
-| Xiaomi (Redmi, POCO) | mi.com, xiaomi.com | mi.com/in/support: user guides, FAQ | Not yet |
-| LG | lg.com (manually confirmed) | lg.com/in/support: manuals, help library | Not yet |
-| Sony | sony.co.in (manually confirmed) | sony.co.in support: manuals, FAQ | Not yet |
-| HP | hp.com | support.hp.com: product manuals, "Document" FAQs | Not yet |
-| Voltas | voltas.com | user manuals / FAQ pages | Not yet |
-| IFB | ifbappliances.com | user manuals / FAQ | Not yet |
-| Racold | racold.com | product manuals / FAQ | Not yet |
-| Epson | epson.co.in, epson.com | product support: user's guide, FAQ | Not yet |
-| Apple | apple.com | support.apple.com: user guides, support articles | Not yet |
-| Philips | philips.co.in, philips.com | product support: user manual, FAQ | Not yet |
-| Havells, Lenovo, Daikin, Canon, Brother | see registry | manuals / FAQ | Not yet |
+| Samsung | samsung.com | /in/support/ model pages: user manual PDF, "Troubleshooting" FAQ | No reuse without permission |
+| Xiaomi (Redmi, POCO) | mi.com, xiaomi.com | mi.com/in/support: user guides, FAQ | Unknown (robots blocked) |
+| LG | lg.com (manually confirmed) | lg.com/in/support: manuals, help library | No without written consent |
+| Sony | sony.co.in (manually confirmed) | sony.co.in support: manuals, FAQ | Unknown (blocked) |
+| HP | hp.com | support.hp.com: product manuals, "Document" FAQs | No copying; linking allowed |
+| Voltas | voltas.com | user manuals / FAQ pages | Unknown (robots allows AI crawlers; terms not found) |
+| IFB | ifbappliances.com | user manuals / FAQ | Unclear - read by a person |
+| Racold | racold.com | product manuals / FAQ | Unknown |
+| Epson | epson.co.in, epson.com | product support: user's guide, FAQ | No without consent |
+| Apple | apple.com | support.apple.com: user guides, support articles | No (automated access forbidden) |
+| Philips | philips.co.in, philips.com | product support: user manual, FAQ | Unclear - read by a person |
+| Havells, Lenovo, Daikin, Canon, Brother | see registry | manuals / FAQ | Unknown (see the check) |
 
 Bajaj (fixed 2026-10-06): the bare name "Bajaj" no longer has official domains; a Bajaj appliance resolves to
 Bajaj Electricals (bajajelectricals.com), a two-wheeler to Bajaj Auto, and Bajaj Finserv never.
