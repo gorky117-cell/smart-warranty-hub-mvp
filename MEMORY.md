@@ -3193,3 +3193,15 @@ approval, push approval (backup first; new tables documents, product_nicknames, 
   Appliances); TVS model words added to the two-wheeler segment. Same-company aliases (IFB/IFB Appliances,
   Khaitan/Khaitan Fans, MG/MG Motor India, Crompton Greaves/Crompton, Ather/Ather Energy) need no family.
   Tests: tests/test_shared_brand_registry.py (34). Full suite 755 passed, 2 skipped.
+- [x] 100.3 Codes from scans/photos. ingestion.route_confusable_codes (+ from_ocr, CONFUSABLE = O0I1S5B8),
+  called in the pipeline after route_uncertain_identity: when the text came from OCR (tesseract, paddle,
+  tesseract_fallback, pdf_ocr; a photo upload counts as OCR even when the upload's details are not cached), a
+  model or serial containing O/0, I/1, S/5 or B/8 becomes a "please confirm" suggestion ("Read from a scan or
+  photo, where O/0, I/1, S/5 and B/8 are easy to mix up; please confirm.") unless validated: IMEI with Luhn, or
+  a model already known for the brand (knowledge-base model scope or official terms-cache model). Text-layer
+  PDFs, .txt/.docx and customer-confirmed values (confidence >= 0.9) are untouched. Global check re-measured
+  (pass = stored right, or not stored and offered to confirm): text PDF 54/54, scanned PDF 54/54 (was 45),
+  phone photo 50/54 (was 42); stored wrong: models 0/0/1, serials 0/0/0; offered to confirm on scans/photos:
+  models 46+44, serials 42+42 of 54 each. Remaining photo failures: 2 brands not read (HP, IFB), 1 Redmi model
+  not read, 1 truncated LG model stored ("GL-T292R": no confusable character, so kept as read).
+  Tests: tests/test_confusable_codes.py (20). Full suite 775 passed, 2 skipped.

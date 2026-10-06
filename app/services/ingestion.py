@@ -781,6 +781,52 @@ def _misread_model_line(lines: List[str]) -> Optional[Tuple[str, str]]:
 SUGGESTION_CONFIDENCE = 0.6
 SUGGESTION_KEYS = {"brand": "brand_suggestion", "model_code": "model_suggestion", "serial_no": "serial_suggestion"}
 
+# Characters OCR mixes up in codes (owner decision 3, 2026-10-06).
+CONFUSABLE = set("O0I1S5B8")
+OCR_METHODS = {"tesseract", "paddle", "tesseract_fallback", "pdf_ocr", "ocr", "vision"}
+
+
+def from_ocr(ocr_meta: Optional[Dict[str, object]]) -> bool:
+    """True when the text was read from a scan or photo (not a PDF text layer, .txt or .docx)."""
+    return str((ocr_meta or {}).get("method") or "").lower() in OCR_METHODS
+
+
+def route_confusable_codes(
+    fields: Dict[str, str],
+    confidence: Dict[str, float],
+    alternatives: Dict[str, object],
+    *,
+    ocr: bool,
+    known_models: Optional[set] = None,
+) -> Tuple[Dict[str, str], Dict[str, float], Dict[str, object]]:
+    """From a scan or photo, a model or serial containing O/0, I/1, S/5 or B/8 is saved as "please confirm"
+    unless it can be validated: an IMEI that passes the Luhn check, or a model already known for the brand
+    (knowledge base or official terms cache). Text-layer PDFs and typed text are not affected."""
+    if not ocr:
+        return fields, confidence, alternatives
+    fields, confidence, alternatives = dict(fields), dict(confidence), dict(alternatives or {})
+    known = {re.sub(r"[^A-Z0-9]", "", str(m).upper()) for m in (known_models or set())}
+    for field, key in (("model_code", "model_suggestion"), ("serial_no", "serial_suggestion")):
+        value = fields.get(field)
+        if not value or float(confidence.get(field) or 0.0) >= 0.9:  # missing, or confirmed by the user
+            continue
+        code = re.sub(r"[^A-Z0-9]", "", str(value).upper())
+        if not CONFUSABLE & set(code):
+            continue
+        if field == "serial_no" and len(code) == 15 and luhn_ok(code):
+            continue  # a valid IMEI
+        if field == "model_code" and code in known:
+            continue
+        fields.pop(field, None)
+        confidence.pop(field, None)
+        alternatives[key] = {
+            "value": value,
+            "source_line": "",
+            "status": "pending",
+            "reason": "Read from a scan or photo, where O/0, I/1, S/5 and B/8 are easy to mix up; please confirm.",
+        }
+    return fields, confidence, alternatives
+
 
 def route_uncertain_identity(
     fields: Dict[str, str],

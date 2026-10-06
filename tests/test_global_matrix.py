@@ -29,8 +29,8 @@ def test_text_pdf_invoices_marketplace_and_shop(index, tmp_path):
     for style, (text, invoice_no, bought) in gc.invoices_for(index, product).items():
         path = tmp_path / f"{style}.pdf"
         path.write_bytes(gc.text_pdf(text))
-        read, _err, _meta = extract_text_with_meta(str(path))
-        check = gc.check_document(product, style, read or "", invoice_no, bought)
+        read, _err, meta = extract_text_with_meta(str(path))
+        check = gc.check_document(product, style, read or "", invoice_no, bought, ocr_meta=meta)
         failed = [name for name, ok in check["results"].items() if not ok]
         assert failed == [], (style, failed, check["fields"])
 

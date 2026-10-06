@@ -20,6 +20,8 @@ from .ocr import extract_text_with_meta
 from .ingestion import (
     SUGGESTION_KEYS,
     extract_product_fields,
+    from_ocr,
+    route_confusable_codes,
     route_uncertain_identity,
     sanitize_invoice_identity_fields,
 )
@@ -34,6 +36,28 @@ from .ai_providers import enrich_invoice
 from .openai_intelligence import merge_invoice_enrichment
 from .grounded_extraction import apply_grounded_extraction
 from .vision_extraction import apply_vision_tier, enabled as vision_enabled, needs_vision
+
+
+def known_models(db, brand) -> set:
+    """Model codes already known for the brand from hand-checked or official sources (validates OCR'd codes)."""
+    if not brand:
+        return set()
+    from sqlalchemy import func
+
+    from ..db_models import VerifiedTermsDB, WarrantyTermsCacheDB
+
+    models = set()
+    try:
+        for (scope,) in db.query(VerifiedTermsDB.product_scope).filter(
+                func.lower(VerifiedTermsDB.company) == str(brand).lower(), VerifiedTermsDB.product_scope.like("model:%")):
+            models.add(scope.split(":", 1)[1])
+        for (code,) in db.query(WarrantyTermsCacheDB.model_code).filter(
+                func.lower(WarrantyTermsCacheDB.brand) == str(brand).lower(), WarrantyTermsCacheDB.model_code.isnot(None),
+                WarrantyTermsCacheDB.source_type == "official"):
+            models.add(code)
+    except Exception:
+        db.rollback()
+    return models
 
 
 def _set_job_status(db: Session, job: PipelineJobDB, status: str, detail: str | None = None, error: str | None = None) -> None:
@@ -377,6 +401,8 @@ def run_job(job_id: str) -> None:
                     }
                 if meta.get("ocr_used"):
                     ocr_detail = str(meta.get("method"))
+            if not ocr_meta and job.source_path and str(job.source_path).lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
+                ocr_meta = {"method": "ocr"}  # a photo is always read by OCR (upload details not cached, e.g. restart)
             _set_job_status(db, job, "ocr_if_needed", detail=ocr_detail)
             ocr_only_text = (text or "").split("[OCR note]")[0].strip()
             vision_due = bool(job.source_path) and vision_enabled() and needs_vision(ocr_only_text)
@@ -430,6 +456,11 @@ def run_job(job_id: str) -> None:
                 alternatives["openai_invoice_enrichment"] = openai_meta
             # Low-confidence or unknown brand/model/serial (also from AI enrichment) become suggestions.
             fields, confidence, alternatives = route_uncertain_identity(fields, confidence, alternatives)
+            # Codes read from a scan or photo with O/0, I/1, S/5, B/8 are confirmed by the customer unless valid.
+            fields, confidence, alternatives = route_confusable_codes(
+                fields, confidence, alternatives, ocr=from_ocr(ocr_meta),
+                known_models=known_models(db, fields.get("brand")),
+            )
             unreadable = is_unreadable(fields, alternatives)
             parsed_date = None
             if fields.get("purchase_date"):

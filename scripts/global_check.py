@@ -162,8 +162,8 @@ def _is_spec(code) -> bool:
     return bool(value) and bool(re.fullmatch(r"I[3579]-?\d{4,5}[A-Z]{0,2}|[A-Z]{0,3}\d+(?:\.\d+)?(?:L|KG|W|GB|TB|MAH|V|HZ)", value))
 
 
-def check_document(product, kind: str, text: str, invoice_no: str, bought: date) -> dict:
-    from app.services.ingestion import extract_product_fields, is_listing_code
+def check_document(product, kind: str, text: str, invoice_no: str, bought: date, ocr_meta=None) -> dict:
+    from app.services.ingestion import extract_product_fields, from_ocr, is_listing_code, route_confusable_codes
     from app.services.product_naming import short_name
     from app.services.terms_cache import product_line
 
@@ -173,22 +173,33 @@ def check_document(product, kind: str, text: str, invoice_no: str, bought: date)
     printed = title if kind == "marketplace" else shop_item
     if expected_model and _norm(expected_model) not in _norm(printed):
         expected_model = None
-    fields, _conf, alts = extract_product_fields(text or "")
+    fields, conf, alts = extract_product_fields(text or "")
+    # As the pipeline does: codes from a scan or photo with O/0, I/1, S/5, B/8 become "please confirm".
+    fields, conf, alts = route_confusable_codes(fields, conf, alts, ocr=from_ocr(ocr_meta))
     model = fields.get("model_code")
     line = product_line(model, fields.get("product_name"))
     name = short_name(fields.get("brand"), fields.get("product_name"), model)
     serial_value = fields.get("serial_no") or (alts.get("serial_suggestion") or {}).get("value")
     results = {
         "brand": fields.get("brand") == brand,
+        # Pass = stored right, or not stored and offered to confirm; stored wrong = fail.
         "model": (not is_listing_code(model)) and not _is_spec(model)
-        and (_norm(expected_model) in _norm(model) if expected_model else True),
+        and ((_norm(expected_model) in _norm(model)) if (expected_model and model)
+             else (not expected_model or (alts.get("model_suggestion") or {}).get("status") == "pending")),
         "invoice number": fields.get("invoice_no") == invoice_no.upper(),
         "purchase date": fields.get("purchase_date") == bought.isoformat(),
         "product type": line == CATEGORIES[category],
         "short name": bool(name) and brand.split()[0].lower() in name.lower() and "wty_" not in name,
-        "serial": (serial_value == serial) if serial else True,
+        "serial": ((fields.get("serial_no") == serial) if fields.get("serial_no")
+                   else (alts.get("serial_suggestion") or {}).get("status") == "pending") if serial else True,
     }
-    return {"results": results, "fields": fields, "name": name, "line": line}
+    confirm = {f: (alts.get(f"{f}_suggestion") or {}).get("status") == "pending" for f in ("model", "serial")}
+    stored_wrong = {
+        "model": bool(expected_model and model and _norm(expected_model) not in _norm(model)),
+        "serial": bool(serial and fields.get("serial_no") and fields.get("serial_no") != serial),
+    }
+    return {"results": results, "fields": fields, "name": name, "line": line, "confirm": confirm,
+            "stored_wrong": stored_wrong}
 
 
 def run_documents(formats) -> list:
@@ -203,7 +214,7 @@ def run_documents(formats) -> list:
                     path = Path(tmp) / f"doc_{i}_{style}_{fmt.replace(' ', '_')}{suffix}"
                     path.write_bytes(make(text))
                     read, err, meta = extract_text_with_meta(str(path))
-                    check = check_document(product, style, read or "", invoice_no, bought)
+                    check = check_document(product, style, read or "", invoice_no, bought, ocr_meta=meta)
                     rows.append({"category": product[0], "brand": product[1], "style": style, "format": fmt,
                                  "engine": (meta or {}).get("engine"), **check})
     return rows
@@ -312,6 +323,13 @@ def report(doc_rows: list, type_rows: list, seconds: float) -> str:
     out.extend(["## Warranty types", "", "| type | product | result |", "|---|---|---|"])
     for row in type_rows:
         out.append(f"| {row['type']} | {row['product']} | {'pass' if row['ok'] else 'FAIL'} |")
+    out.extend(["", "## Codes: stored wrong vs offered to confirm (by format)", "",
+                "| format | model stored wrong | model offered to confirm | serial stored wrong | serial offered to confirm |",
+                "|---|---|---|---|---|"])
+    for fmt in dict.fromkeys(r["format"] for r in doc_rows):
+        rows = [r for r in doc_rows if r["format"] == fmt]
+        out.append(f"| {fmt} | {sum(r['stored_wrong']['model'] for r in rows)} | {sum(r['confirm']['model'] for r in rows)} | "
+                   f"{sum(r['stored_wrong']['serial'] for r in rows)} | {sum(r['confirm']['serial'] for r in rows)} |")
     failures = [r for r in doc_rows if not all(r["results"].values())]
     out.extend(["", f"## Failed documents ({len(failures)})", ""])
     for r in failures:
