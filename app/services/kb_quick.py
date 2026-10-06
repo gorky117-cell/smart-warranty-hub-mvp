@@ -131,6 +131,10 @@ def save(db: Session, payload: Dict[str, Any], *, company: str, admin: str) -> L
     scopes = ([f"line:{line}"] if line else []) + [f"model:{m}" for m in models]
     if not scopes:
         raise ValueError("give a product line or at least one model (never brand-wide)")
+    portal = str(payload.get("portal_url") or "").strip()
+    if portal and not knowledge_base.valid_portal_url(portal):
+        raise ValueError("portal_url must be a product page on righttorepairindia.gov.in (/product-details/<number>)")
+    note = "Entered on the admin knowledge-base screen (SWH wording)." + (f" Also listed: {portal}" if portal else "")
     region = (str(payload.get("region") or "").strip().upper() or None)
     category = normalized_category(payload.get("category"))
     saved = []
@@ -146,12 +150,12 @@ def save(db: Session, payload: Dict[str, Any], *, company: str, admin: str) -> L
             entry = knowledge_base.create_entry(db, {
                 "company": company, "region": region, "category": category, "product_scope": scope,
                 "source_url": payload["source_url"], "duration_months": months, "locked": True,
-                "note": "Entered on the admin knowledge-base screen (SWH wording).", **lists,
+                "note": note, **lists,
             }, admin=admin)
         else:  # quick re-entry updates the same scope instead of adding a duplicate
             entry.source_url, entry.duration_months = payload["source_url"], months
             entry.terms, entry.exclusions, entry.claim_steps = lists["terms"], lists["exclusions"], lists["claim_steps"]
-            entry.verified_by, entry.updated_at = admin, datetime.utcnow()
+            entry.verified_by, entry.updated_at, entry.note = admin, datetime.utcnow(), note
         entry.verified_at = checked
         db.commit()
         db.refresh(entry)

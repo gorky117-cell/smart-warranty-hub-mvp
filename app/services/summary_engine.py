@@ -196,6 +196,10 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
         # Where the customer can check for themselves when nothing is confirmed (source order, last step).
         "brand_page_url": None if status == "confirmed" else brand_page_url(
             oem_entity.get("company") or getattr(warranty, "brand", None)),
+        # Secondary citation on a hand-checked entry only (never looked up automatically).
+        "also_listed": ({"label": "Also listed on the Government of India's Right to Repair portal",
+                         "url": alt.get("terms_also_listed_url")}
+                        if source_type == "knowledge_base" and alt.get("terms_also_listed_url") else None),
     }
 
 

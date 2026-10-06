@@ -2757,6 +2757,7 @@
           <span class="evidence-pill ${evidenceBadgeClass(status)}">${escapeHtml(evidenceBadgeText(status))}</span>
           <strong>${escapeHtml(label)}</strong>
           <div>${escapeHtml(note)}${sourceHtml}</div>
+          ${evidence.also_listed && /^https:\/\/righttorepairindia\.gov\.in\//.test(String(evidence.also_listed.url)) ? `<div class="helper"><a href="${escapeHtml(evidence.also_listed.url)}" target="_blank" rel="noopener">${escapeHtml(evidence.also_listed.label)}</a></div>` : ''}
           ${requiresVerification ? `<div>${escapeHtml(requiresVerification)}</div>` : ''}
         `;
       }

@@ -3292,3 +3292,12 @@ Local commits, full tests, no push. Global and single-entry rules apply.
   sony.co.in, lenovo.com answered 403) can no longer be re-verified automatically; the stored verified list is
   unchanged. Not covered (not brand sites): review crawler (off in production), issue feeds, web search APIs.
   Tests: tests/test_robots_everywhere.py (7). Full suite 853 passed, 2 skipped.
+- [x] 102.2 Right to Repair portal = secondary source only. Optional "portal_url" on admin knowledge-base entries
+  (quick screen field; only https://righttorepairindia.gov.in/product-details/<n> or /product/<n>), stored in the
+  entry note (no DB change), returned as knowledge_base.to_dict()["portal_url"] and TermsResult.also_listed_url;
+  the pipeline and the terms refresh endpoint keep it as alternatives["terms_also_listed_url"]; evidence shows one
+  line "Also listed on the Government of India's Right to Repair portal" (only for knowledge-base terms). The
+  brand's own page stays the source (portal URL refused as source_url). No customer link section, no automated
+  lookups, never fetched. Also: the terms refresh endpoint now keeps the source's own checked date
+  (result.checked_at) instead of "now", like the pipeline. Tests: tests/test_r2r_citation.py (10).
+  Full suite 863 passed, 2 skipped.

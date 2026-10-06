@@ -22,6 +22,19 @@ from ..db_models import UserDB, VerifiedTermsDB, VerifiedTermsReviewDB
 from . import terms_cache
 
 SOURCE_KIND = "knowledge_base"
+# Secondary source only: an admin may cite the government's Right to Repair portal page for the same product.
+# Stored in the entry's note (no database change); never fetched or looked up automatically.
+PORTAL_LABEL = "Also listed on the Government of India's Right to Repair portal"
+_PORTAL_RE = re.compile(r"https://righttorepairindia\.gov\.in/(?:product-details|product)/\d+/?")
+
+
+def valid_portal_url(url) -> bool:
+    return bool(url) and bool(_PORTAL_RE.fullmatch(str(url).strip()))
+
+
+def portal_url_of(entry) -> Optional[str]:
+    match = _PORTAL_RE.search(entry.note or "") if entry is not None else None
+    return match.group(0) if match else None
 
 
 def ready() -> bool:
@@ -94,6 +107,7 @@ def result_from_entry(entry: VerifiedTermsDB):
         checked_at=entry.verified_at.isoformat(timespec="seconds"),
         needs_refresh=False,
         source_kind=SOURCE_KIND,
+        also_listed_url=portal_url_of(entry),
     )
 
 
@@ -104,7 +118,7 @@ def to_dict(entry: VerifiedTermsDB) -> Dict[str, Any]:
         "duration_months": entry.duration_months, "terms": entry.terms or [], "exclusions": entry.exclusions or [],
         "claim_steps": entry.claim_steps or [], "verified_by": entry.verified_by,
         "verified_at": entry.verified_at.isoformat(timespec="seconds") if entry.verified_at else None,
-        "locked": bool(entry.locked), "note": entry.note,
+        "locked": bool(entry.locked), "note": entry.note, "portal_url": portal_url_of(entry),
     }
 
 

@@ -81,6 +81,9 @@
       <div class="grid">
         <div style="grid-column: span 2;"><label for="sourceUrl">Source link (the brand's own page)</label><input id="sourceUrl" type="url" required placeholder="https://www.samsung.com/in/support/warranty/"></div>
         <div><label for="checkedOn">Checked on</label><input id="checkedOn" type="date" required></div>
+        <div style="grid-column: span 3;"><label for="portalUrl">Also listed on the Government of India's Right to Repair portal (optional)</label>
+          <input id="portalUrl" type="url" placeholder="https://righttorepairindia.gov.in/product-details/4">
+          <div class="hint">Secondary citation only. The brand's own page above stays the source.</div></div>
       </div>
       <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
         <button type="submit" id="saveBtn">Save facts</button>
@@ -152,7 +155,7 @@
             <td>${e.duration_months ? esc(e.duration_months) + ' mo' : '-'}</td>
             <td>${esc((e.terms || []).length + (e.exclusions || []).length + (e.claim_steps || []).length)}</td>
             <td>${esc((e.verified_at || '').slice(0, 10))}</td>
-            <td><a href="${esc(e.source_url)}" target="_blank" rel="noopener">link</a></td></tr>`).join('')
+            <td><a href="${esc(e.source_url)}" target="_blank" rel="noopener">link</a>${e.portal_url ? ` · <a href="${esc(e.portal_url)}" target="_blank" rel="noopener">R2R</a>` : ''}</td></tr>`).join('')
           : '<tr><td colspan="7">No entries yet.</td></tr>';
       }
 
@@ -189,6 +192,7 @@
           route_keys: [...document.querySelectorAll('input[name=route]:checked')].map((c) => c.value),
           source_url: $('sourceUrl').value.trim(),
           checked_on: $('checkedOn').value,
+          portal_url: $('portalUrl').value.trim(),
         };
         status.className = 'status';
         status.textContent = 'Saving...';

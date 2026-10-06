@@ -143,3 +143,5 @@ class TermsResult(AppBaseModel):
     needs_refresh: bool = False
     # "knowledge_base" when the terms are a hand-checked entry (knowledge base v1).
     source_kind: Optional[str] = None
+    # Optional secondary citation an admin added to a knowledge-base entry (Right to Repair portal page).
+    also_listed_url: Optional[str] = None

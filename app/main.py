@@ -2725,7 +2725,11 @@ def refresh_warranty_terms(
     alt["terms_source_url"] = src or None
     alt["terms_source_urls"] = result.source_urls or ([src] if src else [])
     alt["terms_source_type"] = src_type
-    alt["terms_last_refreshed_at"] = datetime.utcnow().isoformat()
+    alt["terms_last_refreshed_at"] = result.checked_at or datetime.utcnow().isoformat()
+    if result.also_listed_url:
+        alt["terms_also_listed_url"] = result.also_listed_url
+    else:
+        alt.pop("terms_also_listed_url", None)
     warranty.alternatives = alt
     if warranty.purchase_date and warranty.coverage_months and not warranty.expiry_date:
         exp = warranty.purchase_date.date()

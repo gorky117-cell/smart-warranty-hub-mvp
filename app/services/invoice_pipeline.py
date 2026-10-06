@@ -365,6 +365,10 @@ def apply_terms_and_expiry(db: Session, warranty: WarrantyDB, fields: Dict[str, 
         # When the source was really checked: a cached or last-good entry keeps its own date (cache fix 5).
         meta["terms_last_refreshed_at"] = terms_result.checked_at or datetime.utcnow().isoformat()
         meta["terms_needs_refresh"] = bool(terms_result.needs_refresh)
+        if terms_result.also_listed_url:
+            meta["terms_also_listed_url"] = terms_result.also_listed_url
+        else:
+            meta.pop("terms_also_listed_url", None)
         meta.pop("terms_lookup_error", None)
     elif terms_lookup_error:
         meta["terms_lookup_error"] = terms_lookup_error
