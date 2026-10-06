@@ -166,14 +166,13 @@ A real sign-in was not tested by me; no production credentials were used.
 
 - **Uploads before 2026-10-06** were kept only on the app's disk and are gone after redeploys; My documents
   shows them as "File no longer available - please upload again." New uploads are stored in Postgres.
-- **OCR'd codes:** O/0 and I/1 confusions in model and serial codes are stored as read (global check:
-  17 of 108 OCR documents). Not made general yet; would need per-field confirmation of OCR'd codes.
+- **OCR'd codes:** codes read from scans/photos with O/0, I/1, S/5 or B/8 are now saved as "please confirm"
+  unless validated (commit `ecbe3baf`, live): many more confirmations for customers.
 - **Brand-specific code left on purpose:** Redmi/POCO -> Xiaomi table, marketing-series list for model
   names, Samsung-style section headings for multi-product pages, phone words galaxy/iphone/sm-, the Epson
   "serial under the line item" rule.
-- **Registry data:** the verified domains for "Bajaj" include bajajauto.com (the motorcycle maker).
-- **Care sources:** no brand site's terms of use or robots.txt checked yet; nothing crawled
-  (docs/PRODUCT_CARE_DESIGN.md lists the planned sources).
+- **Care sources:** robots.txt and terms checked for 16 sites; none cleared for crawling and reuse
+  (docs/CARE_SOURCES_CHECK.md). Open work is listed in docs/BACKLOG.md.
 
 - **Start-up schema upgrade on Postgres:** first run in production with this deploy (adds 5 nullable cache
   columns and 2 tables). If it failed, the app still runs with the terms cache and knowledge base off and

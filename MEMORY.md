@@ -3301,3 +3301,18 @@ Local commits, full tests, no push. Global and single-entry rules apply.
   lookups, never fetched. Also: the terms refresh endpoint now keeps the source's own checked date
   (result.checked_at) instead of "now", like the pipeline. Tests: tests/test_r2r_citation.py (10).
   Full suite 863 passed, 2 skipped.
+- [x] 102.3 Read-only site checks (nothing added; waiting for the owner): Godrej Appliances -> godrejenterprises.com
+  (Godrej Enterprises Group; robots allows; home 200 "Welcome to the World of Godrej Enterprises Group";
+  /home-appliances 200; refrigerator warranty page /support/appliances/refrigerators/warranty 200); godrej.com is
+  the group site with no appliance links. Prestige -> ttkprestige.com (robots allows all; 200, og:site_name "TTK
+  Prestige") + shop.ttkprestige.com (support page 200) + ttkservices.com (service, not checked). Acer -> acer.com
+  refused connections from here (connection reset / timeout, also with a browser user agent); listed on the Right
+  to Repair portal with https://www.acer.com/in-en/; needs a browser check by the owner.
+- [x] 102.4 docs/KB_WORKSHEET.md: top 30 pairs with the brand's warranty-terms link (links only): 14 ok (robots
+  allowed, 200), 6 browser-only (LG x3, Sony, Dell 403; OPPO robots 403), 8 partial (closest official page),
+  2 none (realme, Racold). Links found by checking likely addresses and by web search restricted to each brand's
+  domain, then robots + one GET each. Right to Repair company page as an extra column (from the portal lists read
+  earlier; not listed: Voltas, Daikin, Whirlpool, Godrej, Racold).
+- [x] 102.5 CLAUDE.md (rules, commands, map) and docs/BACKLOG.md created. No "handover prep" spec was found in
+  the repo or this session, so both were built from MEMORY.md and STATUS.md. STATUS.md: stale bullets corrected
+  (OCR'd codes, Bajaj, care sources).
