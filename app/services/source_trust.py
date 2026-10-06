@@ -81,6 +81,16 @@ def official_page_label(brand: Optional[str], url: Optional[str]) -> str:
     return f"From {owner}'s official warranty page"
 
 
+def brand_page_url(company: Optional[str]) -> Optional[str]:
+    """The brand's own website (verified, else manually confirmed), for "Estimated, please check" links.
+    None for unknown brands and for shared names that are not a company ("Bajaj")."""
+    for domains in (_domains_for_brand(load_verified_domains(), company),
+                    _domains_for_brand(load_manual_confirmed_domains(), company)):
+        if domains:
+            return f"https://{domains[0]}"
+    return None
+
+
 def _matches_domain(host: str, domains: list[str]) -> bool:
     if not host:
         return False

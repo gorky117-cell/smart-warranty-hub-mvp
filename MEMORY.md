@@ -3220,3 +3220,19 @@ approval, push approval (backup first; new tables documents, product_nicknames, 
   Cross-user denial WHILE SIGNED IN (403) not checked in production (needs two accounts; no production
   credentials, no account creation) - owner to check; covered by tests. Schema block of
   /admin/terms-cache/stats: owner to check. STATUS.md updated (live section, owner checks, old uploads).
+
+## 101. Own-words terms, source order, admin knowledge-base screen (2026-10-06)
+SINGLE-ENTRY RULE from the owner: customers upload only the invoice; the warranty card is a later add-on (not
+built). Local commits, full tests, no push. Global rule applies.
+- [x] 101.1 Terms source order. New: partner_feed.lookup (placeholder, always None) runs first in
+  terms_lookup.lookup_terms, then the knowledge base, then saved/cached official terms, then the brand's website
+  - now only where robots.txt allows: robots_guard.check (200 -> rules for user agent SmartWarrantyHub; 404/410
+  -> allowed; 401/403, 5xx, timeout, no network -> NOT allowed; cached 24 h per site) is called inside
+  warranty_parser.parse_terms_from_url, the single place terms pages are fetched, so a disallowed page is never
+  requested. Otherwise "Estimated, please check" with evidence.brand_page_url (source_trust.brand_page_url: the
+  verified or manually confirmed domain of the resolved company; none for unknown brands or bare shared names)
+  shown as "Check on the brand's website"; a confirmed source shows "View source (checked <date>)".
+  reuse_policy.py + data/brand_reuse_policy.json: link_only default, summary_ok, full_text_ok; a permission only
+  counts with granted_by + granted_on. No brand has permission. Note: warranty_discovery still probes brand home
+  pages (domain checks, not terms reading) without a robots check.
+  Tests: tests/test_terms_source_order.py (16). Full suite 791 passed, 2 skipped.

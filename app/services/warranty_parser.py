@@ -919,6 +919,12 @@ def parse_terms_from_url(
         parsed = parse_terms_from_text(text or "")
         return _finalize_parsed(parsed, raw_text_for_enrich=text), None
 
+    # Read a brand's web page only where its robots.txt allows us (terms source order, step 1).
+    from .robots_guard import check as robots_check
+
+    allowed, reason = robots_check(url)
+    if not allowed:
+        return None, f"robots_disallowed: {reason}"
     try:
         resp = requests.get(url, timeout=timeout, headers={"User-Agent": "SmartWarrantyHub/1.0"})
     except requests.exceptions.RequestException as exc:

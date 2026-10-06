@@ -1,0 +1,5 @@
+{
+  "_note": "Permission to show a brand's own wording to customers. default link_only = SWH's own words + source link + checked date. Add a brand only with written permission: policy summary_ok or full_text_ok, granted_by (who at the brand), granted_on (YYYY-MM-DD), note. No brand has given permission yet (2026-10-06); see docs/CARE_SOURCES_CHECK.md.",
+  "default": "link_only",
+  "brands": {}
+}

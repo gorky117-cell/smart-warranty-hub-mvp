@@ -503,6 +503,14 @@ def lookup_terms(
         return needs_check_terms(_SOURCE_NEEDS_CHECK_UNKNOWN_BRAND)
     norm_category = _normalize_category(category)
     scope_model, scope_line = terms_cache.product_scope(model_code, product_name)
+    # Source order: partner feed (none connected yet) -> knowledge base -> brand website where robots.txt
+    # allows -> "Estimated, please check" with a link to the brand's page.
+    if not url_override:
+        from . import partner_feed
+
+        fed = partner_feed.lookup(company=brand, model_code=model_code, product_line=scope_line, region=region)
+        if fed:
+            return fed
     # Hand-checked terms first, also on forced refreshes (knowledge base v1).
     if not url_override:
         from . import knowledge_base

@@ -10,7 +10,7 @@ import requests
 
 from ..models import CanonicalWarranty
 from .privacy import ai_safe
-from .source_trust import classify_terms_source
+from .source_trust import brand_page_url, classify_terms_source
 from .warranty_parser import sanitize_base_terms
 
 _LLM_PROVIDER = os.getenv("LLM_PROVIDER", "none").lower()
@@ -193,6 +193,9 @@ def build_evidence_summary(warranty: CanonicalWarranty) -> Dict[str, object]:
         "note": note,
         "sources": sources,
         "source_trust": source_trust,
+        # Where the customer can check for themselves when nothing is confirmed (source order, last step).
+        "brand_page_url": None if status == "confirmed" else brand_page_url(
+            oem_entity.get("company") or getattr(warranty, "brand", None)),
     }
 
 

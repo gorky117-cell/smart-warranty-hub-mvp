@@ -2748,9 +2748,10 @@
         const note = evidence.note || 'Source evidence is not available yet.';
         const requiresVerification = evidence.requires_oem_verification ? "Please check these terms with the brand before making a claim." : '';
         const sourceUrl = evidence.source_url || (Array.isArray(evidence.sources) && evidence.sources[0] && evidence.sources[0].url) || '';
+        const brandPage = evidence.brand_page_url && /^https?:\/\//i.test(String(evidence.brand_page_url)) ? evidence.brand_page_url : '';
         const sourceHtml = sourceUrl && /^https?:\/\//i.test(String(sourceUrl))
-          ? ` <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener">View source</a>`
-          : '';
+          ? ` <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener">View source</a>${evidence.checked_on ? ` (checked ${escapeHtml(evidence.checked_on)})` : ''}`
+          : (brandPage ? ` <a href="${escapeHtml(brandPage)}" target="_blank" rel="noopener">Check on the brand's website</a>` : '');
         panel.className = `evidence-panel ${evidenceBadgeClass(status)}`;
         panel.innerHTML = `
           <span class="evidence-pill ${evidenceBadgeClass(status)}">${escapeHtml(evidenceBadgeText(status))}</span>
@@ -2806,9 +2807,10 @@
         const label = evidence.status_label || evidenceBadgeText(status);
         const note = evidence.note || '';
         const sourceUrl = evidence.source_url || (Array.isArray(evidence.sources) && evidence.sources[0] && evidence.sources[0].url) || '';
+        const brandPage = evidence.brand_page_url && /^https?:\/\//i.test(String(evidence.brand_page_url)) ? evidence.brand_page_url : '';
         const sourceHtml = sourceUrl && /^https?:\/\//i.test(String(sourceUrl))
-          ? ` <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener">View source</a>`
-          : '';
+          ? ` <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener">View source</a>${evidence.checked_on ? ` (checked ${escapeHtml(evidence.checked_on)})` : ''}`
+          : (brandPage ? ` <a href="${escapeHtml(brandPage)}" target="_blank" rel="noopener">Check on the brand's website</a>` : '');
         return `
           <div class="evidence-panel" style="margin-bottom:10px;">
             <span class="evidence-pill ${evidenceBadgeClass(status)}">${escapeHtml(evidenceBadgeText(status))}</span>
