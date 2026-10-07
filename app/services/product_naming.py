@@ -107,9 +107,11 @@ def seller_from(alternatives) -> Optional[str]:
     candidates = (alternatives or {}).get("seller") if isinstance(alternatives, dict) else None
     if isinstance(candidates, str):
         candidates = [candidates]
+    from .brand_registry import plausible_seller_name
+
     for raw in candidates or []:
         text = _clean(raw)
-        if text:
+        if text and plausible_seller_name(text):  # never "Page 1 Of 1" or other header noise
             text = text if not text.isupper() else text.title()
             return text[:40].rstrip()
     return None

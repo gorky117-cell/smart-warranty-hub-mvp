@@ -2665,7 +2665,9 @@ def _clean_identity_value(field: str, raw: object) -> str:
         exact = next((name for name in load_oem_domains() if name.lower() == value.lower()), None)
         return exact or brand_registry.resolve_brand(value) or value
     value = value.upper()
-    if not value or len(value) > 40 or not re.fullmatch(r"[A-Z0-9][A-Z0-9\-/]*", value):
+    # Model codes may be printed with single spaces ("183 CYA", "GX 3701"); serials may not.
+    allowed = r"[A-Z0-9](?:[A-Z0-9\-/]| (?=[A-Z0-9]))*" if field == "model_code" else r"[A-Z0-9][A-Z0-9\-/]*"
+    if not value or len(value) > 40 or not re.fullmatch(allowed, value):
         what = "serial number" if field == "serial_no" else "model code"
         raise HTTPException(status_code=422, detail=f"Enter the {what} as printed (letters, digits, - or /).")
     return value

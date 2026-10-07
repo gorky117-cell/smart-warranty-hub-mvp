@@ -3442,3 +3442,16 @@ missing, model none, seller "Page 1 Of 1, I-1/1", category "appliance", product 
   date 0.5, Amazon footer stamp "MMDD-HH:MM" with the invoice's only year 0.4. parse_date_from_text now also reads
   "Apr 22, 2017", "April 22nd 2017", "22nd April, 2017", "Apr-22-2017", "2017/04/22"; years outside 1990..next
   year ignored. Fixture -> 2017-04-22. Tests: tests/test_invoice_dates.py (28). Global check unchanged.
+- [x] 105.2 Seller: from a "Sold By" / "Seller (Name):" / "Supplier" block (same line or the next lines,
+  "(...)" placeholders skipped); without one, a top line only when it reads as a shop/company name
+  (brand_registry.BUSINESS_MARKERS or a known retailer) - otherwise no seller. brand_registry.plausible_seller_name
+  rejects page headers ("Page 1 of 1", "I-1/1"), document titles, "computer generated", mostly-digit text; used
+  by the extractor and by product_naming.seller_from, so the product list label never shows header noise.
+- [x] 105.3 Model inside a bracketed spec list of the product row (ingestion.bracket_spec_model): "(Copper,
+  183 CYa, White)" -> suggestion "183 CYa" to confirm (never stored directly); colours, materials, capacities,
+  ratings, counts ("3 Jars"), single-item brackets and listing codes (B0/X0 + 8) skipped; only when no model was
+  found. Product name loses a trailing "Rs."/INR/MRP. Confirming a model now accepts single spaces ("183 CYA",
+  "GX 3701"); serials still may not contain spaces. Fixture: brand Voltas, product line air_conditioner, date
+  2017-04-22, invoice HR-SDEG-1004-0000 (Order ID kept apart), seller Cloudtail India Private Limited, model
+  suggestion 183 CYa, B00NBM4LJ0 never a model. Tests: tests/test_amazon_2017_invoice.py (27: phone, fridge,
+  washing machine, TV, AC, mixer, laptop cases). Global check unchanged.

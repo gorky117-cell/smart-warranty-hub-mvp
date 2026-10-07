@@ -292,6 +292,42 @@ def _clean_seller_candidate(raw: str) -> Optional[str]:
     return text.title()
 
 
+_SOLD_BY_RE = re.compile(r"^\W*(?:sold\s*by|seller(?:\s*name)?|supplier|merchant|retailer)\b\s*[:\-]?\s*(.*)$", re.IGNORECASE)
+
+
+def _seller_from_sold_by(lines: List[str]) -> Optional[str]:
+    """The seller named in a "Sold By" / "Seller:" block: on the same line or the next lines."""
+    for idx, line in enumerate(lines):
+        m = _SOLD_BY_RE.match(line.strip())
+        if not m:
+            continue
+        following = [m.group(1)] + [nxt for nxt in lines[idx + 1: idx + 4]]
+        for raw in following:
+            raw = (raw or "").strip()
+            if not raw or raw.startswith("("):
+                continue
+            cleaned = _clean_seller_candidate(raw)
+            if cleaned and brand_registry.plausible_seller_name(cleaned):
+                return cleaned
+            if raw and len(raw) > 3:
+                break  # the first real line after the label was not a name: do not guess further down
+    return None
+
+
+def _seller_from_header(lines: List[str], item_brand: Optional[str]) -> Optional[str]:
+    """No "Sold By": a top line that clearly reads as a shop or company name, else nothing."""
+    for line in lines[:8]:
+        cleaned = _clean_seller_candidate(line)
+        if not cleaned or cleaned == item_brand or not brand_registry.plausible_seller_name(cleaned):
+            continue
+        low = f" {' '.join(re.findall(r'[a-z0-9]+', cleaned.lower()))} "
+        if any(f" {marker} " in low for marker in brand_registry.BUSINESS_MARKERS) or any(
+            marker in low for marker in _RETAILER_MARKERS
+        ):
+            return cleaned
+    return None
+
+
 def _logical_invoice_lines(lines: List[str]) -> List[str]:
     """Join wrapped invoice item descriptions before product identity scoring."""
     logical: List[str] = []
@@ -523,7 +559,47 @@ def _strip_line_item_noise(line: str) -> str:
     text = re.sub(r"^\d+[\.\)]?\s*", "", _strip_invoice_table_prefix(line))
     text = re.split(r"\s+\d{6,}\b", text, maxsplit=1)[0]
     text = re.split(r"\s+\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?\b", text, maxsplit=1)[0]
+    text = re.sub(r"\s+(?:rs\.?|inr|₹|mrp)\s*$", "", _normalize_spaces(text), flags=re.IGNORECASE)  # "... AC Rs."
     return _normalize_spaces(text).strip(":-|")
+
+
+# Words in a bracketed spec list that are never the model: colours, materials, sizes and ratings
+# ("(Copper, 183 CYa, White)", "(Blitz Blue, 6GB RAM, 128GB Storage)").
+_SPEC_WORDS = frozenset({
+    "black", "white", "silver", "grey", "gray", "blue", "red", "green", "gold", "golden", "pink", "purple",
+    "violet", "yellow", "orange", "brown", "beige", "steel", "titanium", "graphite", "midnight", "starlight",
+    "dazzle", "inox", "copper", "aluminium", "aluminum", "alloy", "matte", "glossy", "dark", "light", "deep",
+    "inverter", "split", "window", "portable", "convertible", "frost", "free", "direct", "cool", "dual",
+    "ram", "storage", "rom", "star", "ton", "tr", "litre", "liter", "ltr", "kg", "watt", "inch", "inches",
+    "front", "top", "load", "fully", "semi", "automatic", "smart", "led", "hd", "uhd", "4k", "5g", "4g",
+})
+_BRACKET_LIST_RE = re.compile(r"\(([^()]{3,140})\)")
+
+
+def bracket_spec_model(text: str) -> Optional[Tuple[str, str]]:
+    """(code, bracket text) for a model-like item inside a comma list in brackets, e.g. "183 CYa" in
+    "(Copper, 183 CYa, White)"; colours, materials, capacities, ratings and listing codes are skipped. Read
+    from a free-text list, so callers offer it for confirmation and never store it directly."""
+    for m in _BRACKET_LIST_RE.finditer(text or ""):
+        items = [_normalize_spaces(part) for part in m.group(1).split(",")]
+        if len(items) < 2:
+            continue
+        for item in items:
+            words = re.findall(r"[A-Za-z0-9.+/\-]+", item)
+            if not item or len(item) > 20 or len(words) > 3 or not re.search(r"\d", item) or not re.search(r"[A-Za-z]", item):
+                continue
+            if is_listing_code(item.replace(" ", "")) or _is_spec_only(item):
+                continue
+            if re.fullmatch(r"\d+(?:\.\d+)?\s*(?:gb|tb|mb|mah|w|kw|v|hz|mp|ton|tr|star|kg|l|ltr|litre|inch|inches|cm|mm)\b.*", item, re.IGNORECASE):
+                continue
+            if all(w.lower() in _SPEC_WORDS or re.fullmatch(r"\d+(?:\.\d+)?", w) for w in words):
+                continue
+            # A count of ordinary things ("3 Jars", "2 Pack", "4 Burners"), not a code like "183 CYa".
+            count = re.fullmatch(r"\d+(?:\.\d+)?\s+([A-Za-z]{4,})", item)
+            if count and (count.group(1).istitle() or count.group(1).islower()):
+                continue
+            return item, m.group(0)
+    return None
 
 
 def _model_from_product_line(line: str, brand: Optional[str]) -> Optional[str]:
@@ -1043,14 +1119,9 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
     has_warranty_context = has_warranty_context or bool(line_items)
     best_item = _strip_line_item_noise(line_items[0][1]) if line_items else None
     item_brand = _canonical_oem(best_item or "")
-    seller_candidates: List[str] = []
-    for line in lines[:8]:
-        cleaned = _clean_seller_candidate(line)
-        if cleaned and cleaned != item_brand:
-            seller_candidates.append(cleaned)
-            break
-    if seller_candidates:
-        alternatives["seller"] = seller_candidates
+    seller = _seller_from_sold_by(lines) or _seller_from_header(lines, item_brand)
+    if seller:
+        alternatives["seller"] = [seller]
 
     # === BRAND EXTRACTION ===
     # Strategy 1: Explicit "Brand:" label
@@ -1200,6 +1271,18 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
                     "status": "pending",
                     "reason": "This looks like a model code but was not labelled; please confirm.",
                 }
+
+    # A model inside a bracketed spec list of the product row ("(Copper, 183 CYa, White)"): offered to confirm.
+    if "model_code" not in fields and "model_suggestion" not in alternatives and best_item is not None:
+        row = next((line for line in logical_lines if best_item[:20] in line), best_item)
+        found = bracket_spec_model(row)
+        if found:
+            alternatives["model_suggestion"] = {
+                "value": found[0],
+                "source_line": found[1],
+                "status": "pending",
+                "reason": "We found this in the product's description; please confirm it is the model code.",
+            }
 
     # === SERIAL NUMBER ===
     serial_value, serial_confidence, serial_kind, serial_line = _serial_candidate(
