@@ -658,3 +658,37 @@ class GuidedDiagnosticEvidenceDB(Base):
     uri: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class PasswordResetTokenDB(Base):
+    """One-time password reset links. Only the SHA-256 of the token is stored, never the token itself."""
+
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(String, index=True)
+    token_hash: Mapped[str] = mapped_column(String, unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    # Set when the link is used, or when a newer link replaces it.
+    used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
+class UserSessionCutoffDB(Base):
+    """Sign-in sessions started before `not_before_ts` (Unix seconds) are no longer accepted."""
+
+    __tablename__ = "user_session_cutoffs"
+
+    username: Mapped[str] = mapped_column(String, primary_key=True)
+    not_before_ts: Mapped[float] = mapped_column(Float)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class EmailDailyCountDB(Base):
+    """E-mails accepted by the provider per UTC day (day = "YYYY-MM-DD"), for the daily sending guard."""
+
+    __tablename__ = "email_daily_counts"
+
+    day: Mapped[str] = mapped_column(String, primary_key=True)
+    sent: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

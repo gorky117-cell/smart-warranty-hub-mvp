@@ -9,7 +9,15 @@ UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 # Unauthenticated sign-in/sign-up endpoints. The login page posts these forms
 # natively (no CSRF header), and a stale access_token cookie left in the browser
 # must not block a fresh sign-in.
-CSRF_EXEMPT_PATHS = {"/auth/login", "/auth/signup", "/auth/signup/form"}
+# The forgot-password endpoints are for signed-out users too; the reset ones need the one-time token.
+CSRF_EXEMPT_PATHS = {
+    "/auth/login",
+    "/auth/signup",
+    "/auth/signup/form",
+    "/auth/password/forgot",
+    "/auth/password/reset/check",
+    "/auth/password/reset",
+}
 
 
 def new_csrf_token() -> str:

@@ -1,6 +1,7 @@
 import os
 import hashlib
 import secrets
+import time
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -9,7 +10,7 @@ from fastapi import Header, HTTPException, Depends, Cookie
 from sqlalchemy.orm import Session
 
 from .db import SessionLocal, engine
-from .db_models import Base, UserDB, AuditLogDB
+from .db_models import Base, UserDB, AuditLogDB, UserSessionCutoffDB
 from .services.runtime_safety import insecure_defaults_allowed
 
 
@@ -57,13 +58,54 @@ def verify_password(password: str, hashed: str) -> bool:
     return hash_password(password) == hashed
 
 
+PASSWORD_MIN_LENGTH = 6
+
+
+def password_problem(password: Optional[str]) -> Optional[str]:
+    """The password rule used everywhere a password is set; None when the password is acceptable."""
+    if len(password or "") < PASSWORD_MIN_LENGTH:
+        return f"Use at least {PASSWORD_MIN_LENGTH} characters."
+    return None
+
+
 def create_access_token(username: str, role: str) -> str:
     payload = {
         "sub": username,
         "role": role,
         "exp": datetime.utcnow() + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS),
+        # When this session started (Unix seconds); sessions older than the user's cutoff are refused.
+        "sat": time.time(),
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def session_revoked(db: Session, username: str, payload: dict) -> bool:
+    """True when the user signed out all sessions (e.g. a new password) after this session started.
+    Sessions issued before this check existed carry no start time and count as started at 0."""
+    try:
+        row = db.get(UserSessionCutoffDB, username)
+    except Exception:  # table missing on a partly upgraded database: nothing was ever revoked there
+        db.rollback()
+        return False
+    if row is None:
+        return False
+    try:
+        started = float(payload.get("sat") or 0)
+    except (TypeError, ValueError):
+        started = 0.0
+    return started < float(row.not_before_ts or 0)
+
+
+def revoke_all_sessions(db: Session, username: str) -> float:
+    """Every session of this user started before now stops working. Caller commits."""
+    now = time.time()
+    row = db.get(UserSessionCutoffDB, username)
+    if row is None:
+        db.add(UserSessionCutoffDB(username=username, not_before_ts=now, updated_at=datetime.utcnow()))
+    else:
+        row.not_before_ts = now
+        row.updated_at = datetime.utcnow()
+    return now
 
 
 def decode_token(token: str) -> dict:
@@ -95,6 +137,8 @@ def get_current_user(
     user = db.query(UserDB).filter_by(username=username).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+    if session_revoked(db, username, payload):
+        raise HTTPException(status_code=401, detail="Session signed out")
     return user
 
 

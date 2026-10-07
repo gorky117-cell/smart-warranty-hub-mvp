@@ -110,6 +110,56 @@
       cursor: pointer;
     }
 
+    .email-banner {
+      max-width: 1100px;
+      margin: 10px auto 0;
+      padding: 10px 14px;
+      border: 1px solid #fcd34d;
+      background: #fffbeb;
+      color: #78350f;
+      border-radius: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+
+    .email-banner button,
+    .account-panel button {
+      border: none;
+      background: #1d4ed8;
+      color: #fff;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .account-panel {
+      max-width: 1100px;
+      margin: 10px auto 0;
+      padding: 14px;
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 12px;
+    }
+
+    .account-panel form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .account-panel input {
+      flex: 1 1 220px;
+      min-height: 40px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0 10px;
+    }
+
     .icon-btn {
       width: 40px;
       height: 40px;
@@ -887,6 +937,7 @@
         </h1>
       </div>
       <div class="header-actions">
+        <button class="logout-btn" id="accountBtn" type="button">Account</button>
         <button class="logout-btn" id="changePasswordBtn" type="button">Change Password</button>
         <button class="logout-btn" id="logoutBtn" type="button">Logout</button>
         <div class="notif-wrap">
@@ -905,6 +956,20 @@
       </div>
     </div>
   </header>
+  <div id="emailBanner" class="email-banner hidden" role="status">
+    <span>Add your email so you can reset your password later.</span>
+    <button type="button" id="emailBannerBtn">Add email</button>
+  </div>
+  <section id="accountPanel" class="account-panel hidden" aria-label="Account settings">
+    <h3 style="margin:0 0 6px;">Account settings</h3>
+    <p style="margin:0 0 10px; font-size:14px;">Your email is used only to send you password reset links.</p>
+    <form id="accountEmailForm">
+      <input id="accountEmail" type="email" placeholder="you@example.com" autocomplete="email" required>
+      <input id="accountEmailPassword" class="hidden" type="password" placeholder="Current password (to change your email)" autocomplete="current-password">
+      <button type="submit">Save email</button>
+    </form>
+    <p id="accountEmailMsg" style="margin:8px 0 0; font-size:13px;"></p>
+  </section>
   <div id="toast" class="toast hidden"></div>
 
   <div class="container">
@@ -1632,6 +1697,54 @@
           console.warn('logout failed', e);
         }
         window.location.href = '/login';
+      }
+
+      // Account settings: e-mail address for password resets (banner when it is missing).
+      let ACCOUNT_HAS_EMAIL = true;
+      async function loadAccountEmail() {
+        try {
+          const res = await fetch('/account/email', { headers: h(), credentials: 'same-origin' });
+          if (!res.ok) return;
+          const data = await res.json();
+          const email = (data && data.email) || '';
+          ACCOUNT_HAS_EMAIL = !!email;
+          document.getElementById('accountEmail').value = email;
+          document.getElementById('accountEmailPassword').classList.toggle('hidden', !email);
+          document.getElementById('emailBanner').classList.toggle('hidden', ACCOUNT_HAS_EMAIL);
+        } catch (_) { /* the banner simply stays hidden */ }
+      }
+
+      function toggleAccountPanel(show) {
+        const panel = document.getElementById('accountPanel');
+        const open = typeof show === 'boolean' ? show : panel.classList.contains('hidden');
+        panel.classList.toggle('hidden', !open);
+        if (open) document.getElementById('accountEmail').focus();
+      }
+
+      async function saveAccountEmail(ev) {
+        ev.preventDefault();
+        const msg = document.getElementById('accountEmailMsg');
+        const body = {
+          email: document.getElementById('accountEmail').value.trim(),
+          current_password: document.getElementById('accountEmailPassword').value || null,
+        };
+        try {
+          const res = await fetch('/account/email', {
+            method: 'POST',
+            headers: h({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify(body),
+            credentials: 'same-origin',
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.detail || 'Could not save your email.');
+          msg.textContent = 'Saved. Password reset links will go to this address.';
+          msg.style.color = '#047857';
+          document.getElementById('accountEmailPassword').value = '';
+          await loadAccountEmail();
+        } catch (e) {
+          msg.textContent = e.message || String(e);
+          msg.style.color = '#b91c1c';
+        }
       }
 
       async function changePasswordFlow() {
@@ -3628,6 +3741,16 @@
         if (logoutBtn) logoutBtn.addEventListener('click', logoutAndGoLogin);
         const changePasswordBtn = document.getElementById('changePasswordBtn');
         if (changePasswordBtn) changePasswordBtn.addEventListener('click', changePasswordFlow);
+        if (!window.__swhAccountWired) {  // this function runs again after uploads; wire the account form once
+          window.__swhAccountWired = true;
+          const accountBtn = document.getElementById('accountBtn');
+          if (accountBtn) accountBtn.addEventListener('click', () => toggleAccountPanel());
+          const emailBannerBtn = document.getElementById('emailBannerBtn');
+          if (emailBannerBtn) emailBannerBtn.addEventListener('click', () => toggleAccountPanel(true));
+          const accountEmailForm = document.getElementById('accountEmailForm');
+          if (accountEmailForm) accountEmailForm.addEventListener('submit', saveAccountEmail);
+          loadAccountEmail();
+        }
         const notice = new URLSearchParams(window.location.search).get('notice');
         if (notice === 'oem_admin_only') {
           showToast('Page not available', 'That page is for brand and support staff. You are back on your dashboard.');

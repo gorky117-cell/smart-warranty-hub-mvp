@@ -25,6 +25,11 @@ DEFAULT_LIMITS: dict[str, RateLimit] = {
     "upload": RateLimit(20, 60 * 60),
     "ai": RateLimit(30, 60 * 60),
     "agent": RateLimit(20, 60 * 60),
+    # Forgot password: requests per client, reset e-mails per account (keyed by a hash of the address),
+    # and link checks / new-password submissions per client.
+    "password_reset_request": RateLimit(5, 15 * 60),
+    "password_reset_account": RateLimit(3, 60 * 60),
+    "password_reset_submit": RateLimit(10, 15 * 60),
 }
 
 

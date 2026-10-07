@@ -3317,3 +3317,59 @@ Local commits, full tests, no push. Global and single-entry rules apply.
   the repo or this session, so both were built from MEMORY.md and STATUS.md. STATUS.md: stale bullets corrected
   (OCR'd codes, Bajaj, care sources).
 - [x] 102.6 Owner said "backup done": CLAUDE.md reshaped to the handover spec (what SWH is, priorities, GLOBAL RULE, single-entry rule, safety rules, where things are; under 80 lines) and docs/BACKLOG.md in priority order with [LOCAL]/[GAURAV] tags; then push. From now on code changes happen in the cloud.
+
+## 103. Cloud batch 1: forgot password + email (2026-10-07)
+Cloud session, branch `cloud/batch-1` (never master). Full suite in the cloud container (Python 3.11, no
+paddle): baseline 856 passed, 9 skipped (more skips than on Windows: Paddle is not installed here).
+- [x] 103.0 Owner reports commits up to `09fd3c81` pushed and live (knowledge-base screen, own-words facts,
+  robots.txt checks, care tips, CLAUDE.md, BACKLOG.md); STATUS.md "Live" updated, "local only" markers removed.
+  Live checks not run (live site blocked in the cloud on purpose). Backlog tags changed: [NEEDS-KEYS] = API keys,
+  real invoices or production data; [GAURAV] = owner's decision or manual work; untagged = cloud code work.
+  CLAUDE.md: tag meanings and the cloud branch rule.
+- [x] 103.1 E-mail sending (`services/emailer.py`): provider chosen by config - EMAIL_PROVIDER resend|smtp|auto
+  (auto: Resend when RESEND_API_KEY is set, else SMTP when SMTP_HOST is set, else nothing). Resend via its HTTP
+  API with tags app=swh and type=<message type>; SMTP keeps the existing SMTP_* settings. Default sender
+  "Smart Warranty Hub <noreply@smartwarrantyhub.com>" (MAIL_FROM overrides), Reply-To
+  support@smartwarrantyhub.com (MAIL_REPLY_TO overrides). Plain text + optional HTML. Never raises; recipient
+  checked (no header injection). Logs carry only type, provider and outcome - the old code logged recipient
+  addresses, now removed. email_status() reports names/booleans only. Existing messages tagged welcome,
+  login_alert, product_registered. Tests: tests/test_emailer.py (7, mocked Resend and SMTP).
+- [x] 103.2 Forgot password. "Forgot password?" on the sign-in page -> /forgot-password (email form) ->
+  POST /auth/password/forgot always answers "If an account uses that email address, we've sent it a link"
+  (same redirect for unknown addresses; e-mail sent in the background). Token: 256-bit random, only its SHA-256
+  stored (new table password_reset_tokens), expires in 30 minutes, works once (claimed with a conditional
+  UPDATE), asking again retires older unused links. Link = /reset-password#token=... (after "#", so it never
+  reaches server/proxy access logs; checked in a local uvicorn run: access log shows only the path). The page
+  checks the link (POST /auth/password/reset/check) and shows plain pages for expired / used / broken links with
+  "Send me a new link". New password (POST /auth/password/reset) uses the existing rule (at least 6 characters,
+  now one helper deps.password_problem also used by the sign-up form and the change-password endpoint) and
+  signs out every session: new table user_session_cutoffs + a "sat" (session start) claim in new tokens;
+  get_current_user and the stale-cookie check refuse sessions started before the cutoff (old tokens without the
+  claim count as started at 0). The logged-in change-password endpoint now also signs out other sessions and
+  hands this device a fresh session. Rate limits: 5 requests / 15 min per client, 3 links / hour per account
+  (keyed by a hash of the address; silent), 10 link checks or submissions / 15 min per client. If e-mail is
+  not configured the page says so and points to support@smartwarrantyhub.com; nothing crashes. Pages are
+  no-store, no-referrer, noindex. Both new tables are created by create_all at start-up (additions only).
+  Tests: tests/test_password_reset.py (16: normal reset, expired, reused + older links, unknown email, rules,
+  sessions signed out, change password, per-client and per-account limits, e-mail off, mail failure, invalid
+  address, logs, headers). Browser run (Playwright, local server, mail mocked): login -> forgot -> sent ->
+  link -> new password -> "Password changed" -> reused link "already used" -> sign in with the new password.
+- [x] 103.3 Docs: docs/EMAIL_SETUP.md lists the Railway variables (names only) and what each does, the e-mail
+  types and the owner's checks after deploy (keep Resend click tracking off). BACKLOG: batch 1 ticked, owner
+  steps tagged [GAURAV]; new gaps 20 (one app-wide password salt) and 21 (in-memory rate limits). STATUS and
+  CLAUDE.md updated.
+- [x] 103.4 Owner review of PR #1: sign-in alert e-mails off by default; on only with SIGNIN_ALERT_EMAILS=1
+  (emailer.signin_alerts_enabled, checked inside send_login_alert_email so every caller obeys it). Documented
+  in docs/EMAIL_SETUP.md. Tests: tests/test_emailer.py +2 (off by default, sign-in sends nothing unless on).
+- [x] 103.5 Daily e-mail guard (Resend free plan: 100/day): every e-mail the provider accepts is counted per UTC
+  day (new table email_daily_counts, atomic UPDATE then INSERT; in-memory count if the database fails). From 80
+  sent (EMAIL_DAILY_NONESSENTIAL_STOP) only essential types (password_reset) are sent until midnight UTC; the
+  guard never blocks a password reset. Provider rejections are not counted. Tests: test_emailer.py +4 (stop at
+  80 with resets still sent, new UTC day, configurable threshold + failures not counted, database down),
+  test_password_reset.py +1 (reset e-mail goes out at 95 sent while a welcome e-mail is skipped).
+- [x] 103.6 E-mail required at sign-up: the form (signup=email_invalid message) and POST /auth/signup (400; also
+  applies the password rule there now) refuse a missing or invalid address. /auth/session returns has_email.
+  Dashboard: "Account" button -> Account settings with an e-mail form (GET/POST /account/email; adding needs no
+  password, changing an existing address needs the current password, CSRF as other dashboard calls); signed-in
+  users without an address see "Add your email so you can reset your password later". Browser run (Playwright,
+  420 px wide): banner shown, address saved, banner hidden. Tests: tests/test_account_email.py (14).

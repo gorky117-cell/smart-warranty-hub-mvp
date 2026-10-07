@@ -214,6 +214,11 @@
       color: #667085;
     }
 
+    .note a {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
     .msg {
       min-height: 18px;
       margin: 0 0 12px;
@@ -290,6 +295,7 @@
           <input id="signinPassword" name="password" type="password" placeholder="Enter password" autocomplete="current-password" required>
           <button type="submit">Continue</button>
         </form>
+        <p class="note"><a href="/forgot-password" id="forgotLink">Forgot password?</a></p>
         <p class="note">OEM/Admin users are routed by role. New signup creates a user-role account only.</p>
       </div>
 
@@ -301,8 +307,8 @@
           <input type="hidden" id="signupNext" name="next_url" value="">
           <label for="signupUsername">Username</label>
           <input id="signupUsername" name="username" placeholder="new-user" minlength="3" autocomplete="username" required>
-          <label for="signupEmail">Email (optional)</label>
-          <input id="signupEmail" name="email" type="email" placeholder="you@example.com" autocomplete="email">
+          <label for="signupEmail">Email</label>
+          <input id="signupEmail" name="email" type="email" placeholder="you@example.com" autocomplete="email" required>
           <label for="signupPassword">Password</label>
           <input id="signupPassword" name="password" type="password" minlength="6" placeholder="Minimum 6 characters" autocomplete="new-password" required>
           <button type="submit">Create user account</button>
@@ -370,6 +376,11 @@
         loginMessage.className = "msg err";
       }
 
+      if (params.get("reset") === "done") {
+        loginMessage.textContent = "Password changed. You were signed out everywhere; sign in with your new password.";
+        loginMessage.className = "msg ok";
+      }
+
       const signupState = params.get("signup");
       const signupUser = params.get("username");
       if (signupState === "ok") {
@@ -389,6 +400,10 @@
         setTab("signup");
       } else if (signupState === "disabled") {
         signupMessage.textContent = "Sign up is currently disabled.";
+        signupMessage.className = "msg err";
+        setTab("signup");
+      } else if (signupState === "email_invalid") {
+        signupMessage.textContent = "Please enter a valid email address. You need it to reset your password.";
         signupMessage.className = "msg err";
         setTab("signup");
       } else if (signupState === "invalid") {
