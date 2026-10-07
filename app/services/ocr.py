@@ -193,6 +193,56 @@ def run_paddle_ocr(image_path: Path) -> Tuple[Optional[str], Optional[str]]:
         return None, message
 
 
+# Small text: Tesseract misreads letters only ~10 px high (6 -> 8, 5 -> 8, 1 -> 7 in the 50-sample synthetic set)
+# and reads them correctly once enlarged, while enlarging text that is already large merges words
+# ("LG 43 inch" -> "LG43inch"). So the typical text-line height is measured first (rows with ink, Otsu
+# threshold) and only images whose lines are under TESSERACT_SMALL_TEXT_PX are enlarged (grayscale, LANCZOS)
+# towards TESSERACT_TARGET_TEXT_PX, at most 3x and 30 megapixels.
+TESSERACT_SMALL_TEXT_PX = 12
+TESSERACT_TARGET_TEXT_PX = 30
+_TESSERACT_MAX_PIXELS = 30_000_000
+
+
+def text_line_height(img: Image.Image) -> Optional[float]:
+    """Median height in pixels of the image's text lines, or None when no lines are found."""
+    try:
+        import cv2  # type: ignore
+        import numpy as np  # type: ignore
+        from PIL import ImageOps  # type: ignore
+
+        gray = np.array(ImageOps.grayscale(img))
+        _t, ink = cv2.threshold(gray, 0, 1, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        rows = ink.sum(axis=1) > max(2, gray.shape[1] * 0.002)
+        runs, length = [], 0
+        for has_ink in rows:
+            if has_ink:
+                length += 1
+            elif length:
+                runs.append(length)
+                length = 0
+        if length:
+            runs.append(length)
+        runs = [r for r in runs if r >= 3]
+        return float(np.median(runs)) if runs else None
+    except Exception:
+        return None
+
+
+def prepare_for_tesseract(img: Image.Image) -> Image.Image:
+    from PIL import ImageOps  # type: ignore
+
+    height = text_line_height(img)
+    if not height or height >= TESSERACT_SMALL_TEXT_PX:
+        return img
+    factor = min(3.0, TESSERACT_TARGET_TEXT_PX / height)
+    while factor > 1.0 and img.size[0] * img.size[1] * factor * factor > _TESSERACT_MAX_PIXELS:
+        factor -= 0.5
+    if factor <= 1.0:
+        return img
+    gray = ImageOps.grayscale(img)
+    return gray.resize((round(gray.width * factor), round(gray.height * factor)), Image.LANCZOS)
+
+
 def run_tesseract_ocr(image_path: Path) -> Tuple[Optional[str], Optional[str]]:
     ok, err = _tesseract_ready()
     if not ok:
@@ -201,7 +251,7 @@ def run_tesseract_ocr(image_path: Path) -> Tuple[Optional[str], Optional[str]]:
         from PIL import Image  # type: ignore
         import pytesseract  # type: ignore
         with Image.open(image_path) as img:
-            text = pytesseract.image_to_string(img)
+            text = pytesseract.image_to_string(prepare_for_tesseract(img))
         text = (text or "").strip()
         return text if text else None, None
     except Exception as exc:  # pragma: no cover - runtime safeguard

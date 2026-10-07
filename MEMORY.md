@@ -3407,3 +3407,26 @@ Branch `cloud/batch-2`, started from `cloud/batch-1` (PR #1 not merged yet), pul
   REVIEW_ROBOTS_RESPECT=false bypass is gone; _fetch checks too, so no path reads a page unchecked. Issue feeds
   use robots_guard.guarded_get (feed list is empty today). Web search provider APIs are not page reads: noted in
   BACKLOG. Review crawler stays off in production. Tests: test_robots_everywhere.py +7.
+- [x] 104.5 Backlog #16 (synthetic 50-sample OCR set, scripts/eval_ingestion_ocr.py). Tesseract 5.3.4 installed in
+  the cloud container (apt) to measure. Cause of the wrong dates/durations: text ~8 px high, Tesseract reads
+  6 -> 8, 5 -> 8, 1 -> 7 ("36 months" -> "38"). Fix (ocr.prepare_for_tesseract, images and scanned-PDF pages
+  through run_tesseract_ocr): measure the median text-line height (Otsu, rows with ink); only lines under 12 px are
+  enlarged towards 30 px (grayscale, LANCZOS, at most 3x and 30 MP). A first version that enlarged every image
+  under 2000 px merged words in larger text ("LG 43 inch" -> "LG43inch"; global check: 2 new brand misses on
+  scanned PDFs), hence the text-height rule. Measured (labels on the 30 readable warranty samples; tp/fp):
+  brand 26/0 -> 30/0, purchase_date 26/4 -> 30/0, coverage_months 16/14 -> 30/0, invoice_no 0/0 -> 30/0,
+  product_category 22/0 -> 26/0, serial 0/0 -> 0/3 (O read for 0 in "SN028X..." style serials: these contain
+  O/0 so the pipeline asks the customer to confirm them; never stored silently). Global check (162 documents,
+  cloud Tesseract): identical before and after (cloud numbers differ slightly from the Windows run in
+  docs/GLOBAL_CHECK.md, which was left unchanged). The 10 hard (blurred, tilted) photos still read nothing:
+  enlarged or thresholded they give garbage ("14 months" for 24), so no change - nothing beats a wrong value.
+  Paddle, production's first engine, is not installed here and was not measured. Tests: tests/test_ocr_small_text.py
+  (6; the 3 sample reads skip when Tesseract is missing).
+  Also: scripts/measure_invoice_fields.py now applies route_confusable_codes like the upload pipeline (OCR'd
+  codes with O/0, I/1, S/5, B/8 become suggestions); with better OCR, "Serial:" labels are read cleanly and
+  serials like SNO28X1028 were otherwise counted as stored wrong values. Real-OCR floor test (normal case, 30):
+  brand 30, purchase_date 30 (0 wrong), invoice_no 30, coverage_months 30 (0 wrong), product_category 26, model
+  suggestions exact 26/30; new real-OCR-only floors (28 correct, at most 1 wrong) in
+  tests/test_invoice_field_floors.py. Before this change that test failed in the cloud container
+  (product_category 22 < 26 with this Tesseract build); it passes now. Full suite with Tesseract installed:
+  7 previously skipped OCR tests now run.

@@ -55,7 +55,11 @@ session can do (one branch per batch, `cloud/batch-N`).
     read automatically - accept, or ask those brands.
 15. [NEEDS-KEYS] Rate limiting keys anonymous users on the first `X-Forwarded-For` entry; confirm Railway's header
     behaviour.
-16. Hard photos in the synthetic set: 6 wrong dates, 14 wrong stated durations, 10 read nothing.
+16. [x] Synthetic 50-sample set (cloud batch 2, Tesseract): small text is enlarged before OCR -> dates 30/30 (4 wrong
+    before), stated durations 30/30 (14 wrong before), invoice numbers 30/30 (0 before); global check unchanged.
+    Still open: the 10 blurred, tilted "hard" photos read nothing (enlarging gives garbage such as "14 months" for
+    24, so nothing is safer: the customer gets "We couldn't read this invoice"); Paddle (production's first
+    engine) not measured here.
 17. Registry review: Toshiba, Hitachi, Polar, Pigeon, Philips/Versuni, Sansui, Kelvinator, Pioneer,
     Orient Fans; `honda2wheelersindia.com`, `ushainternational.com` are registry-only.
 18. [GAURAV] The bare domain without www is a registrar parking page.
