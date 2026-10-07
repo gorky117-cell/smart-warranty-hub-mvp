@@ -3326,3 +3326,11 @@ paddle): baseline 856 passed, 9 skipped (more skips than on Windows: Paddle is n
   Live checks not run (live site blocked in the cloud on purpose). Backlog tags changed: [NEEDS-KEYS] = API keys,
   real invoices or production data; [GAURAV] = owner's decision or manual work; untagged = cloud code work.
   CLAUDE.md: tag meanings and the cloud branch rule.
+- [x] 103.1 E-mail sending (`services/emailer.py`): provider chosen by config - EMAIL_PROVIDER resend|smtp|auto
+  (auto: Resend when RESEND_API_KEY is set, else SMTP when SMTP_HOST is set, else nothing). Resend via its HTTP
+  API with tags app=swh and type=<message type>; SMTP keeps the existing SMTP_* settings. Default sender
+  "Smart Warranty Hub <noreply@smartwarrantyhub.com>" (MAIL_FROM overrides), Reply-To
+  support@smartwarrantyhub.com (MAIL_REPLY_TO overrides). Plain text + optional HTML. Never raises; recipient
+  checked (no header injection). Logs carry only type, provider and outcome - the old code logged recipient
+  addresses, now removed. email_status() reports names/booleans only. Existing messages tagged welcome,
+  login_alert, product_registered. Tests: tests/test_emailer.py (7, mocked Resend and SMTP).
