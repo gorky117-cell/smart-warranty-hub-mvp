@@ -3430,3 +3430,15 @@ Branch `cloud/batch-2`, started from `cloud/batch-1` (PR #1 not merged yet), pul
   tests/test_invoice_field_floors.py. Before this change that test failed in the cloud container
   (product_category 22 < 26 with this Tesseract build); it passes now. Full suite with Tesseract installed:
   7 previously skipped OCR tests now run.
+
+## 105. Cloud batch 3: real Amazon invoice failures + question packs (2026-10-07)
+Branch `cloud/batch-3` from `cloud/batch-2` (PR #1 merged into master by the owner; PR #2 open). Fixture: OCR
+text of a real 2017 Amazon (Cloudtail) Voltas window-AC invoice with buyer details replaced by the owner,
+tests/fixtures/invoices/amazon_2017_voltas_window_ac.txt (added on the owner's instruction). Before: date
+missing, model none, seller "Page 1 Of 1, I-1/1", category "appliance", product name ending in "Rs.".
+- [x] 105.1 Purchase date (ingestion.find_purchase_date): labelled dates first ("Invoice/Bill/Order/Purchase
+  Date", "Date of invoice", "Order placed", "Ordered on", "Dated", headings "<Invoice|Tax invoice|Packing slip|
+  Bill|Order> ... for <code> <date>", then "Date:"; "Due/Expiry/Delivery/Valid till" dates skipped) at 0.8, any
+  date 0.5, Amazon footer stamp "MMDD-HH:MM" with the invoice's only year 0.4. parse_date_from_text now also reads
+  "Apr 22, 2017", "April 22nd 2017", "22nd April, 2017", "Apr-22-2017", "2017/04/22"; years outside 1990..next
+  year ignored. Fixture -> 2017-04-22. Tests: tests/test_invoice_dates.py (28). Global check unchanged.
