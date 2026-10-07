@@ -702,3 +702,28 @@ class RateLimitHitDB(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     bucket: Mapped[str] = mapped_column(String, index=True)
     ts: Mapped[float] = mapped_column(Float, index=True)
+
+
+class QuestionPackAnswerDB(Base):
+    """A customer's answer (or "skip") to one question of a product-type question pack."""
+
+    __tablename__ = "question_pack_answers"
+    __table_args__ = (UniqueConstraint("user_id", "warranty_id", "question_id", name="uq_pack_answer"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String, index=True)
+    warranty_id: Mapped[str] = mapped_column(String, index=True)
+    pack: Mapped[str] = mapped_column(String, index=True)
+    question_id: Mapped[str] = mapped_column(String, index=True)
+    answer: Mapped[str] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class QuestionPackConsentDB(Base):
+    """Whether the customer agreed that their answers may count, anonymously, in group totals for brands."""
+
+    __tablename__ = "question_pack_consents"
+
+    user_id: Mapped[str] = mapped_column(String, primary_key=True)
+    share_anonymous: Mapped[bool] = mapped_column(Boolean, default=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

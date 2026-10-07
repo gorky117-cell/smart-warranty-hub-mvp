@@ -3500,3 +3500,26 @@ missing, model none, seller "Page 1 Of 1, I-1/1", category "appliance", product 
   in the invoice reader (product line air_conditioner is recognised). The cloud network blocks voltas.com, so the
   page was not read (JavaScript check left to the owner). Fix: owner enters Voltas in the knowledge base
   (backlog 3); optional search key; new backlog 22 (own category per product line).
+- [x] 105.9 Question packs (services/question_packs.py; new tables question_pack_answers, question_pack_consents,
+  created at start-up, additions only). One pack per product line, all SWH-written: AC (where used - pre-filled
+  with the invoice's city/state, hours a day in hot months, last service, who services it, filter cleaning,
+  power/stabiliser, current problem, installer), then phone, fridge, washing machine, geyser, laptop, TV,
+  printer. Dashboard "Quick questions about your AC": 3 at a time, buttons + Skip, "Why we ask: ..." line;
+  picking the invoice's city is the yes to using it for weather tips. Answers feed (a) tips and one reminder
+  notification per kind (e.g. "Time for an AC service"), (b) care-risk reasons, (c) anonymous group counts
+  (GET /oem/question-insights, OEM/admin): only customers who said yes ("May your answers also count, without
+  your name, in totals that brands see? ... groups of 10 or more"), latest answer per customer, skips and places
+  never counted, nothing below 10 customers. Products without a pack keep the old single behaviour question.
+- [x] 105.10 Risk wording: GET /warranties/{id}/care-risk. No answers (or only skips) -> "Not enough information
+  yet - answer 3 quick questions", never "Low risk"; always an age note ("Bought 22 Apr 2017 - about 9 years
+  old."); after answers a label in words (Looking after it well / Some things to watch / Needs attention) with
+  reasons, age adding to them (5+ years, 8+ years). The dashboard's health badge and risk box now come from this;
+  the model's own reasons stay for admins under "Model details (admin)".
+  Browser run (Playwright, 420 px, the Amazon fixture uploaded twice): list shows "Same invoice as a product you
+  already added" for the copy, "Open the product I already have" hides it and opens the original; purchase line
+  "Price paid: ₹22,490 · 1.5 Ton · 3 Star · Window"; 5 lines with the AC split sentence; health "Not enough
+  information yet" -> after 2 answers "Needs attention" with reasons. Found and fixed in that run: the duplicate
+  and region boxes were inside the collapsed "More product details" (moved under the 5 lines); the summary line
+  showed the internal ID and the estimated expiry/coverage (now the name only, no estimated dates); notification
+  toasts fell back to the internal ID (now the product name); answer buttons were full-width on phones.
+  Tests: tests/test_question_packs.py (21).

@@ -160,6 +160,21 @@
       padding: 0 10px;
     }
 
+    #packQuestions .actions {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    #packQuestions .actions button {
+      width: auto;
+      min-height: 36px;
+      padding: 6px 12px;
+      font-size: 13px;
+      border-radius: 18px;
+    }
+
     mark.check-char {
       background: #fde68a;
       color: #78350f;
@@ -1037,6 +1052,22 @@
         </div>
         <div class="placeholder" id="summaryShort"></div>
         <div class="helper" id="summaryMeta">Where these details came from will show here.</div>
+        <div id="duplicateInvoice" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px solid #b98900;border-radius:8px;">
+          <div><strong>You already added this invoice.</strong> It has the same invoice number and seller as a product in your list.</div>
+          <div style="margin-top:6px;">
+            <button type="button" class="btn" id="duplicateOpenBtn">Open the product I already have</button>
+            <button type="button" class="btn secondary" id="duplicateKeepBtn">Keep both</button>
+          </div>
+          <div id="duplicateStatus" class="helper"></div>
+        </div>
+        <div id="regionConsent" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px dashed #1d4ed8;border-radius:8px;">
+          <div id="regionConsentText"></div>
+          <div id="regionConsentButtons" style="margin-top:6px;">
+            <button type="button" class="btn" id="regionYesBtn">Yes, use it</button>
+            <button type="button" class="btn secondary" id="regionNoBtn">No thanks</button>
+          </div>
+          <div id="regionConsentStatus" class="helper"></div>
+        </div>
         <div class="evidence-panel hidden" id="evidenceTrustPanel"></div>
         <div class="actions">
           <a class="button-link mobile-soft-btn" id="btnSeeFullSummary" href="#detailsCare">See full summary</a>
@@ -1098,22 +1129,6 @@
               </div>
               <div id="serialSuggestionReason" class="helper"></div>
               <div id="serialSuggestionStatus" class="helper"></div>
-            </div>
-            <div id="duplicateInvoice" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px solid #b98900;border-radius:8px;">
-              <div><strong>You already added this invoice.</strong> It has the same invoice number and seller as a product in your list.</div>
-              <div style="margin-top:6px;">
-                <button type="button" class="btn" id="duplicateOpenBtn">Open the product I already have</button>
-                <button type="button" class="btn secondary" id="duplicateKeepBtn">Keep both</button>
-              </div>
-              <div id="duplicateStatus" class="helper"></div>
-            </div>
-            <div id="regionConsent" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px dashed #1d4ed8;border-radius:8px;">
-              <div id="regionConsentText"></div>
-              <div id="regionConsentButtons" style="margin-top:6px;">
-                <button type="button" class="btn" id="regionYesBtn">Yes, use it</button>
-                <button type="button" class="btn secondary" id="regionNoBtn">No thanks</button>
-              </div>
-              <div id="regionConsentStatus" class="helper"></div>
             </div>
             <div id="fieldSuggestions" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px dashed #b98900;border-radius:8px;">
               <div><strong>Please check these details.</strong> We were not sure we read them correctly.</div>
@@ -1259,6 +1274,22 @@
         </div>
         <form id="diagForm" class="hidden" style="margin-top:8px;" onsubmit="return false;"></form>
         <div id="diagMsg" class="status-line placeholder" style="margin-top:8px;">Load your product to start diagnostics.</div>
+      </div>
+      <div id="packCard" class="subtle-panel" style="display:none;">
+        <div style="display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+          <div id="packTitle" style="font-weight:700; font-size:14px;">Quick questions</div>
+          <div id="packProgress" class="helper"></div>
+        </div>
+        <div class="helper">Tap an answer or Skip. Your answers shape the care tips, reminders and what to watch.</div>
+        <div id="packQuestions"></div>
+        <div id="packConsent" class="helper" style="display:none; margin-top:8px; padding:8px; border:1px dashed #1d4ed8; border-radius:8px;">
+          May your answers also count, without your name, in totals that brands see? Brands only ever see counts for
+          groups of 10 or more people - never your name, product, address or invoice.
+          <div class="actions" style="margin-top:6px;">
+            <button type="button" onclick="setShareConsent(true)">Yes, count my answers anonymously</button>
+            <button type="button" class="secondary" onclick="setShareConsent(false)">No</button>
+          </div>
+        </div>
       </div>
       <div id="behaviourCard" class="subtle-panel"
         style="border-style:dashed; background:#fdfefe; display:none;">
@@ -1615,7 +1646,8 @@
       function getProductLabel(warrantyId) {
         if (!warrantyId) return '';
         const entry = warrantyLabelMap[warrantyId];
-        return entry && entry.label ? entry.label : warrantyId;
+        // Never the internal ID for customers.
+        return entry && entry.label ? entry.label : (IS_ADMIN ? warrantyId : '');
       }
 
       function replaceWarrantyId(text, warrantyId, label) {
@@ -1628,7 +1660,7 @@
         let title = (n && n.title) || 'Alert';
         let message = (n && n.message) || '';
         if (wid) {
-          const label = getProductLabel(wid);
+          const label = getProductLabel(wid) || (n && n.product_label) || 'your product';
           if (label) {
             title = replaceWarrantyId(title, wid, label);
             message = replaceWarrantyId(message, wid, label);
@@ -1931,6 +1963,128 @@
         return { text: 'Active', cls: 'badge-success' };
       }
 
+      function careRiskStatus(cr) {
+        if (!cr || cr.status !== 'assessed') return { text: 'Not enough information yet', cls: 'badge-warn' };
+        if (cr.label === 'HIGH') return { text: cr.text || 'Needs attention', cls: 'badge-danger' };
+        if (cr.label === 'MEDIUM') return { text: cr.text || 'Some things to watch', cls: 'badge-warn' };
+        return { text: cr.text || 'Looking after it well', cls: 'badge-success' };
+      }
+
+      function renderCareRisk(cr) {
+        const wrap = document.getElementById('riskDebug');
+        const content = document.getElementById('riskWhyContent');
+        if (!wrap || !content) return;
+        const parts = [];
+        if (!cr || cr.status !== 'assessed') {
+          parts.push(`<div><strong>${escapeHtml((cr && cr.text) || 'Not enough information yet')}</strong></div>`);
+          if (cr && cr.has_pack) parts.push('<div class="helper">Answer a few quick questions below so we can tell you what to watch.</div>');
+        } else {
+          parts.push(`<div><strong>${escapeHtml(cr.text)}</strong></div>`);
+          parts.push(`<ul>${(cr.reasons || []).map(r => `<li>${escapeHtml(r)}</li>`).join('')}</ul>`);
+          if ((cr.tips || []).length) parts.push(`<div class="helper"><strong>What helps:</strong><ul>${cr.tips.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul></div>`);
+        }
+        if (cr && cr.age_note) parts.push(`<div class="helper">${escapeHtml(cr.age_note)}</div>`);
+        // Admins also keep the model's own reasons (renderRisk ran first and filled the same box).
+        const adminBlock = IS_ADMIN && content.innerHTML ? `<details style="margin-top:6px;"><summary>Model details (admin)</summary>${content.innerHTML}</details>` : '';
+        content.innerHTML = parts.join('') + adminBlock;
+        wrap.style.display = 'block';
+        const riskCanvas = document.getElementById('riskChart');
+        if (riskCanvas && riskCanvas.getContext && typeof Chart !== 'undefined') {
+          const level = !cr || cr.status !== 'assessed' ? 0 : ({ LOW: 0.2, MEDIUM: 0.5, HIGH: 0.85 }[cr.label] || 0);
+          if (riskChart) riskChart.destroy();
+          riskChart = new Chart(riskCanvas.getContext('2d'), {
+            type: 'doughnut',
+            data: { labels: ['Care', ''], datasets: [{ data: [level, 1 - level], backgroundColor: ['#ff5c8d', '#ffffff22'], borderWidth: 0 }] },
+            options: { cutout: '70%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+          });
+        }
+      }
+
+      // Question pack for this product type: 3 button questions at a time, each with Skip and why we ask.
+      async function loadQuestionPack(warrantyId) {
+        const card = document.getElementById('packCard');
+        if (!card || !warrantyId) return;
+        let data = null;
+        try {
+          const res = await fetch(`/warranties/${encodeURIComponent(warrantyId)}/questions`, { headers: h() });
+          data = res.ok ? await res.json() : null;
+        } catch (_) { data = null; }
+        if (!data || !data.pack) {
+          card.style.display = 'none';
+          loadBehaviourQuestion();  // products without a pack keep the older single question
+          return;
+        }
+        const old = document.getElementById('behaviourCard');
+        if (old) old.style.display = 'none';
+        renderPack(warrantyId, data);
+      }
+
+      function renderPack(warrantyId, data) {
+        const card = document.getElementById('packCard');
+        const list = document.getElementById('packQuestions');
+        document.getElementById('packTitle').textContent = `Quick questions about ${(data.title || 'your product').replace(/^Your /, 'your ')}`;
+        document.getElementById('packProgress').textContent = `${data.answered} of ${data.total} answered`;
+        list.innerHTML = '';
+        if (!data.questions.length) {
+          list.innerHTML = '<div class="helper">Thanks - that is everything for now. Your answers shape the tips and reminders for this product.</div>';
+        }
+        data.questions.forEach((q) => {
+          const box = document.createElement('div');
+          box.className = 'subtle-panel';
+          box.style.marginTop = '8px';
+          const title = document.createElement('div');
+          title.style.fontWeight = '700';
+          title.textContent = q.text;
+          const why = document.createElement('div');
+          why.className = 'helper';
+          why.textContent = `Why we ask: ${q.why}`;
+          const buttons = document.createElement('div');
+          buttons.className = 'actions';
+          buttons.style.marginTop = '6px';
+          q.options.concat([{ value: 'skip', label: 'Skip' }]).forEach((o) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = o.label;
+            if (o.value === 'skip') b.className = 'secondary';
+            b.onclick = () => answerPack(warrantyId, q.id, o.value, box);
+            buttons.appendChild(b);
+          });
+          box.append(title, why, buttons);
+          list.appendChild(box);
+        });
+        const consent = document.getElementById('packConsent');
+        consent.style.display = data.share_consent === null || data.share_consent === undefined ? 'block' : 'none';
+        card.style.display = 'block';
+      }
+
+      async function answerPack(warrantyId, questionId, answer, box) {
+        try {
+          const res = await fetch(`/warranties/${encodeURIComponent(warrantyId)}/questions/answer`, {
+            method: 'POST', headers: h({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ question_id: questionId, answer }),
+          });
+          const data = await res.json();
+          if (!res.ok) { showToast('Could not save', data.detail || 'Please try again.'); return; }
+          box.remove();
+          const left = document.querySelectorAll('#packQuestions .subtle-panel').length;
+          if (!left) renderPack(warrantyId, data.next);
+          const cr = await fetchJsonSafe(`/warranties/${encodeURIComponent(warrantyId)}/care-risk`, { headers: h() }, 'care risk');
+          renderCareRisk(cr);
+          const st = careRiskStatus(cr);
+          setPill('pillHealth', st.cls === 'badge-success' ? 'pill-success' : st.cls === 'badge-danger' ? 'pill-danger' : 'pill-warn', `Health: ${st.text}`);
+        } catch (e) { showToast('Could not save', 'Please try again.'); }
+      }
+
+      async function setShareConsent(share) {
+        try {
+          const res = await fetch('/account/share-answers', {
+            method: 'POST', headers: h({ 'Content-Type': 'application/json' }), body: JSON.stringify({ share }),
+          });
+          if (res.ok) document.getElementById('packConsent').style.display = 'none';
+        } catch (_) { /* asked again next time */ }
+      }
+      window.setShareConsent = setShareConsent;
+
       function predictiveStatus(label) {
         const band = (label || '').toString().toLowerCase();
         if (!band) return { text: 'Unknown', cls: 'badge-warn' };
@@ -2047,7 +2201,7 @@
         const covClass = cov.cls === 'badge-success' ? 'pill-success' : cov.cls === 'badge-danger' ? 'pill-danger' : 'pill-warn';
         const predClass = pred.cls === 'badge-success' ? 'pill-success' : pred.cls === 'badge-danger' ? 'pill-danger' : 'pill-warn';
         const timeClass = covClass;
-        const timeText = formatTimeLeft(daysLeft);
+        const timeText = cov.text === 'Estimated, please check' ? 'check your warranty card' : formatTimeLeft(daysLeft);
         setPill('pillStatus', covClass, `Status: ${cov.text}`);
         setPill('pillHealth', predClass, `Health: ${pred.text}`);
         setPill('pillTime', timeClass, `Time left: ${timeText}`);
@@ -2725,8 +2879,9 @@
           renderLaymanSummary(sum.layman_summary);
           renderSummaryMeta(sum);
           renderWarrantyFriendly();
-          const displayName = productLabelWithId(displayWarranty);
-          const compactLine = [
+          // Customers: the product's name only (no internal ID); dates only when they are facts, not estimates.
+          const displayName = IS_ADMIN ? productLabelWithId(displayWarranty) : productLabel(displayWarranty);
+          const compactLine = w.period_note ? '' : [
             displayWarranty.expiry_date ? `Expiry: ${displayWarranty.expiry_date}` : null,
             displayWarranty.coverage_months ? `Coverage: ${displayWarranty.coverage_months} months` : null
           ].filter(Boolean).join(' | ');
@@ -2739,8 +2894,12 @@
             method: 'POST', headers: h({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ user_id: userId, warranty_id: warrantyId })
           }, 'predictive score');
-          renderRisk(pred);
-          const predStatus = predictiveStatus(pred.risk_label || pred.band);
+          if (IS_ADMIN) renderRisk(pred);  // model internals: admins only
+          // Customers see the care risk from their answers; no answers -> "Not enough information yet".
+          let careRisk = null;
+          try { careRisk = await fetchJsonSafe(`/warranties/${encodeURIComponent(warrantyId)}/care-risk`, { headers: h() }, 'care risk'); } catch (_) { careRisk = null; }
+          renderCareRisk(careRisk);
+          const predStatus = careRiskStatus(careRisk);
           const predBadge = document.getElementById('predictiveBadge');
           if (predBadge) {
             predBadge.textContent = predStatus.text;
@@ -2748,8 +2907,8 @@
             predBadge.classList.remove('hidden');
           }
           // coverage badge
-          const daysLeft = window.__daysLeft;
-          const cov = coverageStatus(daysLeft);
+          const daysLeft = w.period_note ? null : window.__daysLeft;
+          const cov = w.period_note ? { text: 'Estimated, please check', cls: 'badge-warn' } : coverageStatus(daysLeft);
           const covBadge = document.getElementById('coverageBadge');
           if (covBadge) {
             covBadge.textContent = cov.text;
@@ -2763,7 +2922,7 @@
           document.getElementById('detailsHelper').textContent = 'Loaded from your warranty. Scroll to read more.';
           warrantyLoaded = true;
           lockSteps(false);
-          loadBehaviourQuestion();
+          loadQuestionPack(warrantyId);
           console.info('neo-dashboard: fetch recommendations', { warrantyId, userId });
           fetchRecommendations();
           loadFiveLines(warrantyId);
@@ -3264,7 +3423,6 @@
             if (!res.ok) { status.textContent = data.detail || 'Could not save.'; return; }
             w.alternatives.delivery_region = data.delivery_region;
             renderRegionConsent(w);
-        renderDuplicate(w);
           } catch (e) { status.textContent = 'Could not save.'; }
         };
         document.getElementById('regionYesBtn').onclick = () => send(true);
@@ -3310,6 +3468,7 @@
         // Plain purchase details from the invoice (no raw field dump; the 5 lines carry the warranty facts).
         document.getElementById('coverageDetails').textContent = purchaseDetailsText(w);
         renderRegionConsent(w);
+        renderDuplicate(w);
         const coverageCanvas = document.getElementById('coverageChart');
         if (coverageCanvas && coverageCanvas.getContext) {
           const ctx = coverageCanvas.getContext('2d');

@@ -44,7 +44,9 @@ invoices. No real-invoice accuracy has been measured yet (see "Next steps").
     - knowledge base v1 (empty);
     - guarded start-up schema upgrade;
     - backup script.
-- **Not live (branch `cloud/batch-1`, pull request open):** forgot password + email (see MEMORY.md 103).
+- **Not live:** branch `cloud/batch-2` (PR #2: password salt, lasting rate limits, photo-code confirm, robots
+  checks, small-text OCR) and `cloud/batch-3` (PR: real Amazon invoice fixes, purchase details, duplicates,
+  estimates without numbers, question packs, care-risk wording; MEMORY.md 105). Batch 1 was merged by the owner.
 - **Production backup before this deploy:** taken by the owner with `scripts/backup_prod_db.ps1` on
   2026-10-06 ("backup done"); file name and size not reported to me. Previous one:
   `swh_prod_2026-10-05_0106.dump`, 1.23 MB, 36 tables.
