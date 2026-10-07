@@ -7,6 +7,7 @@ from typing import List, Dict, Any
 import requests
 from sqlalchemy.orm import Session
 
+from . import robots_guard
 from .oem_issue_signals import record_issue_signal
 
 
@@ -37,8 +38,8 @@ def ingest_oem_issue_feeds(db: Session, feed_path: Path | None = None, timeout: 
         if not url:
             continue
         try:
-            resp = requests.get(url, timeout=timeout)
-        except requests.exceptions.RequestException:
+            resp = robots_guard.guarded_get(url, timeout=timeout)
+        except requests.exceptions.RequestException:  # includes RobotsDisallowed
             continue
         if resp.status_code != 200:
             continue

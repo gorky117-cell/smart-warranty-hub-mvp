@@ -8,13 +8,13 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
-from urllib import robotparser
 
 import requests
 from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 
 from ..db_models import WarrantyDB, ProductReviewDB, ReviewPageDB
+from . import robots_guard
 from .review_sources import load_review_sources
 from .sentiment import analyze_sentiment
 from .object_store import put_bytes
@@ -40,23 +40,10 @@ class ProductSeed:
         return f"{self.brand}|{model or name}|{self.region}"
 
 
-def _robots_allowed(url: str, cache: Dict[str, robotparser.RobotFileParser]) -> bool:
-    if os.getenv("REVIEW_ROBOTS_RESPECT", "true").lower() != "true":
-        return True
-    parsed = urlparse(url)
-    base = f"{parsed.scheme}://{parsed.netloc}"
-    if base in cache:
-        rp = cache[base]
-    else:
-        rp = robotparser.RobotFileParser()
-        try:
-            rp.set_url(f"{base}/robots.txt")
-            rp.read()
-        except Exception:
-            # If robots can't be read, default to allow to avoid blocking whole crawl.
-            return True
-        cache[base] = rp
-    return rp.can_fetch(USER_AGENT, url)
+def _robots_allowed(url: str, cache: Optional[Dict] = None) -> bool:
+    """Same rule as every other page read (robots_guard): if robots.txt cannot be read, the page is not read.
+    (Before cloud batch 2 this failed open and could be switched off with REVIEW_ROBOTS_RESPECT.)"""
+    return robots_guard.check(url, user_agent=USER_AGENT)[0]
 
 
 def _allowed_domain(url: str, domains: List[str]) -> bool:
@@ -105,6 +92,8 @@ def _extract_reviews(html: str) -> Tuple[List[str], Optional[float]]:
 
 
 def _fetch(url: str, timeout: int = 12) -> Tuple[Optional[str], Optional[str], Optional[int]]:
+    if not _robots_allowed(url):
+        return None, "robots_disallowed", None
     last_err = None
     retries = int(os.getenv("REVIEW_FETCH_RETRIES", "2"))
     for _ in range(max(1, retries)):
@@ -189,7 +178,7 @@ def crawl_reviews(db: Session, *, region: str = "IN") -> Dict[str, int]:
     if not seeds:
         return {"pages": 0, "reviews": 0}
 
-    robots_cache: Dict[str, robotparser.RobotFileParser] = {}
+    robots_cache: Dict = {}
     domain_counts: Dict[str, int] = {}
     pages_crawled = 0
     reviews_added = 0
@@ -346,7 +335,7 @@ def crawl_reviews_for_product(
     max_pages_per_domain = int(os.getenv("REVIEW_MAX_PAGES_PER_DOMAIN", "10"))
     ttl_hours = int(os.getenv("REVIEW_CRAWL_TTL_HOURS", "24"))
 
-    robots_cache: Dict[str, robotparser.RobotFileParser] = {}
+    robots_cache: Dict = {}
     domain_counts: Dict[str, int] = {}
     pages_crawled = 0
     reviews_added = 0

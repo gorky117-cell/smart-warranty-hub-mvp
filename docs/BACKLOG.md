@@ -46,7 +46,11 @@ session can do (one branch per batch, `cloud/batch-N`).
     old behaviour.
 12. Brand-specific code kept on purpose: Redmi/POCO -> Xiaomi table, marketing-series names for models,
     Samsung-style section headings for multi-product pages, phone words galaxy/iphone/sm-, Epson serial rule.
-13. Review crawler (off in production), issue feeds and web search do not use the robots check.
+13. [x] Review crawler and issue feeds use the robots check (cloud batch 2): robots_guard, failing closed (the
+    crawler used to read pages when robots.txt could not be read, and REVIEW_ROBOTS_RESPECT=false switched the
+    check off; both removed). Web search: provider APIs (Bing, Brave, Google, Serper, SerpAPI) are API calls under
+    their own terms, not page reads, so robots.txt does not apply; the result pages are read only through the
+    crawler, which now checks robots.txt.
 14. [GAURAV] Sites that answer 403 to robots.txt (mi.com, sony.co.in, lenovo.com seen) cannot be re-verified or
     read automatically - accept, or ask those brands.
 15. [NEEDS-KEYS] Rate limiting keys anonymous users on the first `X-Forwarded-For` entry; confirm Railway's header

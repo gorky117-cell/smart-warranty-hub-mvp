@@ -3400,3 +3400,10 @@ Branch `cloud/batch-2`, started from `cloud/batch-1` (PR #1 not merged yet), pul
   so a model many people own stops needing confirmation. Tests: test_confusable_codes.py +12 (laptop, phone,
   TV, AC readings; ambiguous; owner counting). Not measured: how many confirmations this saves on real invoices
   (needs the owner's invoices); not browser-checked (render covered by a template test only).
+- [x] 104.4 Backlog #13 robots check for the review crawler and issue feeds. robots_guard.check takes a
+  user_agent (crawler: REVIEW_CRAWLER_UA, default SmartWarrantyHubBot/1.0; Python's matcher also applies rules
+  written for "SmartWarrantyHub"). review_crawler._robots_allowed now uses robots_guard (fails closed: 403,
+  timeouts, no network = not read; before, it read the page when robots.txt failed) and the
+  REVIEW_ROBOTS_RESPECT=false bypass is gone; _fetch checks too, so no path reads a page unchecked. Issue feeds
+  use robots_guard.guarded_get (feed list is empty today). Web search provider APIs are not page reads: noted in
+  BACKLOG. Review crawler stays off in production. Tests: test_robots_everywhere.py +7.
