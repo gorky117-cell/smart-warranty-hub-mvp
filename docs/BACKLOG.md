@@ -5,6 +5,13 @@ done in the cloud session); **[GAURAV]** needs the owner's decision or manual wo
 session can do (one branch per batch, `cloud/batch-N`).
 
 ## Now
+0. Forgot password + e-mail (cloud batch 1, branch `cloud/batch-1`):
+   - [x] Resend or SMTP chosen by config, tags app=swh / type=<message>, Reply-To, text + HTML, no addresses in logs.
+   - [x] "Forgot password?" link, same answer for unknown e-mails, hashed one-time 30-minute links, older links
+     retired, plain pages for expired/used links, every session signed out, rate limits per client and account.
+   - [x] Railway variable list: docs/EMAIL_SETUP.md.
+   - [GAURAV] Review and merge the pull request (after a production backup); set the Railway variables in
+     docs/EMAIL_SETUP.md; send yourself a reset link and follow the checks there.
 1. [NEEDS-KEYS] Signed-in production checks: another user's `/notifications?user_id=...` and
    `/recommendations?user_id=...` answer 403; the `schema` block of `/admin/terms-cache/stats`; an uploaded
    invoice still opens under My documents after a redeploy.
@@ -29,6 +36,10 @@ session can do (one branch per batch, `cloud/batch-N`).
 11. Care guides v2 (fetcher) - only after brand permission.
 
 ## Known gaps
+20. Passwords are hashed with PBKDF2 and one app-wide salt (`deps.hash_password`). Move to a per-user salt
+    (re-hash on next sign-in) - needs care so existing passwords keep working.
+21. Rate limits are kept in memory per process: they reset on every deploy and are not shared if Railway runs
+    more than one instance.
 12. Brand-specific code kept on purpose: Redmi/POCO -> Xiaomi table, marketing-series names for models,
     Samsung-style section headings for multi-product pages, phone words galaxy/iphone/sm-, Epson serial rule.
 13. Review crawler (off in production), issue feeds and web search do not use the robots check.

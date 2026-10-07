@@ -120,6 +120,9 @@ A real sign-in was not tested by me; no production credentials were used.
   - Admin security banner and HTTPS redirect behind the proxy.
   - CSRF on cookie sessions, and a stale session cookie never blocks sign-in.
   - Rate limits on sign-in (10 per 10 min) and sign-up (5 per hour), with friendly messages on the forms.
+  - *Branch `cloud/batch-1`, not live:* forgot password by e-mail (hashed one-time links, 30 minutes, every
+    session signed out on a new password, rate limits per client and per account) and e-mail through Resend or
+    SMTP chosen by config. Railway variables: docs/EMAIL_SETUP.md.
 - **Real-invoice loop** (`scripts/run_real_invoices.py`, local, `real_invoices/` git-ignored).
   - Always writes `review.md` (what SWH read, with "OK?" / "Correct value if wrong" columns). Hand marks
     become pass/fail counts on re-run.

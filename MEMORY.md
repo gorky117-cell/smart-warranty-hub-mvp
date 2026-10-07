@@ -3354,3 +3354,7 @@ paddle): baseline 856 passed, 9 skipped (more skips than on Windows: Paddle is n
   sessions signed out, change password, per-client and per-account limits, e-mail off, mail failure, invalid
   address, logs, headers). Browser run (Playwright, local server, mail mocked): login -> forgot -> sent ->
   link -> new password -> "Password changed" -> reused link "already used" -> sign in with the new password.
+- [x] 103.3 Docs: docs/EMAIL_SETUP.md lists the Railway variables (names only) and what each does, the e-mail
+  types and the owner's checks after deploy (keep Resend click tracking off). BACKLOG: batch 1 ticked, owner
+  steps tagged [GAURAV]; new gaps 20 (one app-wide password salt) and 21 (in-memory rate limits). STATUS and
+  CLAUDE.md updated.

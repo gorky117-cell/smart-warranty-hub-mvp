@@ -61,4 +61,6 @@ Customers upload only the invoice. The warranty card is a later add-on (not buil
   warranty types), `summary_engine.py`, `product_naming.py`, `product_recommendations.py` (care tips),
   `care_guides.py`, `reminders.py` + `notifications.py`, `document_store.py` (files in Postgres by default),
   `combined_export.py` (claim PDF).
+- Accounts and e-mail: `deps.py` (sessions, password rule, sign-out-everywhere), `services/password_reset.py`,
+  `services/emailer.py` (Resend or SMTP; variables in docs/EMAIL_SETUP.md).
 - `app/schema_upgrade.py` - guarded start-up schema changes (only additions; never fatal).
