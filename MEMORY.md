@@ -3455,3 +3455,17 @@ missing, model none, seller "Page 1 Of 1, I-1/1", category "appliance", product 
   2017-04-22, invoice HR-SDEG-1004-0000 (Order ID kept apart), seller Cloudtail India Private Limited, model
   suggestion 183 CYa, B00NBM4LJ0 never a model. Tests: tests/test_amazon_2017_invoice.py (27: phone, fridge,
   washing machine, TV, AC, mixer, laptop cases). Global check unchanged.
+- [x] 105.4 New fields (services/purchase_details.py, stored in warranty alternatives, no schema change):
+  purchase_details = price (first amount on the item's own row, else the invoice total; INR), capacity/size
+  (Ton, L, kg, inch, GB storage, W), star rating, type (window/split/portable/cassette, front/top load,
+  semi-automatic, single/double door/side by side, storage/instant geyser); delivery_region = {city, state,
+  consent} from the shipping (else billing) block or "Place of supply" - only city and state; a city with street
+  words or digits is dropped (state only). Consent: dashboard "Your purchase" box asks "May we use this city and
+  state for weather-based care tips? We only keep the city and state, never your street address." -> POST
+  /warranties/{id}/region-consent {use}; yes sets climate_zone (hot/dry/humid/coastal/cold by state) if empty,
+  no clears what yes set; re-processing never resets the answer. Care tips: one SWH-written weather tip per
+  product line + climate, only after yes. Note: parsed_fields.raw_text (existing) still keeps the OCR text,
+  address included - used for the claim PDF ("Hide my address" exists); not changed here.
+  Item 6 part 1: the raw "What is covered?" box (Brand/Model/Serial/Coverage months dump) is now "Your purchase"
+  with a plain "From your invoice: Price paid ₹22,490 · 1.5 Ton · 3 Star · Window" line.
+  Tests: tests/test_purchase_details.py (23).

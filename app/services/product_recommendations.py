@@ -368,6 +368,27 @@ def build_product_recommendations(
     care_items = CARE_CATALOG.get(category) or CARE_CATALOG["general"]
     results: List[ProductRecommendation] = []
     _append_oem_care(results, category=category, region=region, warranty=warranty)
+    from .purchase_details import climate_tip
+
+    alternatives = warranty.get("alternatives") if isinstance(warranty.get("alternatives"), dict) else {}
+    tip = climate_tip(category, alternatives.get("delivery_region"))
+    if tip:
+        place = alternatives["delivery_region"].get("city") or alternatives["delivery_region"].get("state")
+        results.append({
+            "product_id": f"climate_{category}",
+            "title": f"Care for your weather ({place})",
+            "category": category,
+            "region": region,
+            "risk_band": band,
+            "why": tip,
+            "priority": 0,
+            "cta_label": "View care note",
+            "cta_url": None,
+            "action": "care",
+            "source_label": "Smart Warranty Hub care tip",
+            "description": tip,
+            "reason": tip,
+        })
     for idx, item in enumerate(sorted(care_items, key=lambda i: (i.get("priority", 99), i.get("product_id", "")))[:4]):
         if any(rec.get("product_id") == item["product_id"] for rec in results):
             continue

@@ -213,6 +213,11 @@ def _update_warranty(
             if (meta.get(key) or incoming.get(key) or {}).get("status") == "pending" and fields.get(field):
                 incoming.pop(key, None)  # a confident value was found after all
                 meta.pop(key, None)
+        previous_region = meta.get("delivery_region") or {}
+        if previous_region.get("consent") is not None:
+            # The customer's yes/no about using their city/state is never reset by re-processing.
+            if incoming.get("delivery_region"):
+                incoming["delivery_region"] = {**incoming["delivery_region"], "consent": previous_region["consent"]}
         if "vision_suggestions" in incoming:
             # Keep the user's confirmed/dismissed vision suggestions; refresh only pending ones (fix run B10).
             merged_vision = {

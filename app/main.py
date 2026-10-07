@@ -2706,6 +2706,44 @@ def _resolve_identity_suggestion(db, current, warranty_id: str, field: str, payl
     return {"value": getattr(row, field), "suggestion": suggestion}
 
 
+@app.post("/warranties/{warranty_id}/region-consent", dependencies=[Depends(rbac_dependency)])
+def set_region_consent(
+    warranty_id: str,
+    payload: Dict[str, Any] = Body(...),
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    """The customer's yes/no to using the delivery city/state (from the invoice) for weather-based care tips.
+    Only city and state are ever stored; "no" also stops the climate band being used for risk."""
+    from .services.purchase_details import climate_for
+
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
+    row = db.query(WarrantyDB).filter_by(id=warranty_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Warranty not found")
+    meta = dict(row.alternatives or {})
+    region = dict(meta.get("delivery_region") or {})
+    if not region.get("state"):
+        raise HTTPException(status_code=404, detail="No delivery city or state was found on this invoice")
+    use = payload.get("use")
+    if not isinstance(use, bool):
+        raise HTTPException(status_code=422, detail="use must be true or false")
+    region["consent"] = use
+    if use:
+        climate = climate_for(region)
+        if climate and not row.climate_zone:
+            row.climate_zone = climate
+            region["climate_set"] = True
+    elif region.pop("climate_set", False):
+        row.climate_zone = None
+    meta["delivery_region"] = region
+    row.alternatives = meta
+    db.add(row)
+    db.commit()
+    store.warranties.pop(warranty_id, None)
+    return {"warranty_id": warranty_id, "delivery_region": region, "climate_zone": row.climate_zone}
+
+
 @app.post("/warranties/{warranty_id}/field-suggestion", dependencies=[Depends(rbac_dependency)])
 def resolve_field_suggestion(
     warranty_id: str,

@@ -1384,6 +1384,11 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
         fields["region_code"] = region_code
         confidence["region_code"] = 0.7
 
+    # Price, capacity, star rating, type, and delivery city/state only (never the street address).
+    from . import purchase_details
+
+    alternatives.update(purchase_details.extract(text, best_item, fields.get("product_name") or best_item))
+
     fields, confidence, alternatives = sanitize_invoice_identity_fields(fields, confidence, alternatives)
     fields, confidence, alternatives = route_uncertain_identity(fields, confidence, alternatives)
 

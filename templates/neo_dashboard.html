@@ -1085,8 +1085,8 @@
             </details>
           </div>
           <details open>
-            <summary>What is covered?</summary>
-            <div class="helper">Coverage in simple terms.</div>
+            <summary>Your purchase</summary>
+            <div class="helper">What we read from your invoice. Please check anything marked.</div>
             <div id="coverageDetails" class="placeholder">Load data to see coverage details.</div>
             <div id="serialSuggestion" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px dashed #b98900;border-radius:8px;">
               <div><strong>Please check the serial number.</strong> We read <code id="serialSuggestionValue"></code>
@@ -1098,6 +1098,14 @@
               </div>
               <div id="serialSuggestionReason" class="helper"></div>
               <div id="serialSuggestionStatus" class="helper"></div>
+            </div>
+            <div id="regionConsent" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px dashed #1d4ed8;border-radius:8px;">
+              <div id="regionConsentText"></div>
+              <div id="regionConsentButtons" style="margin-top:6px;">
+                <button type="button" class="btn" id="regionYesBtn">Yes, use it</button>
+                <button type="button" class="btn secondary" id="regionNoBtn">No thanks</button>
+              </div>
+              <div id="regionConsentStatus" class="helper"></div>
             </div>
             <div id="fieldSuggestions" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px dashed #b98900;border-radius:8px;">
               <div><strong>Please check these details.</strong> We were not sure we read them correctly.</div>
@@ -1121,7 +1129,7 @@
               <div id="visionSuggestionList"></div>
             </div>
             <div class="helper"><a href="javascript:void(0)" data-role="open-fullview" data-target="coverageDetails"
-                data-title="What is covered">Open in full view</a></div>
+                data-title="Your purchase">Open in full view</a></div>
           </details>
           <details>
             <summary>Warranty facts</summary>
@@ -3174,6 +3182,55 @@
         box.style.display = 'block';
       }
 
+      function purchaseDetailsText(w) {
+        const d = (w && w.alternatives && w.alternatives.purchase_details) || {};
+        const parts = [];
+        if (d.price && d.price.amount) parts.push(`Price paid: ₹${Number(d.price.amount).toLocaleString('en-IN')}`);
+        if (d.capacity) parts.push(d.capacity);
+        if (d.star_rating) parts.push(`${d.star_rating} Star`);
+        if (d.type) parts.push(d.type.charAt(0).toUpperCase() + d.type.slice(1));
+        return parts.length ? `From your invoice: ${parts.join(' · ')}` : 'See "Your warranty in 5 lines" above for the dates and what to do.';
+      }
+
+      // City and state from the invoice: used for weather-based care tips only if the customer says yes.
+      function renderRegionConsent(w) {
+        const box = document.getElementById('regionConsent');
+        if (!box) return;
+        const r = (w && w.alternatives && w.alternatives.delivery_region) || null;
+        if (!r || !r.state) { box.style.display = 'none'; return; }
+        const place = [r.city, r.state].filter(Boolean).join(', ');
+        const text = document.getElementById('regionConsentText');
+        const buttons = document.getElementById('regionConsentButtons');
+        const status = document.getElementById('regionConsentStatus');
+        status.textContent = '';
+        if (r.consent === true) {
+          text.textContent = `We use ${place} for weather-based care tips. We never keep your street address.`;
+          buttons.style.display = 'none';
+        } else if (r.consent === false) {
+          text.textContent = `You chose not to use ${place} for care tips.`;
+          buttons.style.display = 'none';
+        } else {
+          text.textContent = `Your invoice says it was delivered to ${place}. May we use this city and state for weather-based care tips? We only keep the city and state, never your street address.`;
+          buttons.style.display = 'block';
+        }
+        const send = async (use) => {
+          try {
+            const res = await fetch(`/warranties/${encodeURIComponent(w.id)}/region-consent`, {
+              method: 'POST',
+              headers: h({ 'Content-Type': 'application/json' }),
+              body: JSON.stringify({ use }),
+            });
+            const data = await res.json();
+            if (!res.ok) { status.textContent = data.detail || 'Could not save.'; return; }
+            w.alternatives.delivery_region = data.delivery_region;
+            renderRegionConsent(w);
+          } catch (e) { status.textContent = 'Could not save.'; }
+        };
+        document.getElementById('regionYesBtn').onclick = () => send(true);
+        document.getElementById('regionNoBtn').onclick = () => send(false);
+        box.style.display = 'block';
+      }
+
       function renderCoverage(w) {
         const expiryInfo = document.getElementById('expiryLine');
         const coverageMonths = w.coverage_months || 0;
@@ -3204,15 +3261,9 @@
             w.alternatives.unreadable_invoice.message || "We couldn't read this invoice - retake the photo or enter the details.";
           return;
         }
-        document.getElementById('coverageDetails').textContent = [
-          `Brand: ${w.brand || 'N/A'}`,
-          `Model: ${w.model_code || 'N/A'}`,
-          `Serial: ${w.serial_no || 'Not confirmed'}`,
-          `Coverage months: ${coverageMonths || 'N/A'}`,
-          `Expiry: ${(expInfo.expiryDate ? expInfo.expiryDate.toISOString().slice(0, 10) : (w.expiry_date || 'N/A'))}${expInfo.derived ? ' (estimated from purchase + coverage)' : ''}`,
-          `Status: ${w.warranty_status || cov.text}`,
-          `Claim: ${w.claim_message || 'Please check the dates on your invoice'}`
-        ].join('\n');
+        // Plain purchase details from the invoice (no raw field dump; the 5 lines carry the warranty facts).
+        document.getElementById('coverageDetails').textContent = purchaseDetailsText(w);
+        renderRegionConsent(w);
         const coverageCanvas = document.getElementById('coverageChart');
         if (coverageCanvas && coverageCanvas.getContext) {
           const ctx = coverageCanvas.getContext('2d');
