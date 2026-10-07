@@ -1,0 +1,26 @@
+{% extends "public_page.html" %}
+{% set page_title = "Our web reader (/bot) - Smart Warranty Hub" %}
+{% set page_description = "How Smart Warranty Hub reads public warranty pages: it follows robots.txt, reads only public pages, and can be blocked." %}
+{% set canonical_path = "/bot" %}
+{% block content %}
+<h1>Our web reader</h1>
+<p>To show customers correct warranty facts, Smart Warranty Hub sometimes reads a brand's public warranty, care and
+support pages. This page explains how our reader behaves.</p>
+<h2>How to recognise it</h2>
+<p>It identifies itself with a user agent that starts with <code>SmartWarrantyHub</code>, for example
+<code>SmartWarrantyHub/1.0</code>.</p>
+<h2>What it does</h2>
+<ul>
+  <li>It reads your <code>robots.txt</code> first and follows its rules.</li>
+  <li>If <code>robots.txt</code> cannot be read (for example an error or a timeout), it does not read the site.</li>
+  <li>It reads only public pages. It never signs in, fills in forms or reads pages behind a log-in.</li>
+  <li>It keeps what it read for a while, so it does not need to come back often.</li>
+  <li>Customers see facts in our own words, with a link to your page as the source.</li>
+</ul>
+<h2>How to block it</h2>
+<p>Add these lines to your <code>robots.txt</code>:</p>
+<pre class="card"><code>User-agent: SmartWarrantyHub
+Disallow: /</code></pre>
+<p>Questions, or want us to stop reading your site? Write to
+<a href="mailto:support@smartwarrantyhub.com?subject=Web%20reader">support@smartwarrantyhub.com</a>.</p>
+{% endblock %}

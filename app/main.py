@@ -13,7 +13,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Depends, 
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel as PydanticBaseModel
 from sqlalchemy.exc import ProgrammingError, OperationalError
@@ -73,6 +73,7 @@ from .services import warranty_resolution_agent
 from .services import remote_diagnostics as remote_diag_service
 from .services import diagnostics_capability as diag_cap_service
 from .services import emailer as emailer_service
+from .services import site_pages
 from .services import telemetry_intelligence
 from .services import oem_aggregate as oem_aggregate_service
 from .services.runtime_safety import insecure_defaults_allowed
@@ -429,6 +430,7 @@ if _allowed_hosts:
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=_allowed_hosts)
 
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
+templates.env.globals["google_site_verification"] = lambda: (os.getenv("GOOGLE_SITE_VERIFICATION") or "").strip()
 static_path = Path(__file__).resolve().parents[1] / "static"
 app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 
@@ -442,9 +444,10 @@ def swagger_docs():
         swagger_css_url="/static/swagger-ui/swagger-ui.css",
     )
 
-@app.get("/favicon.ico")
+@app.get("/favicon.ico", include_in_schema=False)
 def favicon():
-    return Response(status_code=204)
+    return FileResponse(static_path / "brand" / "favicon.ico", media_type="image/x-icon",
+                        headers={"Cache-Control": "public, max-age=86400"})
 
 
 # Reviews Router
@@ -847,6 +850,9 @@ async def cache_dashboard(request: Request, call_next):
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
         "connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'",
     )
+    if not site_pages.is_indexable(path):
+        # Only public pages are indexed: the app, brand portal, admin pages and API are not.
+        response.headers["X-Robots-Tag"] = site_pages.NOINDEX
     if request.headers.get("x-forwarded-proto", "").lower() == "https":
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     response.headers[REQUEST_ID_HEADER] = request_id
@@ -862,37 +868,25 @@ async def cache_dashboard(request: Request, call_next):
     return response
 
 
-@app.get("/robots.txt")
-def robots_txt(request: Request):
-    base = str(request.base_url).rstrip("/")
-    body = f"User-agent: *\nAllow: /\nSitemap: {base}/sitemap.xml\n"
-    return Response(content=body, media_type="text/plain; charset=utf-8")
+@app.get("/robots.txt", include_in_schema=False)
+def robots_txt():
+    return Response(content=site_pages.robots_txt(), media_type="text/plain; charset=utf-8")
 
 
-@app.get("/sitemap.xml")
-def sitemap_xml(request: Request):
-    base = str(request.base_url).rstrip("/")
-    urls = [
-        f"{base}/",
-        f"{base}/api/health",
-        f"{base}/health/full",
-        f"{base}/ui/neo-dashboard",
-        f"{base}/auth/login",
-        f"{base}/login",
-    ]
-    now = datetime.utcnow().strftime("%Y-%m-%d")
-    rows = []
-    for u in urls:
-        rows.append(
-            f"<url><loc>{escape(u)}</loc><lastmod>{now}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>"
-        )
-    xml = (
-        '<?xml version="1.0" encoding="UTF-8"?>'
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-        + "".join(rows)
-        + "</urlset>"
-    )
-    return Response(content=xml, media_type="application/xml; charset=utf-8")
+@app.get("/sitemap.xml", include_in_schema=False)
+def sitemap_xml():
+    return Response(content=site_pages.sitemap_xml(), media_type="application/xml; charset=utf-8")
+
+
+def _public_page(template: str):
+    def page(request: Request):
+        return templates.TemplateResponse(template, {"request": request})
+    return page
+
+
+for _path, _template in site_pages.PUBLIC_PAGES.items():
+    if _template.startswith("pages/"):
+        app.add_api_route(_path, _public_page(_template), methods=["GET"], include_in_schema=False)
 
 
 @app.get("/")

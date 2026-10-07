@@ -1,0 +1,28 @@
+{% extends "public_page.html" %}
+{% set page_title = "Contact - Smart Warranty Hub" %}
+{% set page_description = "How to reach Smart Warranty Hub: help with your account, privacy questions and pilot partnerships." %}
+{% set canonical_path = "/contact" %}
+{% block content %}
+<h1>Contact us</h1>
+<p>Write to <a href="mailto:support@smartwarrantyhub.com">support@smartwarrantyhub.com</a>. We read every message and reply by email.</p>
+<div class="grid two">
+  <div class="card">
+    <h2>Help with your account</h2>
+    <p>Can't sign in? Use <a href="/forgot-password">Forgot password</a> on the sign-in page first. If that does not
+    work, email us from the address on your account.</p>
+  </div>
+  <div class="card">
+    <h2>Brands and partners</h2>
+    <p>Brand, insurer, retailer or service partner? Ask us about a pilot:
+    <a href="mailto:support@smartwarrantyhub.com?subject=Pilot%20partner">support@smartwarrantyhub.com</a>.</p>
+  </div>
+  <div class="card">
+    <h2>Privacy questions</h2>
+    <p>To see, correct or delete your data, email us from the address on your account. See our <a href="/privacy">privacy page</a>.</p>
+  </div>
+  <div class="card">
+    <h2>About our web reader</h2>
+    <p>Run a brand website and want to know how we read warranty pages? See <a href="/bot">/bot</a>.</p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+  {% include "partials/public_head.html" %}
+</head>
+<body>
+{% include "partials/public_nav.html" %}
+<main id="main">
+  <section class="section">
+    <div class="wrap page">
+      {% block content %}{% endblock %}
+    </div>
+  </section>
+</main>
+{% include "partials/public_footer.html" %}
+</body>
+</html>

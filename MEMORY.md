@@ -3373,3 +3373,26 @@ paddle): baseline 856 passed, 9 skipped (more skips than on Windows: Paddle is n
   password, changing an existing address needs the current password, CSRF as other dashboard calls); signed-in
   users without an address see "Add your email so you can reset your password later". Browser run (Playwright,
   420 px wide): banner shown, address saved, banner hidden. Tests: tests/test_account_email.py (14).
+
+## 106. Cloud batch 5 (final): site positioning, design, page titles, three sign-in doors (2026-10-07)
+Branch cloud/batch-5 from master (0cff5b4, batch 1 merged; batches 2-4 not merged, so their entries 104-105
+live on their own branches). Test gate in this container: the full suite except
+`test_field_floors_with_real_ocr`, which fails identically on clean master here (Tesseract 5.3.4 in the cloud
+container: product_category 22 correct, floor 26); batch 2 (#16, small text enlarged for Tesseract) makes it
+pass. It is not touched by this batch.
+- [x] 106.1 Design system + new homepage + public pages. static/site.css holds the tokens (navy #0F1B3D ->
+  #1E3A8A hero gradient, action blue #2563EB, confirmed/care teal #0F9F8F with #0B7A6E for text, estimate
+  amber #F59E0B, problem red #DC2626, background #F5F8FF, text #0F172A/#475569; Sora headings, Inter body) and
+  one meaning per colour. templates/public_site.html rewritten with the owner's wording: hero, five "Who we
+  help" tabs (keyboard arrows, sideways scroll on phones, teal "Pilot goal" boxes), How it works, Beyond
+  warranty, partner pitch (mailto pilot button), Trust and privacy (only claims true on master), footer.
+  Shared partials (head with title/description/canonical/Open Graph/Twitter/favicons, nav with only "For
+  brands" + "Sign in", footer). New pages /about, /contact, /privacy, /terms (plain-language drafts for the
+  owner to review), /bot (our reader's user agent, robots.txt behaviour, how to block it), /for-brands.
+  Brand files from scripts/make_brand_assets.py: favicon.svg/.ico, apple-touch-icon, 1200x630 og-image
+  (navy, headline, wordmark); /favicon.ico now serves the icon (was 204). app/services/site_pages.py: only
+  public pages are indexable; every other response gets `X-Robots-Tag: noindex, nofollow`; sitemap lists the
+  public pages on https://www.smartwarrantyhub.com; robots.txt blocks only /api/ and /auth/ (app pages must
+  stay fetchable for noindex to work, and the admin address is never listed). Browser check (Playwright):
+  no sideways scroll at 320, 360, 390 and 1366 px. Tests: tests/test_public_site.py (26). Suite: 932 passed, 2 skipped,
+  1 deselected (the real-OCR floor above).
