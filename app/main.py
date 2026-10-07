@@ -2736,75 +2736,18 @@ def _resolve_identity_suggestion(db, current, warranty_id: str, field: str, payl
     return {"value": getattr(row, field), "suggestion": suggestion}
 
 
-# ---- Question packs and care risk (services/question_packs.py) --------------------------------------------
+# ---- Care risk wording (services/care_risk.py; question packs live with the packs work) ---------------------
 
-def _owned_warranty_row(db, current: UserDB, warranty_id: str) -> WarrantyDB:
+@app.get("/warranties/{warranty_id}/care-risk", dependencies=[Depends(rbac_dependency)])
+def warranty_care_risk(warranty_id: str, db=Depends(get_db), current: UserDB = Depends(require_user)):
+    """What to show instead of a risk rating: never "Low risk" without answers."""
+    from .services import care_risk
+
     _require_warranty_access(db, user=current, warranty_id=warranty_id)
     row = db.query(WarrantyDB).filter_by(id=warranty_id).first()
     if not row:
         raise HTTPException(status_code=404, detail="Warranty not found")
-    return row
-
-
-@app.get("/warranties/{warranty_id}/questions", dependencies=[Depends(rbac_dependency)])
-def question_pack_next(warranty_id: str, db=Depends(get_db), current: UserDB = Depends(require_user)):
-    """The next 3 unanswered questions of this product type's pack (buttons, Skip, one-line why)."""
-    from .services import question_packs
-
-    return question_packs.next_batch(db, current.username, _owned_warranty_row(db, current, warranty_id))
-
-
-@app.post("/warranties/{warranty_id}/questions/answer", dependencies=[Depends(rbac_dependency)])
-def question_pack_answer(
-    warranty_id: str,
-    payload: Dict[str, Any] = Body(...),
-    db=Depends(get_db),
-    current: UserDB = Depends(require_user),
-):
-    from .services import question_packs
-
-    row = _owned_warranty_row(db, current, warranty_id)
-    try:
-        saved = question_packs.record_answer(
-            db, current.username, row, str(payload.get("question_id") or ""), str(payload.get("answer") or "")
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=f"Please pick one of the buttons ({exc}).")
-    store.warranties.pop(warranty_id, None)
-    return {**saved, "next": question_packs.next_batch(db, current.username, row)}
-
-
-@app.post("/account/share-answers", dependencies=[Depends(rbac_dependency)])
-def question_pack_share_consent(payload: Dict[str, Any] = Body(...), db=Depends(get_db), current: UserDB = Depends(require_user)):
-    """Yes/no: may your answers count, without your name, in group totals that brands see (groups of 10+)?"""
-    from .services import question_packs
-
-    share = payload.get("share")
-    if not isinstance(share, bool):
-        raise HTTPException(status_code=422, detail="share must be true or false")
-    question_packs.set_share_consent(db, current.username, share)
-    return {"share_anonymous": share}
-
-
-@app.get("/warranties/{warranty_id}/care-risk", dependencies=[Depends(rbac_dependency)])
-def warranty_care_risk(warranty_id: str, db=Depends(get_db), current: UserDB = Depends(require_user)):
-    """Care-risk label and reasons from the customer's answers; with no answers "Not enough information yet"."""
-    from .services import question_packs
-
-    row = _owned_warranty_row(db, current, warranty_id)
-    result = question_packs.care_risk(db, current.username, row)
-    if result["reminders"]:
-        question_packs.send_reminders(db, current.username, row, result["reminders"])
-    return result
-
-
-@app.get("/oem/question-insights", dependencies=[Depends(require_oem_or_admin)])
-def oem_question_insights(brand: str, pack: str, question_id: str, db=Depends(get_db)):
-    """Anonymous answer counts for one brand, product type and question: consenting customers only, and only
-    for groups of 10 or more. No names, products, places or dates."""
-    from .services import question_packs
-
-    return question_packs.group_counts(db, brand=brand, pack=pack, question_id=question_id)
+    return care_risk.summary(db, current.username, row)
 
 
 @app.post("/warranties/{warranty_id}/duplicate", dependencies=[Depends(rbac_dependency)])

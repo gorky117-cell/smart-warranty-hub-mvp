@@ -3523,3 +3523,13 @@ missing, model none, seller "Page 1 Of 1, I-1/1", category "appliance", product 
   showed the internal ID and the estimated expiry/coverage (now the name only, no estimated dates); notification
   toasts fell back to the internal ID (now the product name); answer buttons were full-width on phones.
   Tests: tests/test_question_packs.py (21).
+
+### 105 review (owner's changes to PR #3, same branch)
+- [x] 105.11 Question packs removed from this branch (code, 8-type content, tables question_pack_answers /
+  question_pack_consents, endpoints /warranties/{id}/questions*, /account/share-answers, /oem/question-insights,
+  dashboard block, tests): `desktop/batch-3` owns packs (30 data files, draft/approve). Kept: everything else.
+  Risk wording now in services/care_risk.py: "Not enough information yet - answer 3 quick questions" only when an
+  APPROVED pack with questions exists for the product (asked through care_packs.customer_pack, the packs
+  branch's function; absent here, so today every product says) "We can't rate this yet."; with answers the packs
+  module's label and reasons are passed through; age note always. Dashboard badge: never "Low risk" without
+  answers. Tests: tests/test_care_risk.py (11, with a stand-in packs module).

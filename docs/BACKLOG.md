@@ -40,7 +40,8 @@ session can do (one branch per batch, `cloud/batch-N`).
 ## Done in cloud batch 3 (branch `cloud/batch-3`)
 - [x] Amazon 2017 invoice: date after headings, seller from "Sold By", model from bracketed specs, price /
   capacity / stars / type, delivery city+state with consent, duplicate invoices, customer screens, estimates
-  without numbers, Voltas diagnosis (docs/VOLTAS_DIAGNOSIS.md), question packs for 8 product types, risk wording.
+  without numbers, Voltas diagnosis (docs/VOLTAS_DIAGNOSIS.md), risk wording. (Question packs are owned by
+  `desktop/batch-3`; this branch only asks its approved packs.)
 
 ## Known gaps
 23. "Please check these details" (model/serial to confirm) still sits inside the collapsed "More product details"
