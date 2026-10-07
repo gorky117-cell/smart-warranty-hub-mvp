@@ -1,0 +1,288 @@
+{
+  "product_type": "iron_steamer",
+  "label": "Iron or garment steamer",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric"
+  ],
+  "match": {
+    "lines": [],
+    "keywords": [
+      "iron",
+      "dry iron",
+      "steam iron",
+      "garment steamer",
+      "steamer"
+    ]
+  },
+  "questions": [
+    {
+      "id": "uses_per_week",
+      "text": "How many times a week is it used?",
+      "why": "Heavy use wears the soleplate and heater.",
+      "answers": [
+        {
+          "value": "under_3",
+          "label": "Less than 3"
+        },
+        {
+          "value": "3_7",
+          "label": "3 to 7"
+        },
+        {
+          "value": "over_7",
+          "label": "More than 7"
+        }
+      ]
+    },
+    {
+      "id": "water",
+      "text": "What water goes in the steam tank?",
+      "why": "Hard water leaves scale that blocks the steam holes.",
+      "answers": [
+        {
+          "value": "filtered",
+          "label": "Filtered or the type the manual says"
+        },
+        {
+          "value": "tap",
+          "label": "Tap water"
+        },
+        {
+          "value": "dry_iron",
+          "label": "It is a dry iron"
+        }
+      ]
+    },
+    {
+      "id": "left_on",
+      "text": "Is it ever left on and unattended?",
+      "why": "An unattended hot iron is a fire risk.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        }
+      ]
+    },
+    {
+      "id": "cord",
+      "text": "Is the power cord in good condition?",
+      "why": "Damaged cords are a shock and fire risk.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "worn",
+          "label": "Worn or damaged"
+        }
+      ]
+    },
+    {
+      "id": "storage",
+      "text": "How is it stored after use?",
+      "why": "Storing it hot or with water inside causes damage.",
+      "answers": [
+        {
+          "value": "cool_empty",
+          "label": "Cooled and empty"
+        },
+        {
+          "value": "hot_or_full",
+          "label": "Still hot or with water"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed leaks, spitting water, a burning smell or sparks?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "leak",
+          "label": "Leaks or spitting"
+        },
+        {
+          "value": "smell",
+          "label": "Burning smell"
+        },
+        {
+          "value": "sparks",
+          "label": "Sparks"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off and unplug the iron before cleaning it.",
+      "why": "Cleaning an appliance that is plugged in risks an electric shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the iron yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_bypass",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't bypass or tamper with the thermostat or any safety cut-out.",
+      "why": "These stop the appliance overheating; without them it can cause burns or a fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "unattended",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Unplug the iron whenever you step away.",
+      "why": "An unattended hot iron can start a fire.",
+      "trigger": {
+        "answers": {
+          "left_on": [
+            "sometimes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "damaged_cord",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Stop using it if the cord is worn or damaged, and contact the brand's service.",
+      "why": "Damaged cords can cause shocks and fires.",
+      "trigger": {
+        "answers": {
+          "cord": [
+            "worn"
+          ]
+        }
+      }
+    },
+    {
+      "id": "water_type",
+      "priority": "MEDIUM",
+      "text": "Use the type of water your manual recommends.",
+      "why": "Hard water leaves scale that blocks the steam holes.",
+      "trigger": {
+        "answers": {
+          "water": [
+            "tap"
+          ]
+        }
+      }
+    },
+    {
+      "id": "store",
+      "priority": "LOW",
+      "text": "Let it cool and empty the tank before putting it away.",
+      "why": "Water and heat left inside cause damage.",
+      "trigger": {
+        "answers": {
+          "storage": [
+            "hot_or_full"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "HIGH",
+      "text": "If it sparks or smells of burning, unplug it and contact the brand's service.",
+      "why": "These can be signs of a dangerous fault.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "smell",
+            "sparks"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "self_clean",
+      "text": "Run the iron's self-clean or descale as your manual describes.",
+      "interval_days": 30,
+      "interval_text": "about once a month for steam irons",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "water",
+      "answers": [
+        "tap"
+      ],
+      "effect": "raise",
+      "reason": "Hard water leaves scale."
+    },
+    {
+      "question": "left_on",
+      "answers": [
+        "sometimes"
+      ],
+      "effect": "raise",
+      "reason": "An unattended iron is a fire risk."
+    },
+    {
+      "question": "cord",
+      "answers": [
+        "worn"
+      ],
+      "effect": "raise",
+      "reason": "A damaged cord is a shock and fire risk."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "leak",
+        "smell",
+        "sparks"
+      ],
+      "effect": "raise",
+      "reason": "These are signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Iron or steamer",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Soleplate coating",
+      "note": "Often not covered for scratches or wear - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Scratches or damage to the soleplate",
+    "Damage from scale or the wrong water",
+    "Damage from voltage fluctuations",
+    "Burn marks"
+  ]
+}

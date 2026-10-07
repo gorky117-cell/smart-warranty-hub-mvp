@@ -1,0 +1,300 @@
+{
+  "product_type": "water_purifier",
+  "label": "Water purifier",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric"
+  ],
+  "match": {
+    "lines": [
+      "purifier"
+    ],
+    "keywords": [
+      "water purifier",
+      "ro purifier",
+      "uv purifier",
+      "ro+uv",
+      "purifier"
+    ]
+  },
+  "questions": [
+    {
+      "id": "tds",
+      "text": "Is your water source a borewell, tanker or municipal supply?",
+      "why": "Hard or salty water wears the membrane faster.",
+      "answers": [
+        {
+          "value": "municipal",
+          "label": "Municipal"
+        },
+        {
+          "value": "borewell",
+          "label": "Borewell or tanker"
+        },
+        {
+          "value": "not_sure",
+          "label": "Not sure"
+        }
+      ]
+    },
+    {
+      "id": "litres_per_day",
+      "text": "Roughly how much purified water is used each day?",
+      "why": "Heavy use wears the filters faster.",
+      "answers": [
+        {
+          "value": "under_10",
+          "label": "Less than 10 litres"
+        },
+        {
+          "value": "10_25",
+          "label": "10 to 25 litres"
+        },
+        {
+          "value": "over_25",
+          "label": "More than 25 litres"
+        }
+      ]
+    },
+    {
+      "id": "filter_change",
+      "text": "When were the filters or membrane last changed?",
+      "why": "Old filters stop cleaning the water well.",
+      "answers": [
+        {
+          "value": "under_6m",
+          "label": "Within 6 months"
+        },
+        {
+          "value": "6_12m",
+          "label": "6 to 12 months ago"
+        },
+        {
+          "value": "over_12m",
+          "label": "More than a year ago"
+        },
+        {
+          "value": "never",
+          "label": "Never"
+        }
+      ]
+    },
+    {
+      "id": "taste",
+      "text": "Has the taste or smell of the water changed?",
+      "why": "A change can mean the filters need attention.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "yes",
+          "label": "Yes"
+        }
+      ]
+    },
+    {
+      "id": "power_issues",
+      "text": "Does the power at home often dip, flicker or trip?",
+      "why": "Unsteady power can damage the electronics.",
+      "answers": [
+        {
+          "value": "often",
+          "label": "Often"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed leaks, slow flow or the purifier running non-stop?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "leak",
+          "label": "Leaks"
+        },
+        {
+          "value": "slow",
+          "label": "Slow flow"
+        },
+        {
+          "value": "nonstop",
+          "label": "Runs non-stop"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off and unplug the purifier before cleaning it.",
+      "why": "Cleaning an appliance that is plugged in risks an electric shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the purifier yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "filter_change",
+      "priority": "HIGH",
+      "text": "Have the filters and membrane changed by the brand's service on schedule.",
+      "why": "Old filters stop cleaning the water properly.",
+      "trigger": {
+        "answers": {
+          "filter_change": [
+            "over_12m",
+            "never"
+          ],
+          "taste": [
+            "yes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "hard_water",
+      "priority": "MEDIUM",
+      "text": "If your water is hard or from a borewell, ask the brand's service about the right settings and service interval.",
+      "why": "Hard water wears the membrane faster.",
+      "trigger": {
+        "answers": {
+          "tds": [
+            "borewell"
+          ]
+        }
+      }
+    },
+    {
+      "id": "surge",
+      "priority": "MEDIUM",
+      "text": "Use a surge protector if the power is unsteady.",
+      "why": "Power swings can damage the pump and UV lamp.",
+      "trigger": {
+        "answers": {
+          "power_issues": [
+            "often"
+          ]
+        }
+      }
+    },
+    {
+      "id": "tank_clean",
+      "priority": "LOW",
+      "text": "Ask for the storage tank to be cleaned at service visits.",
+      "why": "A clean tank keeps the water safe.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "HIGH",
+      "text": "If it leaks, the flow slows or it runs non-stop, switch it off and contact the brand's service.",
+      "why": "Leaks and non-stop running can damage the pump.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "leak",
+            "slow",
+            "nonstop"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "service",
+      "text": "Book a water purifier service and filter check.",
+      "interval_days": 180,
+      "interval_text": "about every 6 months",
+      "note": "Check your manual and warranty card for the recommended filter schedule."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "tds",
+      "answers": [
+        "borewell"
+      ],
+      "effect": "raise",
+      "reason": "Hard water wears the membrane faster."
+    },
+    {
+      "question": "litres_per_day",
+      "answers": [
+        "over_25"
+      ],
+      "effect": "raise",
+      "reason": "Heavy use wears the filters faster."
+    },
+    {
+      "question": "filter_change",
+      "answers": [
+        "under_6m"
+      ],
+      "effect": "lower",
+      "reason": "Fresh filters work properly."
+    },
+    {
+      "question": "filter_change",
+      "answers": [
+        "over_12m",
+        "never"
+      ],
+      "effect": "raise",
+      "reason": "Old filters stop working well."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "leak",
+        "slow",
+        "nonstop"
+      ],
+      "effect": "raise",
+      "reason": "These are signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Purifier",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Filters, membrane and UV lamp",
+      "note": "Usually consumables, not covered - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Filters, membranes, UV lamps and other consumables",
+    "Damage from very hard or untreated water",
+    "Damage from voltage fluctuations",
+    "Installation by people the brand has not authorised"
+  ]
+}

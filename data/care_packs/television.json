@@ -1,0 +1,326 @@
+{
+  "product_type": "television",
+  "label": "Television",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric"
+  ],
+  "match": {
+    "lines": [
+      "tv"
+    ],
+    "keywords": [
+      "television",
+      "smart tv",
+      "led tv",
+      "oled",
+      "qled",
+      "tv"
+    ]
+  },
+  "questions": [
+    {
+      "id": "hours_per_day",
+      "text": "How many hours a day is the TV on?",
+      "why": "Long daily use wears the panel and backlight.",
+      "answers": [
+        {
+          "value": "under_4h",
+          "label": "Less than 4 hours"
+        },
+        {
+          "value": "4_8h",
+          "label": "4 to 8 hours"
+        },
+        {
+          "value": "over_8h",
+          "label": "More than 8 hours"
+        }
+      ]
+    },
+    {
+      "id": "power_issues",
+      "text": "Does the power at home often dip, flicker or trip?",
+      "why": "Unsteady power can damage the electronics.",
+      "answers": [
+        {
+          "value": "often",
+          "label": "Often"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "surge",
+      "text": "Is it plugged into a surge protector or stabilizer?",
+      "why": "These protect against power spikes.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "not_sure",
+          "label": "Not sure"
+        }
+      ]
+    },
+    {
+      "id": "mounting",
+      "text": "How is the TV placed?",
+      "why": "A firm mount or stand prevents falls that break the panel.",
+      "answers": [
+        {
+          "value": "wall_pro",
+          "label": "Wall-mounted by a technician"
+        },
+        {
+          "value": "stand",
+          "label": "On its stand"
+        },
+        {
+          "value": "wall_diy",
+          "label": "Wall-mounted by someone else"
+        },
+        {
+          "value": "unstable",
+          "label": "On an unsteady surface"
+        }
+      ]
+    },
+    {
+      "id": "ventilation",
+      "text": "Is there space around the back and sides of the TV?",
+      "why": "A television needs air around it to stay cool.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "tight",
+          "label": "It is in a tight cabinet"
+        }
+      ]
+    },
+    {
+      "id": "children_pets",
+      "text": "Are there small children or pets near the TV?",
+      "why": "Bumps and pulled cables are a common cause of broken panels.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "yes",
+          "label": "Yes"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed lines on the screen, flicker or no sound?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "lines",
+          "label": "Lines or patches"
+        },
+        {
+          "value": "flicker",
+          "label": "Flicker"
+        },
+        {
+          "value": "no_sound",
+          "label": "Sound problems"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off and unplug the TV before cleaning it.",
+      "why": "Cleaning an appliance that is plugged in risks an electric shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the TV yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "surge",
+      "priority": "HIGH",
+      "text": "Plug the TV into a surge protector, and unplug it during lightning storms.",
+      "why": "Power surges are a common cause of TV failures.",
+      "trigger": {
+        "answers": {
+          "power_issues": [
+            "often",
+            "sometimes"
+          ],
+          "surge": [
+            "no",
+            "not_sure"
+          ]
+        }
+      }
+    },
+    {
+      "id": "screen_clean",
+      "priority": "MEDIUM",
+      "text": "Clean the screen with a soft dry cloth and no sprays or strong cleaners.",
+      "why": "Liquids and chemicals can damage the screen coating.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "secure",
+      "priority": "HIGH",
+      "text": "Make sure the TV is firmly mounted or on a stable stand.",
+      "why": "A fall can break the panel.",
+      "trigger": {
+        "answers": {
+          "mounting": [
+            "wall_diy",
+            "unstable"
+          ],
+          "children_pets": [
+            "yes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "airflow",
+      "priority": "MEDIUM",
+      "text": "Leave space around the TV for air to flow.",
+      "why": "Heat shortens the life of the electronics.",
+      "trigger": {
+        "answers": {
+          "ventilation": [
+            "tight"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "MEDIUM",
+      "text": "If lines, patches, flicker or sound problems appear, contact the brand's service.",
+      "why": "Early checks can find faults while the warranty applies.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "lines",
+            "flicker",
+            "no_sound"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "dust",
+      "text": "Dust the TV's vents and the area around it (switched off and unplugged).",
+      "interval_days": 30,
+      "interval_text": "about once a month",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "hours_per_day",
+      "answers": [
+        "over_8h"
+      ],
+      "effect": "raise",
+      "reason": "Long daily use wears the panel and backlight."
+    },
+    {
+      "question": "power_issues",
+      "answers": [
+        "often"
+      ],
+      "effect": "raise",
+      "reason": "Power surges can damage the electronics."
+    },
+    {
+      "question": "surge",
+      "answers": [
+        "yes"
+      ],
+      "effect": "lower",
+      "reason": "A surge protector guards against power spikes."
+    },
+    {
+      "question": "mounting",
+      "answers": [
+        "unstable",
+        "wall_diy"
+      ],
+      "effect": "raise",
+      "reason": "An insecure TV can fall and break."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "lines",
+        "flicker",
+        "no_sound"
+      ],
+      "effect": "raise",
+      "reason": "These are early signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Whole TV",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Display panel",
+      "note": "Some brands cover the panel for a different period - check your warranty card."
+    },
+    {
+      "part": "Remote and accessories",
+      "note": "Often covered for a shorter time or not at all - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Physical damage to the screen, including cracks",
+    "Damage from power surges or lightning",
+    "Damage from wall mounting not done by the brand's technician",
+    "Liquid damage",
+    "Remote controls and batteries"
+  ]
+}

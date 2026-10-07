@@ -1,0 +1,371 @@
+{
+  "product_type": "laptop",
+  "label": "Laptop",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric",
+    "battery"
+  ],
+  "match": {
+    "lines": [
+      "laptop"
+    ],
+    "keywords": [
+      "laptop",
+      "notebook",
+      "ultrabook",
+      "chromebook",
+      "macbook"
+    ]
+  },
+  "questions": [
+    {
+      "id": "hours_per_day",
+      "text": "How many hours a day is the laptop used?",
+      "why": "Long daily use wears the battery, fans and keyboard.",
+      "answers": [
+        {
+          "value": "under_4h",
+          "label": "Less than 4 hours"
+        },
+        {
+          "value": "4_8h",
+          "label": "4 to 8 hours"
+        },
+        {
+          "value": "over_8h",
+          "label": "More than 8 hours"
+        }
+      ]
+    },
+    {
+      "id": "surface",
+      "text": "Where is it usually used?",
+      "why": "Soft surfaces block the air vents and trap heat.",
+      "answers": [
+        {
+          "value": "desk",
+          "label": "On a desk or table"
+        },
+        {
+          "value": "bed",
+          "label": "On a bed or sofa"
+        },
+        {
+          "value": "lap",
+          "label": "On the lap"
+        }
+      ]
+    },
+    {
+      "id": "charger",
+      "text": "Which charger is usually used?",
+      "why": "Poor or mismatched chargers are a common cause of battery and port damage.",
+      "answers": [
+        {
+          "value": "original",
+          "label": "The one it came with"
+        },
+        {
+          "value": "certified",
+          "label": "Another branded charger"
+        },
+        {
+          "value": "cheap",
+          "label": "A cheap or unbranded one"
+        },
+        {
+          "value": "mixed",
+          "label": "Whatever is around"
+        }
+      ]
+    },
+    {
+      "id": "backup",
+      "text": "Are your files backed up?",
+      "why": "A backup protects your work if a repair or drive fails.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "carry",
+      "text": "How is it carried around?",
+      "why": "Padding protects against knocks.",
+      "answers": [
+        {
+          "value": "padded_bag",
+          "label": "In a padded bag"
+        },
+        {
+          "value": "ordinary_bag",
+          "label": "In an ordinary bag"
+        },
+        {
+          "value": "rarely_moved",
+          "label": "Rarely moved"
+        }
+      ]
+    },
+    {
+      "id": "food_drink",
+      "text": "Do you eat or drink near the laptop?",
+      "why": "Spills are a common cause of keyboard and board damage.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "often",
+          "label": "Often"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed loud fans, overheating, a swollen battery or a slow start?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "hot",
+          "label": "Overheating or loud fans"
+        },
+        {
+          "value": "swelling",
+          "label": "Swollen battery or lifting touchpad"
+        },
+        {
+          "value": "slow",
+          "label": "Very slow"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "battery_swell",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Stop using the laptop and keep it away from anything that can burn if the battery swells, gets very hot or smells unusual.",
+      "why": "A damaged battery can catch fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "battery_no_open",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open, puncture or crush the battery, and don't use it after a hard fall that dented it.",
+      "why": "Damaged battery cells can overheat or catch fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off and unplug the laptop before cleaning it.",
+      "why": "Cleaning an appliance that is plugged in risks an electric shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "hard_surface",
+      "priority": "MEDIUM",
+      "text": "Use the laptop on a hard, flat surface so the vents are not blocked.",
+      "why": "Blocked vents make it overheat.",
+      "trigger": {
+        "answers": {
+          "surface": [
+            "bed",
+            "lap"
+          ]
+        }
+      }
+    },
+    {
+      "id": "charger",
+      "priority": "HIGH",
+      "text": "Use the laptop's own charger or one with the same rating from the brand.",
+      "why": "A wrong charger can damage the battery and the charging circuit.",
+      "trigger": {
+        "answers": {
+          "charger": [
+            "cheap",
+            "mixed"
+          ]
+        }
+      }
+    },
+    {
+      "id": "backup",
+      "priority": "HIGH",
+      "text": "Back up your files regularly.",
+      "why": "A repair or a failed drive can lose your data.",
+      "trigger": {
+        "answers": {
+          "backup": [
+            "sometimes",
+            "no"
+          ]
+        }
+      }
+    },
+    {
+      "id": "no_spills",
+      "priority": "MEDIUM",
+      "text": "Keep drinks away from the keyboard.",
+      "why": "Spills damage the keyboard and the board inside.",
+      "trigger": {
+        "answers": {
+          "food_drink": [
+            "sometimes",
+            "often"
+          ]
+        }
+      }
+    },
+    {
+      "id": "padded_bag",
+      "priority": "LOW",
+      "text": "Carry the laptop in a padded bag.",
+      "why": "Padding protects against knocks.",
+      "trigger": {
+        "answers": {
+          "carry": [
+            "ordinary_bag"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "MEDIUM",
+      "text": "If it overheats, the fans get loud or it slows down a lot, contact the brand's service.",
+      "why": "These can be signs of a cooling or drive problem.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "hot",
+            "slow"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "backup",
+      "text": "Back up the files on your laptop.",
+      "interval_days": 30,
+      "interval_text": "about once a month",
+      "note": "Check your manual or system settings for automatic backup."
+    },
+    {
+      "id": "vents",
+      "text": "Check the laptop's vents are free of dust (switched off and unplugged).",
+      "interval_days": 90,
+      "interval_text": "about every 3 months",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "hours_per_day",
+      "answers": [
+        "over_8h"
+      ],
+      "effect": "raise",
+      "reason": "Long daily use wears the battery and fans."
+    },
+    {
+      "question": "surface",
+      "answers": [
+        "bed",
+        "lap"
+      ],
+      "effect": "raise",
+      "reason": "Blocked vents make it run hot."
+    },
+    {
+      "question": "charger",
+      "answers": [
+        "cheap",
+        "mixed"
+      ],
+      "effect": "raise",
+      "reason": "A wrong charger can damage the battery."
+    },
+    {
+      "question": "food_drink",
+      "answers": [
+        "often"
+      ],
+      "effect": "raise",
+      "reason": "Spills are a common cause of damage."
+    },
+    {
+      "question": "carry",
+      "answers": [
+        "padded_bag"
+      ],
+      "effect": "lower",
+      "reason": "A padded bag protects against knocks."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "hot",
+        "swelling",
+        "slow"
+      ],
+      "effect": "raise",
+      "reason": "These are early signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Laptop",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Battery",
+      "note": "Often covered for a shorter period - check your warranty card."
+    },
+    {
+      "part": "Charger and accessories",
+      "note": "Often covered separately - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Liquid damage and spills",
+    "Physical damage, including a cracked screen",
+    "Software problems, viruses and data loss",
+    "Repairs by people the brand has not authorised",
+    "Damage from chargers that are not genuine"
+  ]
+}

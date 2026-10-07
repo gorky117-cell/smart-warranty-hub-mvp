@@ -1,0 +1,316 @@
+{
+  "product_type": "tablet",
+  "label": "Tablet",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric",
+    "battery"
+  ],
+  "match": {
+    "lines": [],
+    "keywords": [
+      "tablet",
+      "ipad",
+      "tab"
+    ]
+  },
+  "questions": [
+    {
+      "id": "charger",
+      "text": "Which charger is usually used?",
+      "why": "Poor or mismatched chargers are a common cause of battery and port damage.",
+      "answers": [
+        {
+          "value": "original",
+          "label": "The one it came with"
+        },
+        {
+          "value": "certified",
+          "label": "Another branded charger"
+        },
+        {
+          "value": "cheap",
+          "label": "A cheap or unbranded one"
+        },
+        {
+          "value": "mixed",
+          "label": "Whatever is around"
+        }
+      ]
+    },
+    {
+      "id": "case_guard",
+      "text": "Does the tablet have a case and a screen guard?",
+      "why": "They take the knocks that crack screens.",
+      "answers": [
+        {
+          "value": "both",
+          "label": "Both"
+        },
+        {
+          "value": "one",
+          "label": "One of them"
+        },
+        {
+          "value": "none",
+          "label": "Neither"
+        }
+      ]
+    },
+    {
+      "id": "children",
+      "text": "Is it mostly used by children?",
+      "why": "Drops and spills are more common with young users.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "yes",
+          "label": "Yes"
+        }
+      ]
+    },
+    {
+      "id": "heat",
+      "text": "Is it often charged or left in hot places?",
+      "why": "Heat ages the battery faster.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "yes",
+          "label": "Yes"
+        }
+      ]
+    },
+    {
+      "id": "drops",
+      "text": "Has it been dropped hard in the last few months?",
+      "why": "Drops can damage inner parts even without visible cracks.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "once",
+          "label": "Once"
+        },
+        {
+          "value": "several",
+          "label": "Several times"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed the battery swelling, the tablet getting very hot or draining fast?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "swelling",
+          "label": "Swelling"
+        },
+        {
+          "value": "hot",
+          "label": "Very hot"
+        },
+        {
+          "value": "drain",
+          "label": "Draining fast"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "battery_swell",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Stop using the tablet and keep it away from anything that can burn if the battery swells, gets very hot or smells unusual.",
+      "why": "A damaged battery can catch fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "battery_no_open",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open, puncture or crush the battery, and don't use it after a hard fall that dented it.",
+      "why": "Damaged battery cells can overheat or catch fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch the tablet off and unplug the charger before cleaning it.",
+      "why": "Cleaning a charging device risks a short circuit.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "charger",
+      "priority": "HIGH",
+      "text": "Charge with the charger it came with or another certified one.",
+      "why": "Poor chargers can damage the battery.",
+      "trigger": {
+        "answers": {
+          "charger": [
+            "cheap",
+            "mixed"
+          ]
+        }
+      }
+    },
+    {
+      "id": "protect",
+      "priority": "MEDIUM",
+      "text": "Use a sturdy case and a screen guard.",
+      "why": "They protect against drops.",
+      "trigger": {
+        "answers": {
+          "case_guard": [
+            "one",
+            "none"
+          ],
+          "children": [
+            "yes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "heat",
+      "priority": "MEDIUM",
+      "text": "Avoid charging or leaving the tablet in hot places.",
+      "why": "Heat ages the battery faster.",
+      "trigger": {
+        "answers": {
+          "heat": [
+            "yes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "clean_screen",
+      "priority": "LOW",
+      "text": "Clean the screen with a soft dry cloth and no sprays.",
+      "why": "Liquids can seep in and damage the screen.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "updates",
+      "priority": "LOW",
+      "text": "Install software updates when offered.",
+      "why": "Updates fix bugs and security problems.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "HIGH",
+      "text": "If it runs very hot or drains fast, contact the brand's service.",
+      "why": "These can be signs of a battery problem.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "hot",
+            "drain"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "backup",
+      "text": "Back up the photos and files on your tablet.",
+      "interval_days": 30,
+      "interval_text": "about once a month",
+      "note": "Check your manual or device settings for automatic backup."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "charger",
+      "answers": [
+        "cheap",
+        "mixed"
+      ],
+      "effect": "raise",
+      "reason": "Poor chargers can damage the battery."
+    },
+    {
+      "question": "case_guard",
+      "answers": [
+        "both"
+      ],
+      "effect": "lower",
+      "reason": "A case and screen guard protect against drops."
+    },
+    {
+      "question": "children",
+      "answers": [
+        "yes"
+      ],
+      "effect": "raise",
+      "reason": "Drops and spills are more common."
+    },
+    {
+      "question": "drops",
+      "answers": [
+        "several"
+      ],
+      "effect": "raise",
+      "reason": "Repeated drops can damage inner parts."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "swelling",
+        "hot",
+        "drain"
+      ],
+      "effect": "raise",
+      "reason": "These can be signs of a battery fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Tablet",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Battery",
+      "note": "Often covered for a shorter period - check your warranty card."
+    },
+    {
+      "part": "Charger and accessories",
+      "note": "Often covered separately - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Physical damage, including a cracked screen",
+    "Liquid damage",
+    "Repairs by people the brand has not authorised",
+    "Damage from chargers that are not genuine"
+  ]
+}

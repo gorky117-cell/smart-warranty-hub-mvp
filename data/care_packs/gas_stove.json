@@ -1,0 +1,283 @@
+{
+  "product_type": "gas_stove",
+  "label": "Gas stove or hob",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "gas"
+  ],
+  "match": {
+    "lines": [],
+    "keywords": [
+      "gas stove",
+      "gas hob",
+      "hob",
+      "cooktop",
+      "burner"
+    ]
+  },
+  "questions": [
+    {
+      "id": "hose_age",
+      "text": "When was the gas hose last checked or changed?",
+      "why": "Old or cracked hoses can leak.",
+      "answers": [
+        {
+          "value": "under_1y",
+          "label": "Within the last year"
+        },
+        {
+          "value": "over_1y",
+          "label": "More than a year ago"
+        },
+        {
+          "value": "not_sure",
+          "label": "Not sure"
+        }
+      ]
+    },
+    {
+      "id": "flame",
+      "text": "What colour is the flame?",
+      "why": "A yellow or uneven flame can mean blocked burners.",
+      "answers": [
+        {
+          "value": "blue",
+          "label": "Steady blue"
+        },
+        {
+          "value": "yellow",
+          "label": "Yellow or uneven"
+        }
+      ]
+    },
+    {
+      "id": "ignition",
+      "text": "Does the automatic ignition (if any) work first time?",
+      "why": "Repeated clicking can mean a fault.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "no_auto",
+          "label": "No automatic ignition"
+        }
+      ]
+    },
+    {
+      "id": "ventilation",
+      "text": "Is the kitchen well ventilated while cooking?",
+      "why": "Fresh air keeps gas from collecting.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "cleaning",
+      "text": "How often are the burners cleaned?",
+      "why": "Spills block the burner holes.",
+      "answers": [
+        {
+          "value": "weekly",
+          "label": "About once a week"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "smell",
+      "text": "Have you ever smelled gas near the stove?",
+      "why": "A gas smell needs urgent attention.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "yes",
+          "label": "Yes"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "gas_smell",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "If you smell gas: close the gas supply, don't switch anything electrical on or off, open doors and windows to ventilate, and call your gas or service number from outside.",
+      "why": "A spark in a room full of gas can cause an explosion.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "valve_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Turn the knobs and the gas supply off when you finish cooking.",
+      "why": "This stops gas escaping.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "hose_check",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Have the gas hose checked, and replaced when it is old or cracked, by your gas provider or the brand's service.",
+      "why": "Old hoses can leak.",
+      "trigger": {
+        "answers": {
+          "hose_age": [
+            "over_1y",
+            "not_sure"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ventilate",
+      "priority": "MEDIUM",
+      "text": "Keep a window open or the chimney on while cooking.",
+      "why": "Fresh air stops gas collecting.",
+      "trigger": {
+        "answers": {
+          "ventilation": [
+            "no"
+          ]
+        }
+      }
+    },
+    {
+      "id": "clean_burners",
+      "priority": "MEDIUM",
+      "text": "Clean the burners as the manual describes once they are cool.",
+      "why": "Clean burners give a steady blue flame.",
+      "trigger": {
+        "answers": {
+          "cleaning": [
+            "rarely"
+          ],
+          "flame": [
+            "yellow"
+          ]
+        }
+      }
+    },
+    {
+      "id": "flame_service",
+      "priority": "MEDIUM",
+      "text": "If the flame stays yellow or uneven, contact the brand's service.",
+      "why": "It can mean the gas is not burning properly.",
+      "trigger": {
+        "answers": {
+          "flame": [
+            "yellow"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ignition",
+      "priority": "LOW",
+      "text": "If the ignition keeps clicking without lighting, turn the knob off and contact the brand's service.",
+      "why": "Unlit gas can collect.",
+      "trigger": {
+        "answers": {
+          "ignition": [
+            "no"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "hose",
+      "text": "Check the gas hose for cracks and ask for it to be checked.",
+      "interval_days": 180,
+      "interval_text": "about every 6 months",
+      "note": "Check your manual and your gas provider's advice."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "hose_age",
+      "answers": [
+        "over_1y",
+        "not_sure"
+      ],
+      "effect": "raise",
+      "reason": "Old hoses can leak."
+    },
+    {
+      "question": "flame",
+      "answers": [
+        "yellow"
+      ],
+      "effect": "raise",
+      "reason": "A yellow flame can mean blocked burners."
+    },
+    {
+      "question": "ventilation",
+      "answers": [
+        "no"
+      ],
+      "effect": "raise",
+      "reason": "Poor ventilation lets gas collect."
+    },
+    {
+      "question": "smell",
+      "answers": [
+        "yes"
+      ],
+      "effect": "raise",
+      "reason": "A gas smell needs urgent attention."
+    },
+    {
+      "question": "cleaning",
+      "answers": [
+        "weekly"
+      ],
+      "effect": "lower",
+      "reason": "Clean burners burn better."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Stove body",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Glass top",
+      "note": "Often not covered for breakage - check your warranty card."
+    },
+    {
+      "part": "Burners and knobs",
+      "note": "Some parts may be covered separately - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Broken or cracked glass",
+    "Gas hoses and regulators",
+    "Rust and discolouration",
+    "Installation by people the brand has not authorised"
+  ]
+}

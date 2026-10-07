@@ -1,0 +1,279 @@
+{
+  "product_type": "ceiling_fan",
+  "label": "Ceiling fan",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric"
+  ],
+  "match": {
+    "lines": [
+      "fan"
+    ],
+    "keywords": [
+      "ceiling fan",
+      "bldc fan",
+      "fan"
+    ]
+  },
+  "questions": [
+    {
+      "id": "hours_per_day",
+      "text": "How many hours a day does the fan run?",
+      "why": "Long running wears the motor and bearings.",
+      "answers": [
+        {
+          "value": "under_8h",
+          "label": "Less than 8 hours"
+        },
+        {
+          "value": "8_16h",
+          "label": "8 to 16 hours"
+        },
+        {
+          "value": "over_16h",
+          "label": "More than 16 hours"
+        }
+      ]
+    },
+    {
+      "id": "wobble",
+      "text": "Does the fan wobble or make a clicking sound?",
+      "why": "Wobble can mean loose fittings or unbalanced blades.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "a_little",
+          "label": "A little"
+        },
+        {
+          "value": "a_lot",
+          "label": "A lot"
+        }
+      ]
+    },
+    {
+      "id": "power_issues",
+      "text": "Does the power at home often dip, flicker or trip?",
+      "why": "Unsteady power can damage the electronics.",
+      "answers": [
+        {
+          "value": "often",
+          "label": "Often"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "regulator",
+      "text": "Is the speed regulator working smoothly?",
+      "why": "A faulty regulator can strain the motor.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "not_sure",
+          "label": "Not sure"
+        }
+      ]
+    },
+    {
+      "id": "installed_by",
+      "text": "Who installed the fan?",
+      "why": "Fittings and wiring need to be done properly for safety.",
+      "answers": [
+        {
+          "value": "technician",
+          "label": "An electrician or the brand's technician"
+        },
+        {
+          "value": "someone_else",
+          "label": "Someone else"
+        },
+        {
+          "value": "not_sure",
+          "label": "Not sure"
+        }
+      ]
+    },
+    {
+      "id": "dust",
+      "text": "How often are the blades cleaned?",
+      "why": "Dust adds weight and unbalances the blades.",
+      "answers": [
+        {
+          "value": "monthly",
+          "label": "About once a month"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off the fan at the wall and wait for the blades to stop before cleaning them.",
+      "why": "Cleaning a moving or powered fan risks injury and electric shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the fan motor yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "wobble",
+      "priority": "HIGH",
+      "text": "If the fan wobbles or clicks, stop using it and have the fittings checked by an electrician or the brand's service.",
+      "why": "Loose fittings can make a fan fall.",
+      "trigger": {
+        "answers": {
+          "wobble": [
+            "a_little",
+            "a_lot"
+          ]
+        }
+      }
+    },
+    {
+      "id": "check_install",
+      "priority": "HIGH",
+      "text": "Have the mounting and wiring checked by a qualified electrician.",
+      "why": "Proper fittings keep the fan secure.",
+      "trigger": {
+        "answers": {
+          "installed_by": [
+            "someone_else",
+            "not_sure"
+          ]
+        }
+      }
+    },
+    {
+      "id": "clean_blades",
+      "priority": "LOW",
+      "text": "Wipe the blades gently with a dry cloth.",
+      "why": "Dust unbalances the blades.",
+      "trigger": {
+        "answers": {
+          "dust": [
+            "rarely"
+          ]
+        }
+      }
+    },
+    {
+      "id": "regulator",
+      "priority": "MEDIUM",
+      "text": "Have a faulty regulator replaced by an electrician.",
+      "why": "A faulty regulator strains the motor.",
+      "trigger": {
+        "answers": {
+          "regulator": [
+            "no"
+          ]
+        }
+      }
+    },
+    {
+      "id": "surge",
+      "priority": "MEDIUM",
+      "text": "If the power is unsteady, ask an electrician about protection for the circuit.",
+      "why": "Power swings can damage the motor.",
+      "trigger": {
+        "answers": {
+          "power_issues": [
+            "often"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "blades",
+      "text": "Wipe the fan blades (switched off at the wall).",
+      "interval_days": 30,
+      "interval_text": "about once a month",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "hours_per_day",
+      "answers": [
+        "over_16h"
+      ],
+      "effect": "raise",
+      "reason": "Long running wears the motor."
+    },
+    {
+      "question": "wobble",
+      "answers": [
+        "a_lot"
+      ],
+      "effect": "raise",
+      "reason": "Wobble can mean loose fittings."
+    },
+    {
+      "question": "installed_by",
+      "answers": [
+        "technician"
+      ],
+      "effect": "lower",
+      "reason": "Proper installation keeps the fan secure."
+    },
+    {
+      "question": "power_issues",
+      "answers": [
+        "often"
+      ],
+      "effect": "raise",
+      "reason": "Power swings can damage the motor."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Fan",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Motor",
+      "note": "Some brands cover the motor for longer - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Damage from voltage fluctuations",
+    "Installation by people the brand has not authorised",
+    "Rust and paint damage",
+    "Damage to blades from bending or impact"
+  ]
+}

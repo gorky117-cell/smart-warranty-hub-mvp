@@ -1,0 +1,300 @@
+{
+  "product_type": "air_cooler",
+  "label": "Air cooler",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric"
+  ],
+  "match": {
+    "lines": [
+      "cooler"
+    ],
+    "keywords": [
+      "air cooler",
+      "desert cooler",
+      "personal cooler",
+      "tower cooler",
+      "cooler"
+    ]
+  },
+  "questions": [
+    {
+      "id": "water_change",
+      "text": "How often is the water in the tank changed?",
+      "why": "Stale water smells and leaves deposits.",
+      "answers": [
+        {
+          "value": "daily",
+          "label": "Every day or two"
+        },
+        {
+          "value": "weekly",
+          "label": "About once a week"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "pads",
+      "text": "When were the cooling pads last cleaned or replaced?",
+      "why": "Dirty pads cool less and smell.",
+      "answers": [
+        {
+          "value": "this_season",
+          "label": "This season"
+        },
+        {
+          "value": "last_season",
+          "label": "Last season"
+        },
+        {
+          "value": "never",
+          "label": "Never"
+        }
+      ]
+    },
+    {
+      "id": "off_season",
+      "text": "Is the tank emptied and dried before storing it for winter?",
+      "why": "Water left in the tank causes smells and damage.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "not_stored",
+          "label": "It is used all year"
+        }
+      ]
+    },
+    {
+      "id": "power_issues",
+      "text": "Does the power at home often dip, flicker or trip?",
+      "why": "Unsteady power can damage the electronics.",
+      "answers": [
+        {
+          "value": "often",
+          "label": "Often"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "placement",
+      "text": "Where is the cooler placed?",
+      "why": "Coolers work best with fresh air coming in.",
+      "answers": [
+        {
+          "value": "window",
+          "label": "Near an open window"
+        },
+        {
+          "value": "closed_room",
+          "label": "In a closed room"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed weak air, a smell, leaks or pump noise?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "weak",
+          "label": "Weak cooling"
+        },
+        {
+          "value": "smell",
+          "label": "Smell"
+        },
+        {
+          "value": "leak",
+          "label": "Leaks"
+        },
+        {
+          "value": "pump",
+          "label": "Pump noise"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off and unplug the cooler before cleaning it.",
+      "why": "Cleaning an appliance that is plugged in risks an electric shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the cooler yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "fresh_water",
+      "priority": "MEDIUM",
+      "text": "Change the tank water often and use clean water.",
+      "why": "Stale water smells and leaves deposits.",
+      "trigger": {
+        "answers": {
+          "water_change": [
+            "weekly",
+            "rarely"
+          ]
+        }
+      }
+    },
+    {
+      "id": "pads",
+      "priority": "MEDIUM",
+      "text": "Clean or replace the cooling pads as the manual suggests.",
+      "why": "Clean pads cool better.",
+      "trigger": {
+        "answers": {
+          "pads": [
+            "last_season",
+            "never"
+          ]
+        }
+      }
+    },
+    {
+      "id": "store_dry",
+      "priority": "MEDIUM",
+      "text": "Empty and dry the tank before storing the cooler.",
+      "why": "Water left inside causes smells and damage.",
+      "trigger": {
+        "answers": {
+          "off_season": [
+            "no"
+          ]
+        }
+      }
+    },
+    {
+      "id": "airflow",
+      "priority": "LOW",
+      "text": "Place the cooler near an open window or door.",
+      "why": "Coolers need fresh air to cool well.",
+      "trigger": {
+        "answers": {
+          "placement": [
+            "closed_room"
+          ]
+        }
+      }
+    },
+    {
+      "id": "no_dry_run",
+      "priority": "MEDIUM",
+      "text": "Don't run the pump when the tank is empty.",
+      "why": "Running dry can damage the pump.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "MEDIUM",
+      "text": "If it leaks or the pump gets noisy, switch it off and contact the brand's service.",
+      "why": "A failing pump can stop the cooling.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "leak",
+            "pump"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "tank_clean",
+      "text": "Empty and clean the cooler's water tank.",
+      "interval_days": 7,
+      "interval_text": "about once a week in summer",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "water_change",
+      "answers": [
+        "rarely"
+      ],
+      "effect": "raise",
+      "reason": "Stale water leaves deposits and smells."
+    },
+    {
+      "question": "pads",
+      "answers": [
+        "never"
+      ],
+      "effect": "raise",
+      "reason": "Dirty pads make the cooler work harder."
+    },
+    {
+      "question": "off_season",
+      "answers": [
+        "no"
+      ],
+      "effect": "raise",
+      "reason": "A wet tank in storage causes damage."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "leak",
+        "pump"
+      ],
+      "effect": "raise",
+      "reason": "These are early signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Cooler",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Motor and pump",
+      "note": "Some brands cover these separately - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Cooling pads and other consumable parts",
+    "Damage from running the pump dry",
+    "Damage from voltage fluctuations",
+    "Rust and plastic damage"
+  ]
+}

@@ -1,0 +1,289 @@
+{
+  "product_type": "speaker_soundbar",
+  "label": "Speaker or soundbar",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric",
+    "battery"
+  ],
+  "match": {
+    "lines": [
+      "audio"
+    ],
+    "keywords": [
+      "soundbar",
+      "sound bar",
+      "speaker",
+      "bluetooth speaker",
+      "home theatre",
+      "home theater",
+      "party speaker"
+    ]
+  },
+  "questions": [
+    {
+      "id": "kind",
+      "text": "What kind is it?",
+      "why": "Battery speakers and mains soundbars need different care.",
+      "answers": [
+        {
+          "value": "portable",
+          "label": "Portable, with a battery"
+        },
+        {
+          "value": "mains",
+          "label": "Mains-powered soundbar or speaker"
+        }
+      ]
+    },
+    {
+      "id": "volume",
+      "text": "Is it often played at full volume for long?",
+      "why": "Long full-volume play strains the speakers and amplifier.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "yes",
+          "label": "Yes"
+        }
+      ]
+    },
+    {
+      "id": "power_issues",
+      "text": "Does the power at home often dip, flicker or trip?",
+      "why": "Unsteady power can damage the electronics.",
+      "answers": [
+        {
+          "value": "often",
+          "label": "Often"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "outdoors",
+      "text": "Is it used outdoors, near water or in the rain?",
+      "why": "Water and dust can get in, even with some water resistance.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        }
+      ]
+    },
+    {
+      "id": "ventilation",
+      "text": "Is there space around it for air?",
+      "why": "Amplifiers warm up and need air.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed crackling, distortion, it not charging or switching off?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "crackling",
+          "label": "Crackling or distortion"
+        },
+        {
+          "value": "charging",
+          "label": "Not charging"
+        },
+        {
+          "value": "cuts_out",
+          "label": "Switches off"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "battery_swell",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "If a portable speaker's battery swells or gets very hot, stop using it and keep it away from anything that can burn.",
+      "why": "A damaged battery can catch fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off and unplug the speaker before cleaning it.",
+      "why": "Cleaning an appliance that is plugged in risks an electric shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the speaker yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "volume",
+      "priority": "MEDIUM",
+      "text": "Avoid long stretches at full volume.",
+      "why": "This strains the speakers and amplifier.",
+      "trigger": {
+        "answers": {
+          "volume": [
+            "yes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "surge",
+      "priority": "MEDIUM",
+      "text": "Plug a mains soundbar into a surge protector.",
+      "why": "Power spikes can damage the amplifier.",
+      "trigger": {
+        "answers": {
+          "power_issues": [
+            "often",
+            "sometimes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "outdoors",
+      "priority": "LOW",
+      "text": "Keep it away from water and bring it inside after outdoor use.",
+      "why": "Water and dust can get in.",
+      "trigger": {
+        "answers": {
+          "outdoors": [
+            "sometimes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "air",
+      "priority": "LOW",
+      "text": "Leave space around it.",
+      "why": "Amplifiers need air to stay cool.",
+      "trigger": {
+        "answers": {
+          "ventilation": [
+            "no"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "MEDIUM",
+      "text": "If it crackles at normal volume or keeps switching off, contact the brand's service.",
+      "why": "These can be signs of a fault.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "crackling",
+            "charging",
+            "cuts_out"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "dust",
+      "text": "Dust the speaker grilles and vents (switched off).",
+      "interval_days": 30,
+      "interval_text": "about once a month",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "volume",
+      "answers": [
+        "yes"
+      ],
+      "effect": "raise",
+      "reason": "Long full-volume play strains the speakers."
+    },
+    {
+      "question": "power_issues",
+      "answers": [
+        "often"
+      ],
+      "effect": "raise",
+      "reason": "Power spikes can damage the amplifier."
+    },
+    {
+      "question": "outdoors",
+      "answers": [
+        "sometimes"
+      ],
+      "effect": "raise",
+      "reason": "Water and dust can get in."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "crackling",
+        "charging",
+        "cuts_out"
+      ],
+      "effect": "raise",
+      "reason": "These are signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Speaker or soundbar",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Battery and remote",
+      "note": "Often covered for a shorter time - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Speaker damage from very loud use",
+    "Water or dust damage beyond the stated rating",
+    "Remote controls and cables",
+    "Damage from power surges"
+  ]
+}

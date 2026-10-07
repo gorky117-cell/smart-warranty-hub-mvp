@@ -1,0 +1,371 @@
+{
+  "product_type": "washing_machine",
+  "label": "Washing machine",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric"
+  ],
+  "match": {
+    "lines": [
+      "washing_machine"
+    ],
+    "keywords": [
+      "washing machine",
+      "washer",
+      "front load",
+      "top load",
+      "semi automatic",
+      "fully automatic",
+      "washer dryer"
+    ]
+  },
+  "questions": [
+    {
+      "id": "loads_per_week",
+      "text": "How many washes does it run in a week?",
+      "why": "More washes mean more wear on the motor, drum bearings and belts.",
+      "answers": [
+        {
+          "value": "under_4",
+          "label": "Fewer than 4"
+        },
+        {
+          "value": "4_8",
+          "label": "4 to 8"
+        },
+        {
+          "value": "over_8",
+          "label": "More than 8"
+        }
+      ]
+    },
+    {
+      "id": "overload",
+      "text": "Is the drum usually filled to the top?",
+      "why": "Overloading strains the motor and bearings.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No, about three-quarters"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "yes",
+          "label": "Yes, usually full"
+        }
+      ]
+    },
+    {
+      "id": "level",
+      "text": "Does the machine shake or move during the spin?",
+      "why": "An unlevel machine shakes and wears faster.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "a_little",
+          "label": "A little"
+        },
+        {
+          "value": "a_lot",
+          "label": "A lot"
+        }
+      ]
+    },
+    {
+      "id": "filter_cleaning",
+      "text": "How often is the lint or drain filter cleaned?",
+      "why": "A blocked filter slows draining and spoils washes.",
+      "answers": [
+        {
+          "value": "monthly",
+          "label": "About once a month"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        },
+        {
+          "value": "never",
+          "label": "Never / don't know where it is"
+        }
+      ]
+    },
+    {
+      "id": "water_hard",
+      "text": "Does your water leave white marks on taps and buckets?",
+      "why": "Hard water leaves scale that affects heating and the drum.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "some",
+          "label": "Some"
+        },
+        {
+          "value": "a_lot",
+          "label": "A lot"
+        }
+      ]
+    },
+    {
+      "id": "power_issues",
+      "text": "Does the power at home often dip, flicker or trip?",
+      "why": "Unsteady power can damage the electronics.",
+      "answers": [
+        {
+          "value": "often",
+          "label": "Often"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed leaks, a burning smell, error codes or water not draining?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "leak",
+          "label": "Leaks"
+        },
+        {
+          "value": "error",
+          "label": "Error codes"
+        },
+        {
+          "value": "not_draining",
+          "label": "Not draining"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off and unplug the washing machine before cleaning it.",
+      "why": "Cleaning an appliance that is plugged in risks an electric shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the washing machine yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "dont_overload",
+      "priority": "HIGH",
+      "text": "Fill the drum to about three-quarters, not to the top.",
+      "why": "Overloading strains the motor and drum bearings.",
+      "trigger": {
+        "answers": {
+          "overload": [
+            "sometimes",
+            "yes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "level_machine",
+      "priority": "MEDIUM",
+      "text": "Keep the machine level and on a firm floor.",
+      "why": "A level machine shakes less and lasts longer.",
+      "trigger": {
+        "answers": {
+          "level": [
+            "a_little",
+            "a_lot"
+          ]
+        }
+      }
+    },
+    {
+      "id": "clean_filter",
+      "priority": "MEDIUM",
+      "text": "Clean the lint or drain filter as your manual describes.",
+      "why": "A clean filter helps the water drain.",
+      "trigger": {
+        "answers": {
+          "filter_cleaning": [
+            "rarely",
+            "never"
+          ],
+          "loads_per_week": [
+            "over_8"
+          ]
+        }
+      }
+    },
+    {
+      "id": "door_dry",
+      "priority": "LOW",
+      "text": "Leave the door or lid open after a wash so the inside can dry.",
+      "why": "This stops smells and mould on the seal.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "descale",
+      "priority": "LOW",
+      "text": "In hard-water areas, run a drum clean cycle as your manual suggests.",
+      "why": "Scale builds up on the heater and drum.",
+      "trigger": {
+        "answers": {
+          "water_hard": [
+            "some",
+            "a_lot"
+          ]
+        }
+      }
+    },
+    {
+      "id": "stable_power",
+      "priority": "MEDIUM",
+      "text": "Use a stabilizer or surge protector if the power is unsteady.",
+      "why": "Power swings can damage the control board.",
+      "trigger": {
+        "answers": {
+          "power_issues": [
+            "often",
+            "sometimes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "HIGH",
+      "text": "If it leaks, smells burnt, shows error codes or stops draining, switch it off and contact the brand's service.",
+      "why": "Running it with a fault can make the damage worse.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "leak",
+            "error",
+            "not_draining"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "filter_clean",
+      "text": "Clean the washing machine's lint or drain filter.",
+      "interval_days": 30,
+      "interval_text": "about once a month",
+      "note": "Check your manual for the interval for your model."
+    },
+    {
+      "id": "drum_clean",
+      "text": "Run a drum clean or empty hot wash.",
+      "interval_days": 30,
+      "interval_text": "about once a month",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "loads_per_week",
+      "answers": [
+        "over_8"
+      ],
+      "effect": "raise",
+      "reason": "Heavy use wears the motor and bearings faster."
+    },
+    {
+      "question": "overload",
+      "answers": [
+        "yes"
+      ],
+      "effect": "raise",
+      "reason": "Overloading strains the motor and bearings."
+    },
+    {
+      "question": "level",
+      "answers": [
+        "a_lot"
+      ],
+      "effect": "raise",
+      "reason": "A shaking machine wears faster."
+    },
+    {
+      "question": "filter_cleaning",
+      "answers": [
+        "never"
+      ],
+      "effect": "raise",
+      "reason": "A blocked filter strains the drain pump."
+    },
+    {
+      "question": "water_hard",
+      "answers": [
+        "a_lot"
+      ],
+      "effect": "raise",
+      "reason": "Hard water leaves scale on the heater."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "leak",
+        "error",
+        "not_draining"
+      ],
+      "effect": "raise",
+      "reason": "These are early signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Whole machine",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Motor",
+      "note": "Often has its own, longer period - check your warranty card."
+    },
+    {
+      "part": "Drum, PCB and other parts",
+      "note": "Some brands cover these separately - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Damage from voltage fluctuations",
+    "Damage from hard water or scale",
+    "Rubber parts, hoses and plastic parts",
+    "Damage by rodents",
+    "Installation by people the brand has not authorised",
+    "Use in laundries or commercial premises"
+  ]
+}

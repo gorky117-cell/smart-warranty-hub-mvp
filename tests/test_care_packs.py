@@ -223,3 +223,27 @@ def test_review_worksheet_lists_every_pack():
     for ptype in PACK_TYPES:
         assert f"## {care_packs.file_pack(ptype)['label']}" in text
     assert "| Approve |" in text
+
+
+@pytest.mark.parametrize("name,expected", [
+    ("Voltas 1.5 Ton Inverter Split AC", "air_conditioner"), ("LG 242 L Frost Free Smart Inverter Refrigerator", "refrigerator"),
+    ("IFB Front Load Washing Machine", "washing_machine"), ("Racold Eterno Pro Geyser", "water_heater"),
+    ("Sony Bravia 55 inch LED TV", "television"), ("Redmi 13C (4GB RAM, 128GB Storage)", "smartphone"),
+    ("HP Laptop 15s", "laptop"), ("Samsung Galaxy Tab A9", "tablet"), ("Epson EcoTank L3250 Printer", "printer"),
+    ("Havells Ceiling Fan", "ceiling_fan"), ("Symphony Air Cooler", "air_cooler"), ("Bajaj Room Heater", "room_heater"),
+    ("Philips Mixer Grinder HL7756", "mixer_grinder"), ("Philips Air Fryer", "air_fryer"), ("Kent RO Water Purifier", "water_purifier"),
+    ("Pigeon Induction Cooktop", "induction_cooktop"), ("Prestige Gas Stove 3 Burner", "gas_stove"),
+    ("Faber Kitchen Chimney", "kitchen_chimney"), ("Luminous Inverter Battery", "inverter_battery"),
+    ("V-Guard Voltage Stabilizer", "voltage_stabilizer"), ("TP-Link Wi-Fi Router", "wifi_router"),
+    ("Noise Smartwatch", "smartwatch"), ("boAt Airdopes TWS Earbuds", "earphones_headphones"),
+    ("Ambrane Power Bank 20000mAh", "power_bank_charger"), ("JBL Bluetooth Speaker", "speaker_soundbar"),
+    ("Morphy Richards Steam Iron", "iron_steamer"), ("Eureka Robot Vacuum", "vacuum_cleaner"),
+    ("Bajaj Electric Kettle", "kettle_toaster"), ("LG Microwave Oven", "microwave_otg"), ("Dyson Air Purifier", "air_purifier"),
+    ("Daikin Inverter AC FTKL50U", "air_conditioner"), ("Bosch Inverter Washing Machine", "washing_machine"),
+])
+def test_every_product_type_finds_its_pack(name, expected):
+    assert care_packs.match_type(name, None) == expected
+
+
+def test_there_are_thirty_packs():
+    assert len(PACK_TYPES) == 30

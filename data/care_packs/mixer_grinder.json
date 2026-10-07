@@ -1,0 +1,309 @@
+{
+  "product_type": "mixer_grinder",
+  "label": "Mixer grinder",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric"
+  ],
+  "match": {
+    "lines": [
+      "kitchen_appliance"
+    ],
+    "keywords": [
+      "mixer grinder",
+      "mixer",
+      "grinder",
+      "juicer mixer",
+      "food processor",
+      "blender",
+      "hand blender"
+    ]
+  },
+  "questions": [
+    {
+      "id": "uses_per_day",
+      "text": "How many times a day is it used?",
+      "why": "Heavy use heats the motor.",
+      "answers": [
+        {
+          "value": "under_2",
+          "label": "Less than 2"
+        },
+        {
+          "value": "2_4",
+          "label": "2 to 4"
+        },
+        {
+          "value": "over_4",
+          "label": "More than 4"
+        }
+      ]
+    },
+    {
+      "id": "long_runs",
+      "text": "Is it run for long stretches without a break?",
+      "why": "Long runs overheat the motor.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "yes",
+          "label": "Yes"
+        }
+      ]
+    },
+    {
+      "id": "overfill",
+      "text": "Are the jars filled above the marked line?",
+      "why": "Overfilling strains the motor and can leak.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "yes",
+          "label": "Yes"
+        }
+      ]
+    },
+    {
+      "id": "hard_items",
+      "text": "Do you grind hard items like dry spices, ice or grains often?",
+      "why": "Hard items load the blades and motor.",
+      "answers": [
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        },
+        {
+          "value": "often",
+          "label": "Often"
+        }
+      ]
+    },
+    {
+      "id": "jar_seal",
+      "text": "Do the jar lids and gaskets seal well?",
+      "why": "Worn gaskets let liquid reach the motor.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed a burning smell, the motor stopping or loud noise?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "smell",
+          "label": "Burning smell"
+        },
+        {
+          "value": "stops",
+          "label": "Stops by itself"
+        },
+        {
+          "value": "loud",
+          "label": "Loud noise"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off and unplug the mixer before cleaning it.",
+      "why": "Cleaning an appliance that is plugged in risks an electric shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the mixer motor yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "blades",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Handle the blades carefully and keep them away from children.",
+      "why": "The blades are very sharp.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "rest",
+      "priority": "HIGH",
+      "text": "Run it in short bursts and let the motor rest between runs.",
+      "why": "Long runs overheat the motor.",
+      "trigger": {
+        "answers": {
+          "long_runs": [
+            "sometimes",
+            "yes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "fill_line",
+      "priority": "MEDIUM",
+      "text": "Don't fill the jars above the marked line.",
+      "why": "Overfilling strains the motor and can spill.",
+      "trigger": {
+        "answers": {
+          "overfill": [
+            "sometimes",
+            "yes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "hard_items",
+      "priority": "MEDIUM",
+      "text": "Use the right jar for hard items and grind in small amounts.",
+      "why": "Hard items load the blades and motor.",
+      "trigger": {
+        "answers": {
+          "hard_items": [
+            "often"
+          ]
+        }
+      }
+    },
+    {
+      "id": "gaskets",
+      "priority": "LOW",
+      "text": "Replace worn jar gaskets with genuine ones.",
+      "why": "Worn gaskets let liquid reach the motor.",
+      "trigger": {
+        "answers": {
+          "jar_seal": [
+            "no"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "HIGH",
+      "text": "If you smell burning or the motor keeps stopping, unplug it and contact the brand's service.",
+      "why": "These can be signs of an overheating motor.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "smell",
+            "stops",
+            "loud"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "gaskets",
+      "text": "Check the jar gaskets and couplers for wear (unplugged).",
+      "interval_days": 90,
+      "interval_text": "about every 3 months",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "long_runs",
+      "answers": [
+        "yes"
+      ],
+      "effect": "raise",
+      "reason": "Long runs overheat the motor."
+    },
+    {
+      "question": "overfill",
+      "answers": [
+        "yes"
+      ],
+      "effect": "raise",
+      "reason": "Overfilling strains the motor."
+    },
+    {
+      "question": "hard_items",
+      "answers": [
+        "often"
+      ],
+      "effect": "raise",
+      "reason": "Hard items load the motor."
+    },
+    {
+      "question": "uses_per_day",
+      "answers": [
+        "over_4"
+      ],
+      "effect": "raise",
+      "reason": "Heavy use heats the motor."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "smell",
+        "stops",
+        "loud"
+      ],
+      "effect": "raise",
+      "reason": "These are signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Mixer",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Motor",
+      "note": "Often has its own, longer period - check your warranty card."
+    },
+    {
+      "part": "Jars, blades and gaskets",
+      "note": "Often covered for a shorter time or not at all - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Jars, blades, gaskets and couplers",
+    "Motor damage from overloading",
+    "Damage from voltage fluctuations",
+    "Broken plastic parts"
+  ]
+}

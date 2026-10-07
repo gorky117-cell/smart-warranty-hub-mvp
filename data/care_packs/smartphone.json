@@ -1,0 +1,364 @@
+{
+  "product_type": "smartphone",
+  "label": "Smartphone",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric",
+    "battery"
+  ],
+  "match": {
+    "lines": [
+      "smartphone"
+    ],
+    "keywords": [
+      "smartphone",
+      "mobile phone",
+      "mobile",
+      "phone",
+      "iphone",
+      "5g"
+    ]
+  },
+  "questions": [
+    {
+      "id": "charger",
+      "text": "Which charger is usually used?",
+      "why": "Poor or mismatched chargers are a common cause of battery and port damage.",
+      "answers": [
+        {
+          "value": "original",
+          "label": "The one it came with"
+        },
+        {
+          "value": "certified",
+          "label": "Another branded charger"
+        },
+        {
+          "value": "cheap",
+          "label": "A cheap or unbranded one"
+        },
+        {
+          "value": "mixed",
+          "label": "Whatever is around"
+        }
+      ]
+    },
+    {
+      "id": "overnight",
+      "text": "Is the phone usually charged overnight or in a hot place?",
+      "why": "Heat and constant full charge age the battery faster.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "overnight",
+          "label": "Overnight"
+        },
+        {
+          "value": "hot_place",
+          "label": "In a hot place, like a car or in the sun"
+        }
+      ]
+    },
+    {
+      "id": "case_guard",
+      "text": "Does the phone have a case and a screen guard?",
+      "why": "They take the knocks that crack screens.",
+      "answers": [
+        {
+          "value": "both",
+          "label": "Both"
+        },
+        {
+          "value": "one",
+          "label": "One of them"
+        },
+        {
+          "value": "none",
+          "label": "Neither"
+        }
+      ]
+    },
+    {
+      "id": "drops",
+      "text": "Has the phone been dropped hard in the last few months?",
+      "why": "Drops can damage the screen and inner parts even without visible cracks.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "once",
+          "label": "Once"
+        },
+        {
+          "value": "several",
+          "label": "Several times"
+        }
+      ]
+    },
+    {
+      "id": "water",
+      "text": "Has the phone been near water, rain or a spill?",
+      "why": "Water damage is usually not covered.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "splash",
+          "label": "A splash"
+        },
+        {
+          "value": "wet",
+          "label": "It got wet"
+        }
+      ]
+    },
+    {
+      "id": "updates",
+      "text": "Are software updates installed?",
+      "why": "Updates fix bugs and security problems.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed the battery swelling, the phone getting very hot or draining fast?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "swelling",
+          "label": "Battery or back swelling"
+        },
+        {
+          "value": "hot",
+          "label": "Very hot"
+        },
+        {
+          "value": "drain",
+          "label": "Draining fast"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "battery_swell",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Stop using the phone and keep it away from anything that can burn if the battery swells, gets very hot or smells unusual.",
+      "why": "A damaged battery can catch fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "battery_no_open",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open, puncture or crush the battery, and don't use it after a hard fall that dented it.",
+      "why": "Damaged battery cells can overheat or catch fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch the phone off and unplug the charger before cleaning it.",
+      "why": "Cleaning a charging device risks a short circuit.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "charger",
+      "priority": "HIGH",
+      "text": "Charge with the charger it came with or another certified one.",
+      "why": "Poor chargers can damage the battery and the charging port.",
+      "trigger": {
+        "answers": {
+          "charger": [
+            "cheap",
+            "mixed"
+          ]
+        }
+      }
+    },
+    {
+      "id": "heat",
+      "priority": "MEDIUM",
+      "text": "Avoid charging or leaving the phone in hot places such as a car or in direct sun.",
+      "why": "Heat ages the battery faster.",
+      "trigger": {
+        "answers": {
+          "overnight": [
+            "hot_place"
+          ]
+        }
+      }
+    },
+    {
+      "id": "protect",
+      "priority": "MEDIUM",
+      "text": "Use a case and a screen guard.",
+      "why": "They protect against the drops that crack screens.",
+      "trigger": {
+        "answers": {
+          "case_guard": [
+            "one",
+            "none"
+          ]
+        }
+      }
+    },
+    {
+      "id": "water",
+      "priority": "MEDIUM",
+      "text": "Keep the phone away from water; if it gets wet, switch it off and contact the brand's service.",
+      "why": "Water damage is usually not covered and spreads if the phone stays on.",
+      "trigger": {
+        "answers": {
+          "water": [
+            "splash",
+            "wet"
+          ]
+        }
+      }
+    },
+    {
+      "id": "updates",
+      "priority": "LOW",
+      "text": "Install software updates when offered.",
+      "why": "Updates fix bugs and security problems.",
+      "trigger": {
+        "answers": {
+          "updates": [
+            "sometimes",
+            "no"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "HIGH",
+      "text": "If the battery drains fast or the phone runs very hot, contact the brand's service.",
+      "why": "These can be signs of a battery problem.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "hot",
+            "drain"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "backup",
+      "text": "Back up your phone's photos and contacts.",
+      "interval_days": 30,
+      "interval_text": "about once a month",
+      "note": "Check your manual or phone settings for automatic backup."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "charger",
+      "answers": [
+        "cheap",
+        "mixed"
+      ],
+      "effect": "raise",
+      "reason": "Poor chargers can damage the battery."
+    },
+    {
+      "question": "overnight",
+      "answers": [
+        "hot_place"
+      ],
+      "effect": "raise",
+      "reason": "Heat ages the battery faster."
+    },
+    {
+      "question": "case_guard",
+      "answers": [
+        "both"
+      ],
+      "effect": "lower",
+      "reason": "A case and screen guard protect against drops."
+    },
+    {
+      "question": "drops",
+      "answers": [
+        "several"
+      ],
+      "effect": "raise",
+      "reason": "Repeated drops can damage inner parts."
+    },
+    {
+      "question": "water",
+      "answers": [
+        "wet"
+      ],
+      "effect": "raise",
+      "reason": "Water can cause damage that shows up later."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "swelling",
+        "hot",
+        "drain"
+      ],
+      "effect": "raise",
+      "reason": "These can be signs of a battery fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Phone",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Battery",
+      "note": "Often covered for a shorter period - check your warranty card."
+    },
+    {
+      "part": "Charger, cable and earphones",
+      "note": "Accessories often have a shorter period - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Physical damage, including a cracked screen",
+    "Liquid damage",
+    "Repairs by people the brand has not authorised",
+    "Damage from chargers or accessories that are not genuine",
+    "Software changes such as rooting"
+  ]
+}

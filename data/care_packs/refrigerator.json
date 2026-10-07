@@ -1,0 +1,356 @@
+{
+  "product_type": "refrigerator",
+  "label": "Refrigerator",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric"
+  ],
+  "match": {
+    "lines": [
+      "fridge"
+    ],
+    "keywords": [
+      "refrigerator",
+      "fridge",
+      "double door",
+      "single door",
+      "side by side",
+      "freezer"
+    ]
+  },
+  "questions": [
+    {
+      "id": "door_seal",
+      "text": "Does the door close firmly with the seal touching all round?",
+      "why": "A leaking seal lets cold air out and makes the compressor work harder.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "not_always",
+          "label": "Not always"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "power_issues",
+      "text": "Does the power at home often dip, flicker or trip?",
+      "why": "Unsteady power can damage the electronics.",
+      "answers": [
+        {
+          "value": "often",
+          "label": "Often"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "surge",
+      "text": "Is it plugged into a surge protector or stabilizer?",
+      "why": "These protect against power spikes.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "not_sure",
+          "label": "Not sure"
+        }
+      ]
+    },
+    {
+      "id": "wall_gap",
+      "text": "How much space is there behind and beside the fridge?",
+      "why": "The fridge releases heat at the back and sides.",
+      "answers": [
+        {
+          "value": "plenty",
+          "label": "A hand's width or more"
+        },
+        {
+          "value": "tight",
+          "label": "Very little"
+        },
+        {
+          "value": "not_sure",
+          "label": "Not sure"
+        }
+      ]
+    },
+    {
+      "id": "load",
+      "text": "How full is the fridge usually?",
+      "why": "Packing it too tight blocks the cold air from moving.",
+      "answers": [
+        {
+          "value": "normal",
+          "label": "Normal"
+        },
+        {
+          "value": "packed",
+          "label": "Packed tight"
+        },
+        {
+          "value": "mostly_empty",
+          "label": "Mostly empty"
+        }
+      ]
+    },
+    {
+      "id": "defrost",
+      "text": "Is there thick ice inside the freezer?",
+      "why": "Thick ice means the fridge works harder (or a defrost problem on frost-free models).",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "some",
+          "label": "A little"
+        },
+        {
+          "value": "thick",
+          "label": "Thick ice"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed weak cooling, water under the fridge or unusual noise?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "weak_cooling",
+          "label": "Weak cooling"
+        },
+        {
+          "value": "water",
+          "label": "Water leaking"
+        },
+        {
+          "value": "noise",
+          "label": "Unusual noise"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off and unplug the fridge before cleaning it.",
+      "why": "Cleaning an appliance that is plugged in risks an electric shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the fridge yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "stable_power",
+      "priority": "HIGH",
+      "text": "Use a stabilizer of the right rating if the power at home is unsteady.",
+      "why": "Voltage swings can damage the compressor and the control board.",
+      "trigger": {
+        "answers": {
+          "power_issues": [
+            "often",
+            "sometimes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "seal_check",
+      "priority": "MEDIUM",
+      "text": "Keep the door seal clean and check it closes firmly all round.",
+      "why": "A good seal keeps the cold in.",
+      "trigger": {
+        "answers": {
+          "door_seal": [
+            "not_always",
+            "no"
+          ]
+        }
+      }
+    },
+    {
+      "id": "space_around",
+      "priority": "MEDIUM",
+      "text": "Leave space behind and beside the fridge for air to flow.",
+      "why": "Trapped heat makes the compressor run longer.",
+      "trigger": {
+        "answers": {
+          "wall_gap": [
+            "tight"
+          ]
+        }
+      }
+    },
+    {
+      "id": "dont_overpack",
+      "priority": "LOW",
+      "text": "Leave gaps between items so cold air can move.",
+      "why": "Air needs room to cool everything evenly.",
+      "trigger": {
+        "answers": {
+          "load": [
+            "packed"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ice_build_up",
+      "priority": "MEDIUM",
+      "text": "If thick ice builds up, follow your manual's defrost steps or contact the brand's service.",
+      "why": "Thick ice reduces cooling.",
+      "trigger": {
+        "answers": {
+          "defrost": [
+            "thick"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "HIGH",
+      "text": "If cooling gets weak, water collects under the fridge or new noises start, contact the brand's service.",
+      "why": "Small cooling faults can spoil food and grow into bigger repairs.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "weak_cooling",
+            "water",
+            "noise"
+          ]
+        }
+      }
+    },
+    {
+      "id": "hot_food",
+      "priority": "LOW",
+      "text": "Let hot food cool down before putting it in.",
+      "why": "Hot food makes the fridge work harder.",
+      "trigger": {
+        "always": true
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "seal_clean",
+      "text": "Wipe the fridge door seal and check it closes firmly.",
+      "interval_days": 30,
+      "interval_text": "about once a month",
+      "note": "Check your manual for the interval for your model."
+    },
+    {
+      "id": "coil_check",
+      "text": "Ask for the coils at the back to be checked and dusted at a service visit.",
+      "interval_days": 365,
+      "interval_text": "about once a year",
+      "note": "Check your manual and warranty card for service advice."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "power_issues",
+      "answers": [
+        "often"
+      ],
+      "effect": "raise",
+      "reason": "Frequent power dips or surges can damage the compressor."
+    },
+    {
+      "question": "surge",
+      "answers": [
+        "yes"
+      ],
+      "effect": "lower",
+      "reason": "A stabilizer protects against unsteady power."
+    },
+    {
+      "question": "door_seal",
+      "answers": [
+        "no",
+        "not_always"
+      ],
+      "effect": "raise",
+      "reason": "A poor seal makes the compressor run longer."
+    },
+    {
+      "question": "wall_gap",
+      "answers": [
+        "tight"
+      ],
+      "effect": "raise",
+      "reason": "Trapped heat makes the compressor work harder."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "weak_cooling",
+        "water",
+        "noise"
+      ],
+      "effect": "raise",
+      "reason": "These are early signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Whole fridge",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Compressor",
+      "note": "Often has its own, separate period - check your warranty card."
+    },
+    {
+      "part": "Gas refill",
+      "note": "May be covered separately or only for a shorter time - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Damage from voltage fluctuations",
+    "Plastic parts, shelves, trays and bulbs",
+    "Rust or damage from moving the fridge",
+    "Damage by rodents or insects",
+    "Use in shops or commercial premises"
+  ]
+}

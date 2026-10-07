@@ -1,0 +1,279 @@
+{
+  "product_type": "air_purifier",
+  "label": "Air purifier",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric"
+  ],
+  "match": {
+    "lines": [],
+    "keywords": [
+      "air purifier",
+      "hepa purifier"
+    ]
+  },
+  "questions": [
+    {
+      "id": "hours_per_day",
+      "text": "How many hours a day does it run?",
+      "why": "Long running fills the filter faster.",
+      "answers": [
+        {
+          "value": "under_8h",
+          "label": "Less than 8 hours"
+        },
+        {
+          "value": "8_16h",
+          "label": "8 to 16 hours"
+        },
+        {
+          "value": "over_16h",
+          "label": "More than 16 hours"
+        }
+      ]
+    },
+    {
+      "id": "air_quality",
+      "text": "How is the air outside your home usually?",
+      "why": "Polluted air fills the filter faster.",
+      "answers": [
+        {
+          "value": "good",
+          "label": "Usually good"
+        },
+        {
+          "value": "moderate",
+          "label": "Moderate"
+        },
+        {
+          "value": "poor",
+          "label": "Often poor"
+        }
+      ]
+    },
+    {
+      "id": "filter_change",
+      "text": "When was the filter last changed?",
+      "why": "A full filter stops cleaning the air.",
+      "answers": [
+        {
+          "value": "under_6m",
+          "label": "Within 6 months"
+        },
+        {
+          "value": "over_6m",
+          "label": "More than 6 months ago"
+        },
+        {
+          "value": "never",
+          "label": "Never"
+        }
+      ]
+    },
+    {
+      "id": "pre_filter",
+      "text": "How often is the pre-filter cleaned?",
+      "why": "A dusty pre-filter blocks the air.",
+      "answers": [
+        {
+          "value": "monthly",
+          "label": "About once a month"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        },
+        {
+          "value": "none",
+          "label": "It has no pre-filter"
+        }
+      ]
+    },
+    {
+      "id": "placement",
+      "text": "Is there space around the air inlets and outlet?",
+      "why": "Blocked air cuts its performance.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed a smell, loud fan or a filter warning?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "smell",
+          "label": "Smell"
+        },
+        {
+          "value": "loud",
+          "label": "Loud fan"
+        },
+        {
+          "value": "warning",
+          "label": "Filter warning"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off and unplug the air purifier before cleaning it.",
+      "why": "Cleaning an appliance that is plugged in risks an electric shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the air purifier yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "filter",
+      "priority": "HIGH",
+      "text": "Change the main filter when the indicator or your manual says so.",
+      "why": "A full filter stops cleaning the air.",
+      "trigger": {
+        "answers": {
+          "filter_change": [
+            "over_6m",
+            "never"
+          ],
+          "symptoms": [
+            "warning"
+          ]
+        }
+      }
+    },
+    {
+      "id": "pre_filter",
+      "priority": "MEDIUM",
+      "text": "Clean the pre-filter as the manual describes.",
+      "why": "A dusty pre-filter blocks the air.",
+      "trigger": {
+        "answers": {
+          "pre_filter": [
+            "rarely"
+          ]
+        }
+      }
+    },
+    {
+      "id": "placement",
+      "priority": "LOW",
+      "text": "Keep space around the inlets and outlet.",
+      "why": "Blocked air cuts its performance.",
+      "trigger": {
+        "answers": {
+          "placement": [
+            "no"
+          ]
+        }
+      }
+    },
+    {
+      "id": "genuine_filter",
+      "priority": "MEDIUM",
+      "text": "Use filters made for your model.",
+      "why": "Ill-fitting filters let dust bypass them.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "MEDIUM",
+      "text": "If the fan gets loud or there is a smell after a filter change, contact the brand's service.",
+      "why": "These can be signs of a fan problem.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "smell",
+            "loud"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "pre_filter",
+      "text": "Clean the air purifier's pre-filter (unplugged).",
+      "interval_days": 30,
+      "interval_text": "about once a month",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "hours_per_day",
+      "answers": [
+        "over_16h"
+      ],
+      "effect": "raise",
+      "reason": "Long running fills the filter faster."
+    },
+    {
+      "question": "air_quality",
+      "answers": [
+        "poor"
+      ],
+      "effect": "raise",
+      "reason": "Polluted air fills the filter faster."
+    },
+    {
+      "question": "filter_change",
+      "answers": [
+        "never"
+      ],
+      "effect": "raise",
+      "reason": "A full filter strains the fan."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "smell",
+        "loud"
+      ],
+      "effect": "raise",
+      "reason": "These are signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Air purifier",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Filters",
+      "note": "Usually consumables, not covered - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Filters and other consumables",
+    "Damage from filters not made for the model",
+    "Damage from voltage fluctuations"
+  ]
+}

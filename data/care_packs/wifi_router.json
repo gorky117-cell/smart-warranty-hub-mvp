@@ -1,0 +1,297 @@
+{
+  "product_type": "wifi_router",
+  "label": "Wi-Fi router",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric"
+  ],
+  "match": {
+    "lines": [
+      "router"
+    ],
+    "keywords": [
+      "router",
+      "wi-fi router",
+      "wifi router",
+      "mesh",
+      "modem",
+      "wifi"
+    ]
+  },
+  "questions": [
+    {
+      "id": "placement",
+      "text": "Where is the router placed?",
+      "why": "Routers run warm and need air; placement also affects coverage.",
+      "answers": [
+        {
+          "value": "open",
+          "label": "In an open spot"
+        },
+        {
+          "value": "closed",
+          "label": "In a cabinet or behind things"
+        }
+      ]
+    },
+    {
+      "id": "adapter",
+      "text": "Which power adapter is used?",
+      "why": "The wrong adapter can damage the router.",
+      "answers": [
+        {
+          "value": "original",
+          "label": "The one it came with"
+        },
+        {
+          "value": "other",
+          "label": "Another adapter"
+        }
+      ]
+    },
+    {
+      "id": "power_issues",
+      "text": "Does the power at home often dip, flicker or trip?",
+      "why": "Unsteady power can damage the electronics.",
+      "answers": [
+        {
+          "value": "often",
+          "label": "Often"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "updates",
+      "text": "Is the router's firmware updated?",
+      "why": "Updates fix bugs and security holes.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes, or it updates itself"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "not_sure",
+          "label": "Not sure"
+        }
+      ]
+    },
+    {
+      "id": "password",
+      "text": "Has the default admin password been changed?",
+      "why": "Default passwords are easy to guess.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "not_sure",
+          "label": "Not sure"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed frequent drops, restarts or the router getting hot?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "drops",
+          "label": "Frequent drops"
+        },
+        {
+          "value": "restarts",
+          "label": "Restarts by itself"
+        },
+        {
+          "value": "hot",
+          "label": "Gets hot"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off and unplug the router before cleaning it.",
+      "why": "Cleaning an appliance that is plugged in risks an electric shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the router yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "ventilate",
+      "priority": "MEDIUM",
+      "text": "Keep the router in an open spot with air around it.",
+      "why": "Heat causes drops and restarts.",
+      "trigger": {
+        "answers": {
+          "placement": [
+            "closed"
+          ]
+        }
+      }
+    },
+    {
+      "id": "adapter",
+      "priority": "HIGH",
+      "text": "Use the adapter it came with.",
+      "why": "The wrong adapter can damage the router.",
+      "trigger": {
+        "answers": {
+          "adapter": [
+            "other"
+          ]
+        }
+      }
+    },
+    {
+      "id": "surge",
+      "priority": "MEDIUM",
+      "text": "Plug it into a surge protector.",
+      "why": "Power spikes can damage network equipment.",
+      "trigger": {
+        "answers": {
+          "power_issues": [
+            "often",
+            "sometimes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "updates",
+      "priority": "MEDIUM",
+      "text": "Keep the firmware updated.",
+      "why": "Updates fix bugs and security holes.",
+      "trigger": {
+        "answers": {
+          "updates": [
+            "no",
+            "not_sure"
+          ]
+        }
+      }
+    },
+    {
+      "id": "password",
+      "priority": "MEDIUM",
+      "text": "Change the default admin password.",
+      "why": "Default passwords are easy to guess.",
+      "trigger": {
+        "answers": {
+          "password": [
+            "no",
+            "not_sure"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "LOW",
+      "text": "If it keeps restarting or runs hot, contact the brand's or your internet provider's support.",
+      "why": "These can be signs of a fault.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "restarts",
+            "hot"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "firmware",
+      "text": "Check for router firmware updates.",
+      "interval_days": 90,
+      "interval_text": "about every 3 months",
+      "note": "Check your manual or the router's app."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "placement",
+      "answers": [
+        "closed"
+      ],
+      "effect": "raise",
+      "reason": "Heat causes drops and restarts."
+    },
+    {
+      "question": "adapter",
+      "answers": [
+        "other"
+      ],
+      "effect": "raise",
+      "reason": "The wrong adapter can damage it."
+    },
+    {
+      "question": "power_issues",
+      "answers": [
+        "often"
+      ],
+      "effect": "raise",
+      "reason": "Power spikes can damage it."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "restarts",
+        "hot"
+      ],
+      "effect": "raise",
+      "reason": "These are signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Router",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Adapter",
+      "note": "May be covered separately - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Damage from power surges or lightning",
+    "Damage from the wrong adapter",
+    "Physical damage"
+  ]
+}

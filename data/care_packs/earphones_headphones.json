@@ -1,0 +1,284 @@
+{
+  "product_type": "earphones_headphones",
+  "label": "Earphones or headphones",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric",
+    "battery"
+  ],
+  "match": {
+    "lines": [],
+    "keywords": [
+      "earphones",
+      "headphones",
+      "earbuds",
+      "tws",
+      "neckband",
+      "headset",
+      "true wireless"
+    ]
+  },
+  "questions": [
+    {
+      "id": "charger",
+      "text": "How is the case or headphone charged?",
+      "why": "Poor chargers can damage the small batteries.",
+      "answers": [
+        {
+          "value": "original",
+          "label": "With a branded charger"
+        },
+        {
+          "value": "cheap",
+          "label": "With a cheap charger"
+        },
+        {
+          "value": "wired_only",
+          "label": "They are wired, no battery"
+        }
+      ]
+    },
+    {
+      "id": "sweat",
+      "text": "Are they used during workouts or in the rain?",
+      "why": "Sweat and water can get into the speakers and charging contacts.",
+      "answers": [
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        },
+        {
+          "value": "often",
+          "label": "Often"
+        }
+      ]
+    },
+    {
+      "id": "volume",
+      "text": "How loud are they usually played?",
+      "why": "Very loud sound strains the speakers and your hearing.",
+      "answers": [
+        {
+          "value": "moderate",
+          "label": "Moderate"
+        },
+        {
+          "value": "loud",
+          "label": "Loud"
+        }
+      ]
+    },
+    {
+      "id": "storage",
+      "text": "Are they kept in their case when not in use?",
+      "why": "The case protects against drops and dirt.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "cleaning",
+      "text": "How often are the ear tips and mesh cleaned?",
+      "why": "Earwax and dirt block the sound.",
+      "answers": [
+        {
+          "value": "weekly",
+          "label": "About once a week"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed one side not working, charging problems or crackling?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "one_side",
+          "label": "One side not working"
+        },
+        {
+          "value": "charging",
+          "label": "Charging problems"
+        },
+        {
+          "value": "crackling",
+          "label": "Crackling"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "battery_swell",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Stop using the earphones or case and keep it away from anything that can burn if the battery swells, gets very hot or smells unusual.",
+      "why": "A damaged battery can catch fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "battery_no_open",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open, puncture or crush the battery, and don't use it after a hard fall that dented it.",
+      "why": "Damaged battery cells can overheat or catch fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch the earphones or case off and unplug the charger before cleaning it.",
+      "why": "Cleaning a charging device risks a short circuit.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "charger",
+      "priority": "MEDIUM",
+      "text": "Charge with a branded charger and cable.",
+      "why": "Cheap chargers can damage the small batteries.",
+      "trigger": {
+        "answers": {
+          "charger": [
+            "cheap"
+          ]
+        }
+      }
+    },
+    {
+      "id": "dry",
+      "priority": "MEDIUM",
+      "text": "Wipe off sweat and water, and let them dry before charging.",
+      "why": "Moisture damages the speakers and contacts.",
+      "trigger": {
+        "answers": {
+          "sweat": [
+            "often"
+          ]
+        }
+      }
+    },
+    {
+      "id": "volume",
+      "priority": "LOW",
+      "text": "Keep the volume moderate.",
+      "why": "Very loud sound strains the speakers and your hearing.",
+      "trigger": {
+        "answers": {
+          "volume": [
+            "loud"
+          ]
+        }
+      }
+    },
+    {
+      "id": "case",
+      "priority": "LOW",
+      "text": "Keep them in their case when not in use.",
+      "why": "The case protects against drops and dirt.",
+      "trigger": {
+        "answers": {
+          "storage": [
+            "no"
+          ]
+        }
+      }
+    },
+    {
+      "id": "clean",
+      "priority": "LOW",
+      "text": "Clean the ear tips and mesh gently with a dry cloth.",
+      "why": "Wax and dirt block the sound.",
+      "trigger": {
+        "answers": {
+          "cleaning": [
+            "rarely"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "clean",
+      "text": "Clean the ear tips, mesh and charging contacts.",
+      "interval_days": 7,
+      "interval_text": "about once a week",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "charger",
+      "answers": [
+        "cheap"
+      ],
+      "effect": "raise",
+      "reason": "Cheap chargers can damage the battery."
+    },
+    {
+      "question": "sweat",
+      "answers": [
+        "often"
+      ],
+      "effect": "raise",
+      "reason": "Moisture can damage the speakers."
+    },
+    {
+      "question": "storage",
+      "answers": [
+        "yes"
+      ],
+      "effect": "lower",
+      "reason": "The case protects against drops."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "one_side",
+        "charging",
+        "crackling"
+      ],
+      "effect": "raise",
+      "reason": "These are signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Earphones or headphones",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Case, ear tips and cables",
+      "note": "Often not covered or covered for a shorter time - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Physical damage and lost parts",
+    "Water or sweat damage beyond the stated rating",
+    "Ear tips and cables",
+    "Battery wear"
+  ]
+}

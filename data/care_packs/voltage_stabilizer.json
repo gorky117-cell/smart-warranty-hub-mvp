@@ -1,0 +1,274 @@
+{
+  "product_type": "voltage_stabilizer",
+  "label": "Voltage stabilizer",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric"
+  ],
+  "match": {
+    "lines": [],
+    "keywords": [
+      "stabilizer",
+      "stabiliser",
+      "voltage stabilizer",
+      "servo stabilizer"
+    ]
+  },
+  "questions": [
+    {
+      "id": "appliance",
+      "text": "Which appliance does it protect?",
+      "why": "The stabilizer must be rated for that appliance.",
+      "answers": [
+        {
+          "value": "ac",
+          "label": "An AC"
+        },
+        {
+          "value": "fridge",
+          "label": "A fridge"
+        },
+        {
+          "value": "tv",
+          "label": "A TV"
+        },
+        {
+          "value": "other",
+          "label": "Something else"
+        }
+      ]
+    },
+    {
+      "id": "rating",
+      "text": "Was the stabilizer chosen for that appliance's rating?",
+      "why": "An undersized stabilizer overheats.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "not_sure",
+          "label": "Not sure"
+        }
+      ]
+    },
+    {
+      "id": "power_issues",
+      "text": "Does the power at home often dip, flicker or trip?",
+      "why": "Unsteady power can damage the electronics.",
+      "answers": [
+        {
+          "value": "often",
+          "label": "Often"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "placement",
+      "text": "Where is it placed?",
+      "why": "It needs air around it to stay cool.",
+      "answers": [
+        {
+          "value": "open",
+          "label": "In an open place"
+        },
+        {
+          "value": "closed",
+          "label": "Behind furniture or in a closed space"
+        }
+      ]
+    },
+    {
+      "id": "clicking",
+      "text": "Does it click often or show high or low warnings?",
+      "why": "Frequent switching means the supply swings a lot.",
+      "answers": [
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        },
+        {
+          "value": "often",
+          "label": "Often"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed a burning smell, humming or it getting very hot?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "smell",
+          "label": "Burning smell"
+        },
+        {
+          "value": "hum",
+          "label": "Loud humming"
+        },
+        {
+          "value": "hot",
+          "label": "Very hot"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off the mains supply before cleaning or moving the stabilizer.",
+      "why": "It carries mains voltage.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the stabilizer yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "right_rating",
+      "priority": "HIGH",
+      "text": "Use a stabilizer rated for the appliance it protects.",
+      "why": "An undersized stabilizer overheats and gives poor protection.",
+      "trigger": {
+        "answers": {
+          "rating": [
+            "not_sure"
+          ]
+        }
+      }
+    },
+    {
+      "id": "air",
+      "priority": "MEDIUM",
+      "text": "Keep space around it for air to flow.",
+      "why": "It warms up while working.",
+      "trigger": {
+        "answers": {
+          "placement": [
+            "closed"
+          ]
+        }
+      }
+    },
+    {
+      "id": "dust",
+      "priority": "LOW",
+      "text": "Keep it free of dust (switched off).",
+      "why": "Dust traps heat.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "electrician",
+      "priority": "MEDIUM",
+      "text": "If it switches very often, ask an electrician or your supplier to check the supply.",
+      "why": "Large swings strain it and your appliance.",
+      "trigger": {
+        "answers": {
+          "clicking": [
+            "often"
+          ],
+          "power_issues": [
+            "often"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "HIGH",
+      "text": "If it smells of burning or gets very hot, switch it off and contact the brand's service.",
+      "why": "These can be signs of a dangerous fault.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "smell",
+            "hum",
+            "hot"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "check",
+      "text": "Check the stabilizer's cable and plug, and dust it (switched off).",
+      "interval_days": 90,
+      "interval_text": "about every 3 months",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "rating",
+      "answers": [
+        "not_sure"
+      ],
+      "effect": "raise",
+      "reason": "An undersized stabilizer overheats."
+    },
+    {
+      "question": "power_issues",
+      "answers": [
+        "often"
+      ],
+      "effect": "raise",
+      "reason": "Large swings strain it."
+    },
+    {
+      "question": "placement",
+      "answers": [
+        "closed"
+      ],
+      "effect": "raise",
+      "reason": "Trapped heat shortens its life."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "smell",
+        "hum",
+        "hot"
+      ],
+      "effect": "raise",
+      "reason": "These are signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Stabilizer",
+      "note": "Covered for a standard period - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Damage from overloading or the wrong rating",
+    "Damage from lightning or extreme surges",
+    "Physical damage"
+  ]
+}

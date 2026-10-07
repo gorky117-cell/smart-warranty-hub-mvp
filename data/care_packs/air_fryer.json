@@ -1,0 +1,272 @@
+{
+  "product_type": "air_fryer",
+  "label": "Air fryer",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric"
+  ],
+  "match": {
+    "lines": [],
+    "keywords": [
+      "air fryer",
+      "airfryer"
+    ]
+  },
+  "questions": [
+    {
+      "id": "uses_per_week",
+      "text": "How many times a week is it used?",
+      "why": "Heavy use wears the heating element and fan.",
+      "answers": [
+        {
+          "value": "under_3",
+          "label": "Less than 3"
+        },
+        {
+          "value": "3_7",
+          "label": "3 to 7"
+        },
+        {
+          "value": "over_7",
+          "label": "More than 7"
+        }
+      ]
+    },
+    {
+      "id": "basket_cleaning",
+      "text": "Is the basket cleaned after each use?",
+      "why": "Old grease can smoke and burn.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "placement",
+      "text": "Is there space around the back where the hot air comes out?",
+      "why": "Blocked air makes it overheat.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "surface",
+      "text": "Where does it stand while in use?",
+      "why": "It gets hot underneath and behind.",
+      "answers": [
+        {
+          "value": "counter",
+          "label": "On a heat-safe counter"
+        },
+        {
+          "value": "other",
+          "label": "On another surface"
+        }
+      ]
+    },
+    {
+      "id": "liners",
+      "text": "Do you use paper or foil liners?",
+      "why": "Loose liners can touch the heater.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "yes",
+          "label": "Yes"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed smoke, a burning smell or it not heating?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "smoke",
+          "label": "Smoke"
+        },
+        {
+          "value": "smell",
+          "label": "Burning smell"
+        },
+        {
+          "value": "not_heating",
+          "label": "Not heating"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Unplug the air fryer and let it cool before cleaning it.",
+      "why": "It stays hot and is live while plugged in.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the air fryer yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_bypass",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't bypass or tamper with the thermostat or any safety cut-out.",
+      "why": "These stop the appliance overheating; without them it can cause burns or a fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "clean_basket",
+      "priority": "MEDIUM",
+      "text": "Clean the basket and tray after each use.",
+      "why": "Old grease can smoke and burn.",
+      "trigger": {
+        "answers": {
+          "basket_cleaning": [
+            "sometimes",
+            "no"
+          ]
+        }
+      }
+    },
+    {
+      "id": "space",
+      "priority": "MEDIUM",
+      "text": "Keep space around the back and sides.",
+      "why": "Blocked air makes it overheat.",
+      "trigger": {
+        "answers": {
+          "placement": [
+            "no"
+          ]
+        }
+      }
+    },
+    {
+      "id": "liners",
+      "priority": "MEDIUM",
+      "text": "Use only liners your manual allows, and never let them cover the heater.",
+      "why": "Loose liners can catch fire.",
+      "trigger": {
+        "answers": {
+          "liners": [
+            "yes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "HIGH",
+      "text": "If it smokes or smells of burning, unplug it and contact the brand's service.",
+      "why": "These can be signs of a fault.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "smoke",
+            "smell",
+            "not_heating"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "deep_clean",
+      "text": "Deep-clean the air fryer's basket and tray (unplugged and cool).",
+      "interval_days": 14,
+      "interval_text": "about every 2 weeks with regular use",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "basket_cleaning",
+      "answers": [
+        "no"
+      ],
+      "effect": "raise",
+      "reason": "Old grease can smoke and burn."
+    },
+    {
+      "question": "placement",
+      "answers": [
+        "no"
+      ],
+      "effect": "raise",
+      "reason": "Blocked air makes it overheat."
+    },
+    {
+      "question": "liners",
+      "answers": [
+        "yes"
+      ],
+      "effect": "raise",
+      "reason": "Loose liners can touch the heater."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "smoke",
+        "smell",
+        "not_heating"
+      ],
+      "effect": "raise",
+      "reason": "These are signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Air fryer",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Basket and coating",
+      "note": "Often not covered for wear or scratches - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Scratches or wear on the non-stick coating",
+    "Damage from unsuitable liners or utensils",
+    "Damage from voltage fluctuations",
+    "Burn marks"
+  ]
+}

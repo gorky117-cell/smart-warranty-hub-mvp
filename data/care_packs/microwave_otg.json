@@ -1,0 +1,302 @@
+{
+  "product_type": "microwave_otg",
+  "label": "Microwave or OTG oven",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric"
+  ],
+  "match": {
+    "lines": [
+      "microwave"
+    ],
+    "keywords": [
+      "microwave",
+      "otg",
+      "oven toaster grill",
+      "convection",
+      "oven"
+    ]
+  },
+  "questions": [
+    {
+      "id": "uses_per_day",
+      "text": "How many times a day is it used?",
+      "why": "Heavy use wears the heating parts and door switches.",
+      "answers": [
+        {
+          "value": "under_3",
+          "label": "Less than 3"
+        },
+        {
+          "value": "3_6",
+          "label": "3 to 6"
+        },
+        {
+          "value": "over_6",
+          "label": "More than 6"
+        }
+      ]
+    },
+    {
+      "id": "containers",
+      "text": "Which containers go in a microwave?",
+      "why": "Metal and some plastics can spark or melt.",
+      "answers": [
+        {
+          "value": "safe",
+          "label": "Only microwave-safe ones"
+        },
+        {
+          "value": "mixed",
+          "label": "Whatever is at hand"
+        },
+        {
+          "value": "otg_only",
+          "label": "It is an OTG"
+        }
+      ]
+    },
+    {
+      "id": "cleaning",
+      "text": "How often is the inside cleaned?",
+      "why": "Food splashes absorb energy and can burn.",
+      "answers": [
+        {
+          "value": "weekly",
+          "label": "About once a week"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "door",
+      "text": "Does the door close firmly and the seal look clean?",
+      "why": "A good door seal keeps the heat and microwaves inside.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "not_sure",
+          "label": "Not sure"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "ventilation",
+      "text": "Is there space around the vents?",
+      "why": "Blocked vents make it overheat.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "tight",
+          "label": "It is boxed in"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed sparks, a burning smell, or it not heating?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "sparks",
+          "label": "Sparks"
+        },
+        {
+          "value": "smell",
+          "label": "Burning smell"
+        },
+        {
+          "value": "not_heating",
+          "label": "Not heating"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off and unplug the oven before cleaning it.",
+      "why": "Cleaning an appliance that is plugged in risks an electric shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the oven yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_empty_run",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Never run a microwave empty.",
+      "why": "Running it empty can damage it.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "safe_containers",
+      "priority": "HIGH",
+      "text": "Use only microwave-safe containers and no metal in a microwave.",
+      "why": "Metal sparks and some plastics melt.",
+      "trigger": {
+        "answers": {
+          "containers": [
+            "mixed"
+          ]
+        }
+      }
+    },
+    {
+      "id": "clean_inside",
+      "priority": "MEDIUM",
+      "text": "Wipe the inside and the door seal regularly.",
+      "why": "Food splashes can burn and damage the cavity.",
+      "trigger": {
+        "answers": {
+          "cleaning": [
+            "rarely"
+          ]
+        }
+      }
+    },
+    {
+      "id": "door_check",
+      "priority": "HIGH",
+      "text": "If the door does not close firmly, stop using it and contact the brand's service.",
+      "why": "A poor door seal is unsafe.",
+      "trigger": {
+        "answers": {
+          "door": [
+            "no",
+            "not_sure"
+          ]
+        }
+      }
+    },
+    {
+      "id": "vents",
+      "priority": "MEDIUM",
+      "text": "Leave space around the vents.",
+      "why": "Blocked vents make it overheat.",
+      "trigger": {
+        "answers": {
+          "ventilation": [
+            "tight"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "HIGH",
+      "text": "If it sparks, smells of burning or stops heating, unplug it and contact the brand's service.",
+      "why": "These can be signs of a dangerous fault.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "sparks",
+            "smell",
+            "not_heating"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "clean",
+      "text": "Wipe the inside and door seal of the oven (unplugged).",
+      "interval_days": 7,
+      "interval_text": "about once a week",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "uses_per_day",
+      "answers": [
+        "over_6"
+      ],
+      "effect": "raise",
+      "reason": "Heavy use wears the heating parts."
+    },
+    {
+      "question": "containers",
+      "answers": [
+        "mixed"
+      ],
+      "effect": "raise",
+      "reason": "Metal or unsafe containers can damage it."
+    },
+    {
+      "question": "cleaning",
+      "answers": [
+        "rarely"
+      ],
+      "effect": "raise",
+      "reason": "Built-up food can burn inside."
+    },
+    {
+      "question": "door",
+      "answers": [
+        "no"
+      ],
+      "effect": "raise",
+      "reason": "A poor door seal is unsafe."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "sparks",
+        "smell",
+        "not_heating"
+      ],
+      "effect": "raise",
+      "reason": "These are signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Oven",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Magnetron or heating element",
+      "note": "Some brands cover these for longer - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Damage from metal or unsuitable containers",
+    "Glass trays, bulbs and other accessories",
+    "Rust inside the cavity",
+    "Damage from voltage fluctuations"
+  ]
+}

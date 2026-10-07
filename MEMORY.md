@@ -3431,10 +3431,10 @@ Branch `cloud/batch-2`, started from `cloud/batch-1` (PR #1 not merged yet), pul
   (product_category 22 < 26 with this Tesseract build); it passes now. Full suite with Tesseract installed:
   7 previously skipped OCR tests now run.
 
-## 103. Desktop batch 3: question and care packs (2026-10-07, branch desktop/batch-3 from cloud/batch-2)
+## 105. Desktop batch 3: question and care packs (2026-10-07, branch desktop/batch-3 from cloud/batch-2)
 The owner's message for this batch arrived cut off: items 1-8 and 10 ("real Amazon invoice failures") and the
 invoice file name were missing, so only items 9 and 11 (packs + tests) are done; asked for the rest.
-- [x] 103.1 Framework + AC reference pack. One data file per product type, data/care_packs/<type>.json (no code
+- [x] 105.1 Framework + AC reference pack. One data file per product type, data/care_packs/<type>.json (no code
   per product): questions (6-7, button answers, Skip, "why we ask", asked 3 at a time), care tips (6-10,
   priority, trigger by answer / always / months owned, "why"; safety tips first for electric, gas, battery),
   maintenance reminders ("about ..." + "check your manual"), risk factors (answers that raise/lower, reasons),
@@ -3453,3 +3453,17 @@ invoice file name were missing, so only items 9 and 11 (packs + tests) are done;
   GET/PUT /admin/care-packs[/{type}], POST .../approve|unapprove; OEM/admin GET /oem/care-packs/{type}/groups.
   docs/CARE_PACKS_REVIEW.md from scripts/care_packs_review.py. New tables only (care_packs, care_pack_answers).
   Tests: tests/test_care_packs.py (18 with the AC pack). Full suite 957 passed, 2 skipped.
+- [x] 105.2 The other 29 packs (all draft): refrigerator, washing machine, water heater/geyser (electric + gas),
+  television, smartphone, laptop, tablet, printer, ceiling fan, air cooler, room heater, microwave/OTG, induction
+  cooktop, gas stove/hob, kitchen chimney, mixer grinder, air fryer, kettle/toaster, water purifier, air purifier,
+  vacuum/robot vacuum, iron/steamer, inverter + battery, voltage stabilizer, Wi-Fi router, smartwatch/band,
+  earphones/headphones, power bank/charger, speaker/soundbar. Each: 6-7 questions, 6-10 tips (safety first:
+  switch off/unplug before cleaning, don't open, thermostat/safety cut-out for heating products, gas smell ->
+  ventilate and call the service number, battery swelling/heat), reminders ("about ...", "check your manual"),
+  risk factors, warranty parts without numbers, exclusions to look for. Written by a scratch generator (not
+  committed) that outputs the data files. All 30 pass validate() (one fix: "TVs" was read as the brand TVS).
+  match_type tie-break: equal keyword length -> the pack for the product's taxonomy line ("Inverter Split AC").
+  Tests found and fixed: phone, tablet, watch and earphone packs lacked the switch-off-before-cleaning tip.
+  docs/CARE_PACKS_REVIEW.md regenerated (30 packs). Tests: tests/test_care_packs.py 138 (all 30 packs x rules,
+  32-name product mix). Full suite passed (see commit).
+  Not done: items 1-8 and 10 of the batch message (real Amazon invoice failures) - the message arrived cut off.

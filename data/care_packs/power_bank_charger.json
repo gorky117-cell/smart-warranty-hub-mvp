@@ -1,0 +1,271 @@
+{
+  "product_type": "power_bank_charger",
+  "label": "Power bank or charger",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric",
+    "battery"
+  ],
+  "match": {
+    "lines": [],
+    "keywords": [
+      "power bank",
+      "powerbank",
+      "charger",
+      "adapter",
+      "fast charger",
+      "charging cable"
+    ]
+  },
+  "questions": [
+    {
+      "id": "kind",
+      "text": "Which is it?",
+      "why": "Power banks and wall chargers need different care.",
+      "answers": [
+        {
+          "value": "power_bank",
+          "label": "Power bank"
+        },
+        {
+          "value": "wall_charger",
+          "label": "Wall charger or cable"
+        }
+      ]
+    },
+    {
+      "id": "heat",
+      "text": "Is it used or left in hot places, such as a car or in the sun?",
+      "why": "Heat damages batteries and electronics.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "yes",
+          "label": "Yes"
+        }
+      ]
+    },
+    {
+      "id": "cable",
+      "text": "What cable is used with it?",
+      "why": "Damaged or poor cables can overheat.",
+      "answers": [
+        {
+          "value": "original",
+          "label": "The one it came with or a branded one"
+        },
+        {
+          "value": "cheap",
+          "label": "A cheap or damaged one"
+        }
+      ]
+    },
+    {
+      "id": "drops",
+      "text": "Has it been dropped hard?",
+      "why": "A hard drop can damage the battery inside a power bank.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "yes",
+          "label": "Yes"
+        }
+      ]
+    },
+    {
+      "id": "overnight",
+      "text": "Is it charged under pillows or on beds?",
+      "why": "Soft surfaces trap heat.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "yes",
+          "label": "Yes"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed swelling, very high heat, a smell or sparks?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "swelling",
+          "label": "Swelling"
+        },
+        {
+          "value": "hot",
+          "label": "Very hot"
+        },
+        {
+          "value": "smell",
+          "label": "A smell"
+        },
+        {
+          "value": "sparks",
+          "label": "Sparks"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "battery_swell",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Stop using the power bank and keep it away from anything that can burn if the battery swells, gets very hot or smells unusual.",
+      "why": "A damaged battery can catch fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "battery_no_open",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open, puncture or crush the battery, and don't use it after a hard fall that dented it.",
+      "why": "Damaged battery cells can overheat or catch fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "unplug",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Unplug the charger from the wall before cleaning it, and don't use it if it is damaged or wet.",
+      "why": "A damaged or wet charger can give a shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "cable",
+      "priority": "MEDIUM",
+      "text": "Use a branded cable in good condition.",
+      "why": "Damaged cables can overheat.",
+      "trigger": {
+        "answers": {
+          "cable": [
+            "cheap"
+          ]
+        }
+      }
+    },
+    {
+      "id": "hard_surface",
+      "priority": "MEDIUM",
+      "text": "Charge on a hard, cool surface, not under pillows or on beds.",
+      "why": "Soft surfaces trap heat.",
+      "trigger": {
+        "answers": {
+          "overnight": [
+            "yes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "heat",
+      "priority": "MEDIUM",
+      "text": "Keep it out of hot cars and direct sun.",
+      "why": "Heat damages batteries.",
+      "trigger": {
+        "answers": {
+          "heat": [
+            "yes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "after_drop",
+      "priority": "MEDIUM",
+      "text": "After a hard drop, watch the power bank for heat or swelling and stop using it if either appears.",
+      "why": "Inner damage can show up later.",
+      "trigger": {
+        "answers": {
+          "drops": [
+            "yes"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "check",
+      "text": "Check the power bank and cables for damage, swelling or heat.",
+      "interval_days": 90,
+      "interval_text": "about every 3 months",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "heat",
+      "answers": [
+        "yes"
+      ],
+      "effect": "raise",
+      "reason": "Heat damages batteries."
+    },
+    {
+      "question": "cable",
+      "answers": [
+        "cheap"
+      ],
+      "effect": "raise",
+      "reason": "Poor cables can overheat."
+    },
+    {
+      "question": "drops",
+      "answers": [
+        "yes"
+      ],
+      "effect": "raise",
+      "reason": "A drop can damage the battery."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "swelling",
+        "hot",
+        "smell",
+        "sparks"
+      ],
+      "effect": "raise",
+      "reason": "These are signs of a dangerous fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Power bank or charger",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Cable",
+      "note": "Often covered for a shorter time - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Physical damage or a swollen case",
+    "Damage from heat or water",
+    "Cables",
+    "Battery wear"
+  ]
+}

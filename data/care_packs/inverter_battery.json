@@ -1,0 +1,302 @@
+{
+  "product_type": "inverter_battery",
+  "label": "Inverter and battery",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric",
+    "battery"
+  ],
+  "match": {
+    "lines": [
+      "inverter"
+    ],
+    "keywords": [
+      "inverter battery",
+      "home ups",
+      "ups",
+      "tubular battery",
+      "inverter"
+    ]
+  },
+  "questions": [
+    {
+      "id": "cuts_per_week",
+      "text": "How often does the power go out?",
+      "why": "Frequent cuts mean more charge and discharge cycles.",
+      "answers": [
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        },
+        {
+          "value": "weekly",
+          "label": "A few times a week"
+        },
+        {
+          "value": "daily",
+          "label": "Every day"
+        }
+      ]
+    },
+    {
+      "id": "load",
+      "text": "What runs on the inverter during a cut?",
+      "why": "Running more than it is rated for overheats it.",
+      "answers": [
+        {
+          "value": "lights_fans",
+          "label": "Lights and fans"
+        },
+        {
+          "value": "heavy",
+          "label": "Heavy appliances too"
+        },
+        {
+          "value": "not_sure",
+          "label": "Not sure"
+        }
+      ]
+    },
+    {
+      "id": "ventilation",
+      "text": "Where are the inverter and battery kept?",
+      "why": "They give off heat and gas and need fresh air.",
+      "answers": [
+        {
+          "value": "ventilated",
+          "label": "In an open, airy place"
+        },
+        {
+          "value": "closed",
+          "label": "In a closed cabinet or small space"
+        }
+      ]
+    },
+    {
+      "id": "water_level",
+      "text": "If the battery has a water level indicator, when was it last checked by a technician?",
+      "why": "Low water shortens the battery's life.",
+      "answers": [
+        {
+          "value": "recent",
+          "label": "Within the last 3 months"
+        },
+        {
+          "value": "long_ago",
+          "label": "Longer ago"
+        },
+        {
+          "value": "sealed",
+          "label": "It is a sealed battery"
+        }
+      ]
+    },
+    {
+      "id": "backup_time",
+      "text": "Has the backup time become shorter?",
+      "why": "Shorter backup is a sign the battery is wearing.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "a_little",
+          "label": "A little"
+        },
+        {
+          "value": "a_lot",
+          "label": "A lot"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed beeping, a smell, a swollen battery or corrosion on the terminals?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "beeping",
+          "label": "Beeping or alarms"
+        },
+        {
+          "value": "smell",
+          "label": "A smell"
+        },
+        {
+          "value": "swelling",
+          "label": "Swelling"
+        },
+        {
+          "value": "corrosion",
+          "label": "White or green deposits"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "battery_swell",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "If the battery swells, leaks or smells, switch the inverter off and call the brand's service; don't touch the terminals.",
+      "why": "A damaged battery can leak acid or catch fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off the inverter at the mains before cleaning around it.",
+      "why": "It stays live while connected.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the inverter or the battery; leave checks and top-ups to the brand's technician.",
+      "why": "Battery acid and live parts are dangerous.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "ventilate",
+      "priority": "HIGH",
+      "text": "Keep the inverter and battery in an open, airy place away from children.",
+      "why": "They give off heat and gas.",
+      "trigger": {
+        "answers": {
+          "ventilation": [
+            "closed"
+          ]
+        }
+      }
+    },
+    {
+      "id": "load",
+      "priority": "MEDIUM",
+      "text": "Run only what the inverter is rated for during cuts.",
+      "why": "Overloading overheats it.",
+      "trigger": {
+        "answers": {
+          "load": [
+            "heavy",
+            "not_sure"
+          ]
+        }
+      }
+    },
+    {
+      "id": "water_check",
+      "priority": "MEDIUM",
+      "text": "Ask the technician to check the battery's water level at service visits.",
+      "why": "Low water shortens the battery's life.",
+      "trigger": {
+        "answers": {
+          "water_level": [
+            "long_ago"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "MEDIUM",
+      "text": "If backup time drops a lot or it keeps beeping, contact the brand's service.",
+      "why": "The battery may need a check.",
+      "trigger": {
+        "answers": {
+          "backup_time": [
+            "a_lot"
+          ],
+          "symptoms": [
+            "beeping",
+            "corrosion"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "service",
+      "text": "Book an inverter and battery check.",
+      "interval_days": 90,
+      "interval_text": "about every 3 months",
+      "note": "Check your manual and warranty card for the recommended service schedule."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "cuts_per_week",
+      "answers": [
+        "daily"
+      ],
+      "effect": "raise",
+      "reason": "Daily cuts mean more battery cycles."
+    },
+    {
+      "question": "load",
+      "answers": [
+        "heavy"
+      ],
+      "effect": "raise",
+      "reason": "Overloading overheats the inverter."
+    },
+    {
+      "question": "ventilation",
+      "answers": [
+        "closed"
+      ],
+      "effect": "raise",
+      "reason": "Heat shortens battery life."
+    },
+    {
+      "question": "water_level",
+      "answers": [
+        "recent",
+        "sealed"
+      ],
+      "effect": "lower",
+      "reason": "A maintained battery lasts longer."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "smell",
+        "swelling",
+        "corrosion",
+        "beeping"
+      ],
+      "effect": "raise",
+      "reason": "These are signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Inverter",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Battery",
+      "note": "Often split into a full-replacement period and a pro-rata period - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Battery damage from low water or overloading",
+    "Physical damage or a broken case",
+    "Damage from wrong installation",
+    "Pro-rata terms in later years"
+  ]
+}

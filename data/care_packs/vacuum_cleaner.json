@@ -1,0 +1,309 @@
+{
+  "product_type": "vacuum_cleaner",
+  "label": "Vacuum or robot vacuum",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric",
+    "battery"
+  ],
+  "match": {
+    "lines": [],
+    "keywords": [
+      "vacuum cleaner",
+      "robot vacuum",
+      "robotic vacuum",
+      "vacuum",
+      "wet and dry vacuum"
+    ]
+  },
+  "questions": [
+    {
+      "id": "kind",
+      "text": "What kind of vacuum is it?",
+      "why": "Corded, cordless and robot vacuums need different care.",
+      "answers": [
+        {
+          "value": "corded",
+          "label": "Corded"
+        },
+        {
+          "value": "cordless",
+          "label": "Cordless (battery)"
+        },
+        {
+          "value": "robot",
+          "label": "Robot"
+        }
+      ]
+    },
+    {
+      "id": "uses_per_week",
+      "text": "How many times a week is it used?",
+      "why": "Heavy use fills filters and wears brushes faster.",
+      "answers": [
+        {
+          "value": "under_3",
+          "label": "Less than 3"
+        },
+        {
+          "value": "3_7",
+          "label": "3 to 7"
+        },
+        {
+          "value": "over_7",
+          "label": "More than 7"
+        }
+      ]
+    },
+    {
+      "id": "bin_filter",
+      "text": "How often are the bin and filter emptied and cleaned?",
+      "why": "A full bin or dirty filter strains the motor.",
+      "answers": [
+        {
+          "value": "each_use",
+          "label": "After each use"
+        },
+        {
+          "value": "weekly",
+          "label": "About once a week"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "wet_pickup",
+      "text": "Is it ever used to pick up water or wet dirt?",
+      "why": "Only wet-and-dry models can take liquid.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "yes_wet_dry",
+          "label": "Yes, it is a wet-and-dry model"
+        },
+        {
+          "value": "yes_other",
+          "label": "Yes, but it is not a wet-and-dry model"
+        }
+      ]
+    },
+    {
+      "id": "brush",
+      "text": "Are hair and threads cleared from the brush?",
+      "why": "Tangled brushes strain the motor.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed weak suction, a burning smell or the battery not charging?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "weak",
+          "label": "Weak suction"
+        },
+        {
+          "value": "smell",
+          "label": "Burning smell"
+        },
+        {
+          "value": "battery",
+          "label": "Battery not charging"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "battery_swell",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "If the battery swells, gets very hot or smells unusual, stop using the vacuum and keep it away from anything that can burn.",
+      "why": "A damaged battery can catch fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off and unplug the vacuum (or switch it off and remove it from the dock) before cleaning it.",
+      "why": "Cleaning an appliance that is plugged in risks an electric shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the vacuum or its battery yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_liquid",
+      "priority": "HIGH",
+      "text": "Don't pick up water or wet dirt unless it is a wet-and-dry model.",
+      "why": "Liquid can damage the motor and cause a shock.",
+      "trigger": {
+        "answers": {
+          "wet_pickup": [
+            "yes_other"
+          ]
+        }
+      }
+    },
+    {
+      "id": "empty_bin",
+      "priority": "MEDIUM",
+      "text": "Empty the bin and clean the filter as the manual describes.",
+      "why": "A full bin or dirty filter strains the motor.",
+      "trigger": {
+        "answers": {
+          "bin_filter": [
+            "rarely"
+          ]
+        }
+      }
+    },
+    {
+      "id": "brush",
+      "priority": "MEDIUM",
+      "text": "Clear hair and threads from the brush (switched off).",
+      "why": "Tangled brushes strain the motor.",
+      "trigger": {
+        "answers": {
+          "brush": [
+            "rarely"
+          ]
+        }
+      }
+    },
+    {
+      "id": "charger",
+      "priority": "MEDIUM",
+      "text": "Charge it only with its own charger or dock.",
+      "why": "The wrong charger can damage the battery.",
+      "trigger": {
+        "answers": {
+          "kind": [
+            "cordless",
+            "robot"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "MEDIUM",
+      "text": "If suction gets weak after cleaning the filter, or it smells of burning, contact the brand's service.",
+      "why": "These can be signs of a motor fault.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "weak",
+            "smell",
+            "battery"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "filter",
+      "text": "Clean the vacuum's filter and brush (switched off).",
+      "interval_days": 14,
+      "interval_text": "about every 2 weeks with regular use",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "uses_per_week",
+      "answers": [
+        "over_7"
+      ],
+      "effect": "raise",
+      "reason": "Heavy use wears the motor and brushes."
+    },
+    {
+      "question": "bin_filter",
+      "answers": [
+        "rarely"
+      ],
+      "effect": "raise",
+      "reason": "A full bin strains the motor."
+    },
+    {
+      "question": "wet_pickup",
+      "answers": [
+        "yes_other"
+      ],
+      "effect": "raise",
+      "reason": "Liquid can damage the motor."
+    },
+    {
+      "question": "brush",
+      "answers": [
+        "rarely"
+      ],
+      "effect": "raise",
+      "reason": "Tangled brushes strain the motor."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "weak",
+        "smell",
+        "battery"
+      ],
+      "effect": "raise",
+      "reason": "These are signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Vacuum",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Battery",
+      "note": "Often covered for a shorter period - check your warranty card."
+    },
+    {
+      "part": "Filters, brushes and bags",
+      "note": "Usually consumables, not covered - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Filters, brushes, bags and other consumables",
+    "Damage from picking up liquids with a dry vacuum",
+    "Battery wear",
+    "Damage from chargers that are not genuine"
+  ]
+}

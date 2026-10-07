@@ -1,0 +1,326 @@
+{
+  "product_type": "water_heater",
+  "label": "Water heater / geyser",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric",
+    "gas"
+  ],
+  "match": {
+    "lines": [
+      "water_heater"
+    ],
+    "keywords": [
+      "geyser",
+      "water heater",
+      "instant heater",
+      "storage heater",
+      "gas geyser"
+    ]
+  },
+  "questions": [
+    {
+      "id": "kind",
+      "text": "What kind of water heater is it?",
+      "why": "Electric and gas heaters need different safety steps.",
+      "answers": [
+        {
+          "value": "electric_storage",
+          "label": "Electric, with a tank"
+        },
+        {
+          "value": "electric_instant",
+          "label": "Electric, instant"
+        },
+        {
+          "value": "gas",
+          "label": "Gas"
+        }
+      ]
+    },
+    {
+      "id": "water_hard",
+      "text": "Does your water leave white marks on taps and buckets?",
+      "why": "Hard water builds scale on the tank and heating element.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "some",
+          "label": "Some"
+        },
+        {
+          "value": "a_lot",
+          "label": "A lot"
+        }
+      ]
+    },
+    {
+      "id": "hours_on",
+      "text": "How long is it usually left switched on?",
+      "why": "Leaving it on for hours wastes power and keeps parts hot.",
+      "answers": [
+        {
+          "value": "only_when_needed",
+          "label": "Only when needed"
+        },
+        {
+          "value": "hours",
+          "label": "A few hours"
+        },
+        {
+          "value": "always",
+          "label": "Always on"
+        }
+      ]
+    },
+    {
+      "id": "earthing",
+      "text": "Was it installed with proper earthing and the safety valve fitted?",
+      "why": "Earthing and the pressure valve protect against shocks and pressure build-up.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "not_sure",
+          "label": "Not sure"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "last_service",
+      "text": "When was it last serviced or descaled?",
+      "why": "Regular service removes scale and checks the safety parts.",
+      "answers": [
+        {
+          "value": "under_1y",
+          "label": "Within the last year"
+        },
+        {
+          "value": "over_1y",
+          "label": "More than a year ago"
+        },
+        {
+          "value": "never",
+          "label": "Never"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed leaks, tripping, rusty water or a smell of burning or gas?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "leak",
+          "label": "Leaks"
+        },
+        {
+          "value": "tripping",
+          "label": "Tripping"
+        },
+        {
+          "value": "rusty",
+          "label": "Rusty water"
+        },
+        {
+          "value": "smell",
+          "label": "A burning or gas smell"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off the water heater at the wall before cleaning it.",
+      "why": "Cleaning it while it is on risks an electric shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the water heater yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_bypass",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't bypass or tamper with the thermostat or any safety cut-out.",
+      "why": "These stop the appliance overheating; without them it can cause burns or a fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "gas_smell",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "If you smell gas: close the gas supply, don't switch anything electrical on or off, open doors and windows to ventilate, and call your gas or service number from outside.",
+      "why": "A spark in a room full of gas can cause an explosion.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "earthing",
+      "priority": "HIGH",
+      "text": "Have the earthing and safety valve checked by the brand's authorised technician.",
+      "why": "These protect against shocks and dangerous pressure.",
+      "trigger": {
+        "answers": {
+          "earthing": [
+            "not_sure",
+            "no"
+          ]
+        }
+      }
+    },
+    {
+      "id": "switch_off_after",
+      "priority": "MEDIUM",
+      "text": "Switch it on only when you need hot water.",
+      "why": "This saves power and reduces wear.",
+      "trigger": {
+        "answers": {
+          "hours_on": [
+            "hours",
+            "always"
+          ]
+        }
+      }
+    },
+    {
+      "id": "descale",
+      "priority": "MEDIUM",
+      "text": "In hard-water areas, book descaling at a service visit.",
+      "why": "Scale makes the heating element work harder.",
+      "trigger": {
+        "answers": {
+          "water_hard": [
+            "some",
+            "a_lot"
+          ],
+          "last_service": [
+            "over_1y",
+            "never"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "HIGH",
+      "text": "If it leaks, trips, gives rusty water or smells of burning or gas, switch it off and contact the brand's service.",
+      "why": "These can be signs of a dangerous fault.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "leak",
+            "tripping",
+            "rusty",
+            "smell"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "service",
+      "text": "Book a water heater service and descaling check.",
+      "interval_days": 365,
+      "interval_text": "about once a year",
+      "note": "Check your manual and warranty card for the recommended service schedule."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "water_hard",
+      "answers": [
+        "a_lot"
+      ],
+      "effect": "raise",
+      "reason": "Hard water builds scale on the tank and element."
+    },
+    {
+      "question": "hours_on",
+      "answers": [
+        "always"
+      ],
+      "effect": "raise",
+      "reason": "Being always on keeps parts hot for longer."
+    },
+    {
+      "question": "earthing",
+      "answers": [
+        "no",
+        "not_sure"
+      ],
+      "effect": "raise",
+      "reason": "Without proper earthing or a safety valve the heater is less safe."
+    },
+    {
+      "question": "last_service",
+      "answers": [
+        "under_1y"
+      ],
+      "effect": "lower",
+      "reason": "A recent service catches problems early."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "leak",
+        "tripping",
+        "rusty",
+        "smell"
+      ],
+      "effect": "raise",
+      "reason": "These are early signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Whole heater",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Inner tank",
+      "note": "Often has its own, longer period - check your warranty card."
+    },
+    {
+      "part": "Heating element",
+      "note": "Often has its own period - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Damage from hard water, scale or sediment",
+    "Installation without the safety valve or proper earthing",
+    "The anode rod and other consumable parts",
+    "Damage from voltage fluctuations",
+    "Installation by people the brand has not authorised"
+  ]
+}

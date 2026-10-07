@@ -1,0 +1,281 @@
+{
+  "product_type": "induction_cooktop",
+  "label": "Induction cooktop",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric"
+  ],
+  "match": {
+    "lines": [],
+    "keywords": [
+      "induction",
+      "induction cooktop",
+      "induction stove",
+      "induction cooker"
+    ]
+  },
+  "questions": [
+    {
+      "id": "hours_per_day",
+      "text": "How long is it used each day?",
+      "why": "Long cooking heats the electronics inside.",
+      "answers": [
+        {
+          "value": "under_1h",
+          "label": "Less than an hour"
+        },
+        {
+          "value": "1_3h",
+          "label": "1 to 3 hours"
+        },
+        {
+          "value": "over_3h",
+          "label": "More than 3 hours"
+        }
+      ]
+    },
+    {
+      "id": "cookware",
+      "text": "What cookware is used on it?",
+      "why": "Only induction-ready cookware works well; the wrong kind can damage it.",
+      "answers": [
+        {
+          "value": "induction",
+          "label": "Induction-ready pans"
+        },
+        {
+          "value": "mixed",
+          "label": "A mix"
+        },
+        {
+          "value": "not_sure",
+          "label": "Not sure"
+        }
+      ]
+    },
+    {
+      "id": "power_issues",
+      "text": "Does the power at home often dip, flicker or trip?",
+      "why": "Unsteady power can damage the electronics.",
+      "answers": [
+        {
+          "value": "often",
+          "label": "Often"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "vents",
+      "text": "Are the air vents kept clear?",
+      "why": "Blocked vents make it overheat.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "spills",
+      "text": "Do spills often reach the vents or the control panel?",
+      "why": "Liquid can damage the electronics.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed error codes, cracks on the glass or it switching off by itself?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "errors",
+          "label": "Error codes"
+        },
+        {
+          "value": "crack",
+          "label": "Cracked glass"
+        },
+        {
+          "value": "cuts_out",
+          "label": "Switches off"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off and unplug the cooktop, and let the glass cool, before cleaning it.",
+      "why": "The surface stays hot and cleaning it while powered risks a shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the cooktop yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "cracked_glass",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Stop using it if the glass is cracked, and contact the brand's service.",
+      "why": "Cracked glass can let liquid reach live parts.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "crack"
+          ]
+        }
+      }
+    },
+    {
+      "id": "cookware",
+      "priority": "MEDIUM",
+      "text": "Use induction-ready cookware with a flat base.",
+      "why": "The wrong cookware heats poorly and can trigger errors.",
+      "trigger": {
+        "answers": {
+          "cookware": [
+            "mixed",
+            "not_sure"
+          ]
+        }
+      }
+    },
+    {
+      "id": "vents",
+      "priority": "MEDIUM",
+      "text": "Keep the air vents clear.",
+      "why": "Blocked vents make it overheat.",
+      "trigger": {
+        "answers": {
+          "vents": [
+            "no"
+          ]
+        }
+      }
+    },
+    {
+      "id": "surge",
+      "priority": "MEDIUM",
+      "text": "Use a surge protector or stabilizer if the power is unsteady.",
+      "why": "Power swings can damage the board.",
+      "trigger": {
+        "answers": {
+          "power_issues": [
+            "often",
+            "sometimes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "wipe_spills",
+      "priority": "LOW",
+      "text": "Wipe spills once the glass has cooled.",
+      "why": "Burnt spills are harder to clean and can stain.",
+      "trigger": {
+        "answers": {
+          "spills": [
+            "sometimes"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "vents",
+      "text": "Check the cooktop's air vents are clean (unplugged and cool).",
+      "interval_days": 30,
+      "interval_text": "about once a month",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "power_issues",
+      "answers": [
+        "often"
+      ],
+      "effect": "raise",
+      "reason": "Power swings can damage the board."
+    },
+    {
+      "question": "cookware",
+      "answers": [
+        "mixed"
+      ],
+      "effect": "raise",
+      "reason": "The wrong cookware strains the coil."
+    },
+    {
+      "question": "vents",
+      "answers": [
+        "no"
+      ],
+      "effect": "raise",
+      "reason": "Blocked vents cause overheating."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "errors",
+        "crack",
+        "cuts_out"
+      ],
+      "effect": "raise",
+      "reason": "These are signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Cooktop",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Glass top",
+      "note": "Often not covered for breakage - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Cracked or broken glass",
+    "Damage from voltage fluctuations",
+    "Damage from liquid spills into the vents",
+    "Burn marks"
+  ]
+}

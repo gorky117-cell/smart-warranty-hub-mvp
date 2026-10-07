@@ -1,0 +1,297 @@
+{
+  "product_type": "kettle_toaster",
+  "label": "Electric kettle or toaster",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric"
+  ],
+  "match": {
+    "lines": [],
+    "keywords": [
+      "kettle",
+      "electric kettle",
+      "toaster",
+      "pop-up toaster",
+      "sandwich maker"
+    ]
+  },
+  "questions": [
+    {
+      "id": "kind",
+      "text": "Which appliance is it?",
+      "why": "Kettles and toasters need different care.",
+      "answers": [
+        {
+          "value": "kettle",
+          "label": "Kettle"
+        },
+        {
+          "value": "toaster",
+          "label": "Toaster or sandwich maker"
+        }
+      ]
+    },
+    {
+      "id": "water_hard",
+      "text": "Does your water leave white marks in the kettle?",
+      "why": "Scale builds up on the heating plate.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "some",
+          "label": "Some"
+        },
+        {
+          "value": "a_lot",
+          "label": "A lot"
+        },
+        {
+          "value": "not_kettle",
+          "label": "It is a toaster"
+        }
+      ]
+    },
+    {
+      "id": "overfill",
+      "text": "Is the kettle filled above the maximum line?",
+      "why": "Overfilling can spill boiling water.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "not_kettle",
+          "label": "It is a toaster"
+        }
+      ]
+    },
+    {
+      "id": "crumbs",
+      "text": "How often is the crumb tray emptied?",
+      "why": "Built-up crumbs can burn.",
+      "answers": [
+        {
+          "value": "weekly",
+          "label": "About once a week"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        },
+        {
+          "value": "not_toaster",
+          "label": "It is a kettle"
+        }
+      ]
+    },
+    {
+      "id": "cord",
+      "text": "Is the power cord in good condition?",
+      "why": "Damaged cords are a shock and fire risk.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "worn",
+          "label": "Worn or damaged"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed it not switching off, a burning smell or sparks?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "no_cutoff",
+          "label": "Does not switch off"
+        },
+        {
+          "value": "smell",
+          "label": "Burning smell"
+        },
+        {
+          "value": "sparks",
+          "label": "Sparks"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off and unplug the appliance before cleaning it.",
+      "why": "Cleaning an appliance that is plugged in risks an electric shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the appliance yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_bypass",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't bypass or tamper with the thermostat or any safety cut-out.",
+      "why": "These stop the appliance overheating; without them it can cause burns or a fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "damaged_cord",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Stop using it if the cord is worn or damaged, and contact the brand's service.",
+      "why": "Damaged cords can cause shocks and fires.",
+      "trigger": {
+        "answers": {
+          "cord": [
+            "worn"
+          ]
+        }
+      }
+    },
+    {
+      "id": "descale",
+      "priority": "MEDIUM",
+      "text": "Descale the kettle as the manual describes.",
+      "why": "Scale makes the heating plate work harder.",
+      "trigger": {
+        "answers": {
+          "water_hard": [
+            "some",
+            "a_lot"
+          ]
+        }
+      }
+    },
+    {
+      "id": "max_line",
+      "priority": "MEDIUM",
+      "text": "Fill the kettle between the minimum and maximum lines.",
+      "why": "Overfilling spills boiling water.",
+      "trigger": {
+        "answers": {
+          "overfill": [
+            "sometimes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "crumbs",
+      "priority": "MEDIUM",
+      "text": "Empty the toaster's crumb tray regularly (unplugged and cool).",
+      "why": "Crumbs can burn.",
+      "trigger": {
+        "answers": {
+          "crumbs": [
+            "rarely"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "HIGH",
+      "text": "If it does not switch off by itself or smells of burning, unplug it and contact the brand's service.",
+      "why": "The automatic cut-off may have failed.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "no_cutoff",
+            "smell",
+            "sparks"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "descale_or_crumbs",
+      "text": "Descale the kettle or empty the toaster's crumb tray (unplugged).",
+      "interval_days": 30,
+      "interval_text": "about once a month",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "water_hard",
+      "answers": [
+        "a_lot"
+      ],
+      "effect": "raise",
+      "reason": "Scale makes the heating plate work harder."
+    },
+    {
+      "question": "crumbs",
+      "answers": [
+        "rarely"
+      ],
+      "effect": "raise",
+      "reason": "Built-up crumbs can burn."
+    },
+    {
+      "question": "cord",
+      "answers": [
+        "worn"
+      ],
+      "effect": "raise",
+      "reason": "A damaged cord is a shock and fire risk."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "no_cutoff",
+        "smell",
+        "sparks"
+      ],
+      "effect": "raise",
+      "reason": "These are signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Appliance",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Glass and plastic parts",
+      "note": "Often not covered for breakage - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Damage from scale or hard water",
+    "Broken glass or plastic",
+    "Damage from voltage fluctuations",
+    "Burn marks"
+  ]
+}

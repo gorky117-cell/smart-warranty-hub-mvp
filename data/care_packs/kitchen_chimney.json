@@ -1,0 +1,292 @@
+{
+  "product_type": "kitchen_chimney",
+  "label": "Kitchen chimney",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric"
+  ],
+  "match": {
+    "lines": [],
+    "keywords": [
+      "chimney",
+      "kitchen hood",
+      "cooker hood",
+      "range hood"
+    ]
+  },
+  "questions": [
+    {
+      "id": "cooking",
+      "text": "How much frying or oily cooking is done?",
+      "why": "Oil clogs the filters faster.",
+      "answers": [
+        {
+          "value": "little",
+          "label": "Little"
+        },
+        {
+          "value": "some",
+          "label": "Some"
+        },
+        {
+          "value": "a_lot",
+          "label": "A lot"
+        }
+      ]
+    },
+    {
+      "id": "filter_cleaning",
+      "text": "How often are the filters cleaned (or the auto-clean run)?",
+      "why": "Clogged filters reduce suction and strain the motor.",
+      "answers": [
+        {
+          "value": "monthly",
+          "label": "About once a month"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        },
+        {
+          "value": "never",
+          "label": "Never"
+        }
+      ]
+    },
+    {
+      "id": "duct",
+      "text": "How is the chimney vented?",
+      "why": "Long or bent ducts reduce suction.",
+      "answers": [
+        {
+          "value": "short_straight",
+          "label": "Short straight duct"
+        },
+        {
+          "value": "long_bent",
+          "label": "Long or bent duct"
+        },
+        {
+          "value": "not_sure",
+          "label": "Not sure"
+        }
+      ]
+    },
+    {
+      "id": "height",
+      "text": "Was it installed by the brand's technician at the recommended height?",
+      "why": "Height and fitting affect suction and safety.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "not_sure",
+          "label": "Not sure"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "power_issues",
+      "text": "Does the power at home often dip, flicker or trip?",
+      "why": "Unsteady power can damage the electronics.",
+      "answers": [
+        {
+          "value": "often",
+          "label": "Often"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed weak suction, oil dripping or loud noise?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "weak",
+          "label": "Weak suction"
+        },
+        {
+          "value": "dripping",
+          "label": "Oil dripping"
+        },
+        {
+          "value": "loud",
+          "label": "Loud noise"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off the chimney at the wall before cleaning the filters.",
+      "why": "Cleaning while powered risks a shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the chimney motor yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "clean_filters",
+      "priority": "HIGH",
+      "text": "Clean the filters (or run the auto-clean) as your manual describes.",
+      "why": "Clogged filters reduce suction and strain the motor.",
+      "trigger": {
+        "answers": {
+          "filter_cleaning": [
+            "rarely",
+            "never"
+          ],
+          "cooking": [
+            "a_lot"
+          ]
+        }
+      }
+    },
+    {
+      "id": "run_after",
+      "priority": "LOW",
+      "text": "Keep the chimney running for a few minutes after cooking.",
+      "why": "This clears the remaining smoke and moisture.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "install_check",
+      "priority": "MEDIUM",
+      "text": "Ask the brand's service to check the height and duct if suction is weak.",
+      "why": "Poor fitting reduces suction.",
+      "trigger": {
+        "answers": {
+          "height": [
+            "no",
+            "not_sure"
+          ],
+          "duct": [
+            "long_bent"
+          ]
+        }
+      }
+    },
+    {
+      "id": "surge",
+      "priority": "MEDIUM",
+      "text": "Use a surge protector if the power is unsteady.",
+      "why": "Power swings can damage the motor and controls.",
+      "trigger": {
+        "answers": {
+          "power_issues": [
+            "often"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "MEDIUM",
+      "text": "If suction gets weak, oil drips or the noise gets loud, contact the brand's service.",
+      "why": "A clogged or failing motor gets worse with use.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "weak",
+            "dripping",
+            "loud"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "filters",
+      "text": "Clean the chimney filters or run the auto-clean.",
+      "interval_days": 30,
+      "interval_text": "about once a month with regular cooking",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "cooking",
+      "answers": [
+        "a_lot"
+      ],
+      "effect": "raise",
+      "reason": "Oil clogs the filters faster."
+    },
+    {
+      "question": "filter_cleaning",
+      "answers": [
+        "never"
+      ],
+      "effect": "raise",
+      "reason": "Clogged filters strain the motor."
+    },
+    {
+      "question": "duct",
+      "answers": [
+        "long_bent"
+      ],
+      "effect": "raise",
+      "reason": "Long or bent ducts reduce suction."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "weak",
+        "dripping",
+        "loud"
+      ],
+      "effect": "raise",
+      "reason": "These are signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Chimney",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Motor",
+      "note": "Some brands cover the motor for longer - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Filters and other consumable parts",
+    "Damage from oil build-up when filters are not cleaned",
+    "Ducting and installation materials",
+    "Installation by people the brand has not authorised"
+  ]
+}

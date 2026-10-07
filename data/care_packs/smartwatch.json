@@ -1,0 +1,296 @@
+{
+  "product_type": "smartwatch",
+  "label": "Smartwatch or fitness band",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric",
+    "battery"
+  ],
+  "match": {
+    "lines": [
+      "wearable"
+    ],
+    "keywords": [
+      "smartwatch",
+      "smart watch",
+      "fitness band",
+      "smart band",
+      "fitness tracker",
+      "watch"
+    ]
+  },
+  "questions": [
+    {
+      "id": "charger",
+      "text": "Which charger is used?",
+      "why": "Poor chargers can damage the small battery.",
+      "answers": [
+        {
+          "value": "original",
+          "label": "Its own charger"
+        },
+        {
+          "value": "other",
+          "label": "Another charger"
+        }
+      ]
+    },
+    {
+      "id": "water_use",
+      "text": "Is it worn while swimming, showering or in a sauna?",
+      "why": "Water resistance has limits, and hot water and steam are harsher.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "swim",
+          "label": "Swimming"
+        },
+        {
+          "value": "shower_sauna",
+          "label": "Shower or sauna"
+        }
+      ]
+    },
+    {
+      "id": "sweat",
+      "text": "Is it worn during heavy exercise?",
+      "why": "Sweat on the sensors and contacts causes problems.",
+      "answers": [
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        },
+        {
+          "value": "often",
+          "label": "Often"
+        }
+      ]
+    },
+    {
+      "id": "cleaning",
+      "text": "How often are the sensors and strap cleaned?",
+      "why": "Dirt gives wrong readings and stops charging.",
+      "answers": [
+        {
+          "value": "weekly",
+          "label": "About once a week"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "updates",
+      "text": "Are watch and app updates installed?",
+      "why": "Updates fix bugs.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed it not charging, draining fast, a swollen back or water inside?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "charging",
+          "label": "Not charging"
+        },
+        {
+          "value": "drain",
+          "label": "Draining fast"
+        },
+        {
+          "value": "swelling",
+          "label": "Swollen back"
+        },
+        {
+          "value": "water",
+          "label": "Water inside"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "battery_swell",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Stop using the watch and keep it away from anything that can burn if the battery swells, gets very hot or smells unusual.",
+      "why": "A damaged battery can catch fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "battery_no_open",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open, puncture or crush the battery, and don't use it after a hard fall that dented it.",
+      "why": "Damaged battery cells can overheat or catch fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch the watch off and unplug the charger before cleaning it.",
+      "why": "Cleaning a charging device risks a short circuit.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "charger",
+      "priority": "HIGH",
+      "text": "Charge it only with its own charger.",
+      "why": "The wrong charger can damage the battery.",
+      "trigger": {
+        "answers": {
+          "charger": [
+            "other"
+          ]
+        }
+      }
+    },
+    {
+      "id": "water_limits",
+      "priority": "MEDIUM",
+      "text": "Check your manual before swimming or showering with it, and avoid saunas and hot water.",
+      "why": "Water resistance has limits and weakens with age.",
+      "trigger": {
+        "answers": {
+          "water_use": [
+            "swim",
+            "shower_sauna"
+          ]
+        }
+      }
+    },
+    {
+      "id": "clean",
+      "priority": "LOW",
+      "text": "Wipe the sensors, contacts and strap regularly.",
+      "why": "Dirt gives wrong readings and stops charging.",
+      "trigger": {
+        "answers": {
+          "cleaning": [
+            "rarely"
+          ],
+          "sweat": [
+            "often"
+          ]
+        }
+      }
+    },
+    {
+      "id": "updates",
+      "priority": "LOW",
+      "text": "Install updates for the watch and its app.",
+      "why": "Updates fix bugs.",
+      "trigger": {
+        "answers": {
+          "updates": [
+            "no"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "MEDIUM",
+      "text": "If it stops charging or water gets inside, contact the brand's service.",
+      "why": "These can be signs of a fault.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "charging",
+            "drain",
+            "water"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "clean",
+      "text": "Clean the watch's sensors, contacts and strap.",
+      "interval_days": 7,
+      "interval_text": "about once a week",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "charger",
+      "answers": [
+        "other"
+      ],
+      "effect": "raise",
+      "reason": "The wrong charger can damage the battery."
+    },
+    {
+      "question": "water_use",
+      "answers": [
+        "shower_sauna"
+      ],
+      "effect": "raise",
+      "reason": "Hot water and steam can get past the seals."
+    },
+    {
+      "question": "cleaning",
+      "answers": [
+        "weekly"
+      ],
+      "effect": "lower",
+      "reason": "Clean contacts charge reliably."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "charging",
+        "drain",
+        "swelling",
+        "water"
+      ],
+      "effect": "raise",
+      "reason": "These are signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Watch or band",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Strap and charger",
+      "note": "Often covered for a shorter time or not at all - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Water damage beyond the stated water resistance",
+    "Physical damage, including a cracked screen",
+    "Straps and charging cables",
+    "Battery wear"
+  ]
+}

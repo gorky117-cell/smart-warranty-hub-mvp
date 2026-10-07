@@ -266,14 +266,16 @@ def match_type(product_name: Optional[str], model_code: Optional[str]) -> Option
     from .terms_cache import product_line
 
     text = f" {(product_name or '').lower()} {(model_code or '').lower()} "
-    best: Tuple[int, Optional[str]] = (0, None)
-    for ptype, pack in _files().items():
-        for keyword in (pack.get("match") or {}).get("keywords") or []:
-            if re.search(rf"(?<![a-z0-9]){re.escape(keyword.lower())}(?![a-z0-9])", text) and len(keyword) > best[0]:
-                best = (len(keyword), ptype)
-    if best[1]:
-        return best[1]
     line = product_line(model_code, product_name)
+    best: Tuple[int, int, Optional[str]] = (0, 0, None)
+    for ptype, pack in _files().items():
+        fits_line = 1 if line and line in ((pack.get("match") or {}).get("lines") or []) else 0
+        for keyword in (pack.get("match") or {}).get("keywords") or []:
+            # Longest keyword wins; on a tie, the pack for the product's type ("Inverter Split AC" is an AC).
+            if re.search(rf"(?<![a-z0-9]){re.escape(keyword.lower())}(?![a-z0-9])", text) and (len(keyword), fits_line) > best[:2]:
+                best = (len(keyword), fits_line, ptype)
+    if best[2]:
+        return best[2]
     for ptype, pack in _files().items():
         if line and line in ((pack.get("match") or {}).get("lines") or []):
             return ptype

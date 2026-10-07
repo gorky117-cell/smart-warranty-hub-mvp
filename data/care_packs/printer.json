@@ -1,0 +1,308 @@
+{
+  "product_type": "printer",
+  "label": "Printer",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric"
+  ],
+  "match": {
+    "lines": [
+      "printer"
+    ],
+    "keywords": [
+      "printer",
+      "ink tank",
+      "inkjet",
+      "laserjet",
+      "laser printer",
+      "all-in-one"
+    ]
+  },
+  "questions": [
+    {
+      "id": "pages_per_month",
+      "text": "How many pages are printed in a month?",
+      "why": "Heavy printing wears parts faster; very little printing can let ink dry.",
+      "answers": [
+        {
+          "value": "under_50",
+          "label": "Fewer than 50"
+        },
+        {
+          "value": "50_300",
+          "label": "50 to 300"
+        },
+        {
+          "value": "over_300",
+          "label": "More than 300"
+        }
+      ]
+    },
+    {
+      "id": "idle",
+      "text": "Does the printer sometimes sit unused for weeks?",
+      "why": "Ink can dry in the print head when it is not used.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "yes",
+          "label": "Yes"
+        }
+      ]
+    },
+    {
+      "id": "ink",
+      "text": "Which ink or toner do you use?",
+      "why": "The wrong ink or toner can block the print head.",
+      "answers": [
+        {
+          "value": "genuine",
+          "label": "The brand's own"
+        },
+        {
+          "value": "other",
+          "label": "Other or refilled"
+        },
+        {
+          "value": "not_sure",
+          "label": "Not sure"
+        }
+      ]
+    },
+    {
+      "id": "paper",
+      "text": "Which paper do you use?",
+      "why": "Damp, thick or crumpled paper causes jams.",
+      "answers": [
+        {
+          "value": "normal",
+          "label": "Normal office paper"
+        },
+        {
+          "value": "mixed",
+          "label": "Whatever is around"
+        }
+      ]
+    },
+    {
+      "id": "power_issues",
+      "text": "Does the power at home often dip, flicker or trip?",
+      "why": "Unsteady power can damage the electronics.",
+      "answers": [
+        {
+          "value": "often",
+          "label": "Often"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed paper jams, faded or streaky prints or error lights?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "jams",
+          "label": "Paper jams"
+        },
+        {
+          "value": "faded",
+          "label": "Faded or streaky prints"
+        },
+        {
+          "value": "errors",
+          "label": "Error lights"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off and unplug the printer before cleaning it.",
+      "why": "Cleaning an appliance that is plugged in risks an electric shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the printer yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "print_regularly",
+      "priority": "MEDIUM",
+      "text": "Print a page every week or two if the printer sits idle.",
+      "why": "Ink can dry in the print head.",
+      "trigger": {
+        "answers": {
+          "idle": [
+            "yes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "recommended_ink",
+      "priority": "HIGH",
+      "text": "Use the ink or toner the brand recommends for your model.",
+      "why": "The wrong ink can block the print head.",
+      "trigger": {
+        "answers": {
+          "ink": [
+            "other",
+            "not_sure"
+          ]
+        }
+      }
+    },
+    {
+      "id": "paper",
+      "priority": "LOW",
+      "text": "Use dry, flat paper of the type your manual lists.",
+      "why": "Damp or crumpled paper jams the rollers.",
+      "trigger": {
+        "answers": {
+          "paper": [
+            "mixed"
+          ]
+        }
+      }
+    },
+    {
+      "id": "cover",
+      "priority": "LOW",
+      "text": "Keep the printer covered from dust when not in use.",
+      "why": "Dust affects the rollers and prints.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "surge",
+      "priority": "MEDIUM",
+      "text": "Plug it into a surge protector if the power is unsteady.",
+      "why": "Power spikes can damage the board.",
+      "trigger": {
+        "answers": {
+          "power_issues": [
+            "often",
+            "sometimes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "MEDIUM",
+      "text": "For repeated jams, streaky prints or error lights, follow the manual's checks, then contact the brand's service.",
+      "why": "Forcing jammed paper can damage the rollers.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "jams",
+            "faded",
+            "errors"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "test_print",
+      "text": "Print a test page so the ink does not dry.",
+      "interval_days": 14,
+      "interval_text": "about every 2 weeks if the printer is idle",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "pages_per_month",
+      "answers": [
+        "over_300"
+      ],
+      "effect": "raise",
+      "reason": "Heavy printing wears parts faster."
+    },
+    {
+      "question": "idle",
+      "answers": [
+        "yes"
+      ],
+      "effect": "raise",
+      "reason": "Ink can dry in the print head."
+    },
+    {
+      "question": "ink",
+      "answers": [
+        "other"
+      ],
+      "effect": "raise",
+      "reason": "The wrong ink can block the print head."
+    },
+    {
+      "question": "ink",
+      "answers": [
+        "genuine"
+      ],
+      "effect": "lower",
+      "reason": "Recommended ink suits the print head."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "jams",
+        "faded",
+        "errors"
+      ],
+      "effect": "raise",
+      "reason": "These are early signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Printer",
+      "note": "Covered for a standard period, sometimes limited by the number of pages printed - check your warranty card."
+    },
+    {
+      "part": "Print head",
+      "note": "Some brands cover it separately or with conditions - check your warranty card."
+    },
+    {
+      "part": "Ink, toner and cartridges",
+      "note": "Consumables are usually not covered - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Damage from ink or toner that is not genuine",
+    "Ink, toner and other consumables",
+    "Damage from paper jams caused by the wrong paper",
+    "Damage from power surges",
+    "Repairs by people the brand has not authorised"
+  ]
+}

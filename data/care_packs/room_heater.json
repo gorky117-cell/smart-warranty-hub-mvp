@@ -1,0 +1,302 @@
+{
+  "product_type": "room_heater",
+  "label": "Room heater",
+  "status": "draft",
+  "version": 1,
+  "hazards": [
+    "electric"
+  ],
+  "match": {
+    "lines": [
+      "heater"
+    ],
+    "keywords": [
+      "room heater",
+      "oil heater",
+      "fan heater",
+      "halogen heater",
+      "radiator heater",
+      "heater"
+    ]
+  },
+  "questions": [
+    {
+      "id": "hours_per_day",
+      "text": "How many hours a day is the heater on?",
+      "why": "Long running heats parts and raises fire risk.",
+      "answers": [
+        {
+          "value": "under_3h",
+          "label": "Less than 3 hours"
+        },
+        {
+          "value": "3_6h",
+          "label": "3 to 6 hours"
+        },
+        {
+          "value": "over_6h",
+          "label": "More than 6 hours"
+        }
+      ]
+    },
+    {
+      "id": "overnight",
+      "text": "Is it left on overnight or when nobody is in the room?",
+      "why": "Unattended heaters are a fire risk.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "sometimes",
+          "label": "Sometimes"
+        },
+        {
+          "value": "yes",
+          "label": "Yes"
+        }
+      ]
+    },
+    {
+      "id": "clearance",
+      "text": "Is it kept away from curtains, bedding and furniture?",
+      "why": "Things close to a heater can catch fire.",
+      "answers": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "not_always",
+          "label": "Not always"
+        }
+      ]
+    },
+    {
+      "id": "extension",
+      "text": "Is it plugged into an extension board?",
+      "why": "Heaters draw a lot of power and can overheat extension boards.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No, a wall socket"
+        },
+        {
+          "value": "yes",
+          "label": "Yes"
+        }
+      ]
+    },
+    {
+      "id": "children_pets",
+      "text": "Are there small children or pets in the home?",
+      "why": "Hot surfaces can burn.",
+      "answers": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "yes",
+          "label": "Yes"
+        }
+      ]
+    },
+    {
+      "id": "symptoms",
+      "text": "Have you noticed a burning smell, sparks or the heater switching off by itself?",
+      "why": "Early signs let you get it checked before a small fault grows.",
+      "answers": [
+        {
+          "value": "none",
+          "label": "No"
+        },
+        {
+          "value": "smell",
+          "label": "Burning smell"
+        },
+        {
+          "value": "sparks",
+          "label": "Sparks"
+        },
+        {
+          "value": "cuts_out",
+          "label": "Switches off by itself"
+        }
+      ]
+    }
+  ],
+  "care_tips": [
+    {
+      "id": "power_off",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch off and unplug the heater before cleaning it.",
+      "why": "Cleaning an appliance that is plugged in risks an electric shock.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_opening",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't open the heater yourself; leave repairs to the brand's authorised service.",
+      "why": "Inside there are live parts, and opening it can also end the warranty.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "no_bypass",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Don't bypass or tamper with the thermostat or any safety cut-out.",
+      "why": "These stop the appliance overheating; without them it can cause burns or a fire.",
+      "trigger": {
+        "always": true
+      }
+    },
+    {
+      "id": "unattended",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Switch the heater off when you leave the room or go to sleep.",
+      "why": "Unattended heaters cause fires.",
+      "trigger": {
+        "answers": {
+          "overnight": [
+            "sometimes",
+            "yes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "clearance",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Keep the heater well away from curtains, bedding and furniture.",
+      "why": "Fabric close to a heater can catch fire.",
+      "trigger": {
+        "answers": {
+          "clearance": [
+            "not_always"
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall_socket",
+      "safety": true,
+      "priority": "HIGH",
+      "text": "Plug the heater straight into a wall socket of the right rating.",
+      "why": "Extension boards can overheat under the load.",
+      "trigger": {
+        "answers": {
+          "extension": [
+            "yes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "children",
+      "priority": "MEDIUM",
+      "text": "Keep children and pets away from the heater.",
+      "why": "Hot surfaces can burn.",
+      "trigger": {
+        "answers": {
+          "children_pets": [
+            "yes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "early_signs",
+      "priority": "HIGH",
+      "text": "If you smell burning, see sparks or it keeps cutting out, unplug it and contact the brand's service.",
+      "why": "These can be signs of a dangerous fault.",
+      "trigger": {
+        "answers": {
+          "symptoms": [
+            "smell",
+            "sparks",
+            "cuts_out"
+          ]
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "season_check",
+      "text": "Before winter, check the heater's cable and plug for damage (unplugged).",
+      "interval_days": 365,
+      "interval_text": "about once a year, before winter",
+      "note": "Check your manual for the interval for your model."
+    }
+  ],
+  "risk_factors": [
+    {
+      "question": "overnight",
+      "answers": [
+        "yes"
+      ],
+      "effect": "raise",
+      "reason": "Unattended heaters are a fire risk."
+    },
+    {
+      "question": "clearance",
+      "answers": [
+        "not_always"
+      ],
+      "effect": "raise",
+      "reason": "Things close to the heater can catch fire."
+    },
+    {
+      "question": "extension",
+      "answers": [
+        "yes"
+      ],
+      "effect": "raise",
+      "reason": "Extension boards can overheat."
+    },
+    {
+      "question": "hours_per_day",
+      "answers": [
+        "over_6h"
+      ],
+      "effect": "raise",
+      "reason": "Long running heats parts."
+    },
+    {
+      "question": "symptoms",
+      "answers": [
+        "smell",
+        "sparks",
+        "cuts_out"
+      ],
+      "effect": "raise",
+      "reason": "These are signs of a fault."
+    }
+  ],
+  "warranty_structure": [
+    {
+      "part": "Heater",
+      "note": "Covered for a standard period - check your warranty card."
+    },
+    {
+      "part": "Heating element",
+      "note": "Some brands cover the element separately - check your warranty card."
+    }
+  ],
+  "exclusions_to_look_for": [
+    "Damage from voltage fluctuations",
+    "Misuse, such as covering the heater or drying clothes on it",
+    "Burn marks and plastic damage",
+    "Halogen tubes and other consumable parts"
+  ]
+}
