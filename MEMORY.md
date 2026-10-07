@@ -3367,3 +3367,9 @@ paddle): baseline 856 passed, 9 skipped (more skips than on Windows: Paddle is n
   guard never blocks a password reset. Provider rejections are not counted. Tests: test_emailer.py +4 (stop at
   80 with resets still sent, new UTC day, configurable threshold + failures not counted, database down),
   test_password_reset.py +1 (reset e-mail goes out at 95 sent while a welcome e-mail is skipped).
+- [x] 103.6 E-mail required at sign-up: the form (signup=email_invalid message) and POST /auth/signup (400; also
+  applies the password rule there now) refuse a missing or invalid address. /auth/session returns has_email.
+  Dashboard: "Account" button -> Account settings with an e-mail form (GET/POST /account/email; adding needs no
+  password, changing an existing address needs the current password, CSRF as other dashboard calls); signed-in
+  users without an address see "Add your email so you can reset your password later". Browser run (Playwright,
+  420 px wide): banner shown, address saved, banner hidden. Tests: tests/test_account_email.py (14).

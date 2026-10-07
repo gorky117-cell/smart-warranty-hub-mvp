@@ -1645,6 +1645,12 @@ def signup(
     check_rate_limit("signup", request)
     if payload.role not in ("user", "oem", "tpa", "admin"):
         raise HTTPException(status_code=400, detail="Role must be user, oem, tpa, or admin")
+    signup_email = (payload.email or "").strip()
+    if not emailer_service.is_valid_address(signup_email):
+        raise HTTPException(status_code=400, detail="A valid email address is required")
+    problem = password_problem(payload.password)
+    if problem:
+        raise HTTPException(status_code=400, detail=f"Password: {problem}")
     try:
         existing = db.query(UserDB).filter_by(username=payload.username).first()
     except (ProgrammingError, OperationalError):
@@ -1670,7 +1676,7 @@ def signup(
         username=payload.username,
         role=payload.role if current and current.role == "admin" else "user",
         hashed_password=hash_password(payload.password),
-        email=payload.email,
+        email=signup_email,
     )
     db.add(user)
     db.commit()
@@ -1712,6 +1718,12 @@ def signup_form(
     email = (email or "").strip() or None
     if len(username) < 3 or password_problem(password):
         login_params["signup"] = "invalid"
+        return RedirectResponse(
+            url=f"/login?{urlencode(login_params)}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    if not emailer_service.is_valid_address(email):
+        login_params["signup"] = "email_invalid"
         return RedirectResponse(
             url=f"/login?{urlencode(login_params)}",
             status_code=status.HTTP_303_SEE_OTHER,
@@ -2047,8 +2059,41 @@ def password_reset_submit(payload: PasswordResetRequest, request: Request, db=De
 @app.get("/auth/session")
 def auth_session(current: Optional[UserDB] = Depends(get_current_user_optional)):
     if not current:
-        return {"authenticated": False, "username": None, "role": None}
-    return {"authenticated": True, "username": current.username, "role": current.role}
+        return {"authenticated": False, "username": None, "role": None, "has_email": False}
+    return {
+        "authenticated": True,
+        "username": current.username,
+        "role": current.role,
+        "has_email": emailer_service.is_valid_address((current.email or "").strip()),
+    }
+
+
+class AccountEmailRequest(BaseModel):
+    email: str
+    current_password: str | None = None
+
+
+@app.get("/account/email")
+def account_email_get(current: UserDB = Depends(require_user)):
+    return {"email": current.email or None}
+
+
+@app.post("/account/email")
+def account_email_set(payload: AccountEmailRequest, db=Depends(get_db), current: UserDB = Depends(require_user)):
+    """Add or change the account's e-mail (used for password resets). Changing an existing address needs the
+    current password, so a borrowed signed-in session cannot redirect reset e-mails."""
+    address = (payload.email or "").strip()
+    if not emailer_service.is_valid_address(address):
+        raise HTTPException(status_code=400, detail="Please enter a valid email address.")
+    user = db.query(UserDB).filter_by(username=current.username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if (user.email or "").strip() and (user.email or "").strip().lower() != address.lower():
+        if not verify_password(payload.current_password or "", user.hashed_password):
+            raise HTTPException(status_code=400, detail="To change your email, enter your current password.")
+    user.email = address
+    db.commit()
+    return {"status": "ok", "email": address}
 
 
 @app.get("/login")

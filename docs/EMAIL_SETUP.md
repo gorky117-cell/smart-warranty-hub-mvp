@@ -37,6 +37,15 @@ attached when sending through Resend's API.
 
 Every Resend message carries the tags `app=swh` and `type=<type above>`, so Resend's logs can be filtered.
 
+## E-mail addresses on accounts
+
+- Sign-up (form and API) requires a valid e-mail address; without one the sign-up page says "Please enter a
+  valid email address. You need it to reset your password."
+- Older accounts without an address see a banner on the dashboard: "Add your email so you can reset your password
+  later", which opens **Account** (top bar) -> Account settings. Adding an address needs no password; changing an
+  existing one needs the current password.
+- Accounts without an address cannot use "Forgot password?" (they get the same neutral answer).
+
 ## Daily guard
 
 Resend's free plan allows 100 e-mails a day. SWH counts every e-mail the provider accepted in the current UTC
