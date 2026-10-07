@@ -5,7 +5,9 @@ dates, cover, care tips and reminders. FastAPI + SQLAlchemy (SQLite locally, Pos
 HTML templates. Live at https://www.smartwarrantyhub.com; Railway deploys `origin/master`.
 
 Read first: `STATUS.md` (what is live, measured numbers, known issues) and `MEMORY.md` (numbered log of every
-run, newest at the bottom; resume from its last entry). Open work: `docs/BACKLOG.md`.
+run, newest at the bottom; resume from its last entry). Open work: `docs/BACKLOG.md`, tagged **[NEEDS-KEYS]**
+(API keys, real invoices or production data) or **[GAURAV]** (the owner's decision or manual work); untagged
+items are code work the cloud session can do.
 
 ## Priorities
 1. Correct, grounded warranty facts for the invoice the customer uploaded (dates, cover, what to do).
@@ -24,8 +26,9 @@ something cannot be made general yet.
 Customers upload only the invoice. The warranty card is a later add-on (not built).
 
 ## Safety rules
-- Never push without the owner's approval and a production backup (`scripts/backup_prod_db.ps1`, owner runs
-  it). Never change Railway settings.
+- Cloud work: one branch per batch (`cloud/batch-1`, `cloud/batch-2`, ...), pushed after every commit, one pull
+  request per batch. Never push to or merge master/main: the owner merges after a production backup
+  (`scripts/backup_prod_db.ps1`). Never change Railway settings.
 - Never read, print, log or commit secrets (`.env`, API keys, `cookies.txt`, database URLs).
 - Never commit `real_invoices/` or results from real invoices.
 - One commit per step; full test suite before each commit (commit only when it passes); update `MEMORY.md`

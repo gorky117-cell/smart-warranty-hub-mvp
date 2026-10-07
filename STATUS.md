@@ -1,12 +1,18 @@
-# Smart Warranty Hub - status (2026-10-06)
+# Smart Warranty Hub - status (2026-10-07)
 
 Measured numbers only. **Synthetic** marks results from generated test files, not real customer
 invoices. No real-invoice accuracy has been measured yet (see "Next steps").
 
 ## Live vs local
 
-- **Live** (https://www.smartwarrantyhub.com, Railway deploys `origin/master`): everything, up to commit
-  `7971a633` (pushed 2026-10-06, live by 05:02 UTC).
+- **Live** (https://www.smartwarrantyhub.com, Railway deploys `origin/master`): everything up to commit
+  `09fd3c81` (pushed 2026-10-06 after the owner's backup; live per the owner). That push added, on top of
+  `7971a633`: the admin knowledge-base screen, warranty facts in SWH's own words, robots.txt checks on every
+  read of a brand's site, care tips, the Right to Repair citation field, `CLAUDE.md` and `docs/BACKLOG.md`.
+  The live checks after this deploy were not run from the cloud session (the live site is blocked there on
+  purpose); the table below is from the `7971a633` deploy.
+- **Development now happens in the cloud** on `cloud/batch-N` branches with a pull request each; master is
+  only changed by the owner.
   - Runs 97-100 (24 commits after `03f6a0ab`): live test 1 fixes (Samsung M17e), My documents with files
     stored in Postgres by default, Redmi B-D and the claim PDF, product names and nicknames, plain language,
     "Your warranty in 5 lines", product care v1 (no guides saved yet), reminders, the global check, shared
@@ -38,7 +44,7 @@ invoices. No real-invoice accuracy has been measured yet (see "Next steps").
     - knowledge base v1 (empty);
     - guarded start-up schema upgrade;
     - backup script.
-- **Local only:** nothing except this status update.
+- **Not live (branch `cloud/batch-1`, pull request open):** forgot password + email (see MEMORY.md 103).
 - **Production backup before this deploy:** taken by the owner with `scripts/backup_prod_db.ps1` on
   2026-10-06 ("backup done"); file name and size not reported to me. Previous one:
   `swh_prod_2026-10-05_0106.dump`, 1.23 MB, 36 tables.
@@ -79,37 +85,36 @@ A real sign-in was not tested by me; no production credentials were used.
 - **Field extraction.**
   - Low-confidence values, misread labels and unknown brands become **suggestions the customer
     confirms**; they are never stored as fact.
-  - Printed model codes beat marketing names; "/" variants such as "HL7756/00" are kept. *Local only.*
+  - Printed model codes beat marketing names; "/" variants such as "HL7756/00" are kept.
   - Marketplace rows (Amazon, Flipkart, Croma, Reliance Digital) are trimmed to the product title, and
     the seller is never taken as the brand.
 - **Unreadable invoices.** These show "We couldn't read this invoice - retake the photo or enter the
   details", with a details form. No estimated coverage is shown.
 - **Warranty terms.**
   - Taken from registry or verified OEM sites ("From the official <Brand> website" / "(manually confirmed)").
-  - *Local only:* the terms cache is keyed by product line and model, so a Samsung TV page never answers a
+  - the terms cache is keyed by product line and model, so a Samsung TV page never answers a
     Samsung phone.
-  - *Local only:* only pages on verified official domains are cached, with source type, confidence,
+  - only pages on verified official domains are cached, with source type, confidence,
     grounding and model.
-  - *Local only:* entries are served for 30 days and labelled "checked on <date>"; older terms are
+  - entries are served for 30 days and labelled "checked on <date>"; older terms are
     flagged "needs refresh".
-  - *Local only:* a failed refresh keeps the last good entry, and default estimates are never served
+  - a failed refresh keeps the last good entry, and default estimates are never served
     from the cache.
-  - *Local only:* other users' saved warranties are reused only when their terms came from an official
+  - other users' saved warranties are reused only when their terms came from an official
     page, for the same product line.
-  - *Local only:* admin counts at `/admin/terms-cache/stats`.
-  - *Local only:* knowledge base v1. Hand-checked entries come first, even on forced refreshes, and
+  - admin counts at `/admin/terms-cache/stats`.
+  - knowledge base v1. Hand-checked entries come first, even on forced refreshes, and
     customers see "Checked on <date>". Locked entries are never overwritten: a disagreeing re-check is
     saved for review and admins are notified. Admin-only endpoints are audit-logged. The table is empty.
   - Shared brand names use the company that matches the product.
   - Unknown brands get "Estimated - please check your warranty card or the seller" and no guessed duration.
-  - India pages are preferred, including philips.co.in. *philips.co.in is local only.*
+  - India pages are preferred, including philips.co.in.
 - **AI providers.**
   - OpenAI and Mistral can each do invoice enrichment, summaries and OEM-page terms extraction.
   - If the chosen provider fails or times out, the other one is tried (`AI_PROVIDER_FALLBACK=0` turns
-    this off). Text is redacted before either provider sees it. *Local only.*
+    this off). Text is redacted before either provider sees it.
 - **Privacy.**
   - Buyer details are redacted before every AI call, including a buyer label in the middle of a line.
-    *Mid-line masking is local only.*
   - The vision tier sends only redacted images.
 - **Security.**
   - Admin security banner and HTTPS redirect behind the proxy.
@@ -121,9 +126,9 @@ A real sign-in was not tested by me; no production credentials were used.
   - `expected.csv` is optional and adds automatic scoring in `report.md`.
   - `--provider openai|mistral|both` compares the providers.
   - Optional corrections log (`CORRECTIONS_LOG=1`, off by default) records what customers confirm or
-    correct in the UI, with no personal data. *Local only.*
+    correct in the UI, with no personal data.
 
-## What changed for customers (local only)
+## What changed for customers (live since 2026-10-06)
 
 - **My documents:** view, download and delete the invoice, warranty card and photos per product; owner-only.
 - **Claim PDF:** summary page + original invoice, with "Include invoice" and "Hide my address" (real

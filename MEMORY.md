@@ -3317,3 +3317,12 @@ Local commits, full tests, no push. Global and single-entry rules apply.
   the repo or this session, so both were built from MEMORY.md and STATUS.md. STATUS.md: stale bullets corrected
   (OCR'd codes, Bajaj, care sources).
 - [x] 102.6 Owner said "backup done": CLAUDE.md reshaped to the handover spec (what SWH is, priorities, GLOBAL RULE, single-entry rule, safety rules, where things are; under 80 lines) and docs/BACKLOG.md in priority order with [LOCAL]/[GAURAV] tags; then push. From now on code changes happen in the cloud.
+
+## 103. Cloud batch 1: forgot password + email (2026-10-07)
+Cloud session, branch `cloud/batch-1` (never master). Full suite in the cloud container (Python 3.11, no
+paddle): baseline 856 passed, 9 skipped (more skips than on Windows: Paddle is not installed here).
+- [x] 103.0 Owner reports commits up to `09fd3c81` pushed and live (knowledge-base screen, own-words facts,
+  robots.txt checks, care tips, CLAUDE.md, BACKLOG.md); STATUS.md "Live" updated, "local only" markers removed.
+  Live checks not run (live site blocked in the cloud on purpose). Backlog tags changed: [NEEDS-KEYS] = API keys,
+  real invoices or production data; [GAURAV] = owner's decision or manual work; untagged = cloud code work.
+  CLAUDE.md: tag meanings and the cloud branch rule.
