@@ -36,8 +36,9 @@ session can do (one branch per batch, `cloud/batch-N`).
 11. Care guides v2 (fetcher) - only after brand permission.
 
 ## Known gaps
-20. Passwords are hashed with PBKDF2 and one app-wide salt (`deps.hash_password`). Move to a per-user salt
-    (re-hash on next sign-in) - needs care so existing passwords keep working.
+20. [x] Per-user password salt (cloud batch 2): new hashes `pbkdf2_sha256$200000$<salt>$<hash>`; old shared-salt
+    hashes still verify and are upgraded on the next sign-in. Accounts that never sign in again keep the old
+    hash (still safe to verify; weaker only if the database leaks).
 21. Rate limits are kept in memory per process: they reset on every deploy and are not shared if Railway runs
     more than one instance.
 12. Brand-specific code kept on purpose: Redmi/POCO -> Xiaomi table, marketing-series names for models,

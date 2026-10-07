@@ -3373,3 +3373,13 @@ paddle): baseline 856 passed, 9 skipped (more skips than on Windows: Paddle is n
   password, changing an existing address needs the current password, CSRF as other dashboard calls); signed-in
   users without an address see "Add your email so you can reset your password later". Browser run (Playwright,
   420 px wide): banner shown, address saved, banner hidden. Tests: tests/test_account_email.py (14).
+
+## 104. Cloud batch 2: password salt, lasting rate limits, next backlog items (2026-10-07)
+Branch `cloud/batch-2`, started from `cloud/batch-1` (PR #1 not merged yet), pull request against
+`cloud/batch-1`. Baseline: 900 passed, 9 skipped.
+- [x] 104.1 Backlog #20 per-user password salt. deps.hash_password now stores
+  "pbkdf2_sha256$<iterations>$<16-byte salt hex>$<hash hex>" (PBKDF2-SHA256, 200,000 iterations as before).
+  verify_password accepts that and the old bare-hex shared-salt (JWT_SALT) format, both with a constant-time
+  compare; malformed hashes never verify. needs_rehash() is true for old hashes (or fewer iterations); a
+  successful sign-in upgrades the stored hash (failure to save is logged by class name and does not block the
+  sign-in). New hashes no longer depend on JWT_SALT. Tests: tests/test_password_hashing.py (4).

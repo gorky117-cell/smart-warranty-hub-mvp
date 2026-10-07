@@ -1,5 +1,6 @@
 import os
 import hashlib
+import hmac
 import secrets
 import time
 from datetime import datetime, timedelta
@@ -49,13 +50,50 @@ def get_db():
         db.close()
 
 
+# Password hashes: "pbkdf2_sha256$<iterations>$<salt hex>$<hash hex>" with a random 16-byte salt per password.
+# Older hashes are bare hex: PBKDF2-SHA256, 200,000 iterations, one app-wide salt (JWT_SALT). They still verify,
+# and are replaced by the new format the next time the user signs in (needs_rehash).
+PASSWORD_SCHEME = "pbkdf2_sha256"
+PASSWORD_ITERATIONS = 200000
+_LEGACY_ITERATIONS = 200000
+
+
+def _pbkdf2(password: str, salt: bytes, iterations: int) -> str:
+    return hashlib.pbkdf2_hmac("sha256", (password or "").encode(), salt, iterations).hex()
+
+
+def _legacy_hash(password: str) -> str:
+    return _pbkdf2(password, _JWT_SALT.encode(), _LEGACY_ITERATIONS)
+
+
 def hash_password(password: str) -> str:
-    salt = _JWT_SALT.encode()
-    return hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 200000).hex()
+    salt = secrets.token_bytes(16)
+    return f"{PASSWORD_SCHEME}${PASSWORD_ITERATIONS}${salt.hex()}${_pbkdf2(password, salt, PASSWORD_ITERATIONS)}"
 
 
 def verify_password(password: str, hashed: str) -> bool:
-    return hash_password(password) == hashed
+    hashed = hashed or ""
+    if hashed.startswith(PASSWORD_SCHEME + "$"):
+        try:
+            _scheme, iterations, salt_hex, digest = hashed.split("$")
+            candidate = _pbkdf2(password, bytes.fromhex(salt_hex), int(iterations))
+        except (ValueError, TypeError):
+            return False
+        return hmac.compare_digest(candidate, digest)
+    if not hashed:
+        return False
+    return hmac.compare_digest(_legacy_hash(password), hashed)
+
+
+def needs_rehash(hashed: str) -> bool:
+    """True for the old shared-salt format, or fewer iterations than today's setting."""
+    hashed = hashed or ""
+    if not hashed.startswith(PASSWORD_SCHEME + "$"):
+        return True
+    try:
+        return int(hashed.split("$")[1]) < PASSWORD_ITERATIONS
+    except (IndexError, ValueError):
+        return True
 
 
 PASSWORD_MIN_LENGTH = 6
