@@ -37,19 +37,28 @@ session can do (one branch per batch, `cloud/batch-N`).
 10. Warranty card upload as an add-on - only after invoice-only works well (single-entry rule).
 11. Care guides v2 (fetcher) - only after brand permission.
 
+## Next batch (first item first)
+22. Finer invoice categories in place of "appliance": AC, fridge, washing machine, geyser, microwave, mixer /
+    kitchen appliance, and so on (today they all share "appliance", so defaults and lookups use one 24-month rule;
+    see docs/VOLTAS_DIAGNOSIS.md). Tests for the estimate wording per category (split-warranty sentence for AC,
+    fridge, washing machine; the plain "check your warranty card" wording for the rest), and that knowledge-base
+    and cache lookups still match.
+
 ## Done in cloud batch 3 (branch `cloud/batch-3`)
 - [x] Amazon 2017 invoice: date after headings, seller from "Sold By", model from bracketed specs, price /
   capacity / stars / type, delivery city+state with consent, duplicate invoices, customer screens, estimates
   without numbers, Voltas diagnosis (docs/VOLTAS_DIAGNOSIS.md), risk wording. (Question packs are owned by
   `desktop/batch-3`; this branch only asks its approved packs.)
+- [x] Review of PR #3: confirmed end dates only in reminders/notifications/claim PDF (#24); brand accounts see only
+  their own brand's counts (admin links accounts to brands); opt-in consent text for anonymous brand totals.
+- [GAURAV] Link each existing brand/OEM/TPA account to its brand (PUT /admin/oem-accounts/{username}/brands)
+  after merging, or those accounts see no counts.
 
 ## Known gaps
 23. "Please check these details" (model/serial to confirm) still sits inside the collapsed "More product details"
     on the dashboard; move it next to the 5 lines like the duplicate and region notices.
 24. [x] Reminders, notifications and the claim PDF use only confirmed end dates (cloud batch 3 review):
     warranty_card.confirmed_end_date; estimated/unknown -> "Check your warranty card", no expiry reminder.
-22. ACs, fridges and washing machines share the invoice category "appliance" (default 24 months for all); give each
-    product line its own category for defaults and lookups (docs/VOLTAS_DIAGNOSIS.md).
 20. [x] Per-user password salt (cloud batch 2): new hashes `pbkdf2_sha256$200000$<salt>$<hash>`; old shared-salt
     hashes still verify and are upgraded on the next sign-in. Accounts that never sign in again keep the old
     hash (still safe to verify; weaker only if the database leaks).
