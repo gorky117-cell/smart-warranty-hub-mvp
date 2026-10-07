@@ -214,6 +214,11 @@
       color: #667085;
     }
 
+    .note a {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
     .msg {
       min-height: 18px;
       margin: 0 0 12px;
@@ -290,6 +295,7 @@
           <input id="signinPassword" name="password" type="password" placeholder="Enter password" autocomplete="current-password" required>
           <button type="submit">Continue</button>
         </form>
+        <p class="note"><a href="/forgot-password" id="forgotLink">Forgot password?</a></p>
         <p class="note">OEM/Admin users are routed by role. New signup creates a user-role account only.</p>
       </div>
 
@@ -368,6 +374,11 @@
       } else if (loginError === "session_expired") {
         loginMessage.textContent = "Your session expired. Please sign in again and retry.";
         loginMessage.className = "msg err";
+      }
+
+      if (params.get("reset") === "done") {
+        loginMessage.textContent = "Password changed. You were signed out everywhere; sign in with your new password.";
+        loginMessage.className = "msg ok";
       }
 
       const signupState = params.get("signup");

@@ -3334,3 +3334,23 @@ paddle): baseline 856 passed, 9 skipped (more skips than on Windows: Paddle is n
   checked (no header injection). Logs carry only type, provider and outcome - the old code logged recipient
   addresses, now removed. email_status() reports names/booleans only. Existing messages tagged welcome,
   login_alert, product_registered. Tests: tests/test_emailer.py (7, mocked Resend and SMTP).
+- [x] 103.2 Forgot password. "Forgot password?" on the sign-in page -> /forgot-password (email form) ->
+  POST /auth/password/forgot always answers "If an account uses that email address, we've sent it a link"
+  (same redirect for unknown addresses; e-mail sent in the background). Token: 256-bit random, only its SHA-256
+  stored (new table password_reset_tokens), expires in 30 minutes, works once (claimed with a conditional
+  UPDATE), asking again retires older unused links. Link = /reset-password#token=... (after "#", so it never
+  reaches server/proxy access logs; checked in a local uvicorn run: access log shows only the path). The page
+  checks the link (POST /auth/password/reset/check) and shows plain pages for expired / used / broken links with
+  "Send me a new link". New password (POST /auth/password/reset) uses the existing rule (at least 6 characters,
+  now one helper deps.password_problem also used by the sign-up form and the change-password endpoint) and
+  signs out every session: new table user_session_cutoffs + a "sat" (session start) claim in new tokens;
+  get_current_user and the stale-cookie check refuse sessions started before the cutoff (old tokens without the
+  claim count as started at 0). The logged-in change-password endpoint now also signs out other sessions and
+  hands this device a fresh session. Rate limits: 5 requests / 15 min per client, 3 links / hour per account
+  (keyed by a hash of the address; silent), 10 link checks or submissions / 15 min per client. If e-mail is
+  not configured the page says so and points to support@smartwarrantyhub.com; nothing crashes. Pages are
+  no-store, no-referrer, noindex. Both new tables are created by create_all at start-up (additions only).
+  Tests: tests/test_password_reset.py (16: normal reset, expired, reused + older links, unknown email, rules,
+  sessions signed out, change password, per-client and per-account limits, e-mail off, mail failure, invalid
+  address, logs, headers). Browser run (Playwright, local server, mail mocked): login -> forgot -> sent ->
+  link -> new password -> "Password changed" -> reused link "already used" -> sign in with the new password.

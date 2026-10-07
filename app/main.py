@@ -13,7 +13,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Depends, 
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel as PydanticBaseModel
 from sqlalchemy.exc import ProgrammingError, OperationalError
@@ -118,6 +118,9 @@ from .deps import (
     hash_password,
     init_db,
     decode_token,
+    password_problem,
+    revoke_all_sessions,
+    session_revoked,
     ACCESS_TOKEN_EXPIRE_HOURS,
     require_oem_or_admin,
 )
@@ -746,7 +749,9 @@ def _session_cookie_is_valid(token: str) -> bool:
     if not username or not payload.get("role"):
         return False
     with SessionLocal() as db:
-        return db.query(UserDB).filter_by(username=username).first() is not None
+        if db.query(UserDB).filter_by(username=username).first() is None:
+            return False
+        return not session_revoked(db, username, payload)
 
 
 @app.middleware("http")
@@ -1705,7 +1710,7 @@ def signup_form(
         )
     username = username.strip()
     email = (email or "").strip() or None
-    if len(username) < 3 or len(password) < 6:
+    if len(username) < 3 or password_problem(password):
         login_params["signup"] = "invalid"
         return RedirectResponse(
             url=f"/login?{urlencode(login_params)}",
@@ -1902,9 +1907,16 @@ def logout(response: Response, request: Request):
 
 
 @app.post("/auth/password/change", dependencies=[Depends(require_user)])
-def change_password(payload: PasswordChangeRequest, db=Depends(get_db), current: UserDB = Depends(require_user)):
-    if len(payload.new_password or "") < 6:
-        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+def change_password(
+    payload: PasswordChangeRequest,
+    request: Request,
+    response: Response,
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    problem = password_problem(payload.new_password)
+    if problem:
+        raise HTTPException(status_code=400, detail=f"New password: {problem}")
     user = db.query(UserDB).filter_by(username=current.username).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -1912,8 +1924,124 @@ def change_password(payload: PasswordChangeRequest, db=Depends(get_db), current:
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     user.hashed_password = hash_password(payload.new_password)
     db.add(user)
+    # A new password signs out every other session; this one continues with a fresh session cookie.
+    revoke_all_sessions(db, user.username)
     db.commit()
-    return {"status": "ok", "message": "Password updated"}
+    token = create_access_token(user.username, user.role)
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        max_age=ACCESS_TOKEN_EXPIRE_HOURS * 3600,
+        **_cookie_options(request),
+    )
+    return {"status": "ok", "message": "Password updated. You were signed out on other devices.", "access_token": token}
+
+
+# ---- Forgot password (services/password_reset.py) -------------------------------------------------------
+# No e-mail address, token or link is ever logged; the reset link carries the token after "#".
+
+_NO_STORE_HEADERS = {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"}
+
+
+def _password_reset_page(mode: str) -> Response:
+    from fastapi.responses import HTMLResponse
+
+    html_path = Path(__file__).resolve().parents[1] / "templates" / "password_reset.html"
+    html = html_path.read_text(encoding="utf-8")
+    html = html.replace("__MODE__", mode).replace("__EMAIL_READY__", "1" if emailer_service.email_configured() else "0")
+    return HTMLResponse(content=html, status_code=200, headers=_NO_STORE_HEADERS)
+
+
+@app.get("/forgot-password")
+def forgot_password_page():
+    return _password_reset_page("forgot")
+
+
+@app.get("/reset-password")
+def reset_password_page():
+    return _password_reset_page("reset")
+
+
+@app.post("/auth/password/forgot")
+def forgot_password(
+    request: Request,
+    email: str = Form(""),
+    background_tasks: BackgroundTasks = None,
+    db=Depends(get_db),
+):
+    from .services import password_reset
+
+    def _back(params: str) -> RedirectResponse:
+        return RedirectResponse(url=f"/forgot-password{params}", status_code=status.HTTP_303_SEE_OTHER)
+
+    try:
+        check_rate_limit("password_reset_request", request)
+    except HTTPException as exc:
+        if exc.status_code != 429:
+            raise
+        return _back("?error=rate_limited")
+    if not emailer_service.email_configured():
+        return _back("")  # the page explains that reset e-mails are unavailable
+    address = (email or "").strip()
+    if not emailer_service.is_valid_address(address):
+        return _back("?error=email")
+    # Same answer whether or not an account uses this address; the e-mail itself is sent in the background.
+    try:
+        check_rate_limit("password_reset_account", request, password_reset.account_key(address))
+        for user in password_reset.accounts_for_email(db, address):
+            token = password_reset.issue_token(db, user.username)
+            _send_email_later(
+                background_tasks,
+                password_reset.send_reset_email,
+                to_email=user.email,
+                username=user.username,
+                token=token,
+            )
+    except HTTPException as exc:
+        if exc.status_code != 429:
+            raise
+        # Too many links for this address: nothing more is sent, and the answer does not say so.
+    except Exception as exc:
+        db.rollback()
+        logger.warning("Password reset request failed: %s", exc.__class__.__name__)
+    return _back("?sent=1")
+
+
+class PasswordResetCheckRequest(BaseModel):
+    token: str = ""
+
+
+class PasswordResetRequest(BaseModel):
+    token: str = ""
+    password: str = ""
+    confirm: str | None = None
+
+
+@app.post("/auth/password/reset/check")
+def password_reset_check(payload: PasswordResetCheckRequest, request: Request, db=Depends(get_db)):
+    from .services import password_reset
+
+    check_rate_limit("password_reset_submit", request)
+    state, _row = password_reset.check_token(db, payload.token)
+    return JSONResponse({"status": state}, headers=_NO_STORE_HEADERS)
+
+
+@app.post("/auth/password/reset")
+def password_reset_submit(payload: PasswordResetRequest, request: Request, db=Depends(get_db)):
+    from .services import password_reset
+
+    check_rate_limit("password_reset_submit", request)
+    if payload.confirm is not None and payload.confirm != payload.password:
+        body = {"status": "mismatch", "message": "The two passwords are not the same."}
+    else:
+        body = {"status": password_reset.reset_password(db, payload.token, payload.password)}
+        if body["status"] == "weak":
+            body["message"] = password_problem(payload.password)
+    response = JSONResponse(body, headers=_NO_STORE_HEADERS)
+    if body["status"] == password_reset.OK:
+        opts = _cookie_options(request)
+        response.delete_cookie("access_token", path=opts["path"], domain=opts["domain"])
+    return response
 
 
 @app.get("/auth/session")
