@@ -3543,3 +3543,13 @@ missing, model none, seller "Page 1 Of 1, I-1/1", category "appliance", product 
   months/years left out). Existing reminder tests now mark their periods as printed on the invoice (confidence
   0.7). Tests: tests/test_confirmed_end_dates.py (18: brand terms, invoice, customer, estimate, unknown source,
   no dates, expired-by-estimate, care reminders, claim PDF text for each).
+- [x] 105.13 Brand accounts (services/brand_access.py; new table oem_account_brands, additions only). An admin
+  links each brand/OEM/TPA account to its brand(s): PUT/GET /admin/oem-accounts/{username}/brands (audit-logged).
+  Every OEM endpoint that returns counts calls scoped_brand(): /oem/risk-stats, /oem/telemetry-stats,
+  /oem/aggregate-insights, /oem/forecast, /oem/issues/summary, /oem/questions/answer-stats,
+  /oem/recommendations/stats - another brand -> 403 "Brand accounts can only see counts for their own brand.";
+  own brand in any letter case -> allowed; no brand asked -> its own (one linked brand) or 422 (several); not
+  linked -> 403 "This account is not linked to a brand yet..."; admin -> any brand or all. All-brand lists
+  (/oem/products, /oem/behaviour-stats) are filtered to the account's brand(s). Existing OEM accounts must be linked
+  by an admin before they see anything. Tests: tests/test_brand_accounts.py (39: brand A asking for brand B on every
+  endpoint, own brand, no brand, unlinked, TPA, two brands, admin, filtered lists, link endpoint admin-only).

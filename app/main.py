@@ -79,6 +79,7 @@ from .services.runtime_safety import insecure_defaults_allowed
 from .services.security_status import https_redirect_target, security_report
 from .services.csrf import CSRF_COOKIE_NAME, new_csrf_token, validate_csrf
 from .services.rate_limiter import check_rate_limit
+from .services import brand_access
 from .services.ai_quota import check_and_consume as consume_ai_quota, usage_for as ai_usage_for
 from .services.request_context import (
     REQUEST_ID_HEADER,
@@ -728,6 +729,27 @@ def admin_terms_cache_stats(db=Depends(get_db)):
     from .services import knowledge_base
 
     return {**terms_cache.stats(db), "knowledge_base": knowledge_base.counts(db)}
+
+
+@app.get("/admin/oem-accounts/{username}/brands", dependencies=[Depends(require_admin)])
+def admin_get_account_brands(username: str, db=Depends(get_db)):
+    """Admin: the brand(s) a brand/OEM account is linked to (it only sees counts for these)."""
+    return {"username": username, "brands": brand_access.linked_brands(db, username)}
+
+
+@app.put("/admin/oem-accounts/{username}/brands", dependencies=[Depends(require_admin)])
+def admin_set_account_brands(username: str, payload: Dict[str, Any] = Body(...), db=Depends(get_db),
+                             current: UserDB = Depends(require_admin)):
+    """Admin: link a brand/OEM/TPA account to its brand(s). Replaces the previous list."""
+    user = db.query(UserDB).filter_by(username=username).first()
+    if not user or user.role not in ("oem", "tpa"):
+        raise HTTPException(status_code=404, detail="No brand/OEM or TPA account with that username")
+    brands = payload.get("brands")
+    if not isinstance(brands, list) or not all(isinstance(b, str) for b in brands):
+        raise HTTPException(status_code=422, detail="brands must be a list of brand names")
+    linked = brand_access.set_linked_brands(db, username, brands, admin=current.username)
+    log_action("oem_account_brands_set", f"username={username} brands={','.join(linked)} by={current.username}")
+    return {"username": username, "brands": linked}
 
 
 @app.get("/admin/security-status", dependencies=[Depends(require_admin)])
@@ -1419,7 +1441,9 @@ def oem_questions_answer_stats(
     region: str | None = None,
     model: str | None = None,
     current=Depends(require_oem_or_admin),
+    db=Depends(get_db),
 ):
+    brand = brand_access.scoped_brand(db, current, brand)
     min_cohort = int(os.getenv("OEM_QUESTION_MIN_COHORT", os.getenv("OEM_AGGREGATE_MIN_COHORT", "10")))
     return oem_question_service.aggregate_answers(
         {"brand": brand, "model_code": model_code or model, "product_type": product_type, "region": region},
@@ -1481,7 +1505,9 @@ def oem_recommendations_stats(
     region: str | None = None,
     risk_band: str | None = None,
     current=Depends(require_oem_or_admin),
+    db=Depends(get_db),
 ):
+    brand = brand_access.scoped_brand(db, current, brand)
     min_cohort = int(os.getenv("OEM_RECOMMENDATION_MIN_COHORT", os.getenv("OEM_AGGREGATE_MIN_COHORT", "10")))
     return oem_recommendation_service.aggregate_stats(
         {"product_type": product_type, "brand": brand, "model": model, "region": region, "risk_band": risk_band},
@@ -4125,7 +4151,9 @@ def oem_issue_summary(
     product_type: str | None = None,
     region: str | None = None,
     db=Depends(get_db),
+    current=Depends(require_oem_or_admin),
 ):
+    brand = brand_access.scoped_brand(db, current, brand)
     res = oem_issue_service.summarize_issue_signals(
         db,
         brand=brand,
@@ -4279,8 +4307,11 @@ def oem_product_catalog(limit: int = 200, current=Depends(require_oem_or_admin),
                 return token
         return ""
 
+    allowed = brand_access.allowed_brand_keys(db, current)  # brand accounts: their own brand's products only
     grouped: Dict[tuple, Dict[str, object]] = {}
     for row in rows:
+        if allowed is not None and (row.brand or "").strip().lower() not in allowed:
+            continue
         key = (
             (row.brand or "").strip(),
             (row.model_code or "").strip(),
@@ -4316,6 +4347,7 @@ def oem_product_catalog(limit: int = 200, current=Depends(require_oem_or_admin),
 def oem_risk_stats(
     brand: str | None = None, model: str | None = None, product_type: str | None = None, region: str | None = None, current=Depends(require_oem_or_admin), db=Depends(get_db)
 ):
+    brand = brand_access.scoped_brand(db, current, brand)
     # Predictive distribution based on behaviour profiles we have
     risk_counts = {"LOW": 0, "MEDIUM": 0, "HIGH": 0, "UNKNOWN": 0}
     behaviour_snapshot = {"behaviour": 0.0, "care": 0.0, "responsiveness": 0.0, "count": 0}
@@ -4447,6 +4479,7 @@ def oem_telemetry_stats(
     current=Depends(require_oem_or_admin),
     db=Depends(get_db),
 ):
+    brand = brand_access.scoped_brand(db, current, brand)
     return telemetry_intelligence.build_oem_telemetry_aggregate(
         db,
         brand=brand,
@@ -4468,6 +4501,7 @@ def oem_aggregate_insights(
     current=Depends(require_oem_or_admin),
     db=Depends(get_db),
 ):
+    brand = brand_access.scoped_brand(db, current, brand)
     return oem_aggregate_service.build_privacy_safe_oem_aggregate(
         db,
         product_type=product_type,
@@ -4494,6 +4528,7 @@ def oem_forecast(
     Lightweight OEM forecast endpoint.
     Additive only: uses existing risk snapshots and issue signals.
     """
+    brand = brand_access.scoped_brand(db, current, brand)
     weeks = max(4, min(52, int(weeks or 12)))
     horizon_weeks = max(1, min(12, int(horizon_weeks or 4)))
     now = datetime.utcnow()
@@ -4867,13 +4902,16 @@ def reject(review_id: str, reason: str | None = None):
 
 
 @app.get("/oem/behaviour-stats", dependencies=[Depends(require_oem_or_admin)])
-def oem_behaviour_stats():
+def oem_behaviour_stats(current=Depends(require_oem_or_admin)):
     aggregates = {}
     with SessionLocal() as db:
+        allowed = brand_access.allowed_brand_keys(db, current)  # brand accounts: their own brand only
         profiles = db.query(BehaviourProfile).all()
     for p in profiles:
         warranty = store.get_warranty_db(p.warranty_id)
         if not warranty:
+            continue
+        if allowed is not None and (warranty.brand or "").lower() not in allowed:
             continue
         key = (warranty.brand or "unknown", warranty.model_code or "unknown")
         agg = aggregates.setdefault(

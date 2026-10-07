@@ -703,3 +703,14 @@ class RateLimitHitDB(Base):
     bucket: Mapped[str] = mapped_column(String, index=True)
     ts: Mapped[float] = mapped_column(Float, index=True)
 
+
+
+class OemAccountBrandDB(Base):
+    """Which brand(s) a brand/OEM (or TPA) account belongs to. Set by an admin; counts are limited to these."""
+
+    __tablename__ = "oem_account_brands"
+
+    username: Mapped[str] = mapped_column(String, primary_key=True)
+    brand: Mapped[str] = mapped_column(String, primary_key=True)
+    created_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
