@@ -3553,3 +3553,10 @@ missing, model none, seller "Page 1 Of 1, I-1/1", category "appliance", product 
   (/oem/products, /oem/behaviour-stats) are filtered to the account's brand(s). Existing OEM accounts must be linked
   by an admin before they see anything. Tests: tests/test_brand_accounts.py (39: brand A asking for brand B on every
   endpoint, own brand, no brand, unlinked, TPA, two brands, admin, filtered lists, link endpoint admin-only).
+- [x] 105.14 Consent wording (owner's text, exact): "Allow SWH to share anonymous totals (never your name or
+  details) with the brand, only for groups of 10 or more people. You can change this anytime." Constant
+  brand_access.ANONYMOUS_TOTALS_CONSENT; opt-in stored in new table anonymous_totals_consents (no row = not
+  allowed); GET/POST /account/anonymous-totals. Shown at the question: a checkbox (off by default) under the
+  dashboard's question card. The packs branch's group counts use users.consent_analytics (on by default) - they
+  should use this opt-in instead when the branches meet (noted for the owner). Tests:
+  tests/test_anonymous_totals_consent.py (4).

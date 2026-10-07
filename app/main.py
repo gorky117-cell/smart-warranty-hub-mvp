@@ -731,6 +731,22 @@ def admin_terms_cache_stats(db=Depends(get_db)):
     return {**terms_cache.stats(db), "knowledge_base": knowledge_base.counts(db)}
 
 
+@app.get("/account/anonymous-totals", dependencies=[Depends(require_user)])
+def get_anonymous_totals_consent(db=Depends(get_db), current: UserDB = Depends(require_user)):
+    """The consent text shown at each question, and the customer's current choice (off until they allow it)."""
+    return {"text": brand_access.ANONYMOUS_TOTALS_CONSENT, "allow": brand_access.totals_allowed(db, current.username)}
+
+
+@app.post("/account/anonymous-totals", dependencies=[Depends(require_user)])
+def set_anonymous_totals_consent(payload: Dict[str, Any] = Body(...), db=Depends(get_db),
+                                 current: UserDB = Depends(require_user)):
+    allow = payload.get("allow")
+    if not isinstance(allow, bool):
+        raise HTTPException(status_code=422, detail="allow must be true or false")
+    brand_access.set_totals_allowed(db, current.username, allow)
+    return {"text": brand_access.ANONYMOUS_TOTALS_CONSENT, "allow": allow}
+
+
 @app.get("/admin/oem-accounts/{username}/brands", dependencies=[Depends(require_admin)])
 def admin_get_account_brands(username: str, db=Depends(get_db)):
     """Admin: the brand(s) a brand/OEM account is linked to (it only sees counts for these)."""

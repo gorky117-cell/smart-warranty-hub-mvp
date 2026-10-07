@@ -60,3 +60,30 @@ def allowed_brand_keys(db: Session, current) -> Optional[set]:
     if not allowed:
         raise HTTPException(status_code=403, detail=NOT_LINKED)
     return {b.lower() for b in allowed}
+
+
+# Shown at every question whose answers could count in brand totals (owner's wording, PR #3 review item 4).
+ANONYMOUS_TOTALS_CONSENT = (
+    "Allow SWH to share anonymous totals (never your name or details) with the brand, only for groups of 10 or "
+    "more people. You can change this anytime."
+)
+MIN_GROUP = 10
+
+
+def totals_allowed(db: Session, user_id: str) -> bool:
+    """Opt-in only: no answer yet means not allowed."""
+    from ..db_models import AnonymousTotalsConsentDB
+
+    row = db.get(AnonymousTotalsConsentDB, user_id)
+    return bool(row and row.allow)
+
+
+def set_totals_allowed(db: Session, user_id: str, allow: bool) -> None:
+    from ..db_models import AnonymousTotalsConsentDB
+
+    row = db.get(AnonymousTotalsConsentDB, user_id)
+    if row is None:
+        db.add(AnonymousTotalsConsentDB(user_id=user_id, allow=allow, updated_at=datetime.utcnow()))
+    else:
+        row.allow, row.updated_at = allow, datetime.utcnow()
+    db.commit()

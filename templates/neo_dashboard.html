@@ -1266,6 +1266,10 @@
         <div id="behaviourChoices" class="actions" style="margin-top:8px;"></div>
         <div class="helper" id="behaviourThanks" style="display:none;">Thanks, this helps us keep your product healthier
           over time.</div>
+        <label class="helper" id="totalsConsent" style="display:flex; gap:8px; align-items:flex-start; margin-top:8px; text-transform:none; font-weight:400;">
+          <input type="checkbox" id="totalsConsentBox" style="width:auto; min-height:0; margin-top:3px;">
+          <span id="totalsConsentText">Allow SWH to share anonymous totals (never your name or details) with the brand, only for groups of 10 or more people. You can change this anytime.</span>
+        </label>
       </div>
       <details id="recCard" style="padding:0; margin-top:10px; display:none;">
         <summary class="card-title" style="cursor:pointer;">Smart suggestions for you <span class="helper"
@@ -2407,6 +2411,29 @@
         }
       }
 
+      // Consent shown at the question: opt-in, off until the customer ticks it, changeable anytime.
+      async function loadTotalsConsent() {
+        const box = document.getElementById('totalsConsentBox');
+        if (!box || box.dataset.wired) return;
+        box.dataset.wired = '1';
+        try {
+          const res = await fetch('/account/anonymous-totals', { headers: h(), credentials: 'same-origin' });
+          if (res.ok) {
+            const data = await res.json();
+            box.checked = !!data.allow;
+            if (data.text) document.getElementById('totalsConsentText').textContent = data.text;
+          }
+        } catch (_) { /* stays off */ }
+        box.addEventListener('change', async () => {
+          try {
+            await fetch('/account/anonymous-totals', {
+              method: 'POST', headers: h({ 'Content-Type': 'application/json' }),
+              body: JSON.stringify({ allow: box.checked }), credentials: 'same-origin',
+            });
+          } catch (_) { box.checked = !box.checked; }
+        });
+      }
+
       async function submitBehaviourAnswer(val) {
         const card = document.getElementById('behaviourCard');
         const qid = card?.dataset.qid;
@@ -2809,6 +2836,7 @@
           warrantyLoaded = true;
           lockSteps(false);
           loadBehaviourQuestion();
+          loadTotalsConsent();
           console.info('neo-dashboard: fetch recommendations', { warrantyId, userId });
           fetchRecommendations();
           loadFiveLines(warrantyId);
