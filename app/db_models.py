@@ -692,3 +692,13 @@ class EmailDailyCountDB(Base):
     day: Mapped[str] = mapped_column(String, primary_key=True)
     sent: Mapped[int] = mapped_column(Integer, default=0)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class RateLimitHitDB(Base):
+    """One rate-limited request. `bucket` is a SHA-256 of scope + client/account key (no IPs or names stored)."""
+
+    __tablename__ = "rate_limit_hits"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    bucket: Mapped[str] = mapped_column(String, index=True)
+    ts: Mapped[float] = mapped_column(Float, index=True)

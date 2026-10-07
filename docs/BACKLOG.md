@@ -39,8 +39,9 @@ session can do (one branch per batch, `cloud/batch-N`).
 20. [x] Per-user password salt (cloud batch 2): new hashes `pbkdf2_sha256$200000$<salt>$<hash>`; old shared-salt
     hashes still verify and are upgraded on the next sign-in. Accounts that never sign in again keep the old
     hash (still safe to verify; weaker only if the database leaks).
-21. Rate limits are kept in memory per process: they reset on every deploy and are not shared if Railway runs
-    more than one instance.
+21. [x] Rate limits survive deploys (cloud batch 2): hits stored in the database (table rate_limit_hits, keys
+    hashed), shared by all instances; memory fallback if the database fails; RATE_LIMIT_BACKEND=memory for the
+    old behaviour.
 12. Brand-specific code kept on purpose: Redmi/POCO -> Xiaomi table, marketing-series names for models,
     Samsung-style section headings for multi-product pages, phone words galaxy/iphone/sm-, Epson serial rule.
 13. Review crawler (off in production), issue feeds and web search do not use the robots check.

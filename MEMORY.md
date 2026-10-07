@@ -3383,3 +3383,10 @@ Branch `cloud/batch-2`, started from `cloud/batch-1` (PR #1 not merged yet), pul
   compare; malformed hashes never verify. needs_rehash() is true for old hashes (or fewer iterations); a
   successful sign-in upgrades the stored hash (failure to save is logged by class name and does not block the
   sign-in). New hashes no longer depend on JWT_SALT. Tests: tests/test_password_hashing.py (4).
+- [x] 104.2 Backlog #21 rate limits that survive deploys. services/rate_limiter.py keeps hits in the new table
+  rate_limit_hits (bucket = SHA-256 of scope + client/account key, so no IPs, usernames or addresses stored;
+  wall-clock seconds) with the same sliding window, limits and Retry-After as before. Shared by every app
+  instance. Old rows (older than 2 days) are deleted on about 2% of hits. If the database fails, that request is
+  limited in memory (logged by error class); RATE_LIMIT_BACKEND=memory restores the old in-process limiter.
+  Not atomic across simultaneous requests: a burst can overshoot a limit by a few. Tests:
+  tests/test_rate_limit_store.py (5: survives a restart, sliding window, hashed keys, database down, memory).
