@@ -3358,3 +3358,6 @@ paddle): baseline 856 passed, 9 skipped (more skips than on Windows: Paddle is n
   types and the owner's checks after deploy (keep Resend click tracking off). BACKLOG: batch 1 ticked, owner
   steps tagged [GAURAV]; new gaps 20 (one app-wide password salt) and 21 (in-memory rate limits). STATUS and
   CLAUDE.md updated.
+- [x] 103.4 Owner review of PR #1: sign-in alert e-mails off by default; on only with SIGNIN_ALERT_EMAILS=1
+  (emailer.signin_alerts_enabled, checked inside send_login_alert_email so every caller obeys it). Documented
+  in docs/EMAIL_SETUP.md. Tests: tests/test_emailer.py +2 (off by default, sign-in sends nothing unless on).

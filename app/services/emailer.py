@@ -9,6 +9,7 @@ Configuration (names only; values live in Railway / the local .env, never in the
 - MAIL_FROM         sender, default "Smart Warranty Hub <noreply@smartwarrantyhub.com>".
 - MAIL_REPLY_TO     Reply-To, default "support@smartwarrantyhub.com".
 - APP_BASE_URL      links in e-mails, default https://www.smartwarrantyhub.com.
+- SIGNIN_ALERT_EMAILS  "1" sends an alert e-mail on every sign-in (default off).
 
 Rules: sending never raises (callers get True/False); logs never contain e-mail addresses, links,
 tokens or provider responses - only the message type, provider and outcome. Resend messages carry the
@@ -235,7 +236,14 @@ def send_welcome_email(*, to_email: Optional[str], username: str, role: str) -> 
     return send_email(to_email=to_email, subject=title, body_text=body, message_type="welcome")
 
 
+def signin_alerts_enabled() -> bool:
+    """Sign-in alert e-mails are off unless SIGNIN_ALERT_EMAILS=1 (they would go out on every sign-in)."""
+    return _bool_env("SIGNIN_ALERT_EMAILS", False)
+
+
 def send_login_alert_email(*, to_email: Optional[str], username: str) -> bool:
+    if not signin_alerts_enabled():
+        return False
     return send_email(
         to_email=to_email,
         subject="Sign-in alert - Smart Warranty Hub",

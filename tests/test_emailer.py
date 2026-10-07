@@ -6,7 +6,7 @@ import pytest
 from app.services import emailer
 
 ADDRESS = "buyer.person@example.com"
-_ENV = ("EMAIL_ENABLED", "EMAIL_PROVIDER", "RESEND_API_KEY", "SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS",
+_ENV = ("SIGNIN_ALERT_EMAILS", "EMAIL_ENABLED", "EMAIL_PROVIDER", "RESEND_API_KEY", "SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS",
         "SMTP_STARTTLS", "SMTP_SSL", "MAIL_FROM", "MAIL_REPLY_TO")
 
 
@@ -153,8 +153,45 @@ def test_invalid_recipient_is_refused(monkeypatch):
 def test_existing_messages_carry_their_type(monkeypatch):
     monkeypatch.setenv("RESEND_API_KEY", "re_test")
     calls = _capture_resend(monkeypatch)
+    monkeypatch.setenv("SIGNIN_ALERT_EMAILS", "1")
     emailer.send_welcome_email(to_email=ADDRESS, username="u", role="user")
     emailer.send_login_alert_email(to_email=ADDRESS, username="u")
     emailer.send_product_registered_email(to_email=ADDRESS, username="u", warranty_id="w1")
     types = [next(t["value"] for t in c["json"]["tags"] if t["name"] == "type") for c in calls]
     assert types == ["welcome", "login_alert", "product_registered"]
+
+
+def test_signin_alerts_are_off_by_default(monkeypatch):
+    monkeypatch.setenv("RESEND_API_KEY", "re_test")
+    calls = _capture_resend(monkeypatch)
+    assert emailer.send_login_alert_email(to_email=ADDRESS, username="u") is False
+    for off in ("0", "false", ""):
+        monkeypatch.setenv("SIGNIN_ALERT_EMAILS", off)
+        assert emailer.send_login_alert_email(to_email=ADDRESS, username="u") is False
+    assert calls == []
+    monkeypatch.setenv("SIGNIN_ALERT_EMAILS", "1")
+    assert emailer.send_login_alert_email(to_email=ADDRESS, username="u") is True
+    assert len(calls) == 1
+
+
+def test_sign_in_sends_no_alert_by_default(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from app.db import SessionLocal
+    from app.db_models import UserDB
+    from app.deps import hash_password
+    from app.main import app
+
+    monkeypatch.setenv("RESEND_API_KEY", "re_test")
+    monkeypatch.setenv("RATE_LIMIT_ENABLED", "0")
+    calls = _capture_resend(monkeypatch)
+    with SessionLocal() as db:
+        db.query(UserDB).filter_by(username="alert_probe").delete()
+        db.add(UserDB(username="alert_probe", role="user", hashed_password=hash_password("pass-123"), email=ADDRESS))
+        db.commit()
+    client = TestClient(app, follow_redirects=False)
+    assert client.post("/auth/login", data={"username": "alert_probe", "password": "pass-123"}).status_code == 303
+    assert calls == []
+    monkeypatch.setenv("SIGNIN_ALERT_EMAILS", "1")
+    client.post("/auth/login", data={"username": "alert_probe", "password": "pass-123"})
+    assert [t["value"] for t in calls[0]["json"]["tags"] if t["name"] == "type"] == ["login_alert"]

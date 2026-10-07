@@ -12,6 +12,7 @@ Code: `app/services/emailer.py` (sending), `app/services/password_reset.py` (res
 | `RESEND_API_KEY` | for Resend | Resend API key (a "sending access" key for smartwarrantyhub.com is enough). |
 | `MAIL_FROM` | already set | Sender. Should be `Smart Warranty Hub <noreply@smartwarrantyhub.com>`; this is also the default when unset or empty. |
 | `MAIL_REPLY_TO` | optional | Where replies go. Default `support@smartwarrantyhub.com`. |
+| `SIGNIN_ALERT_EMAILS` | optional | `1` sends an alert e-mail on every sign-in. **Off by default** (unset or anything else). |
 | `APP_BASE_URL` | optional | Start of the links in e-mails. Default `https://www.smartwarrantyhub.com`. |
 | `SMTP_HOST`, `SMTP_PORT` | already set | SMTP server and port (used when the provider is `smtp`, or `auto` without `RESEND_API_KEY`). Port default 587. |
 | `SMTP_USER`, `SMTP_PASS` | already set | SMTP login. |
@@ -30,7 +31,7 @@ attached when sending through Resend's API.
 |---|---|
 | `password_reset` | Someone asks for a reset link for an account with that e-mail address. |
 | `welcome` | A new account is created with an e-mail address. |
-| `login_alert` | Every sign-in of an account with an e-mail address (existing behaviour). |
+| `login_alert` | Every sign-in of an account with an e-mail address, **only when `SIGNIN_ALERT_EMAILS=1`**. |
 | `product_registered` | A product is registered (existing behaviour). |
 
 Every Resend message carries the tags `app=swh` and `type=<type above>`, so Resend's logs can be filtered.
