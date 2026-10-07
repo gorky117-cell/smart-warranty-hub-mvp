@@ -46,8 +46,10 @@
 
     <div class="card">
       <div class="title">Risk & Predictive</div>
+      {% if show_internals %}
       <div class="badge">Risk: <span class="risk-{{ risk.band }}">{{ risk.band }}</span> ({{ risk.value if risk.value is defined else '' }})</div>
       <div class="badge">Predictive: <span class="risk-{{ predictive.band }}">{{ predictive.band }}</span> ({{ predictive.score }})</div>
+      {% endif %}
       <div>Reasons:</div>
       <ul class="list">
         {% for r in predictive.reasons %}

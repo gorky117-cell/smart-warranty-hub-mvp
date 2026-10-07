@@ -3478,3 +3478,18 @@ missing, model none, seller "Page 1 Of 1, I-1/1", category "appliance", product 
   from the list and opens the earlier product; nothing is deleted and ownership is kept (so the "claim an
   unowned product" fallback cannot hand it to anyone else). The answer is never re-asked on re-processing.
   Tests: tests/test_duplicate_invoices.py (9).
+- [x] 105.6 Screens: "Base risk score", "Behaviour delta", "Behaviour reasons" and the care-tip action tag
+  ("general_care") are shown only when /auth/session says admin; "Predictive engine not ready yet." is filtered
+  from customer risk reasons (dashboard customerReasons, server customer_reasons for /ui/warranty/{id}, whose
+  score badges are now admin-only). /ui/console and /ui/warranty-tabs (diagnostic pages with scores; the
+  latter had no sign-in check) are admin-only, customers are sent to the dashboard. The raw "What is covered?"
+  dump was replaced in 105.4.
+- [x] 105.7 Estimates: warranty_card.period_is_fact - a period is a fact only from the brand's terms
+  (confirmed or a saved copy) or when printed on the invoice / given by the customer (coverage confidence
+  >= 0.7). Otherwise the 5-line card shows no date and no months: AC, fridge, washing machine -> "Usually a
+  shorter period on the whole unit and a longer one on the main part (e.g. compressor). Check your warranty
+  card."; other products -> "We have not confirmed how long the warranty lasts yet. Check your warranty card or
+  invoice."; covered lines and extras with numbers from estimated terms are dropped (invoice wording kept).
+  GET /warranties/{id} returns period_note; the dashboard badge then says "End date: check your warranty card".
+  tests/test_five_lines.py endpoint test updated (an unconfirmed fridge now gets the split sentence).
+  Tests: tests/test_customer_screens_batch3.py (13). Reminders still use the stored expiry (unchanged).

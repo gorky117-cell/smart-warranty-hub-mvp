@@ -1045,6 +1045,26 @@ def _ensure_ui_user(request: Request, current: Optional[UserDB]) -> Optional[Red
     return None
 
 
+def _ensure_ui_admin(request: Request, current: Optional[UserDB]) -> Optional[RedirectResponse]:
+    """Developer/diagnostic pages that show model internals (scores, deltas): admins only."""
+    if not current:
+        return _build_ui_login_redirect(request)
+    if current.role != "admin":
+        return RedirectResponse(url="/ui/neo-dashboard", status_code=status.HTTP_303_SEE_OTHER)
+    return None
+
+
+# Status lines from the risk engine that are not for customers.
+_INTERNAL_RISK_REASONS = ("predictive engine not ready yet",)
+
+
+def customer_reasons(reasons, is_admin: bool) -> list:
+    reasons = list(reasons or [])
+    if is_admin:
+        return reasons
+    return [r for r in reasons if not any(x in str(r).lower() for x in _INTERNAL_RISK_REASONS)]
+
+
 def _ensure_ui_oem_or_admin(request: Request, current: Optional[UserDB]) -> Optional[RedirectResponse]:
     if _demo_public_ui_enabled():
         return None
@@ -2642,6 +2662,10 @@ def get_warranty(warranty_id: str, db=Depends(get_db), current: UserDB = Depends
     payload = warranty.model_dump()
     payload.update(_build_warranty_status_info(warranty))
     payload["evidence_status"] = summary_engine.build_evidence_summary(warranty)
+    from .services.warranty_card import estimated_period_note
+
+    # Set when the period is only an estimate: the dashboard then shows this instead of an end date.
+    payload["period_note"] = estimated_period_note(warranty, payload["evidence_status"])
     return payload
 
 
@@ -3400,6 +3424,9 @@ def warranty_ui(
     variant = adv.get("variant")
     # Predictive
     predictive = compute_predictive_score(uid, warranty_id, warranty.model_code, None, None)
+    is_admin = bool(current and current.role == "admin")
+    if isinstance(predictive, dict):
+        predictive = {**predictive, "reasons": customer_reasons(predictive.get("reasons"), is_admin)}
     return templates.TemplateResponse(
         "warranty.html",
         {
@@ -3410,6 +3437,7 @@ def warranty_ui(
             "nudges": nudges,
             "variant": variant,
             "predictive": predictive,
+            "show_internals": is_admin,
         },
     )
 
@@ -3454,7 +3482,7 @@ def react_dashboard(request: Request, current: Optional[UserDB] = Depends(get_cu
 
 @app.get("/ui/console")
 def console_ui(request: Request, current: Optional[UserDB] = Depends(get_current_user_optional)):
-    ui_redirect = _ensure_ui_user(request, current)
+    ui_redirect = _ensure_ui_admin(request, current)  # shows base scores and behaviour deltas
     if ui_redirect:
         return ui_redirect
     from fastapi.responses import HTMLResponse
@@ -3503,8 +3531,11 @@ def neo_dashboard(request: Request, current: Optional[UserDB] = Depends(get_curr
 
 
 @app.get("/ui/warranty-tabs")
-def warranty_tabs_ui():
-    """Multi-invoice tabbed dashboard with Details/Predictive/OEM/Nudges tabs."""
+def warranty_tabs_ui(request: Request, current: Optional[UserDB] = Depends(get_current_user_optional)):
+    """Multi-invoice tabbed dashboard with Details/Predictive/OEM/Nudges tabs (admin diagnostic page)."""
+    ui_redirect = _ensure_ui_admin(request, current)
+    if ui_redirect:
+        return ui_redirect
     from fastapi.responses import HTMLResponse
     html_path = Path(__file__).resolve().parents[1] / "templates" / "warranty_tabs.html"
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)

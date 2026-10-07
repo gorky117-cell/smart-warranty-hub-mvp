@@ -128,6 +128,32 @@ def _pending_confirmations(alternatives: dict, warranty) -> List[str]:
     return [FIELD_NAMES.get(f, f.replace("_", " ")) for f in fields]
 
 
+# Product lines whose warranties are usually split: a shorter period on the whole unit and a longer one on the
+# main part (compressor, motor). Without the brand's terms we say so, with no numbers.
+SPLIT_WARRANTY_LINES = frozenset({"air_conditioner", "fridge", "washing_machine"})
+SPLIT_WARRANTY_TEXT = ("Usually a shorter period on the whole unit and a longer one on the main part "
+                       "(e.g. compressor). Check your warranty card.")
+UNKNOWN_PERIOD_TEXT = "We have not confirmed how long the warranty lasts yet. Check your warranty card or invoice."
+
+
+def period_is_fact(warranty, evidence: Optional[dict]) -> bool:
+    """A warranty period may be shown as a fact when it comes from the brand's terms (confirmed, or a saved copy
+    of them) or was printed on the invoice / given by the customer - never from typical estimates."""
+    if (evidence or {}).get("status") in ("confirmed", "cached"):
+        return True
+    return float((getattr(warranty, "confidence", None) or {}).get("coverage_months") or 0.0) >= 0.7
+
+
+def estimated_period_note(warranty, evidence: Optional[dict]) -> Optional[str]:
+    """None when the period is a fact; otherwise what to say instead of a period (no numbers)."""
+    if period_is_fact(warranty, evidence):
+        return None
+    from .terms_cache import product_line
+
+    line = product_line(getattr(warranty, "model_code", None), getattr(warranty, "product_name", None))
+    return SPLIT_WARRANTY_TEXT if line in SPLIT_WARRANTY_LINES else UNKNOWN_PERIOD_TEXT
+
+
 def five_lines(warranty, evidence: Optional[dict] = None, document: Optional[dict] = None,
                invoice_text: str = "", today: Optional[date] = None) -> Dict:
     """The card: five lines (dates, covered, not covered, if it breaks, original document), extra lines for
@@ -153,8 +179,12 @@ def five_lines(warranty, evidence: Optional[dict] = None, document: Optional[dic
         today=today,
     )
     expiry = status.get("expiry_date_used")
+    period_note = estimated_period_note(warranty, evidence)
     if "no_warranty" in kinds and not getattr(warranty, "coverage_months", None):
         lines.append({"key": "dates", "text": "Your invoice says there is no warranty for this product.", "confirm": False})
+    elif period_note and getattr(warranty, "purchase_date", None):
+        # An estimated period is never shown as a date or a number of months.
+        lines.append({"key": "dates", "text": period_note, "confirm": True, "tag": tag})
     elif status["status"] == "expired":
         lines.append({"key": "dates", "text": f"Expired on {friendly_date(expiry)}.", "confirm": False})
     elif expiry:
@@ -175,6 +205,8 @@ def five_lines(warranty, evidence: Optional[dict] = None, document: Optional[dic
 
     # 2. What is covered.
     covered = [f["text"] for f in (facts.get("covers") or []) + (facts.get("part_periods") or [])]
+    if period_note:
+        covered = [c for c in covered if not re.search(r"\d", c)]  # no periods from estimated terms
     if covered:
         lines.append({"key": "covered", "text": f"Covered: {covered[0]}.", "confirm": bool(tag), "tag": tag})
     else:
@@ -211,10 +243,13 @@ def five_lines(warranty, evidence: Optional[dict] = None, document: Optional[dic
 
     # SWH's short labels only; the brand's sentence (source_sentence) stays out of the customer view.
     extras = [{"type": t["type"], "text": t["text"], "source": t["source"]}
-              for t in types if t["type"] != "extended_plan_offer"]
+              for t in types if t["type"] != "extended_plan_offer"
+              # Periods from estimated terms are not facts; the invoice's own words still count.
+              and not (period_note and t["source"] != "invoice" and re.search(r"\d", t["text"]))]
     return {
         "lines": lines,
         "extras": extras,
         "please_confirm": _pending_confirmations(alternatives, warranty),
         "estimated": bool(tag),
+        "period_note": period_note,
     }

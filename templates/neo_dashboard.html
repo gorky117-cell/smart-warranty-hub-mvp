@@ -2424,7 +2424,7 @@
             productRecs.slice(0, 3).forEach((p) => {
               parts.push(
                 `<div class="card" style="padding:10px; box-shadow:none; border:1px solid var(--border); margin-bottom:8px;">
-                    <div style="font-weight:600;">${p.title || p.name || 'Suggested product'} <span style="color:var(--accent); font-size:12px;">${p.action || ''}</span></div>
+                    <div style="font-weight:600;">${escapeHtml(p.title || p.name || 'Suggested product')}${IS_ADMIN && p.action ? ` <span style="color:var(--accent); font-size:12px;">${escapeHtml(p.action)}</span>` : ''}</div>
                     ${p.source_label ? `<div class="helper" style="margin-top:3px; font-size:12px; color:#255f3f;">${p.source_label}</div>` : ''}
                     <div class="helper" style="margin-top:4px;">${p.reason || p.description || ''}</div>
                     <div class="helper" style="margin-top:4px; font-size:12px; color:#666;">${p.risk_band ? `Care priority: ${p.risk_band}` : ''}</div>
@@ -3291,6 +3291,11 @@
           coverageBadge.classList.remove('hidden');
         }
         if (expiryInfo) expiryInfo.classList.remove('hidden');
+        if (w.period_note) {
+          // Only an estimate: no end date or months left (batch 3 item 7).
+          if (expiryInfo) { expiryInfo.textContent = 'End date: check your warranty card'; expiryInfo.className = 'badge'; }
+          if (coverageBadge) { coverageBadge.textContent = 'Estimated, please check'; coverageBadge.className = 'badge'; }
+        }
         renderSerialSuggestion(w);
         renderFieldSuggestions(w);
         renderVisionSuggestions(w);
@@ -3319,6 +3324,13 @@
         }
       }
 
+      // Internal status lines from the risk engine are never shown to customers.
+      const INTERNAL_REASONS = ['predictive engine not ready yet'];
+      function customerReasons(reasons) {
+        if (IS_ADMIN) return reasons;
+        return reasons.filter((r) => !INTERNAL_REASONS.some((x) => String(r || '').toLowerCase().includes(x)));
+      }
+
       function renderRisk(pred) {
         const riskCanvas = document.getElementById('riskChart');
         const riskDebugWrap = document.getElementById('riskDebug');
@@ -3328,7 +3340,7 @@
           if (!pred || pred.risk_label === 'UNKNOWN') {
             html = "We couldn't calculate risk right now. You can still see your coverage details.";
           } else {
-            const reasons = pred.reasons || [];
+            const reasons = customerReasons(pred.reasons || []);
             const contextGaps = pred.context_gaps || [];
             html = reasons.length
               ? `<ul>${reasons.slice(0, 4).map(r => `<li>${escapeHtml(r)}</li>`).join('')}</ul>`
@@ -3337,11 +3349,12 @@
               html += `<div class="helper" style="margin-top:6px;"><strong>Need more info:</strong><ul>${contextGaps.slice(0, 4).map(r => `<li>${escapeHtml(r)}</li>`).join('')}</ul></div>`;
             }
           }
+          // Model internals (scores, deltas) are for admins only.
           const extras = [];
-          if (pred && pred.base_risk_score !== undefined) extras.push(`Base risk score: ${pred.base_risk_score}`);
-          if (pred && pred.behaviour_delta !== undefined) extras.push(`Behaviour delta: ${pred.behaviour_delta}`);
+          if (IS_ADMIN && pred && pred.base_risk_score !== undefined) extras.push(`Base risk score: ${pred.base_risk_score}`);
+          if (IS_ADMIN && pred && pred.behaviour_delta !== undefined) extras.push(`Behaviour delta: ${pred.behaviour_delta}`);
           const breasons = (pred && pred.behaviour_reasons) || [];
-          if (breasons.length) extras.push(`Behaviour reasons: ${breasons.join('; ')}`);
+          if (IS_ADMIN && breasons.length) extras.push(`Behaviour reasons: ${breasons.join('; ')}`);
           if (extras.length) {
             html += `<div class="helper" style="margin-top:6px;">${extras.join('<br>')}</div>`;
           }
