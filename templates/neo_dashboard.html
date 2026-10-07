@@ -1037,6 +1037,22 @@
         </div>
         <div class="placeholder" id="summaryShort"></div>
         <div class="helper" id="summaryMeta">Where these details came from will show here.</div>
+        <div id="duplicateInvoice" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px solid #b98900;border-radius:8px;">
+          <div><strong>You already added this invoice.</strong> It has the same invoice number and seller as a product in your list.</div>
+          <div style="margin-top:6px;">
+            <button type="button" class="btn" id="duplicateOpenBtn">Open the product I already have</button>
+            <button type="button" class="btn secondary" id="duplicateKeepBtn">Keep both</button>
+          </div>
+          <div id="duplicateStatus" class="helper"></div>
+        </div>
+        <div id="regionConsent" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px dashed #1d4ed8;border-radius:8px;">
+          <div id="regionConsentText"></div>
+          <div id="regionConsentButtons" style="margin-top:6px;">
+            <button type="button" class="btn" id="regionYesBtn">Yes, use it</button>
+            <button type="button" class="btn secondary" id="regionNoBtn">No thanks</button>
+          </div>
+          <div id="regionConsentStatus" class="helper"></div>
+        </div>
         <div class="evidence-panel hidden" id="evidenceTrustPanel"></div>
         <div class="actions">
           <a class="button-link mobile-soft-btn" id="btnSeeFullSummary" href="#detailsCare">See full summary</a>
@@ -1085,8 +1101,8 @@
             </details>
           </div>
           <details open>
-            <summary>What is covered?</summary>
-            <div class="helper">Coverage in simple terms.</div>
+            <summary>Your purchase</summary>
+            <div class="helper">What we read from your invoice. Please check anything marked.</div>
             <div id="coverageDetails" class="placeholder">Load data to see coverage details.</div>
             <div id="serialSuggestion" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px dashed #b98900;border-radius:8px;">
               <div><strong>Please check the serial number.</strong> We read <code id="serialSuggestionValue"></code>
@@ -1121,7 +1137,7 @@
               <div id="visionSuggestionList"></div>
             </div>
             <div class="helper"><a href="javascript:void(0)" data-role="open-fullview" data-target="coverageDetails"
-                data-title="What is covered">Open in full view</a></div>
+                data-title="Your purchase">Open in full view</a></div>
           </details>
           <details>
             <summary>Warranty facts</summary>
@@ -1250,6 +1266,10 @@
         <div id="behaviourChoices" class="actions" style="margin-top:8px;"></div>
         <div class="helper" id="behaviourThanks" style="display:none;">Thanks, this helps us keep your product healthier
           over time.</div>
+        <label class="helper" id="totalsConsent" style="display:flex; gap:8px; align-items:flex-start; margin-top:8px; text-transform:none; font-weight:400;">
+          <input type="checkbox" id="totalsConsentBox" style="width:auto; min-height:0; margin-top:3px;">
+          <span id="totalsConsentText">Allow SWH to share anonymous totals (never your name or details) with the brand, only for groups of 10 or more people. You can change this anytime.</span>
+        </label>
       </div>
       <details id="recCard" style="padding:0; margin-top:10px; display:none;">
         <summary class="card-title" style="cursor:pointer;">Smart suggestions for you <span class="helper"
@@ -1599,7 +1619,8 @@
       function getProductLabel(warrantyId) {
         if (!warrantyId) return '';
         const entry = warrantyLabelMap[warrantyId];
-        return entry && entry.label ? entry.label : warrantyId;
+        // Never the internal ID for customers.
+        return entry && entry.label ? entry.label : (IS_ADMIN ? warrantyId : '');
       }
 
       function replaceWarrantyId(text, warrantyId, label) {
@@ -1612,7 +1633,7 @@
         let title = (n && n.title) || 'Alert';
         let message = (n && n.message) || '';
         if (wid) {
-          const label = getProductLabel(wid);
+          const label = getProductLabel(wid) || (n && n.product_label) || 'your product';
           if (label) {
             title = replaceWarrantyId(title, wid, label);
             message = replaceWarrantyId(message, wid, label);
@@ -1915,6 +1936,45 @@
         return { text: 'Active', cls: 'badge-success' };
       }
 
+      // Never "Low risk" without answers: "Not enough information yet" only when an approved question pack exists
+      // for this product, otherwise "We can't rate this yet."
+      function careRiskStatus(cr) {
+        if (!cr || cr.status === 'cannot_rate') return { text: "We can't rate this yet", cls: 'badge-warn' };
+        if (cr.status !== 'assessed') return { text: 'Not enough information yet', cls: 'badge-warn' };
+        const label = String(cr.label || '').toUpperCase();
+        if (label === 'HIGH') return { text: 'Needs attention', cls: 'badge-danger' };
+        if (label === 'MEDIUM') return { text: 'Some things to watch', cls: 'badge-warn' };
+        return { text: 'Looking after it well', cls: 'badge-success' };
+      }
+
+      function renderCareRisk(cr) {
+        const wrap = document.getElementById('riskDebug');
+        const content = document.getElementById('riskWhyContent');
+        if (!wrap || !content) return;
+        const parts = [];
+        if (!cr || cr.status !== 'assessed') {
+          parts.push(`<div><strong>${escapeHtml((cr && cr.text) || "We can't rate this yet.")}</strong></div>`);
+        } else {
+          parts.push(`<div><strong>${escapeHtml(careRiskStatus(cr).text)}</strong></div>`);
+          parts.push(`<ul>${(cr.reasons || []).map(r => `<li>${escapeHtml(r)}</li>`).join('')}</ul>`);
+        }
+        if (cr && cr.age_note) parts.push(`<div class="helper">${escapeHtml(cr.age_note)}</div>`);
+        // Admins also keep the model's own reasons (renderRisk ran first and filled the same box).
+        const adminBlock = IS_ADMIN && content.innerHTML ? `<details style="margin-top:6px;"><summary>Model details (admin)</summary>${content.innerHTML}</details>` : '';
+        content.innerHTML = parts.join('') + adminBlock;
+        wrap.style.display = 'block';
+        const riskCanvas = document.getElementById('riskChart');
+        if (riskCanvas && riskCanvas.getContext && typeof Chart !== 'undefined') {
+          const level = !cr || cr.status !== 'assessed' ? 0 : ({ LOW: 0.2, MEDIUM: 0.5, HIGH: 0.85 }[cr.label] || 0);
+          if (riskChart) riskChart.destroy();
+          riskChart = new Chart(riskCanvas.getContext('2d'), {
+            type: 'doughnut',
+            data: { labels: ['Care', ''], datasets: [{ data: [level, 1 - level], backgroundColor: ['#ff5c8d', '#ffffff22'], borderWidth: 0 }] },
+            options: { cutout: '70%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+          });
+        }
+      }
+
       function predictiveStatus(label) {
         const band = (label || '').toString().toLowerCase();
         if (!band) return { text: 'Unknown', cls: 'badge-warn' };
@@ -2031,7 +2091,7 @@
         const covClass = cov.cls === 'badge-success' ? 'pill-success' : cov.cls === 'badge-danger' ? 'pill-danger' : 'pill-warn';
         const predClass = pred.cls === 'badge-success' ? 'pill-success' : pred.cls === 'badge-danger' ? 'pill-danger' : 'pill-warn';
         const timeClass = covClass;
-        const timeText = formatTimeLeft(daysLeft);
+        const timeText = cov.text === 'Estimated, please check' ? 'check your warranty card' : formatTimeLeft(daysLeft);
         setPill('pillStatus', covClass, `Status: ${cov.text}`);
         setPill('pillHealth', predClass, `Health: ${pred.text}`);
         setPill('pillTime', timeClass, `Time left: ${timeText}`);
@@ -2351,6 +2411,29 @@
         }
       }
 
+      // Consent shown at the question: opt-in, off until the customer ticks it, changeable anytime.
+      async function loadTotalsConsent() {
+        const box = document.getElementById('totalsConsentBox');
+        if (!box || box.dataset.wired) return;
+        box.dataset.wired = '1';
+        try {
+          const res = await fetch('/account/anonymous-totals', { headers: h(), credentials: 'same-origin' });
+          if (res.ok) {
+            const data = await res.json();
+            box.checked = !!data.allow;
+            if (data.text) document.getElementById('totalsConsentText').textContent = data.text;
+          }
+        } catch (_) { /* stays off */ }
+        box.addEventListener('change', async () => {
+          try {
+            await fetch('/account/anonymous-totals', {
+              method: 'POST', headers: h({ 'Content-Type': 'application/json' }),
+              body: JSON.stringify({ allow: box.checked }), credentials: 'same-origin',
+            });
+          } catch (_) { box.checked = !box.checked; }
+        });
+      }
+
       async function submitBehaviourAnswer(val) {
         const card = document.getElementById('behaviourCard');
         const qid = card?.dataset.qid;
@@ -2408,7 +2491,7 @@
             productRecs.slice(0, 3).forEach((p) => {
               parts.push(
                 `<div class="card" style="padding:10px; box-shadow:none; border:1px solid var(--border); margin-bottom:8px;">
-                    <div style="font-weight:600;">${p.title || p.name || 'Suggested product'} <span style="color:var(--accent); font-size:12px;">${p.action || ''}</span></div>
+                    <div style="font-weight:600;">${escapeHtml(p.title || p.name || 'Suggested product')}${IS_ADMIN && p.action ? ` <span style="color:var(--accent); font-size:12px;">${escapeHtml(p.action)}</span>` : ''}</div>
                     ${p.source_label ? `<div class="helper" style="margin-top:3px; font-size:12px; color:#255f3f;">${p.source_label}</div>` : ''}
                     <div class="helper" style="margin-top:4px;">${p.reason || p.description || ''}</div>
                     <div class="helper" style="margin-top:4px; font-size:12px; color:#666;">${p.risk_band ? `Care priority: ${p.risk_band}` : ''}</div>
@@ -2709,8 +2792,9 @@
           renderLaymanSummary(sum.layman_summary);
           renderSummaryMeta(sum);
           renderWarrantyFriendly();
-          const displayName = productLabelWithId(displayWarranty);
-          const compactLine = [
+          // Customers: the product's name only (no internal ID); dates only when they are facts, not estimates.
+          const displayName = IS_ADMIN ? productLabelWithId(displayWarranty) : productLabel(displayWarranty);
+          const compactLine = w.period_note ? '' : [
             displayWarranty.expiry_date ? `Expiry: ${displayWarranty.expiry_date}` : null,
             displayWarranty.coverage_months ? `Coverage: ${displayWarranty.coverage_months} months` : null
           ].filter(Boolean).join(' | ');
@@ -2723,8 +2807,12 @@
             method: 'POST', headers: h({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ user_id: userId, warranty_id: warrantyId })
           }, 'predictive score');
-          renderRisk(pred);
-          const predStatus = predictiveStatus(pred.risk_label || pred.band);
+          if (IS_ADMIN) renderRisk(pred);  // model internals: admins only
+          // Customers see the care risk from their answers; no answers -> "Not enough information yet".
+          let careRisk = null;
+          try { careRisk = await fetchJsonSafe(`/warranties/${encodeURIComponent(warrantyId)}/care-risk`, { headers: h() }, 'care risk'); } catch (_) { careRisk = null; }
+          renderCareRisk(careRisk);
+          const predStatus = careRiskStatus(careRisk);
           const predBadge = document.getElementById('predictiveBadge');
           if (predBadge) {
             predBadge.textContent = predStatus.text;
@@ -2732,8 +2820,8 @@
             predBadge.classList.remove('hidden');
           }
           // coverage badge
-          const daysLeft = window.__daysLeft;
-          const cov = coverageStatus(daysLeft);
+          const daysLeft = w.period_note ? null : window.__daysLeft;
+          const cov = w.period_note ? { text: 'Estimated, please check', cls: 'badge-warn' } : coverageStatus(daysLeft);
           const covBadge = document.getElementById('coverageBadge');
           if (covBadge) {
             covBadge.textContent = cov.text;
@@ -2748,6 +2836,7 @@
           warrantyLoaded = true;
           lockSteps(false);
           loadBehaviourQuestion();
+          loadTotalsConsent();
           console.info('neo-dashboard: fetch recommendations', { warrantyId, userId });
           fetchRecommendations();
           loadFiveLines(warrantyId);
@@ -3174,6 +3263,87 @@
         box.style.display = 'block';
       }
 
+      function purchaseDetailsText(w) {
+        const d = (w && w.alternatives && w.alternatives.purchase_details) || {};
+        const parts = [];
+        if (d.price && d.price.amount) parts.push(`Price paid: ₹${Number(d.price.amount).toLocaleString('en-IN')}`);
+        if (d.capacity) parts.push(d.capacity);
+        if (d.star_rating) parts.push(`${d.star_rating} Star`);
+        if (d.type) parts.push(d.type.charAt(0).toUpperCase() + d.type.slice(1));
+        return parts.length ? `From your invoice: ${parts.join(' · ')}` : 'See "Your warranty in 5 lines" above for the dates and what to do.';
+      }
+
+      // A repeat upload of an invoice already in the list: open the existing product instead of a "(2)".
+      function renderDuplicate(w) {
+        const box = document.getElementById('duplicateInvoice');
+        if (!box) return;
+        const d = (w && w.alternatives && w.alternatives.duplicate_of) || null;
+        if (!d || d.status !== 'pending') { box.style.display = 'none'; return; }
+        const status = document.getElementById('duplicateStatus');
+        status.textContent = '';
+        const send = async (action) => {
+          try {
+            const res = await fetch(`/warranties/${encodeURIComponent(w.id)}/duplicate`, {
+              method: 'POST',
+              headers: h({ 'Content-Type': 'application/json' }),
+              body: JSON.stringify({ action }),
+            });
+            const data = await res.json();
+            if (!res.ok) { status.textContent = data.detail || 'Could not save.'; return; }
+            box.style.display = 'none';
+            if (typeof loadWarrantyDropdown === 'function') await loadWarrantyDropdown();
+            if (action === 'open_existing') {
+              document.getElementById('warrantyId').value = data.open_warranty_id;
+              const dropdown = document.getElementById('warrantyDropdown');
+              if (dropdown) dropdown.value = data.open_warranty_id;
+              if (typeof loadAll === 'function') loadAll();
+            }
+          } catch (e) { status.textContent = 'Could not save.'; }
+        };
+        document.getElementById('duplicateOpenBtn').onclick = () => send('open_existing');
+        document.getElementById('duplicateKeepBtn').onclick = () => send('keep_both');
+        box.style.display = 'block';
+      }
+
+      // City and state from the invoice: used for weather-based care tips only if the customer says yes.
+      function renderRegionConsent(w) {
+        const box = document.getElementById('regionConsent');
+        if (!box) return;
+        const r = (w && w.alternatives && w.alternatives.delivery_region) || null;
+        if (!r || !r.state) { box.style.display = 'none'; return; }
+        const place = [r.city, r.state].filter(Boolean).join(', ');
+        const text = document.getElementById('regionConsentText');
+        const buttons = document.getElementById('regionConsentButtons');
+        const status = document.getElementById('regionConsentStatus');
+        status.textContent = '';
+        if (r.consent === true) {
+          text.textContent = `We use ${place} for weather-based care tips. We never keep your street address.`;
+          buttons.style.display = 'none';
+        } else if (r.consent === false) {
+          text.textContent = `You chose not to use ${place} for care tips.`;
+          buttons.style.display = 'none';
+        } else {
+          text.textContent = `Your invoice says it was delivered to ${place}. May we use this city and state for weather-based care tips? We only keep the city and state, never your street address.`;
+          buttons.style.display = 'block';
+        }
+        const send = async (use) => {
+          try {
+            const res = await fetch(`/warranties/${encodeURIComponent(w.id)}/region-consent`, {
+              method: 'POST',
+              headers: h({ 'Content-Type': 'application/json' }),
+              body: JSON.stringify({ use }),
+            });
+            const data = await res.json();
+            if (!res.ok) { status.textContent = data.detail || 'Could not save.'; return; }
+            w.alternatives.delivery_region = data.delivery_region;
+            renderRegionConsent(w);
+          } catch (e) { status.textContent = 'Could not save.'; }
+        };
+        document.getElementById('regionYesBtn').onclick = () => send(true);
+        document.getElementById('regionNoBtn').onclick = () => send(false);
+        box.style.display = 'block';
+      }
+
       function renderCoverage(w) {
         const expiryInfo = document.getElementById('expiryLine');
         const coverageMonths = w.coverage_months || 0;
@@ -3193,6 +3363,11 @@
           coverageBadge.classList.remove('hidden');
         }
         if (expiryInfo) expiryInfo.classList.remove('hidden');
+        if (w.period_note) {
+          // Only an estimate: no end date or months left (batch 3 item 7).
+          if (expiryInfo) { expiryInfo.textContent = 'End date: check your warranty card'; expiryInfo.className = 'badge'; }
+          if (coverageBadge) { coverageBadge.textContent = 'Estimated, please check'; coverageBadge.className = 'badge'; }
+        }
         renderSerialSuggestion(w);
         renderFieldSuggestions(w);
         renderVisionSuggestions(w);
@@ -3204,15 +3379,10 @@
             w.alternatives.unreadable_invoice.message || "We couldn't read this invoice - retake the photo or enter the details.";
           return;
         }
-        document.getElementById('coverageDetails').textContent = [
-          `Brand: ${w.brand || 'N/A'}`,
-          `Model: ${w.model_code || 'N/A'}`,
-          `Serial: ${w.serial_no || 'Not confirmed'}`,
-          `Coverage months: ${coverageMonths || 'N/A'}`,
-          `Expiry: ${(expInfo.expiryDate ? expInfo.expiryDate.toISOString().slice(0, 10) : (w.expiry_date || 'N/A'))}${expInfo.derived ? ' (estimated from purchase + coverage)' : ''}`,
-          `Status: ${w.warranty_status || cov.text}`,
-          `Claim: ${w.claim_message || 'Please check the dates on your invoice'}`
-        ].join('\n');
+        // Plain purchase details from the invoice (no raw field dump; the 5 lines carry the warranty facts).
+        document.getElementById('coverageDetails').textContent = purchaseDetailsText(w);
+        renderRegionConsent(w);
+        renderDuplicate(w);
         const coverageCanvas = document.getElementById('coverageChart');
         if (coverageCanvas && coverageCanvas.getContext) {
           const ctx = coverageCanvas.getContext('2d');
@@ -3227,6 +3397,13 @@
         }
       }
 
+      // Internal status lines from the risk engine are never shown to customers.
+      const INTERNAL_REASONS = ['predictive engine not ready yet'];
+      function customerReasons(reasons) {
+        if (IS_ADMIN) return reasons;
+        return reasons.filter((r) => !INTERNAL_REASONS.some((x) => String(r || '').toLowerCase().includes(x)));
+      }
+
       function renderRisk(pred) {
         const riskCanvas = document.getElementById('riskChart');
         const riskDebugWrap = document.getElementById('riskDebug');
@@ -3236,7 +3413,7 @@
           if (!pred || pred.risk_label === 'UNKNOWN') {
             html = "We couldn't calculate risk right now. You can still see your coverage details.";
           } else {
-            const reasons = pred.reasons || [];
+            const reasons = customerReasons(pred.reasons || []);
             const contextGaps = pred.context_gaps || [];
             html = reasons.length
               ? `<ul>${reasons.slice(0, 4).map(r => `<li>${escapeHtml(r)}</li>`).join('')}</ul>`
@@ -3245,11 +3422,12 @@
               html += `<div class="helper" style="margin-top:6px;"><strong>Need more info:</strong><ul>${contextGaps.slice(0, 4).map(r => `<li>${escapeHtml(r)}</li>`).join('')}</ul></div>`;
             }
           }
+          // Model internals (scores, deltas) are for admins only.
           const extras = [];
-          if (pred && pred.base_risk_score !== undefined) extras.push(`Base risk score: ${pred.base_risk_score}`);
-          if (pred && pred.behaviour_delta !== undefined) extras.push(`Behaviour delta: ${pred.behaviour_delta}`);
+          if (IS_ADMIN && pred && pred.base_risk_score !== undefined) extras.push(`Base risk score: ${pred.base_risk_score}`);
+          if (IS_ADMIN && pred && pred.behaviour_delta !== undefined) extras.push(`Behaviour delta: ${pred.behaviour_delta}`);
           const breasons = (pred && pred.behaviour_reasons) || [];
-          if (breasons.length) extras.push(`Behaviour reasons: ${breasons.join('; ')}`);
+          if (IS_ADMIN && breasons.length) extras.push(`Behaviour reasons: ${breasons.join('; ')}`);
           if (extras.length) {
             html += `<div class="helper" style="margin-top:6px;">${extras.join('<br>')}</div>`;
           }

@@ -702,3 +702,26 @@ class RateLimitHitDB(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     bucket: Mapped[str] = mapped_column(String, index=True)
     ts: Mapped[float] = mapped_column(Float, index=True)
+
+
+
+class OemAccountBrandDB(Base):
+    """Which brand(s) a brand/OEM (or TPA) account belongs to. Set by an admin; counts are limited to these."""
+
+    __tablename__ = "oem_account_brands"
+
+    username: Mapped[str] = mapped_column(String, primary_key=True)
+    brand: Mapped[str] = mapped_column(String, primary_key=True)
+    created_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class AnonymousTotalsConsentDB(Base):
+    """The customer's opt-in to SWH sharing anonymous totals of their answers with the brand (groups of 10+).
+    No row means "not allowed"."""
+
+    __tablename__ = "anonymous_totals_consents"
+
+    user_id: Mapped[str] = mapped_column(String, primary_key=True)
+    allow: Mapped[bool] = mapped_column(Boolean, default=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

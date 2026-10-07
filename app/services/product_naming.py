@@ -107,9 +107,11 @@ def seller_from(alternatives) -> Optional[str]:
     candidates = (alternatives or {}).get("seller") if isinstance(alternatives, dict) else None
     if isinstance(candidates, str):
         candidates = [candidates]
+    from .brand_registry import plausible_seller_name
+
     for raw in candidates or []:
         text = _clean(raw)
-        if text:
+        if text and plausible_seller_name(text):  # never "Page 1 Of 1" or other header noise
             text = text if not text.isupper() else text.title()
             return text[:40].rstrip()
     return None
@@ -137,11 +139,16 @@ def describe(*, warranty_id, brand, product_name, model_code, purchase_date, alt
     name = short_name(brand, product_name, model_code)
     line = line_for(product_name, model_code)
     nick = _clean(nickname)[:40] if nickname else ""
+    duplicate = (alternatives or {}).get("duplicate_of") if isinstance(alternatives, dict) else None
+    duplicate_of = duplicate.get("warranty_id") if isinstance(duplicate, dict) and duplicate.get("status") == "pending" else None
     return {
         "display_name": nick or name,
         "product_name_short": name,
         "nickname": nick or None,
-        "subtitle": subtitle(purchase_date, seller_from(alternatives)),
+        "duplicate_of": duplicate_of,
+        # A repeat upload of an invoice already added: say so instead of numbering it "(2)".
+        "subtitle": "Same invoice as a product you already added" if duplicate_of
+        else subtitle(purchase_date, seller_from(alternatives)),
         "icon": ICONS.get(line or "", DEFAULT_ICON),
         "type_label": TYPE_LABELS.get(line or ""),
         "support_ref": support_ref(warranty_id),
@@ -153,6 +160,8 @@ def tell_apart(items: list) -> list:
     seller) get "(2)", "(3)" on the second line, in the order given (oldest first)."""
     seen: dict = {}
     for item in items:
+        if item.get("duplicate_of"):
+            continue  # a repeat upload is explained, not numbered
         key = (item["display_name"].lower(), item["subtitle"].lower())
         seen[key] = seen.get(key, 0) + 1
         if seen[key] > 1:

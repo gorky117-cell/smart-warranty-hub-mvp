@@ -146,8 +146,10 @@ def test_endpoint_owner_sees_card_other_user_denied(monkeypatch):
 
     owner, auth = client("five_owner")
     card = owner.get("/warranties/wty_five_1/five-lines", headers=auth).json()
-    assert len(card["lines"]) == 5 and card["lines"][0]["text"].startswith("Covered until 9 Jan 2027")
-    assert any(x["text"] == "Compressor: 10 years" for x in card["extras"])
+    # No confirmed terms source (batch 3 item 7): a fridge gets the split-warranty sentence, no dates or periods.
+    assert len(card["lines"]) == 5 and card["lines"][0]["text"].startswith("Usually a shorter period on the whole unit")
+    assert not any("10 years" in x["text"] for x in card["extras"])
+    assert card["period_note"]
     other, other_auth = client("five_other")
     assert other.get("/warranties/wty_five_1/five-lines", headers=other_auth).status_code == 403
     owner.post("/auth/login", data={"username": "five_owner", "password": "secret123"})

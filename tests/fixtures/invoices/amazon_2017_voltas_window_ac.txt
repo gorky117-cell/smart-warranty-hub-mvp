@@ -1,0 +1,15 @@
+Page 1 of 1, I-1/1
+Invoice for DMVVzZMtnN Apr 22, 2017
+Retail/TaxInvoice/Cash Memorandum
+Sold By
+Cloudtail India Private Limited
+(seller address lines)
+VAT/TIN Number: 0000000000   Invoice Number: HR-SDEG-1004-0000
+Billing Address / Shipping Address
+Test Buyer, Test Address, Faridabad, HARYANA - 121001
+Order ID 402-0000000-0000000   This is a computer generated invoice
+QTY DESCRIPTION GROSS AMOUNT ... NET AMOUNT ... TAX
+1 Voltas 1.5 Ton 3 Star Window AC   Rs. 22,490.00  VAT 13.13% Rs. 2,609.33
+(Copper, 183 CYa, White)
+B00NBM4LJ0
+Shipping Rs. 0.00

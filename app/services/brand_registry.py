@@ -149,6 +149,30 @@ def is_seller_line(text: str) -> bool:
     return any(f" {marker} " in low for marker in SELLER_MARKERS)
 
 
+# Words that make a header line read as a shop or company name (for the seller, when there is no "Sold By").
+BUSINESS_MARKERS = SELLER_MARKERS + (
+    "electronics", "mobiles", "mobile", "appliances", "mart", "emporium", "centre", "center", "corporation",
+    "company", "sons", "telecom", "gallery", "services", "sales", "limited", "inc", "co",
+)
+_NOT_A_SELLER_RE = re.compile(
+    r"^\W*(?:page\b|p\.?\s*\d|[a-z]-?\d+\s*/\s*\d+)|\bpage\s*\d+\s*(?:of|/)\s*\d+|invoice\s+for\b|computer\s+generated"
+    r"|original\s+for|duplicate\s+for|tax\s*invoice|cash\s+memo|bill\s+of\s+supply",
+    re.IGNORECASE,
+)
+
+
+def plausible_seller_name(text: Optional[str]) -> bool:
+    """A name a customer would recognise as a shop: mostly letters, no page headers or document titles."""
+    value = re.sub(r"\s+", " ", str(text or "")).strip()
+    if len(value) < 3 or len(value) > 80 or _NOT_A_SELLER_RE.search(value):
+        return False
+    visible = [ch for ch in value if not ch.isspace()]
+    letters = sum(ch.isalpha() for ch in visible)
+    if letters < 3 or letters / max(1, len(visible)) < 0.7:
+        return False
+    return any(len(word) >= 3 for word in re.findall(r"[A-Za-z]+", value))
+
+
 def is_retailer(name: Optional[str]) -> bool:
     return " ".join(_tokens(name or "")) in RETAILERS
 

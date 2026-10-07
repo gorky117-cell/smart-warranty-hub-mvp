@@ -79,6 +79,7 @@ from .services.runtime_safety import insecure_defaults_allowed
 from .services.security_status import https_redirect_target, security_report
 from .services.csrf import CSRF_COOKIE_NAME, new_csrf_token, validate_csrf
 from .services.rate_limiter import check_rate_limit
+from .services import brand_access
 from .services.ai_quota import check_and_consume as consume_ai_quota, usage_for as ai_usage_for
 from .services.request_context import (
     REQUEST_ID_HEADER,
@@ -730,6 +731,43 @@ def admin_terms_cache_stats(db=Depends(get_db)):
     return {**terms_cache.stats(db), "knowledge_base": knowledge_base.counts(db)}
 
 
+@app.get("/account/anonymous-totals", dependencies=[Depends(require_user)])
+def get_anonymous_totals_consent(db=Depends(get_db), current: UserDB = Depends(require_user)):
+    """The consent text shown at each question, and the customer's current choice (off until they allow it)."""
+    return {"text": brand_access.ANONYMOUS_TOTALS_CONSENT, "allow": brand_access.totals_allowed(db, current.username)}
+
+
+@app.post("/account/anonymous-totals", dependencies=[Depends(require_user)])
+def set_anonymous_totals_consent(payload: Dict[str, Any] = Body(...), db=Depends(get_db),
+                                 current: UserDB = Depends(require_user)):
+    allow = payload.get("allow")
+    if not isinstance(allow, bool):
+        raise HTTPException(status_code=422, detail="allow must be true or false")
+    brand_access.set_totals_allowed(db, current.username, allow)
+    return {"text": brand_access.ANONYMOUS_TOTALS_CONSENT, "allow": allow}
+
+
+@app.get("/admin/oem-accounts/{username}/brands", dependencies=[Depends(require_admin)])
+def admin_get_account_brands(username: str, db=Depends(get_db)):
+    """Admin: the brand(s) a brand/OEM account is linked to (it only sees counts for these)."""
+    return {"username": username, "brands": brand_access.linked_brands(db, username)}
+
+
+@app.put("/admin/oem-accounts/{username}/brands", dependencies=[Depends(require_admin)])
+def admin_set_account_brands(username: str, payload: Dict[str, Any] = Body(...), db=Depends(get_db),
+                             current: UserDB = Depends(require_admin)):
+    """Admin: link a brand/OEM/TPA account to its brand(s). Replaces the previous list."""
+    user = db.query(UserDB).filter_by(username=username).first()
+    if not user or user.role not in ("oem", "tpa"):
+        raise HTTPException(status_code=404, detail="No brand/OEM or TPA account with that username")
+    brands = payload.get("brands")
+    if not isinstance(brands, list) or not all(isinstance(b, str) for b in brands):
+        raise HTTPException(status_code=422, detail="brands must be a list of brand names")
+    linked = brand_access.set_linked_brands(db, username, brands, admin=current.username)
+    log_action("oem_account_brands_set", f"username={username} brands={','.join(linked)} by={current.username}")
+    return {"username": username, "brands": linked}
+
+
 @app.get("/admin/security-status", dependencies=[Depends(require_admin)])
 def admin_security_status(db=Depends(get_db)):
     """Admin-only: weak or risky security settings (names only, never values)."""
@@ -1043,6 +1081,26 @@ def _ensure_ui_user(request: Request, current: Optional[UserDB]) -> Optional[Red
     if not current:
         return _build_ui_login_redirect(request)
     return None
+
+
+def _ensure_ui_admin(request: Request, current: Optional[UserDB]) -> Optional[RedirectResponse]:
+    """Developer/diagnostic pages that show model internals (scores, deltas): admins only."""
+    if not current:
+        return _build_ui_login_redirect(request)
+    if current.role != "admin":
+        return RedirectResponse(url="/ui/neo-dashboard", status_code=status.HTTP_303_SEE_OTHER)
+    return None
+
+
+# Status lines from the risk engine that are not for customers.
+_INTERNAL_RISK_REASONS = ("predictive engine not ready yet",)
+
+
+def customer_reasons(reasons, is_admin: bool) -> list:
+    reasons = list(reasons or [])
+    if is_admin:
+        return reasons
+    return [r for r in reasons if not any(x in str(r).lower() for x in _INTERNAL_RISK_REASONS)]
 
 
 def _ensure_ui_oem_or_admin(request: Request, current: Optional[UserDB]) -> Optional[RedirectResponse]:
@@ -1399,7 +1457,9 @@ def oem_questions_answer_stats(
     region: str | None = None,
     model: str | None = None,
     current=Depends(require_oem_or_admin),
+    db=Depends(get_db),
 ):
+    brand = brand_access.scoped_brand(db, current, brand)
     min_cohort = int(os.getenv("OEM_QUESTION_MIN_COHORT", os.getenv("OEM_AGGREGATE_MIN_COHORT", "10")))
     return oem_question_service.aggregate_answers(
         {"brand": brand, "model_code": model_code or model, "product_type": product_type, "region": region},
@@ -1461,7 +1521,9 @@ def oem_recommendations_stats(
     region: str | None = None,
     risk_band: str | None = None,
     current=Depends(require_oem_or_admin),
+    db=Depends(get_db),
 ):
+    brand = brand_access.scoped_brand(db, current, brand)
     min_cohort = int(os.getenv("OEM_RECOMMENDATION_MIN_COHORT", os.getenv("OEM_AGGREGATE_MIN_COHORT", "10")))
     return oem_recommendation_service.aggregate_stats(
         {"product_type": product_type, "brand": brand, "model": model, "region": region, "risk_band": risk_band},
@@ -2420,6 +2482,11 @@ def list_warranties_sorted(
         WarrantyDB.created_at.desc().nullslast(),
         WarrantyDB.id.desc(),
     ).limit(100).all()
+    # A repeat upload the customer replaced with the product they already had is not listed (kept, not deleted).
+    warranties = [
+        w for w in warranties
+        if ((w.alternatives or {}).get("duplicate_of") or {}).get("status") != "opened_existing"
+    ]
 
     latest_parsed_by_warranty: Dict[str, ParsedFieldDB] = {}
     if warranties:
@@ -2551,6 +2618,7 @@ def list_warranties_sorted(
             "subtitle": name["subtitle"],
             "icon": name["icon"],
             "type_label": name["type_label"],
+            "duplicate_of": name.get("duplicate_of"),
             **({"support_ref": name["support_ref"]} if is_admin else {}),
             "risk_label": risk_meta.get("risk_label"),
             "risk_score": risk_meta.get("risk_score"),
@@ -2636,6 +2704,10 @@ def get_warranty(warranty_id: str, db=Depends(get_db), current: UserDB = Depends
     payload = warranty.model_dump()
     payload.update(_build_warranty_status_info(warranty))
     payload["evidence_status"] = summary_engine.build_evidence_summary(warranty)
+    from .services.warranty_card import estimated_period_note
+
+    # Set when the period is only an estimate: the dashboard then shows this instead of an end date.
+    payload["period_note"] = estimated_period_note(warranty, payload["evidence_status"])
     return payload
 
 
@@ -2665,7 +2737,9 @@ def _clean_identity_value(field: str, raw: object) -> str:
         exact = next((name for name in load_oem_domains() if name.lower() == value.lower()), None)
         return exact or brand_registry.resolve_brand(value) or value
     value = value.upper()
-    if not value or len(value) > 40 or not re.fullmatch(r"[A-Z0-9][A-Z0-9\-/]*", value):
+    # Model codes may be printed with single spaces ("183 CYA", "GX 3701"); serials may not.
+    allowed = r"[A-Z0-9](?:[A-Z0-9\-/]| (?=[A-Z0-9]))*" if field == "model_code" else r"[A-Z0-9][A-Z0-9\-/]*"
+    if not value or len(value) > 40 or not re.fullmatch(allowed, value):
         what = "serial number" if field == "serial_no" else "model code"
         raise HTTPException(status_code=422, detail=f"Enter the {what} as printed (letters, digits, - or /).")
     return value
@@ -2702,6 +2776,95 @@ def _resolve_identity_suggestion(db, current, warranty_id: str, field: str, payl
     db.commit()
     store.warranties.pop(warranty_id, None)
     return {"value": getattr(row, field), "suggestion": suggestion}
+
+
+# ---- Care risk wording (services/care_risk.py; question packs live with the packs work) ---------------------
+
+@app.get("/warranties/{warranty_id}/care-risk", dependencies=[Depends(rbac_dependency)])
+def warranty_care_risk(warranty_id: str, db=Depends(get_db), current: UserDB = Depends(require_user)):
+    """What to show instead of a risk rating: never "Low risk" without answers."""
+    from .services import care_risk
+
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
+    row = db.query(WarrantyDB).filter_by(id=warranty_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Warranty not found")
+    return care_risk.summary(db, current.username, row)
+
+
+@app.post("/warranties/{warranty_id}/duplicate", dependencies=[Depends(rbac_dependency)])
+def resolve_duplicate_invoice(
+    warranty_id: str,
+    payload: Dict[str, Any] = Body(...),
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    """A repeat upload of an invoice the customer already added: "open_existing" hides the new copy from their
+    list (nothing is deleted) and returns the existing product; "keep_both" keeps it as a separate product."""
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
+    row = db.query(WarrantyDB).filter_by(id=warranty_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Warranty not found")
+    meta = dict(row.alternatives or {})
+    duplicate = dict(meta.get("duplicate_of") or {})
+    if duplicate.get("status") != "pending" or not duplicate.get("warranty_id"):
+        raise HTTPException(status_code=404, detail="This product is not a repeat of another invoice")
+    existing = duplicate["warranty_id"]
+    if not _user_can_access_warranty(db, user=current, warranty_id=existing):
+        raise HTTPException(status_code=404, detail="The earlier product is no longer in your list")
+    action = str(payload.get("action") or "").strip().lower()
+    if action == "open_existing":
+        duplicate["status"] = "opened_existing"  # hidden from the list; ownership kept so nobody else can claim it
+    elif action == "keep_both":
+        duplicate["status"] = "kept_both"
+    else:
+        raise HTTPException(status_code=422, detail="action must be 'open_existing' or 'keep_both'")
+    duplicate["resolved_at"] = datetime.utcnow().isoformat()
+    meta["duplicate_of"] = duplicate
+    row.alternatives = meta
+    db.add(row)
+    db.commit()
+    store.warranties.pop(warranty_id, None)
+    return {"warranty_id": warranty_id, "open_warranty_id": existing if action == "open_existing" else warranty_id,
+            "duplicate_of": duplicate}
+
+
+@app.post("/warranties/{warranty_id}/region-consent", dependencies=[Depends(rbac_dependency)])
+def set_region_consent(
+    warranty_id: str,
+    payload: Dict[str, Any] = Body(...),
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    """The customer's yes/no to using the delivery city/state (from the invoice) for weather-based care tips.
+    Only city and state are ever stored; "no" also stops the climate band being used for risk."""
+    from .services.purchase_details import climate_for
+
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
+    row = db.query(WarrantyDB).filter_by(id=warranty_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Warranty not found")
+    meta = dict(row.alternatives or {})
+    region = dict(meta.get("delivery_region") or {})
+    if not region.get("state"):
+        raise HTTPException(status_code=404, detail="No delivery city or state was found on this invoice")
+    use = payload.get("use")
+    if not isinstance(use, bool):
+        raise HTTPException(status_code=422, detail="use must be true or false")
+    region["consent"] = use
+    if use:
+        climate = climate_for(region)
+        if climate and not row.climate_zone:
+            row.climate_zone = climate
+            region["climate_set"] = True
+    elif region.pop("climate_set", False):
+        row.climate_zone = None
+    meta["delivery_region"] = region
+    row.alternatives = meta
+    db.add(row)
+    db.commit()
+    store.warranties.pop(warranty_id, None)
+    return {"warranty_id": warranty_id, "delivery_region": region, "climate_zone": row.climate_zone}
 
 
 @app.post("/warranties/{warranty_id}/field-suggestion", dependencies=[Depends(rbac_dependency)])
@@ -3317,6 +3480,9 @@ def warranty_ui(
     variant = adv.get("variant")
     # Predictive
     predictive = compute_predictive_score(uid, warranty_id, warranty.model_code, None, None)
+    is_admin = bool(current and current.role == "admin")
+    if isinstance(predictive, dict):
+        predictive = {**predictive, "reasons": customer_reasons(predictive.get("reasons"), is_admin)}
     return templates.TemplateResponse(
         "warranty.html",
         {
@@ -3327,6 +3493,7 @@ def warranty_ui(
             "nudges": nudges,
             "variant": variant,
             "predictive": predictive,
+            "show_internals": is_admin,
         },
     )
 
@@ -3371,7 +3538,7 @@ def react_dashboard(request: Request, current: Optional[UserDB] = Depends(get_cu
 
 @app.get("/ui/console")
 def console_ui(request: Request, current: Optional[UserDB] = Depends(get_current_user_optional)):
-    ui_redirect = _ensure_ui_user(request, current)
+    ui_redirect = _ensure_ui_admin(request, current)  # shows base scores and behaviour deltas
     if ui_redirect:
         return ui_redirect
     from fastapi.responses import HTMLResponse
@@ -3420,8 +3587,11 @@ def neo_dashboard(request: Request, current: Optional[UserDB] = Depends(get_curr
 
 
 @app.get("/ui/warranty-tabs")
-def warranty_tabs_ui():
-    """Multi-invoice tabbed dashboard with Details/Predictive/OEM/Nudges tabs."""
+def warranty_tabs_ui(request: Request, current: Optional[UserDB] = Depends(get_current_user_optional)):
+    """Multi-invoice tabbed dashboard with Details/Predictive/OEM/Nudges tabs (admin diagnostic page)."""
+    ui_redirect = _ensure_ui_admin(request, current)
+    if ui_redirect:
+        return ui_redirect
     from fastapi.responses import HTMLResponse
     html_path = Path(__file__).resolve().parents[1] / "templates" / "warranty_tabs.html"
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
@@ -3997,7 +4167,9 @@ def oem_issue_summary(
     product_type: str | None = None,
     region: str | None = None,
     db=Depends(get_db),
+    current=Depends(require_oem_or_admin),
 ):
+    brand = brand_access.scoped_brand(db, current, brand)
     res = oem_issue_service.summarize_issue_signals(
         db,
         brand=brand,
@@ -4151,8 +4323,11 @@ def oem_product_catalog(limit: int = 200, current=Depends(require_oem_or_admin),
                 return token
         return ""
 
+    allowed = brand_access.allowed_brand_keys(db, current)  # brand accounts: their own brand's products only
     grouped: Dict[tuple, Dict[str, object]] = {}
     for row in rows:
+        if allowed is not None and (row.brand or "").strip().lower() not in allowed:
+            continue
         key = (
             (row.brand or "").strip(),
             (row.model_code or "").strip(),
@@ -4188,6 +4363,7 @@ def oem_product_catalog(limit: int = 200, current=Depends(require_oem_or_admin),
 def oem_risk_stats(
     brand: str | None = None, model: str | None = None, product_type: str | None = None, region: str | None = None, current=Depends(require_oem_or_admin), db=Depends(get_db)
 ):
+    brand = brand_access.scoped_brand(db, current, brand)
     # Predictive distribution based on behaviour profiles we have
     risk_counts = {"LOW": 0, "MEDIUM": 0, "HIGH": 0, "UNKNOWN": 0}
     behaviour_snapshot = {"behaviour": 0.0, "care": 0.0, "responsiveness": 0.0, "count": 0}
@@ -4319,6 +4495,7 @@ def oem_telemetry_stats(
     current=Depends(require_oem_or_admin),
     db=Depends(get_db),
 ):
+    brand = brand_access.scoped_brand(db, current, brand)
     return telemetry_intelligence.build_oem_telemetry_aggregate(
         db,
         brand=brand,
@@ -4340,6 +4517,7 @@ def oem_aggregate_insights(
     current=Depends(require_oem_or_admin),
     db=Depends(get_db),
 ):
+    brand = brand_access.scoped_brand(db, current, brand)
     return oem_aggregate_service.build_privacy_safe_oem_aggregate(
         db,
         product_type=product_type,
@@ -4366,6 +4544,7 @@ def oem_forecast(
     Lightweight OEM forecast endpoint.
     Additive only: uses existing risk snapshots and issue signals.
     """
+    brand = brand_access.scoped_brand(db, current, brand)
     weeks = max(4, min(52, int(weeks or 12)))
     horizon_weeks = max(1, min(12, int(horizon_weeks or 4)))
     now = datetime.utcnow()
@@ -4739,13 +4918,16 @@ def reject(review_id: str, reason: str | None = None):
 
 
 @app.get("/oem/behaviour-stats", dependencies=[Depends(require_oem_or_admin)])
-def oem_behaviour_stats():
+def oem_behaviour_stats(current=Depends(require_oem_or_admin)):
     aggregates = {}
     with SessionLocal() as db:
+        allowed = brand_access.allowed_brand_keys(db, current)  # brand accounts: their own brand only
         profiles = db.query(BehaviourProfile).all()
     for p in profiles:
         warranty = store.get_warranty_db(p.warranty_id)
         if not warranty:
+            continue
+        if allowed is not None and (warranty.brand or "").lower() not in allowed:
             continue
         key = (warranty.brand or "unknown", warranty.model_code or "unknown")
         agg = aggregates.setdefault(

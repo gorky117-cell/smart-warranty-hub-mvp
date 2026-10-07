@@ -292,6 +292,42 @@ def _clean_seller_candidate(raw: str) -> Optional[str]:
     return text.title()
 
 
+_SOLD_BY_RE = re.compile(r"^\W*(?:sold\s*by|seller(?:\s*name)?|supplier|merchant|retailer)\b\s*[:\-]?\s*(.*)$", re.IGNORECASE)
+
+
+def _seller_from_sold_by(lines: List[str]) -> Optional[str]:
+    """The seller named in a "Sold By" / "Seller:" block: on the same line or the next lines."""
+    for idx, line in enumerate(lines):
+        m = _SOLD_BY_RE.match(line.strip())
+        if not m:
+            continue
+        following = [m.group(1)] + [nxt for nxt in lines[idx + 1: idx + 4]]
+        for raw in following:
+            raw = (raw or "").strip()
+            if not raw or raw.startswith("("):
+                continue
+            cleaned = _clean_seller_candidate(raw)
+            if cleaned and brand_registry.plausible_seller_name(cleaned):
+                return cleaned
+            if raw and len(raw) > 3:
+                break  # the first real line after the label was not a name: do not guess further down
+    return None
+
+
+def _seller_from_header(lines: List[str], item_brand: Optional[str]) -> Optional[str]:
+    """No "Sold By": a top line that clearly reads as a shop or company name, else nothing."""
+    for line in lines[:8]:
+        cleaned = _clean_seller_candidate(line)
+        if not cleaned or cleaned == item_brand or not brand_registry.plausible_seller_name(cleaned):
+            continue
+        low = f" {' '.join(re.findall(r'[a-z0-9]+', cleaned.lower()))} "
+        if any(f" {marker} " in low for marker in brand_registry.BUSINESS_MARKERS) or any(
+            marker in low for marker in _RETAILER_MARKERS
+        ):
+            return cleaned
+    return None
+
+
 def _logical_invoice_lines(lines: List[str]) -> List[str]:
     """Join wrapped invoice item descriptions before product identity scoring."""
     logical: List[str] = []
@@ -523,7 +559,47 @@ def _strip_line_item_noise(line: str) -> str:
     text = re.sub(r"^\d+[\.\)]?\s*", "", _strip_invoice_table_prefix(line))
     text = re.split(r"\s+\d{6,}\b", text, maxsplit=1)[0]
     text = re.split(r"\s+\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?\b", text, maxsplit=1)[0]
+    text = re.sub(r"\s+(?:rs\.?|inr|₹|mrp)\s*$", "", _normalize_spaces(text), flags=re.IGNORECASE)  # "... AC Rs."
     return _normalize_spaces(text).strip(":-|")
+
+
+# Words in a bracketed spec list that are never the model: colours, materials, sizes and ratings
+# ("(Copper, 183 CYa, White)", "(Blitz Blue, 6GB RAM, 128GB Storage)").
+_SPEC_WORDS = frozenset({
+    "black", "white", "silver", "grey", "gray", "blue", "red", "green", "gold", "golden", "pink", "purple",
+    "violet", "yellow", "orange", "brown", "beige", "steel", "titanium", "graphite", "midnight", "starlight",
+    "dazzle", "inox", "copper", "aluminium", "aluminum", "alloy", "matte", "glossy", "dark", "light", "deep",
+    "inverter", "split", "window", "portable", "convertible", "frost", "free", "direct", "cool", "dual",
+    "ram", "storage", "rom", "star", "ton", "tr", "litre", "liter", "ltr", "kg", "watt", "inch", "inches",
+    "front", "top", "load", "fully", "semi", "automatic", "smart", "led", "hd", "uhd", "4k", "5g", "4g",
+})
+_BRACKET_LIST_RE = re.compile(r"\(([^()]{3,140})\)")
+
+
+def bracket_spec_model(text: str) -> Optional[Tuple[str, str]]:
+    """(code, bracket text) for a model-like item inside a comma list in brackets, e.g. "183 CYa" in
+    "(Copper, 183 CYa, White)"; colours, materials, capacities, ratings and listing codes are skipped. Read
+    from a free-text list, so callers offer it for confirmation and never store it directly."""
+    for m in _BRACKET_LIST_RE.finditer(text or ""):
+        items = [_normalize_spaces(part) for part in m.group(1).split(",")]
+        if len(items) < 2:
+            continue
+        for item in items:
+            words = re.findall(r"[A-Za-z0-9.+/\-]+", item)
+            if not item or len(item) > 20 or len(words) > 3 or not re.search(r"\d", item) or not re.search(r"[A-Za-z]", item):
+                continue
+            if is_listing_code(item.replace(" ", "")) or _is_spec_only(item):
+                continue
+            if re.fullmatch(r"\d+(?:\.\d+)?\s*(?:gb|tb|mb|mah|w|kw|v|hz|mp|ton|tr|star|kg|l|ltr|litre|inch|inches|cm|mm)\b.*", item, re.IGNORECASE):
+                continue
+            if all(w.lower() in _SPEC_WORDS or re.fullmatch(r"\d+(?:\.\d+)?", w) for w in words):
+                continue
+            # A count of ordinary things ("3 Jars", "2 Pack", "4 Burners"), not a code like "183 CYa".
+            count = re.fullmatch(r"\d+(?:\.\d+)?\s+([A-Za-z]{4,})", item)
+            if count and (count.group(1).istitle() or count.group(1).islower()):
+                continue
+            return item, m.group(0)
+    return None
 
 
 def _model_from_product_line(line: str, brand: Optional[str]) -> Optional[str]:
@@ -937,35 +1013,93 @@ def ingest_artifact(
     return store.add_artifact(artifact)
 
 
-def parse_date_from_text(text: str) -> Optional[str]:
-    """Extract date from text, supporting multiple formats."""
-    # Pattern 1: Date with month names (15-Nov-2025, 24 Dec 2025, 24-Dec-2025)
-    month_pattern = r"(\d{1,2})[\s\-/]+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[\s\-/]+(\d{2,4})"
-    month_matches = re.findall(month_pattern, text, re.IGNORECASE)
-    for day, month, year in month_matches:
+_MONTHS = r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?"
+# "22 Apr 2017", "22-Apr-17", "22nd April, 2017"
+_DAY_MONTH_YEAR_RE = re.compile(rf"\b(\d{{1,2}})(?:st|nd|rd|th)?[\s\-/.,]+{_MONTHS}[\s\-/.,]+(\d{{4}}|\d{{2}})\b", re.IGNORECASE)
+# "Apr 22, 2017", "April 22nd 2017", "Apr-22-2017"
+_MONTH_DAY_YEAR_RE = re.compile(rf"\b{_MONTHS}[\s\-/.]+(\d{{1,2}})(?:st|nd|rd|th)?[\s,\-/.]+(\d{{4}})\b", re.IGNORECASE)
+_NUMERIC_DATE_RE = re.compile(r"(?<![\d.])(\d{1,2}[./-]\d{1,2}[./-]\d{2,4}|\d{4}[-/.]\d{1,2}[-/.]\d{1,2})(?![\d.])")
+
+
+def _plausible_year(year: int) -> bool:
+    return 1990 <= year <= datetime.utcnow().year + 1
+
+
+def _named_month_dates(text: str) -> List[Tuple[int, str]]:
+    found: List[Tuple[int, str]] = []
+    for m in _DAY_MONTH_YEAR_RE.finditer(text):
+        day, month, year = m.group(1), m.group(2), m.group(3)
+        found.append((m.start(), f"{day}-{month[:3].title()}-{year}"))
+    for m in _MONTH_DAY_YEAR_RE.finditer(text):
+        month, day, year = m.group(1), m.group(2), m.group(3)
+        found.append((m.start(), f"{day}-{month[:3].title()}-{year}"))
+    out = []
+    for pos, raw in sorted(found):
         try:
-            raw = f"{day}-{month[:3].title()}-{year}"
-            if len(year) == 2:
-                dt = datetime.strptime(raw, "%d-%b-%y")
-            else:
-                dt = datetime.strptime(raw, "%d-%b-%Y")
-            return dt.date().isoformat()
+            dt = datetime.strptime(raw, "%d-%b-%y" if len(raw.rsplit("-", 1)[1]) == 2 else "%d-%b-%Y")
         except ValueError:
             continue
-    
-    # Pattern 2: Numeric dates (24-12-2025, 24/12/2025, 24.12.2025, 2025-12-24)
-    numeric_candidates = re.findall(
-        r"(\d{1,2}[./-]\d{1,2}[./-]\d{2,4}|\d{4}-\d{2}-\d{2})", text
-    )
-    for raw in numeric_candidates:
-        for fmt in ("%d-%m-%Y", "%d/%m/%Y", "%d.%m.%Y", "%Y-%m-%d", "%d-%m-%y", "%d/%m/%y", "%d.%m.%y"):
+        if _plausible_year(dt.year):
+            out.append((pos, dt.date().isoformat()))
+    return out
+
+
+def parse_date_from_text(text: str) -> Optional[str]:
+    """First date in the text: named months first ("22 Apr 2017", "Apr 22, 2017", "22nd April 2017"), then
+    numeric dates ("22/04/2017", "22-04-17", "22.04.2017", "2017-04-22"; day before month, as in India)."""
+    named = _named_month_dates(text or "")
+    if named:
+        return named[0][1]
+    for raw in _NUMERIC_DATE_RE.findall(text or ""):
+        for fmt in ("%d-%m-%Y", "%d/%m/%Y", "%d.%m.%Y", "%Y-%m-%d", "%Y/%m/%d", "%Y.%m.%d", "%d-%m-%y", "%d/%m/%y", "%d.%m.%y"):
             try:
                 dt = datetime.strptime(raw, fmt)
-                return dt.date().isoformat()
             except ValueError:
                 continue
-    
+            if _plausible_year(dt.year):
+                return dt.date().isoformat()
     return None
+
+
+# Where an invoice states its own date (strongest first). Each pattern's end is where the date starts.
+_DATE_LABEL_RES = (
+    re.compile(r"\b(?:invoice|bill|purchase|order|transaction)\s*(?:date|dt\.?)\s*[:\-.]?\s*", re.IGNORECASE),
+    re.compile(r"\bdate\s+of\s+(?:invoice|purchase|issue|order)\s*[:\-.]?\s*", re.IGNORECASE),
+    re.compile(r"\b(?:order\s+placed(?:\s+on)?|ordered\s+on|dated)\s*[:\-.]?\s*", re.IGNORECASE),
+    # Headings such as "Invoice for DMVVzZMtnN Apr 22, 2017" / "Packing slip for 402-... 22/04/2017".
+    re.compile(r"^\W*(?:tax\s+invoice|invoice|packing\s+slip|bill|order)\b[^\n]{0,40}?\bfor\s+\S+\s+", re.IGNORECASE | re.MULTILINE),
+    re.compile(r"\bdate\s*[:\-.]?\s*", re.IGNORECASE),
+)
+# Amazon-style footer stamp "0422-10:15" (month, day, time): no year, so only used with the one year the
+# invoice mentions, and only when nothing better was found.
+_FOOTER_STAMP_RE = re.compile(r"\b(0[1-9]|1[0-2])([0-2]\d|3[01])-([01]\d|2[0-3]):[0-5]\d\b")
+
+
+def find_purchase_date(text: str) -> Tuple[Optional[str], float]:
+    """(ISO date, confidence) of the purchase: a labelled or heading date (0.8), any date (0.5), or the
+    footer stamp with the invoice's only year (0.4)."""
+    text = text or ""
+    for pattern in _DATE_LABEL_RES:
+        for m in pattern.finditer(text):
+            before = text[max(0, m.start() - 16): m.start()].lower()
+            if re.search(r"(?:due|expir\w*|deliver\w*|valid\w*|warranty|end|until|till|ship\w*)\W*$", before):
+                continue  # "Due date", "Expiry date", "Delivery date" are not the purchase date
+            window = text[m.end(): m.end() + 32].split("\n", 1)[0]
+            found = parse_date_from_text(window)
+            if found:
+                return found, 0.8
+    found = parse_date_from_text(text)
+    if found:
+        return found, 0.5
+    stamp = _FOOTER_STAMP_RE.search(text)
+    years = {int(y) for y in re.findall(r"\b(19\d{2}|20\d{2})\b", text) if _plausible_year(int(y))}
+    if stamp and len(years) == 1:
+        try:
+            dt = datetime(years.pop(), int(stamp.group(1)), int(stamp.group(2)))
+            return dt.date().isoformat(), 0.4
+        except ValueError:
+            pass
+    return None, 0.0
 
 
 def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float], Dict[str, List[str]]]:
@@ -985,14 +1119,9 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
     has_warranty_context = has_warranty_context or bool(line_items)
     best_item = _strip_line_item_noise(line_items[0][1]) if line_items else None
     item_brand = _canonical_oem(best_item or "")
-    seller_candidates: List[str] = []
-    for line in lines[:8]:
-        cleaned = _clean_seller_candidate(line)
-        if cleaned and cleaned != item_brand:
-            seller_candidates.append(cleaned)
-            break
-    if seller_candidates:
-        alternatives["seller"] = seller_candidates
+    seller = _seller_from_sold_by(lines) or _seller_from_header(lines, item_brand)
+    if seller:
+        alternatives["seller"] = [seller]
 
     # === BRAND EXTRACTION ===
     # Strategy 1: Explicit "Brand:" label
@@ -1143,6 +1272,18 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
                     "reason": "This looks like a model code but was not labelled; please confirm.",
                 }
 
+    # A model inside a bracketed spec list of the product row ("(Copper, 183 CYa, White)"): offered to confirm.
+    if "model_code" not in fields and "model_suggestion" not in alternatives and best_item is not None:
+        row = next((line for line in logical_lines if best_item[:20] in line), best_item)
+        found = bracket_spec_model(row)
+        if found:
+            alternatives["model_suggestion"] = {
+                "value": found[0],
+                "source_line": found[1],
+                "status": "pending",
+                "reason": "We found this in the product's description; please confirm it is the model code.",
+            }
+
     # === SERIAL NUMBER ===
     serial_value, serial_confidence, serial_kind, serial_line = _serial_candidate(
         logical_lines + lines, line_items[0][1] if line_items else None
@@ -1169,21 +1310,13 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
             alternatives["serial_evidence"] = serial_kind  # OCR split the IMEI; joined only because Luhn passes
 
     # === PURCHASE DATE ===
-    # Look specifically for "Date:" labeled date first
+    # A labelled or heading date first ("Invoice Date:", "Order placed", "Invoice for <code> <date>"), then any
+    # date, then a footer stamp with the invoice's only year.
     if has_warranty_context:
-        date_label_match = re.search(r"(?:date|invoice date|purchase date)\s*[:\-]\s*(.{8,20})", text, re.IGNORECASE)
-        if date_label_match:
-            date_str = parse_date_from_text(date_label_match.group(1))
-            if date_str:
-                fields["purchase_date"] = date_str
-                confidence["purchase_date"] = 0.8
-    
-    # Fallback: Any date in text
-    if has_warranty_context and "purchase_date" not in fields:
-        date_str = parse_date_from_text(text)
+        date_str, date_conf = find_purchase_date(text)
         if date_str:
             fields["purchase_date"] = date_str
-            confidence["purchase_date"] = 0.5
+            confidence["purchase_date"] = date_conf
 
     # === INVOICE NUMBER ===
     inv_patterns = [
@@ -1250,6 +1383,11 @@ def extract_product_fields(text: str) -> Tuple[Dict[str, str], Dict[str, float],
     if region_code:
         fields["region_code"] = region_code
         confidence["region_code"] = 0.7
+
+    # Price, capacity, star rating, type, and delivery city/state only (never the street address).
+    from . import purchase_details
+
+    alternatives.update(purchase_details.extract(text, best_item, fields.get("product_name") or best_item))
 
     fields, confidence, alternatives = sanitize_invoice_identity_fields(fields, confidence, alternatives)
     fields, confidence, alternatives = route_uncertain_identity(fields, confidence, alternatives)

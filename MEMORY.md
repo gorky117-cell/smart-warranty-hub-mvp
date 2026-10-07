@@ -3430,3 +3430,142 @@ Branch `cloud/batch-2`, started from `cloud/batch-1` (PR #1 not merged yet), pul
   tests/test_invoice_field_floors.py. Before this change that test failed in the cloud container
   (product_category 22 < 26 with this Tesseract build); it passes now. Full suite with Tesseract installed:
   7 previously skipped OCR tests now run.
+
+## 105. Cloud batch 3: real Amazon invoice failures + question packs (2026-10-07)
+Branch `cloud/batch-3` from `cloud/batch-2` (PR #1 merged into master by the owner; PR #2 open). Fixture: OCR
+text of a real 2017 Amazon (Cloudtail) Voltas window-AC invoice with buyer details replaced by the owner,
+tests/fixtures/invoices/amazon_2017_voltas_window_ac.txt (added on the owner's instruction). Before: date
+missing, model none, seller "Page 1 Of 1, I-1/1", category "appliance", product name ending in "Rs.".
+- [x] 105.1 Purchase date (ingestion.find_purchase_date): labelled dates first ("Invoice/Bill/Order/Purchase
+  Date", "Date of invoice", "Order placed", "Ordered on", "Dated", headings "<Invoice|Tax invoice|Packing slip|
+  Bill|Order> ... for <code> <date>", then "Date:"; "Due/Expiry/Delivery/Valid till" dates skipped) at 0.8, any
+  date 0.5, Amazon footer stamp "MMDD-HH:MM" with the invoice's only year 0.4. parse_date_from_text now also reads
+  "Apr 22, 2017", "April 22nd 2017", "22nd April, 2017", "Apr-22-2017", "2017/04/22"; years outside 1990..next
+  year ignored. Fixture -> 2017-04-22. Tests: tests/test_invoice_dates.py (28). Global check unchanged.
+- [x] 105.2 Seller: from a "Sold By" / "Seller (Name):" / "Supplier" block (same line or the next lines,
+  "(...)" placeholders skipped); without one, a top line only when it reads as a shop/company name
+  (brand_registry.BUSINESS_MARKERS or a known retailer) - otherwise no seller. brand_registry.plausible_seller_name
+  rejects page headers ("Page 1 of 1", "I-1/1"), document titles, "computer generated", mostly-digit text; used
+  by the extractor and by product_naming.seller_from, so the product list label never shows header noise.
+- [x] 105.3 Model inside a bracketed spec list of the product row (ingestion.bracket_spec_model): "(Copper,
+  183 CYa, White)" -> suggestion "183 CYa" to confirm (never stored directly); colours, materials, capacities,
+  ratings, counts ("3 Jars"), single-item brackets and listing codes (B0/X0 + 8) skipped; only when no model was
+  found. Product name loses a trailing "Rs."/INR/MRP. Confirming a model now accepts single spaces ("183 CYA",
+  "GX 3701"); serials still may not contain spaces. Fixture: brand Voltas, product line air_conditioner, date
+  2017-04-22, invoice HR-SDEG-1004-0000 (Order ID kept apart), seller Cloudtail India Private Limited, model
+  suggestion 183 CYa, B00NBM4LJ0 never a model. Tests: tests/test_amazon_2017_invoice.py (27: phone, fridge,
+  washing machine, TV, AC, mixer, laptop cases). Global check unchanged.
+- [x] 105.4 New fields (services/purchase_details.py, stored in warranty alternatives, no schema change):
+  purchase_details = price (first amount on the item's own row, else the invoice total; INR), capacity/size
+  (Ton, L, kg, inch, GB storage, W), star rating, type (window/split/portable/cassette, front/top load,
+  semi-automatic, single/double door/side by side, storage/instant geyser); delivery_region = {city, state,
+  consent} from the shipping (else billing) block or "Place of supply" - only city and state; a city with street
+  words or digits is dropped (state only). Consent: dashboard "Your purchase" box asks "May we use this city and
+  state for weather-based care tips? We only keep the city and state, never your street address." -> POST
+  /warranties/{id}/region-consent {use}; yes sets climate_zone (hot/dry/humid/coastal/cold by state) if empty,
+  no clears what yes set; re-processing never resets the answer. Care tips: one SWH-written weather tip per
+  product line + climate, only after yes. Note: parsed_fields.raw_text (existing) still keeps the OCR text,
+  address included - used for the claim PDF ("Hide my address" exists); not changed here.
+  Item 6 part 1: the raw "What is covered?" box (Brand/Model/Serial/Coverage months dump) is now "Your purchase"
+  with a plain "From your invoice: Price paid ₹22,490 · 1.5 Ton · 3 Star · Window" line.
+  Tests: tests/test_purchase_details.py (23).
+- [x] 105.5 Duplicate invoices: after each upload is read, invoice_pipeline.flag_duplicate_invoice looks for
+  another product of the same customer with the same invoice number (letters/digits only, any case) and the same
+  seller (when neither invoice names a seller, the same purchase date too); match -> alternatives.duplicate_of =
+  {warranty_id, status: pending}. List: such a product says "Same invoice as a product you already added"
+  instead of "(2)". Dashboard ("Your purchase"): "You already added this invoice." [Open the product I already
+  have] [Keep both] -> POST /warranties/{id}/duplicate {open_existing|keep_both}. open_existing hides the copy
+  from the list and opens the earlier product; nothing is deleted and ownership is kept (so the "claim an
+  unowned product" fallback cannot hand it to anyone else). The answer is never re-asked on re-processing.
+  Tests: tests/test_duplicate_invoices.py (9).
+- [x] 105.6 Screens: "Base risk score", "Behaviour delta", "Behaviour reasons" and the care-tip action tag
+  ("general_care") are shown only when /auth/session says admin; "Predictive engine not ready yet." is filtered
+  from customer risk reasons (dashboard customerReasons, server customer_reasons for /ui/warranty/{id}, whose
+  score badges are now admin-only). /ui/console and /ui/warranty-tabs (diagnostic pages with scores; the
+  latter had no sign-in check) are admin-only, customers are sent to the dashboard. The raw "What is covered?"
+  dump was replaced in 105.4.
+- [x] 105.7 Estimates: warranty_card.period_is_fact - a period is a fact only from the brand's terms
+  (confirmed or a saved copy) or when printed on the invoice / given by the customer (coverage confidence
+  >= 0.7). Otherwise the 5-line card shows no date and no months: AC, fridge, washing machine -> "Usually a
+  shorter period on the whole unit and a longer one on the main part (e.g. compressor). Check your warranty
+  card."; other products -> "We have not confirmed how long the warranty lasts yet. Check your warranty card or
+  invoice."; covered lines and extras with numbers from estimated terms are dropped (invoice wording kept).
+  GET /warranties/{id} returns period_note; the dashboard badge then says "End date: check your warranty card".
+  tests/test_five_lines.py endpoint test updated (an unconfirmed fridge now gets the split sentence).
+  Tests: tests/test_customer_screens_batch3.py (13). Reminders still use the stored expiry (unchanged).
+- [x] 105.8 Voltas window AC diagnosis (read-only; docs/VOLTAS_DIAGNOSIS.md). Registry ok (voltas.com listed and
+  verified), robots.txt allows all, terms page known in the worksheet (row 11). Cause: no source to read -
+  knowledge base empty, no saved official copy, data/warranty_sources.json has only 4 brands, no search key ->
+  discovery 0 candidates -> internal://default_rules (24 months for "appliance"). Category: ACs are "appliance"
+  in the invoice reader (product line air_conditioner is recognised). The cloud network blocks voltas.com, so the
+  page was not read (JavaScript check left to the owner). Fix: owner enters Voltas in the knowledge base
+  (backlog 3); optional search key; new backlog 22 (own category per product line).
+- [x] 105.9 Question packs (services/question_packs.py; new tables question_pack_answers, question_pack_consents,
+  created at start-up, additions only). One pack per product line, all SWH-written: AC (where used - pre-filled
+  with the invoice's city/state, hours a day in hot months, last service, who services it, filter cleaning,
+  power/stabiliser, current problem, installer), then phone, fridge, washing machine, geyser, laptop, TV,
+  printer. Dashboard "Quick questions about your AC": 3 at a time, buttons + Skip, "Why we ask: ..." line;
+  picking the invoice's city is the yes to using it for weather tips. Answers feed (a) tips and one reminder
+  notification per kind (e.g. "Time for an AC service"), (b) care-risk reasons, (c) anonymous group counts
+  (GET /oem/question-insights, OEM/admin): only customers who said yes ("May your answers also count, without
+  your name, in totals that brands see? ... groups of 10 or more"), latest answer per customer, skips and places
+  never counted, nothing below 10 customers. Products without a pack keep the old single behaviour question.
+- [x] 105.10 Risk wording: GET /warranties/{id}/care-risk. No answers (or only skips) -> "Not enough information
+  yet - answer 3 quick questions", never "Low risk"; always an age note ("Bought 22 Apr 2017 - about 9 years
+  old."); after answers a label in words (Looking after it well / Some things to watch / Needs attention) with
+  reasons, age adding to them (5+ years, 8+ years). The dashboard's health badge and risk box now come from this;
+  the model's own reasons stay for admins under "Model details (admin)".
+  Browser run (Playwright, 420 px, the Amazon fixture uploaded twice): list shows "Same invoice as a product you
+  already added" for the copy, "Open the product I already have" hides it and opens the original; purchase line
+  "Price paid: ₹22,490 · 1.5 Ton · 3 Star · Window"; 5 lines with the AC split sentence; health "Not enough
+  information yet" -> after 2 answers "Needs attention" with reasons. Found and fixed in that run: the duplicate
+  and region boxes were inside the collapsed "More product details" (moved under the 5 lines); the summary line
+  showed the internal ID and the estimated expiry/coverage (now the name only, no estimated dates); notification
+  toasts fell back to the internal ID (now the product name); answer buttons were full-width on phones.
+  Tests: tests/test_question_packs.py (21).
+
+### 105 review (owner's changes to PR #3, same branch)
+- [x] 105.11 Question packs removed from this branch (code, 8-type content, tables question_pack_answers /
+  question_pack_consents, endpoints /warranties/{id}/questions*, /account/share-answers, /oem/question-insights,
+  dashboard block, tests): `desktop/batch-3` owns packs (30 data files, draft/approve). Kept: everything else.
+  Risk wording now in services/care_risk.py: "Not enough information yet - answer 3 quick questions" only when an
+  APPROVED pack with questions exists for the product (asked through care_packs.customer_pack, the packs
+  branch's function; absent here, so today every product says) "We can't rate this yet."; with answers the packs
+  module's label and reasons are passed through; age note always. Dashboard badge: never "Low risk" without
+  answers. Tests: tests/test_care_risk.py (11, with a stand-in packs module).
+- [x] 105.12 Backlog #24: warranty_card.confirmed_end_date(warranty, evidence) returns an end date only when the
+  period is a fact (brand's terms: confirmed or saved official copy; or stated on the card/invoice, or given by the
+  customer: coverage confidence >= 0.7). Used by: expiry reminders (notifications.create_expiry_notifications and
+  the daily sweep - estimated/unknown -> no reminder, no "Warranty ended" notice), care reminders (an estimated end
+  date never makes a product "active"; status unknown -> no care reminder), and the claim PDF text
+  (customer_content.export_text: "Coverage: check your warranty card / Expiry: check your warranty card", claim
+  line "Check your warranty card for how long the warranty lasts before you claim.", estimated term lines with
+  months/years left out). Existing reminder tests now mark their periods as printed on the invoice (confidence
+  0.7). Tests: tests/test_confirmed_end_dates.py (18: brand terms, invoice, customer, estimate, unknown source,
+  no dates, expired-by-estimate, care reminders, claim PDF text for each).
+- [x] 105.13 Brand accounts (services/brand_access.py; new table oem_account_brands, additions only). An admin
+  links each brand/OEM/TPA account to its brand(s): PUT/GET /admin/oem-accounts/{username}/brands (audit-logged).
+  Every OEM endpoint that returns counts calls scoped_brand(): /oem/risk-stats, /oem/telemetry-stats,
+  /oem/aggregate-insights, /oem/forecast, /oem/issues/summary, /oem/questions/answer-stats,
+  /oem/recommendations/stats - another brand -> 403 "Brand accounts can only see counts for their own brand.";
+  own brand in any letter case -> allowed; no brand asked -> its own (one linked brand) or 422 (several); not
+  linked -> 403 "This account is not linked to a brand yet..."; admin -> any brand or all. All-brand lists
+  (/oem/products, /oem/behaviour-stats) are filtered to the account's brand(s). Existing OEM accounts must be linked
+  by an admin before they see anything. Tests: tests/test_brand_accounts.py (39: brand A asking for brand B on every
+  endpoint, own brand, no brand, unlinked, TPA, two brands, admin, filtered lists, link endpoint admin-only).
+- [x] 105.14 Consent wording (owner's text, exact): "Allow SWH to share anonymous totals (never your name or
+  details) with the brand, only for groups of 10 or more people. You can change this anytime." Constant
+  brand_access.ANONYMOUS_TOTALS_CONSENT; opt-in stored in new table anonymous_totals_consents (no row = not
+  allowed); GET/POST /account/anonymous-totals. Shown at the question: a checkbox (off by default) under the
+  dashboard's question card. The packs branch's group counts use users.consent_analytics (on by default) - they
+  should use this opt-in instead when the branches meet (noted for the owner). Tests:
+  tests/test_anonymous_totals_consent.py (4).
+- [x] 105.15 BACKLOG: new "Next batch" section with #22 first (finer invoice categories in place of "appliance",
+  with tests for the estimate wording per category); owner step added: link existing OEM accounts to brands.
+- [x] 105.16 Care-risk label from the packs branch's real output: care_packs.insights() returns "label" = the
+  product type's name and risk_reasons = [{"effect": "raise"|"lower", "reason"}], no rating. care_risk now
+  derives the rating (3+ raising factors -> Needs attention, 1-2 -> Some things to watch, none -> Looking after it
+  well; raising reasons first) and never shows the product name as a rating. Checked by a trial merge with
+  origin/desktop/batch-3 in a scratch worktree (not pushed): only MEMORY.md conflicts; merged suite 1253 passed,
+  2 skipped, including a scratch end-to-end check with the real packs (draft -> "We can't rate this yet.",
+  approved -> "Not enough information yet - answer 3 quick questions", one raising answer -> label + reason).

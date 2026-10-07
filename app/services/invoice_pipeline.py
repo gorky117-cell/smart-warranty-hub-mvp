@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, date
 import os
+import re
 from typing import Optional, Dict, Any
 
 from sqlalchemy.orm import Session
@@ -213,6 +214,11 @@ def _update_warranty(
             if (meta.get(key) or incoming.get(key) or {}).get("status") == "pending" and fields.get(field):
                 incoming.pop(key, None)  # a confident value was found after all
                 meta.pop(key, None)
+        previous_region = meta.get("delivery_region") or {}
+        if previous_region.get("consent") is not None:
+            # The customer's yes/no about using their city/state is never reset by re-processing.
+            if incoming.get("delivery_region"):
+                incoming["delivery_region"] = {**incoming["delivery_region"], "consent": previous_region["consent"]}
         if "vision_suggestions" in incoming:
             # Keep the user's confirmed/dismissed vision suggestions; refresh only pending ones (fix run B10).
             merged_vision = {
@@ -262,6 +268,78 @@ def _update_warranty(
 
 UNREADABLE_MESSAGE = "We couldn't read this invoice - retake the photo or enter the details."
 _READ_FIELDS = ("brand", "product_name", "model_code", "serial_no", "purchase_date", "invoice_no")
+
+
+def _norm_key(value: object) -> str:
+    return re.sub(r"[^a-z0-9]", "", str(value or "").lower())
+
+
+def _seller_key(alternatives: Optional[Dict[str, Any]]) -> str:
+    seller = (alternatives or {}).get("seller")
+    if isinstance(seller, list):
+        seller = seller[0] if seller else ""
+    return _norm_key(seller)
+
+
+def find_duplicate_invoice(db: Session, warranty_id: str, invoice_no: Optional[str],
+                           alternatives: Optional[Dict[str, Any]], purchase_date=None) -> Optional[str]:
+    """Another product of the same customer from the same invoice: same invoice number and same seller (when
+    neither invoice names a seller, the same purchase date as well). Oldest match wins."""
+    from ..db_models import WarrantyOwnerDB
+
+    invoice_key = _norm_key(invoice_no)
+    if len(invoice_key) < 3:
+        return None
+    owners = [o.user_id for o in db.query(WarrantyOwnerDB).filter_by(warranty_id=warranty_id).all()]
+    if not owners:
+        return None
+    other_ids = {
+        o.warranty_id for o in db.query(WarrantyOwnerDB).filter(WarrantyOwnerDB.user_id.in_(owners)).all()
+        if o.warranty_id != warranty_id
+    }
+    seller = _seller_key(alternatives)
+    matches = []
+    for other in db.query(WarrantyDB).filter(WarrantyDB.id.in_(other_ids)).all() if other_ids else []:
+        meta = dict(other.alternatives or {})
+        if (meta.get("duplicate_of") or {}).get("status") in ("pending", "opened_existing"):
+            continue  # itself a copy
+        parsed = (
+            db.query(ParsedFieldDB).filter_by(warranty_id=other.id).order_by(ParsedFieldDB.created_at.desc()).first()
+        )
+        if not parsed or _norm_key(parsed.invoice_no) != invoice_key:
+            continue
+        other_seller = _seller_key(meta)
+        if seller or other_seller:
+            if seller != other_seller:
+                continue
+        elif not (purchase_date and other.purchase_date and other.purchase_date.date() == purchase_date.date()):
+            continue
+        matches.append(other)
+    if not matches:
+        return None
+    return min(matches, key=lambda w: w.created_at or datetime.min).id
+
+
+def flag_duplicate_invoice(db: Session, warranty: WarrantyDB, invoice_no: Optional[str],
+                           alternatives: Optional[Dict[str, Any]]) -> Optional[str]:
+    """Mark a new upload that repeats an invoice the customer already added, so the dashboard can offer to open
+    the existing product instead of listing a "(2)". The customer's earlier answer is never overwritten."""
+    meta = dict(warranty.alternatives or {})
+    if (meta.get("duplicate_of") or {}).get("status") in ("kept_both", "opened_existing"):
+        return None
+    try:
+        existing = find_duplicate_invoice(db, warranty.id, invoice_no, alternatives, warranty.purchase_date)
+    except Exception:
+        db.rollback()
+        return None
+    if existing:
+        meta["duplicate_of"] = {"warranty_id": existing, "status": "pending"}
+    else:
+        meta.pop("duplicate_of", None)
+    warranty.alternatives = meta
+    db.add(warranty)
+    db.commit()
+    return existing
 
 
 def is_unreadable(fields: Dict[str, Any], alternatives: Optional[Dict[str, Any]]) -> bool:
@@ -507,6 +585,7 @@ def run_job(job_id: str) -> None:
             if not warranty:
                 _set_job_status(db, job, "failed", error="warranty_not_found")
                 return
+            flag_duplicate_invoice(db, warranty, fields.get("invoice_no"), alternatives)
 
             _set_job_status(db, job, "terms_lookup")
             if unreadable:

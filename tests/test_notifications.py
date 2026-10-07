@@ -29,6 +29,7 @@ def _upsert_warranty(db, wid: str, *, expiry_days: int | None, coverage_months: 
         db.add(w)
     w.purchase_date = datetime.utcnow() - timedelta(days=60)
     w.coverage_months = coverage_months
+    w.confidence = {"coverage_months": 0.7}  # stated on the invoice: a confirmed end date
     w.expiry_date = datetime.combine(date.today() + timedelta(days=expiry_days), time(hour=12)) if expiry_days is not None else None
     w.created_at = w.created_at or datetime.utcnow()
     db.commit()
