@@ -3467,3 +3467,8 @@ invoice file name were missing, so only items 9 and 11 (packs + tests) are done;
   docs/CARE_PACKS_REVIEW.md regenerated (30 packs). Tests: tests/test_care_packs.py 138 (all 30 packs x rules,
   32-name product mix). Full suite passed (see commit).
   Not done: items 1-8 and 10 of the batch message (real Amazon invoice failures) - the message arrived cut off.
+- [x] 105.3 Browser check (local test admin + customer): /ui/admin/care-packs lists 30 packs, the readable view shows
+  7 questions for the fridge, Approve saved and the audit line appeared; on the customer dashboard the fridge's
+  card showed 3 questions, one answer removed it and refreshed, "Usual warranty parts" and "Look for these"
+  showed; no console errors. Fix found: an exclusion-based tip came before the pack's safety tips in "How to look
+  after it" - now safety tips first, then terms-based tips, then the rest. Full suite 1077 passed, 2 skipped.

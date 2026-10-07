@@ -3839,7 +3839,10 @@ def get_recommendations(
                     "priority": i + 1, "action": "care_pack", "source_label": "Smart Warranty Hub care tip",
                     "safety": t["safety"], "category": pack_view["product_type"],
                 } for i, t in enumerate(pack_view["care_tips"])]
-                recs["product_recommendations"] = kept + pack_tips if pack_tips else kept + general
+                # Safety tips first, then the tips from the warranty terms, then the rest of the pack.
+                safety = [t for t in pack_tips if t["safety"]]
+                rest = [t for t in pack_tips if not t["safety"]]
+                recs["product_recommendations"] = safety + kept + rest if pack_tips else kept + general
     if legacy:
         # legacy shape: just the recommendations list
         from fastapi.responses import JSONResponse

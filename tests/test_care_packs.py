@@ -139,6 +139,8 @@ def test_approved_pack_asks_three_at_a_time_and_answers_shape_tips_and_risks():
     recs = client.get("/recommendations?warranty_id=wty_pk_ac", headers=auth).json()["product_recommendations"]
     pack_recs = [r for r in recs if r.get("action") == "care_pack"]
     assert pack_recs and pack_recs[0]["safety"] and not any(r.get("action") == "general_care" for r in recs)
+    shown = [r for r in recs if r.get("action") in ("care_pack", "oem_derived_care")]
+    assert shown[0]["safety"] and shown[1]["safety"]  # safety tips lead the care list, before terms-based tips
     bad = client.post("/warranties/wty_pk_ac/care-answers", json={"question_id": "hours_per_day", "answer": "forever"}, headers=auth)
     assert bad.status_code == 422
 
