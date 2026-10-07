@@ -2420,6 +2420,11 @@ def list_warranties_sorted(
         WarrantyDB.created_at.desc().nullslast(),
         WarrantyDB.id.desc(),
     ).limit(100).all()
+    # A repeat upload the customer replaced with the product they already had is not listed (kept, not deleted).
+    warranties = [
+        w for w in warranties
+        if ((w.alternatives or {}).get("duplicate_of") or {}).get("status") != "opened_existing"
+    ]
 
     latest_parsed_by_warranty: Dict[str, ParsedFieldDB] = {}
     if warranties:
@@ -2551,6 +2556,7 @@ def list_warranties_sorted(
             "subtitle": name["subtitle"],
             "icon": name["icon"],
             "type_label": name["type_label"],
+            "duplicate_of": name.get("duplicate_of"),
             **({"support_ref": name["support_ref"]} if is_admin else {}),
             "risk_label": risk_meta.get("risk_label"),
             "risk_score": risk_meta.get("risk_score"),
@@ -2704,6 +2710,43 @@ def _resolve_identity_suggestion(db, current, warranty_id: str, field: str, payl
     db.commit()
     store.warranties.pop(warranty_id, None)
     return {"value": getattr(row, field), "suggestion": suggestion}
+
+
+@app.post("/warranties/{warranty_id}/duplicate", dependencies=[Depends(rbac_dependency)])
+def resolve_duplicate_invoice(
+    warranty_id: str,
+    payload: Dict[str, Any] = Body(...),
+    db=Depends(get_db),
+    current: UserDB = Depends(require_user),
+):
+    """A repeat upload of an invoice the customer already added: "open_existing" hides the new copy from their
+    list (nothing is deleted) and returns the existing product; "keep_both" keeps it as a separate product."""
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
+    row = db.query(WarrantyDB).filter_by(id=warranty_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Warranty not found")
+    meta = dict(row.alternatives or {})
+    duplicate = dict(meta.get("duplicate_of") or {})
+    if duplicate.get("status") != "pending" or not duplicate.get("warranty_id"):
+        raise HTTPException(status_code=404, detail="This product is not a repeat of another invoice")
+    existing = duplicate["warranty_id"]
+    if not _user_can_access_warranty(db, user=current, warranty_id=existing):
+        raise HTTPException(status_code=404, detail="The earlier product is no longer in your list")
+    action = str(payload.get("action") or "").strip().lower()
+    if action == "open_existing":
+        duplicate["status"] = "opened_existing"  # hidden from the list; ownership kept so nobody else can claim it
+    elif action == "keep_both":
+        duplicate["status"] = "kept_both"
+    else:
+        raise HTTPException(status_code=422, detail="action must be 'open_existing' or 'keep_both'")
+    duplicate["resolved_at"] = datetime.utcnow().isoformat()
+    meta["duplicate_of"] = duplicate
+    row.alternatives = meta
+    db.add(row)
+    db.commit()
+    store.warranties.pop(warranty_id, None)
+    return {"warranty_id": warranty_id, "open_warranty_id": existing if action == "open_existing" else warranty_id,
+            "duplicate_of": duplicate}
 
 
 @app.post("/warranties/{warranty_id}/region-consent", dependencies=[Depends(rbac_dependency)])

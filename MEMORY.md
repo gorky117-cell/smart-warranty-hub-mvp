@@ -3469,3 +3469,12 @@ missing, model none, seller "Page 1 Of 1, I-1/1", category "appliance", product 
   Item 6 part 1: the raw "What is covered?" box (Brand/Model/Serial/Coverage months dump) is now "Your purchase"
   with a plain "From your invoice: Price paid ₹22,490 · 1.5 Ton · 3 Star · Window" line.
   Tests: tests/test_purchase_details.py (23).
+- [x] 105.5 Duplicate invoices: after each upload is read, invoice_pipeline.flag_duplicate_invoice looks for
+  another product of the same customer with the same invoice number (letters/digits only, any case) and the same
+  seller (when neither invoice names a seller, the same purchase date too); match -> alternatives.duplicate_of =
+  {warranty_id, status: pending}. List: such a product says "Same invoice as a product you already added"
+  instead of "(2)". Dashboard ("Your purchase"): "You already added this invoice." [Open the product I already
+  have] [Keep both] -> POST /warranties/{id}/duplicate {open_existing|keep_both}. open_existing hides the copy
+  from the list and opens the earlier product; nothing is deleted and ownership is kept (so the "claim an
+  unowned product" fallback cannot hand it to anyone else). The answer is never re-asked on re-processing.
+  Tests: tests/test_duplicate_invoices.py (9).

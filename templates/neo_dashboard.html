@@ -1099,6 +1099,14 @@
               <div id="serialSuggestionReason" class="helper"></div>
               <div id="serialSuggestionStatus" class="helper"></div>
             </div>
+            <div id="duplicateInvoice" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px solid #b98900;border-radius:8px;">
+              <div><strong>You already added this invoice.</strong> It has the same invoice number and seller as a product in your list.</div>
+              <div style="margin-top:6px;">
+                <button type="button" class="btn" id="duplicateOpenBtn">Open the product I already have</button>
+                <button type="button" class="btn secondary" id="duplicateKeepBtn">Keep both</button>
+              </div>
+              <div id="duplicateStatus" class="helper"></div>
+            </div>
             <div id="regionConsent" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px dashed #1d4ed8;border-radius:8px;">
               <div id="regionConsentText"></div>
               <div id="regionConsentButtons" style="margin-top:6px;">
@@ -3192,6 +3200,38 @@
         return parts.length ? `From your invoice: ${parts.join(' · ')}` : 'See "Your warranty in 5 lines" above for the dates and what to do.';
       }
 
+      // A repeat upload of an invoice already in the list: open the existing product instead of a "(2)".
+      function renderDuplicate(w) {
+        const box = document.getElementById('duplicateInvoice');
+        if (!box) return;
+        const d = (w && w.alternatives && w.alternatives.duplicate_of) || null;
+        if (!d || d.status !== 'pending') { box.style.display = 'none'; return; }
+        const status = document.getElementById('duplicateStatus');
+        status.textContent = '';
+        const send = async (action) => {
+          try {
+            const res = await fetch(`/warranties/${encodeURIComponent(w.id)}/duplicate`, {
+              method: 'POST',
+              headers: h({ 'Content-Type': 'application/json' }),
+              body: JSON.stringify({ action }),
+            });
+            const data = await res.json();
+            if (!res.ok) { status.textContent = data.detail || 'Could not save.'; return; }
+            box.style.display = 'none';
+            if (typeof loadWarrantyDropdown === 'function') await loadWarrantyDropdown();
+            if (action === 'open_existing') {
+              document.getElementById('warrantyId').value = data.open_warranty_id;
+              const dropdown = document.getElementById('warrantyDropdown');
+              if (dropdown) dropdown.value = data.open_warranty_id;
+              if (typeof loadAll === 'function') loadAll();
+            }
+          } catch (e) { status.textContent = 'Could not save.'; }
+        };
+        document.getElementById('duplicateOpenBtn').onclick = () => send('open_existing');
+        document.getElementById('duplicateKeepBtn').onclick = () => send('keep_both');
+        box.style.display = 'block';
+      }
+
       // City and state from the invoice: used for weather-based care tips only if the customer says yes.
       function renderRegionConsent(w) {
         const box = document.getElementById('regionConsent');
@@ -3224,6 +3264,7 @@
             if (!res.ok) { status.textContent = data.detail || 'Could not save.'; return; }
             w.alternatives.delivery_region = data.delivery_region;
             renderRegionConsent(w);
+        renderDuplicate(w);
           } catch (e) { status.textContent = 'Could not save.'; }
         };
         document.getElementById('regionYesBtn').onclick = () => send(true);
