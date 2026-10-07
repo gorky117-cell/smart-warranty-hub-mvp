@@ -73,13 +73,22 @@ def test_only_skips_still_need_answers(fake_packs):
         assert care_risk.summary(db, USER, _w("Voltas Window AC"))["status"] == "needs_answers"
 
 
-def test_answers_pass_the_packs_label_and_reasons_through(fake_packs):
-    fake_packs["answers"] = {"q1": "gt12"}
-    fake_packs["insights"] = {"risk_label": "MEDIUM", "risk_reasons": [{"text": "Runs more than 12 hours a day"}]}
+# The packs module's insights(): "label" is the product type's name; risk_reasons are {"effect", "reason"}.
+@pytest.mark.parametrize("risks,label,text", [
+    ([], "LOW", "Looking after it well"),
+    ([{"effect": "lower", "reason": "Serviced every year."}], "LOW", "Looking after it well"),
+    ([{"effect": "raise", "reason": "Long daily running wears parts faster."}], "MEDIUM", "Some things to watch"),
+    ([{"effect": "raise", "reason": "a"}, {"effect": "raise", "reason": "b"}, {"effect": "raise", "reason": "c"}], "HIGH", "Needs attention"),
+])
+def test_answers_give_a_label_from_the_packs_risk_factors(fake_packs, risks, label, text):
+    fake_packs["answers"] = {"q1": "over_8h"}
+    fake_packs["insights"] = {"product_type": "air_conditioner", "label": "Air conditioner (split or window)", "risk_reasons": risks}
     with SessionLocal() as db:
         result = care_risk.summary(db, USER, _w("Voltas Window AC"))
-    assert result["status"] == "assessed" and result["label"] == "MEDIUM"
-    assert result["reasons"] == ["Runs more than 12 hours a day"]
+    assert result["status"] == "assessed" and result["label"] == label and result["text"] == text
+    assert "Air conditioner" not in result["text"]  # the product name is never taken as a rating
+    if risks and risks[0]["effect"] == "raise":
+        assert result["reasons"][0] == risks[0]["reason"]
 
 
 @pytest.mark.parametrize("bought,note", [

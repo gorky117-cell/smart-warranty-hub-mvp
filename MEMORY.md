@@ -3562,3 +3562,10 @@ missing, model none, seller "Page 1 Of 1, I-1/1", category "appliance", product 
   tests/test_anonymous_totals_consent.py (4).
 - [x] 105.15 BACKLOG: new "Next batch" section with #22 first (finer invoice categories in place of "appliance",
   with tests for the estimate wording per category); owner step added: link existing OEM accounts to brands.
+- [x] 105.16 Care-risk label from the packs branch's real output: care_packs.insights() returns "label" = the
+  product type's name and risk_reasons = [{"effect": "raise"|"lower", "reason"}], no rating. care_risk now
+  derives the rating (3+ raising factors -> Needs attention, 1-2 -> Some things to watch, none -> Looking after it
+  well; raising reasons first) and never shows the product name as a rating. Checked by a trial merge with
+  origin/desktop/batch-3 in a scratch worktree (not pushed): only MEMORY.md conflicts; merged suite 1253 passed,
+  2 skipped, including a scratch end-to-end check with the real packs (draft -> "We can't rate this yet.",
+  approved -> "Not enough information yet - answer 3 quick questions", one raising answer -> label + reason).

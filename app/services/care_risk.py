@@ -77,9 +77,21 @@ def summary(db: Session, user_id: str, warranty, today: Optional[date] = None) -
     except Exception:
         db.rollback()
         insights = {}
-    label = insights.get("risk_label") or insights.get("label")
-    reasons = insights.get("risk_reasons") or insights.get("reasons") or []
-    if not label:
+    if "risk_reasons" not in insights:
         return {**base, "status": "needs_answers", "text": NEEDS_ANSWERS_TEXT, "has_pack": True}
-    return {**base, "status": "assessed", "label": label, "text": str(label), "has_pack": True,
-            "reasons": [r.get("text") if isinstance(r, dict) else str(r) for r in reasons][:4]}
+    label, reasons = label_from_reasons(insights.get("risk_reasons") or [])
+    return {**base, "status": "assessed", "label": label, "text": TEXTS[label], "has_pack": True, "reasons": reasons}
+
+
+TEXTS = {"HIGH": "Needs attention", "MEDIUM": "Some things to watch", "LOW": "Looking after it well"}
+
+
+def label_from_reasons(risk_reasons) -> tuple:
+    """The packs module returns matched risk factors as {"effect": "raise"|"lower", "reason"} (its "label" is the
+    product type's name, not a rating). 3+ raising factors -> HIGH, 1-2 -> MEDIUM, none -> LOW; raising reasons
+    are listed first."""
+    raising = [r.get("reason") for r in risk_reasons if isinstance(r, dict) and r.get("effect") == "raise" and r.get("reason")]
+    lowering = [r.get("reason") for r in risk_reasons if isinstance(r, dict) and r.get("effect") == "lower" and r.get("reason")]
+    label = "HIGH" if len(raising) >= 3 else ("MEDIUM" if raising else "LOW")
+    reasons = (raising + lowering)[:4] or ["Nothing in your answers points to a problem."]
+    return label, reasons
