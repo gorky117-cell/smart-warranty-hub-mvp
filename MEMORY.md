@@ -3493,3 +3493,10 @@ missing, model none, seller "Page 1 Of 1, I-1/1", category "appliance", product 
   GET /warranties/{id} returns period_note; the dashboard badge then says "End date: check your warranty card".
   tests/test_five_lines.py endpoint test updated (an unconfirmed fridge now gets the split sentence).
   Tests: tests/test_customer_screens_batch3.py (13). Reminders still use the stored expiry (unchanged).
+- [x] 105.8 Voltas window AC diagnosis (read-only; docs/VOLTAS_DIAGNOSIS.md). Registry ok (voltas.com listed and
+  verified), robots.txt allows all, terms page known in the worksheet (row 11). Cause: no source to read -
+  knowledge base empty, no saved official copy, data/warranty_sources.json has only 4 brands, no search key ->
+  discovery 0 candidates -> internal://default_rules (24 months for "appliance"). Category: ACs are "appliance"
+  in the invoice reader (product line air_conditioner is recognised). The cloud network blocks voltas.com, so the
+  page was not read (JavaScript check left to the owner). Fix: owner enters Voltas in the knowledge base
+  (backlog 3); optional search key; new backlog 22 (own category per product line).

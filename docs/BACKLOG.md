@@ -38,6 +38,8 @@ session can do (one branch per batch, `cloud/batch-N`).
 11. Care guides v2 (fetcher) - only after brand permission.
 
 ## Known gaps
+22. ACs, fridges and washing machines share the invoice category "appliance" (default 24 months for all); give each
+    product line its own category for defaults and lookups (docs/VOLTAS_DIAGNOSIS.md).
 20. [x] Per-user password salt (cloud batch 2): new hashes `pbkdf2_sha256$200000$<salt>$<hash>`; old shared-salt
     hashes still verify and are upgraded on the next sign-in. Accounts that never sign in again keep the old
     hash (still safe to verify; weaker only if the database leaks).
