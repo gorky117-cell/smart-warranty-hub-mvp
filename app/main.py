@@ -116,6 +116,7 @@ from .deps import (
     create_access_token,
     verify_password,
     hash_password,
+    needs_rehash,
     init_db,
     decode_token,
     password_problem,
@@ -1836,6 +1837,14 @@ def login(
         if next_url:
             params["next"] = next_url
         return RedirectResponse(url=f"/login?{urlencode(params)}", status_code=status.HTTP_303_SEE_OTHER)
+    if needs_rehash(user.hashed_password):
+        # Upgrade an old shared-salt hash to a per-user salt now that we have the plain password.
+        try:
+            user.hashed_password = hash_password(password)
+            db.commit()
+        except Exception as exc:
+            db.rollback()
+            logger.warning("Password hash upgrade skipped: %s", exc.__class__.__name__)
     token = create_access_token(user.username, user.role)
     response.set_cookie(
         key="access_token",

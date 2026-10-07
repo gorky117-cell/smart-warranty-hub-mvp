@@ -24,8 +24,10 @@ session can do (one branch per batch, `cloud/batch-N`).
    accuracy is not measured yet).
 
 ## Next
-6. A better confirm step for models/serials read from scans/photos (today every confusable code is
-   "please confirm": many confirmations).
+6. [x] A better confirm step for models/serials read from scans/photos (cloud batch 2): the characters to check
+   are highlighted; when exactly one O/0, I/1, S/5, B/8 reading is a known model it is offered pre-filled (still
+   confirmed); models confirmed or typed by 2+ different customers for a brand count as known, so repeat
+   products need no confirmation. Next: measure how many confirmations remain on real invoices [NEEDS-KEYS].
 7. [NEEDS-KEYS] Keys: vision tier accuracy for unreadable photos and OpenAI-vs-Mistral comparison need API keys in
    the local `.env` (and `pip install -r requirements.txt` for the `openai` package).
 8. [GAURAV] Brand permissions for showing their wording (reuse policy), or legal advice on short quotes in
@@ -36,18 +38,28 @@ session can do (one branch per batch, `cloud/batch-N`).
 11. Care guides v2 (fetcher) - only after brand permission.
 
 ## Known gaps
-20. Passwords are hashed with PBKDF2 and one app-wide salt (`deps.hash_password`). Move to a per-user salt
-    (re-hash on next sign-in) - needs care so existing passwords keep working.
-21. Rate limits are kept in memory per process: they reset on every deploy and are not shared if Railway runs
-    more than one instance.
+20. [x] Per-user password salt (cloud batch 2): new hashes `pbkdf2_sha256$200000$<salt>$<hash>`; old shared-salt
+    hashes still verify and are upgraded on the next sign-in. Accounts that never sign in again keep the old
+    hash (still safe to verify; weaker only if the database leaks).
+21. [x] Rate limits survive deploys (cloud batch 2): hits stored in the database (table rate_limit_hits, keys
+    hashed), shared by all instances; memory fallback if the database fails; RATE_LIMIT_BACKEND=memory for the
+    old behaviour.
 12. Brand-specific code kept on purpose: Redmi/POCO -> Xiaomi table, marketing-series names for models,
     Samsung-style section headings for multi-product pages, phone words galaxy/iphone/sm-, Epson serial rule.
-13. Review crawler (off in production), issue feeds and web search do not use the robots check.
+13. [x] Review crawler and issue feeds use the robots check (cloud batch 2): robots_guard, failing closed (the
+    crawler used to read pages when robots.txt could not be read, and REVIEW_ROBOTS_RESPECT=false switched the
+    check off; both removed). Web search: provider APIs (Bing, Brave, Google, Serper, SerpAPI) are API calls under
+    their own terms, not page reads, so robots.txt does not apply; the result pages are read only through the
+    crawler, which now checks robots.txt.
 14. [GAURAV] Sites that answer 403 to robots.txt (mi.com, sony.co.in, lenovo.com seen) cannot be re-verified or
     read automatically - accept, or ask those brands.
 15. [NEEDS-KEYS] Rate limiting keys anonymous users on the first `X-Forwarded-For` entry; confirm Railway's header
     behaviour.
-16. Hard photos in the synthetic set: 6 wrong dates, 14 wrong stated durations, 10 read nothing.
+16. [x] Synthetic 50-sample set (cloud batch 2, Tesseract): small text is enlarged before OCR -> dates 30/30 (4 wrong
+    before), stated durations 30/30 (14 wrong before), invoice numbers 30/30 (0 before); global check unchanged.
+    Still open: the 10 blurred, tilted "hard" photos read nothing (enlarging gives garbage such as "14 months" for
+    24, so nothing is safer: the customer gets "We couldn't read this invoice"); Paddle (production's first
+    engine) not measured here.
 17. Registry review: Toshiba, Hitachi, Polar, Pigeon, Philips/Versuni, Sansui, Kelvinator, Pioneer,
     Orient Fans; `honda2wheelersindia.com`, `ushainternational.com` are registry-only.
 18. [GAURAV] The bare domain without www is a registrar parking page.

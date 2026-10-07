@@ -120,6 +120,7 @@ A real sign-in was not tested by me; no production credentials were used.
   - Admin security banner and HTTPS redirect behind the proxy.
   - CSRF on cookie sessions, and a stale session cookie never blocks sign-in.
   - Rate limits on sign-in (10 per 10 min) and sign-up (5 per hour), with friendly messages on the forms.
+  - *Branch `cloud/batch-2`, not live:* rate limits kept in the database (survive deploys); per-user password salt.
   - *Branch `cloud/batch-1`, not live:* forgot password by e-mail (hashed one-time links, 30 minutes, every
     session signed out on a new password, rate limits per client and per account) and e-mail through Resend or
     SMTP chosen by config. Railway variables: docs/EMAIL_SETUP.md.
@@ -198,7 +199,8 @@ A real sign-in was not tested by me; no production credentials were used.
     Kelvinator, Pioneer, Orient Fans.
   - `honda2wheelersindia.com` and `ushainternational.com` are registry-only (failed the automated check).
 - **OCR and extraction:**
-  - Synthetic set: 6 wrong dates and 14 wrong stated durations; 10 hard photos read nothing.
+  - Synthetic 50-sample set with Tesseract: 6 wrong dates and 14 wrong stated durations on live code; on branch
+    `cloud/batch-2` (small text enlarged) 0 wrong. 10 hard photos still read nothing (by design: no guesses).
   - On local Windows, Paddle 3.x fails and Tesseract is used.
 - **Operational:**
   - The bare domain without www is a registrar parking page.

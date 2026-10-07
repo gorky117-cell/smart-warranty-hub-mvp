@@ -80,3 +80,43 @@ def test_oem_adapter_is_blocked_by_robots(monkeypatch):
     url = f"https://www.{adapter.approved_domains[0]}/in/support/warranty/"
     result = adapter.fetch(url=url, model="X")
     assert result["status"] == "blocked" and result["reason"].startswith("robots_disallowed") and pages == []
+
+
+# Backlog #13: the review crawler and issue feeds use the same check (fail closed).
+import json  # noqa: E402
+
+from app.services import oem_issue_feeds, review_crawler  # noqa: E402
+
+
+@pytest.mark.parametrize("robots_status,text,allowed", [
+    (200, DISALLOW_ALL, False),
+    (200, "User-agent: SmartWarrantyHubBot\nDisallow: /\n", False),   # rule for the crawler's own name
+    (200, "User-agent: OtherBot\nDisallow: /\n", True),               # rule for another agent only
+    (403, "", False),                                                 # could not read the rules: not read
+    (404, "", True),
+])
+def test_review_crawler_obeys_robots(monkeypatch, robots_status, text, allowed):
+    monkeypatch.delenv("REVIEW_ROBOTS_RESPECT", raising=False)
+    pages = _web(monkeypatch, robots_status, text)
+    monkeypatch.setattr(review_crawler.requests, "get", robots_guard.requests.get)
+    html, err, _status = review_crawler._fetch("https://reviews.example.com/p/1")
+    if allowed:
+        assert html and err is None and pages == ["https://reviews.example.com/p/1"]
+    else:
+        assert html is None and err == "robots_disallowed" and pages == []
+
+
+def test_review_crawler_cannot_switch_robots_off(monkeypatch):
+    monkeypatch.setenv("REVIEW_ROBOTS_RESPECT", "false")
+    pages = _web(monkeypatch, 200, DISALLOW_ALL)
+    monkeypatch.setattr(review_crawler.requests, "get", robots_guard.requests.get)
+    assert review_crawler._robots_allowed("https://reviews.example.com/p/2") is False
+    assert review_crawler._fetch("https://reviews.example.com/p/2")[1] == "robots_disallowed" and pages == []
+
+
+def test_issue_feeds_obey_robots(monkeypatch, tmp_path):
+    feeds = tmp_path / "feeds.json"
+    feeds.write_text(json.dumps([{"url": "https://feeds.example.com/issues.json", "region": "IN"}]))
+    pages = _web(monkeypatch, 200, DISALLOW_ALL)
+    assert oem_issue_feeds.ingest_oem_issue_feeds(None, feed_path=feeds) == 0
+    assert pages == []

@@ -3373,3 +3373,60 @@ paddle): baseline 856 passed, 9 skipped (more skips than on Windows: Paddle is n
   password, changing an existing address needs the current password, CSRF as other dashboard calls); signed-in
   users without an address see "Add your email so you can reset your password later". Browser run (Playwright,
   420 px wide): banner shown, address saved, banner hidden. Tests: tests/test_account_email.py (14).
+
+## 104. Cloud batch 2: password salt, lasting rate limits, next backlog items (2026-10-07)
+Branch `cloud/batch-2`, started from `cloud/batch-1` (PR #1 not merged yet), pull request against
+`cloud/batch-1`. Baseline: 900 passed, 9 skipped.
+- [x] 104.1 Backlog #20 per-user password salt. deps.hash_password now stores
+  "pbkdf2_sha256$<iterations>$<16-byte salt hex>$<hash hex>" (PBKDF2-SHA256, 200,000 iterations as before).
+  verify_password accepts that and the old bare-hex shared-salt (JWT_SALT) format, both with a constant-time
+  compare; malformed hashes never verify. needs_rehash() is true for old hashes (or fewer iterations); a
+  successful sign-in upgrades the stored hash (failure to save is logged by class name and does not block the
+  sign-in). New hashes no longer depend on JWT_SALT. Tests: tests/test_password_hashing.py (4).
+- [x] 104.2 Backlog #21 rate limits that survive deploys. services/rate_limiter.py keeps hits in the new table
+  rate_limit_hits (bucket = SHA-256 of scope + client/account key, so no IPs, usernames or addresses stored;
+  wall-clock seconds) with the same sliding window, limits and Retry-After as before. Shared by every app
+  instance. Old rows (older than 2 days) are deleted on about 2% of hits. If the database fails, that request is
+  limited in memory (logged by error class); RATE_LIMIT_BACKEND=memory restores the old in-process limiter.
+  Not atomic across simultaneous requests: a burst can overshoot a limit by a few. Tests:
+  tests/test_rate_limit_store.py (5: survives a restart, sliding window, hashed keys, database down, memory).
+- [x] 104.3 Backlog #6 better confirm step for codes read from scans/photos (general: any brand/product):
+  route_confusable_codes now adds check_characters (indexes of O/0, I/1, S/5, B/8) to the suggestion and the
+  dashboard highlights those characters (model and serial boxes, text built with DOM nodes). known_reading():
+  when exactly one mix-up reading of the code is a known model (2^n readings, at most 10 positions), the
+  suggestion offers that model (display form kept, e.g. SM-M175F) with read_as = what OCR read; it stays
+  pending - nothing is stored without the customer; two or more known readings -> no pick. known_models() also
+  counts model codes confirmed or typed (confidence >= 0.95) by at least 2 different customers for the brand,
+  so a model many people own stops needing confirmation. Tests: test_confusable_codes.py +12 (laptop, phone,
+  TV, AC readings; ambiguous; owner counting). Not measured: how many confirmations this saves on real invoices
+  (needs the owner's invoices); not browser-checked (render covered by a template test only).
+- [x] 104.4 Backlog #13 robots check for the review crawler and issue feeds. robots_guard.check takes a
+  user_agent (crawler: REVIEW_CRAWLER_UA, default SmartWarrantyHubBot/1.0; Python's matcher also applies rules
+  written for "SmartWarrantyHub"). review_crawler._robots_allowed now uses robots_guard (fails closed: 403,
+  timeouts, no network = not read; before, it read the page when robots.txt failed) and the
+  REVIEW_ROBOTS_RESPECT=false bypass is gone; _fetch checks too, so no path reads a page unchecked. Issue feeds
+  use robots_guard.guarded_get (feed list is empty today). Web search provider APIs are not page reads: noted in
+  BACKLOG. Review crawler stays off in production. Tests: test_robots_everywhere.py +7.
+- [x] 104.5 Backlog #16 (synthetic 50-sample OCR set, scripts/eval_ingestion_ocr.py). Tesseract 5.3.4 installed in
+  the cloud container (apt) to measure. Cause of the wrong dates/durations: text ~8 px high, Tesseract reads
+  6 -> 8, 5 -> 8, 1 -> 7 ("36 months" -> "38"). Fix (ocr.prepare_for_tesseract, images and scanned-PDF pages
+  through run_tesseract_ocr): measure the median text-line height (Otsu, rows with ink); only lines under 12 px are
+  enlarged towards 30 px (grayscale, LANCZOS, at most 3x and 30 MP). A first version that enlarged every image
+  under 2000 px merged words in larger text ("LG 43 inch" -> "LG43inch"; global check: 2 new brand misses on
+  scanned PDFs), hence the text-height rule. Measured (labels on the 30 readable warranty samples; tp/fp):
+  brand 26/0 -> 30/0, purchase_date 26/4 -> 30/0, coverage_months 16/14 -> 30/0, invoice_no 0/0 -> 30/0,
+  product_category 22/0 -> 26/0, serial 0/0 -> 0/3 (O read for 0 in "SN028X..." style serials: these contain
+  O/0 so the pipeline asks the customer to confirm them; never stored silently). Global check (162 documents,
+  cloud Tesseract): identical before and after (cloud numbers differ slightly from the Windows run in
+  docs/GLOBAL_CHECK.md, which was left unchanged). The 10 hard (blurred, tilted) photos still read nothing:
+  enlarged or thresholded they give garbage ("14 months" for 24), so no change - nothing beats a wrong value.
+  Paddle, production's first engine, is not installed here and was not measured. Tests: tests/test_ocr_small_text.py
+  (6; the 3 sample reads skip when Tesseract is missing).
+  Also: scripts/measure_invoice_fields.py now applies route_confusable_codes like the upload pipeline (OCR'd
+  codes with O/0, I/1, S/5, B/8 become suggestions); with better OCR, "Serial:" labels are read cleanly and
+  serials like SNO28X1028 were otherwise counted as stored wrong values. Real-OCR floor test (normal case, 30):
+  brand 30, purchase_date 30 (0 wrong), invoice_no 30, coverage_months 30 (0 wrong), product_category 26, model
+  suggestions exact 26/30; new real-OCR-only floors (28 correct, at most 1 wrong) in
+  tests/test_invoice_field_floors.py. Before this change that test failed in the cloud container
+  (product_category 22 < 26 with this Tesseract build); it passes now. Full suite with Tesseract installed:
+  7 previously skipped OCR tests now run.

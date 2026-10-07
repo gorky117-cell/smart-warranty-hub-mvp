@@ -24,7 +24,7 @@ from typing import Dict, List, Optional
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from app.services.ingestion import extract_product_fields, parse_date_from_text  # noqa: E402
+from app.services.ingestion import extract_product_fields, from_ocr, parse_date_from_text, route_confusable_codes  # noqa: E402
 
 FIELDS = ("brand", "model_code", "purchase_date", "serial_no", "invoice_no", "coverage_months", "product_category")
 
@@ -57,7 +57,9 @@ def score(rows: List[Dict[str, str]], texts: Dict[str, Dict[str, object]]) -> Di
         text = entry.get("text") or ""
         if not text:
             empty_text[row["case_type"]] += 1
-        fields, _confidence, alt = extract_product_fields(text)
+        fields, confidence, alt = extract_product_fields(text)
+        # As the upload pipeline does: a code read from a scan or photo with O/0, I/1, S/5, B/8 is asked, not stored.
+        fields, confidence, alt = route_confusable_codes(fields, confidence, alt, ocr=from_ocr({"method": entry.get("method")}))
         suggestions = {
             field: (alt or {}).get(key)
             for field, key in (("serial_no", "serial_suggestion"), ("brand", "brand_suggestion"), ("model_code", "model_suggestion"))

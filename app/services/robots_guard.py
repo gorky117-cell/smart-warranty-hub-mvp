@@ -1,4 +1,5 @@
-"""robots.txt check before SWH reads any brand web page for warranty terms (terms source order, step 1).
+"""robots.txt check before SWH reads any web page: brand pages for warranty terms (terms source order, step 1),
+the review crawler and issue feeds. Search-provider APIs (web_search.py) are API calls, not page reads.
 
 - 200: the file's rules decide, for our user agent.
 - 404 / 410: no robots file - allowed (the usual convention).
@@ -34,8 +35,8 @@ def _load(origin: str) -> Tuple[Optional[urllib.robotparser.RobotFileParser], st
     return parser, "robots.txt read"
 
 
-def check(url: Optional[str]) -> Tuple[bool, str]:
-    """(allowed, reason) for reading ``url``."""
+def check(url: Optional[str], user_agent: str = USER_AGENT) -> Tuple[bool, str]:
+    """(allowed, reason) for reading ``url`` as ``user_agent`` (rules for "*" apply when none name it)."""
     parsed = urlparse(url or "")
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
         return False, "not a web address"
@@ -50,7 +51,7 @@ def check(url: Optional[str]) -> Tuple[bool, str]:
         return False, reason
     if reason == "no robots.txt":
         return True, reason
-    allowed = parser.can_fetch(USER_AGENT, url)
+    allowed = parser.can_fetch(user_agent or USER_AGENT, url)
     return allowed, "allowed by robots.txt" if allowed else "disallowed by robots.txt"
 
 

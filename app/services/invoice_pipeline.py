@@ -38,13 +38,18 @@ from .grounded_extraction import apply_grounded_extraction
 from .vision_extraction import apply_vision_tier, enabled as vision_enabled, needs_vision
 
 
+# A model code typed or confirmed by this many different customers for a brand counts as known.
+CUSTOMER_CONFIRMATIONS_FOR_KNOWN = 2
+
+
 def known_models(db, brand) -> set:
-    """Model codes already known for the brand from hand-checked or official sources (validates OCR'd codes)."""
+    """Model codes already known for the brand (validates OCR'd codes): hand-checked knowledge-base entries,
+    official terms-cache entries, and codes that at least two different customers confirmed or typed."""
     if not brand:
         return set()
     from sqlalchemy import func
 
-    from ..db_models import VerifiedTermsDB, WarrantyTermsCacheDB
+    from ..db_models import VerifiedTermsDB, WarrantyDB, WarrantyOwnerDB, WarrantyTermsCacheDB
 
     models = set()
     try:
@@ -55,6 +60,17 @@ def known_models(db, brand) -> set:
                 func.lower(WarrantyTermsCacheDB.brand) == str(brand).lower(), WarrantyTermsCacheDB.model_code.isnot(None),
                 WarrantyTermsCacheDB.source_type == "official"):
             models.add(code)
+        owners_by_code: dict = {}
+        rows = (
+            db.query(WarrantyDB.model_code, WarrantyDB.confidence, WarrantyOwnerDB.user_id)
+            .join(WarrantyOwnerDB, WarrantyOwnerDB.warranty_id == WarrantyDB.id)
+            .filter(func.lower(WarrantyDB.brand) == str(brand).lower(), WarrantyDB.model_code.isnot(None))
+            .limit(5000)
+        )
+        for code, confidence, user_id in rows:
+            if float((confidence or {}).get("model_code") or 0.0) >= 0.95:  # confirmed or typed by the customer
+                owners_by_code.setdefault(str(code).upper(), set()).add(user_id)
+        models.update(c for c, users in owners_by_code.items() if len(users) >= CUSTOMER_CONFIRMATIONS_FOR_KNOWN)
     except Exception:
         db.rollback()
     return models
