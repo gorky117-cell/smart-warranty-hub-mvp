@@ -3,6 +3,8 @@ import logging
 
 import pytest
 
+from app.db import SessionLocal
+from app.db_models import EmailDailyCountDB
 from app.services import emailer
 
 ADDRESS = "buyer.person@example.com"
@@ -12,8 +14,11 @@ _ENV = ("SIGNIN_ALERT_EMAILS", "EMAIL_ENABLED", "EMAIL_PROVIDER", "RESEND_API_KE
 
 @pytest.fixture(autouse=True)
 def _clean_env(monkeypatch):
-    for name in _ENV:
+    for name in _ENV + ("EMAIL_DAILY_NONESSENTIAL_STOP",):
         monkeypatch.delenv(name, raising=False)
+    _set_sent_today(0)
+    yield
+    _set_sent_today(0)
 
 
 class _Response:
@@ -195,3 +200,73 @@ def test_sign_in_sends_no_alert_by_default(monkeypatch):
     monkeypatch.setenv("SIGNIN_ALERT_EMAILS", "1")
     client.post("/auth/login", data={"username": "alert_probe", "password": "pass-123"})
     assert [t["value"] for t in calls[0]["json"]["tags"] if t["name"] == "type"] == ["login_alert"]
+
+
+def _set_sent_today(n, day=None):
+    day = day or emailer._utc_day()
+    emailer._MEMORY_COUNTS.clear()
+    with SessionLocal() as db:
+        db.query(EmailDailyCountDB).filter_by(day=day).delete()
+        if n:
+            db.add(EmailDailyCountDB(day=day, sent=n))
+        db.commit()
+
+
+def test_daily_guard_counts_and_stops_nonessential_after_80(monkeypatch):
+    monkeypatch.setenv("RESEND_API_KEY", "re_test")
+    calls = _capture_resend(monkeypatch)
+    _set_sent_today(78)
+    assert emailer.send_welcome_email(to_email=ADDRESS, username="u", role="user")
+    assert emailer.sent_today() == 79
+    assert emailer.send_product_registered_email(to_email=ADDRESS, username="u", warranty_id="w")
+    assert emailer.sent_today() == 80
+    # 80 reached: alerts, reminders, welcome and similar stop for the rest of the UTC day...
+    monkeypatch.setenv("SIGNIN_ALERT_EMAILS", "1")
+    assert emailer.send_login_alert_email(to_email=ADDRESS, username="u") is False
+    assert emailer.send_email(to_email=ADDRESS, subject="s", body_text="b", message_type="reminder") is False
+    assert len(calls) == 2
+    # ...but password resets still go out, and are counted.
+    assert emailer.send_email(to_email=ADDRESS, subject="s", body_text="b", message_type="password_reset")
+    assert emailer.sent_today() == 81 and len(calls) == 3
+    _set_sent_today(150)
+    assert emailer.send_email(to_email=ADDRESS, subject="s", body_text="b", message_type="password_reset")
+
+
+def test_daily_guard_starts_again_each_utc_day(monkeypatch):
+    monkeypatch.setenv("RESEND_API_KEY", "re_test")
+    _capture_resend(monkeypatch)
+    _set_sent_today(80)
+    assert not emailer.daily_guard_allows("welcome")
+    monkeypatch.setattr(emailer, "_utc_day", lambda: "2099-01-01")
+    _set_sent_today(0, day="2099-01-01")
+    assert emailer.daily_guard_allows("welcome")
+    assert emailer.send_welcome_email(to_email=ADDRESS, username="u", role="user")
+    assert emailer.sent_today() == 1
+
+
+def test_daily_guard_threshold_is_configurable_and_failures_are_not_counted(monkeypatch):
+    monkeypatch.setenv("RESEND_API_KEY", "re_test")
+    monkeypatch.setenv("EMAIL_DAILY_NONESSENTIAL_STOP", "5")
+    _set_sent_today(4)
+    _capture_resend(monkeypatch, status_code=500)
+    assert emailer.send_welcome_email(to_email=ADDRESS, username="u", role="user") is False
+    assert emailer.sent_today() == 4  # rejected by the provider: not counted
+    _capture_resend(monkeypatch)
+    assert emailer.send_welcome_email(to_email=ADDRESS, username="u", role="user")
+    assert emailer.send_welcome_email(to_email=ADDRESS, username="u", role="user") is False
+    _set_sent_today(0)
+
+
+def test_daily_guard_survives_a_database_failure(monkeypatch):
+    import app.db as db_module
+
+    monkeypatch.setenv("RESEND_API_KEY", "re_test")
+    _capture_resend(monkeypatch)
+    _set_sent_today(0)
+
+    def broken():
+        raise RuntimeError("database down")
+
+    monkeypatch.setattr(db_module, "SessionLocal", broken)
+    assert emailer.send_welcome_email(to_email=ADDRESS, username="u", role="user")
+    assert emailer.sent_today() == 1  # kept in memory

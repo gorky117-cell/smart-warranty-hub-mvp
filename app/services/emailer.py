@@ -10,6 +10,8 @@ Configuration (names only; values live in Railway / the local .env, never in the
 - MAIL_REPLY_TO     Reply-To, default "support@smartwarrantyhub.com".
 - APP_BASE_URL      links in e-mails, default https://www.smartwarrantyhub.com.
 - SIGNIN_ALERT_EMAILS  "1" sends an alert e-mail on every sign-in (default off).
+- EMAIL_DAILY_NONESSENTIAL_STOP  daily guard (default 80): once this many e-mails were sent in the current UTC
+                    day, only essential ones (password reset) still go out. Resend's free plan allows 100 a day.
 
 Rules: sending never raises (callers get True/False); logs never contain e-mail addresses, links,
 tokens or provider responses - only the message type, provider and outcome. Resend messages carry the
@@ -20,6 +22,8 @@ import os
 import re
 import smtplib
 import ssl
+import threading
+from datetime import datetime
 from email.message import EmailMessage
 from typing import Optional
 
@@ -85,11 +89,85 @@ def email_status() -> dict:
         }.get(choice, "neither RESEND_API_KEY nor SMTP_HOST is set")
     else:
         reason = None
-    return {"enabled": enabled, "provider": provider, "configured": bool(enabled and provider), "reason": reason}
+    return {"enabled": enabled, "provider": provider, "configured": bool(enabled and provider), "reason": reason,
+            "nonessential_stop": nonessential_stop()}
 
 
 def email_configured() -> bool:
     return email_status()["configured"]
+
+
+# Daily guard. Essential messages are always sent first; everything else stops at the daily threshold.
+ESSENTIAL_TYPES = frozenset({"password_reset"})
+DEFAULT_NONESSENTIAL_STOP = 80
+_COUNT_LOCK = threading.Lock()
+_MEMORY_COUNTS: dict = {}  # used when the database cannot be reached
+
+
+def _utc_day() -> str:
+    return datetime.utcnow().strftime("%Y-%m-%d")
+
+
+def nonessential_stop() -> int:
+    raw = (os.getenv("EMAIL_DAILY_NONESSENTIAL_STOP") or "").strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        return DEFAULT_NONESSENTIAL_STOP
+    return value if value >= 0 else DEFAULT_NONESSENTIAL_STOP
+
+
+def sent_today() -> int:
+    """E-mails accepted by the provider so far in the current UTC day."""
+    day = _utc_day()
+    stored = 0
+    try:
+        from ..db import SessionLocal
+        from ..db_models import EmailDailyCountDB
+
+        with SessionLocal() as db:
+            row = db.get(EmailDailyCountDB, day)
+            stored = int(row.sent or 0) if row else 0
+    except Exception:
+        pass
+    with _COUNT_LOCK:
+        return max(stored, _MEMORY_COUNTS.get(day, 0))
+
+
+def _record_sent() -> None:
+    day = _utc_day()
+    with _COUNT_LOCK:
+        _MEMORY_COUNTS[day] = _MEMORY_COUNTS.get(day, 0) + 1
+        for old in [d for d in _MEMORY_COUNTS if d != day]:
+            _MEMORY_COUNTS.pop(old, None)
+    try:
+        from sqlalchemy import update
+
+        from ..db import SessionLocal
+        from ..db_models import EmailDailyCountDB
+
+        for _attempt in range(2):
+            with SessionLocal() as db:
+                try:
+                    changed = db.execute(
+                        update(EmailDailyCountDB)
+                        .where(EmailDailyCountDB.day == day)
+                        .values(sent=EmailDailyCountDB.sent + 1, updated_at=datetime.utcnow())
+                    ).rowcount
+                    if not changed:
+                        db.add(EmailDailyCountDB(day=day, sent=1, updated_at=datetime.utcnow()))
+                    db.commit()
+                    return
+                except Exception:
+                    db.rollback()  # e.g. another process inserted today's row first: retry as an update
+    except Exception as exc:
+        logger.warning("E-mail daily count not stored: %s", exc.__class__.__name__)
+
+
+def daily_guard_allows(message_type: str) -> bool:
+    if message_type in ESSENTIAL_TYPES:
+        return True
+    return sent_today() < nonessential_stop()
 
 
 def _tag(value: str) -> str:
@@ -170,6 +248,10 @@ def send_email(
     if not status["configured"]:
         logger.info("E-mail not sent: type=%s (%s)", message_type, status["reason"])
         return False
+    if not daily_guard_allows(message_type):
+        logger.warning("E-mail not sent: type=%s (daily guard: %s sent today, non-essential stop at %s)",
+                       message_type, sent_today(), nonessential_stop())
+        return False
     to_email = to_email.strip()
     if not is_valid_address(to_email):
         logger.warning("E-mail not sent: type=%s (invalid recipient address)", message_type)
@@ -190,6 +272,7 @@ def send_email(
         logger.warning("E-mail not sent: type=%s provider=%s error=%s", message_type, provider, exc.__class__.__name__)
         return False
     if sent:
+        _record_sent()
         logger.info("E-mail sent: type=%s provider=%s", message_type, provider)
     return sent
 

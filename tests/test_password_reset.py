@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.db import SessionLocal
-from app.db_models import PasswordResetTokenDB, UserDB, UserSessionCutoffDB
+from app.db_models import EmailDailyCountDB, PasswordResetTokenDB, UserDB, UserSessionCutoffDB
 from app.deps import hash_password
 from app.main import app
 from app.services import emailer, password_reset, rate_limiter
@@ -37,8 +37,19 @@ def mail(monkeypatch):
         return _Response()
 
     monkeypatch.setattr(emailer.requests, "post", fake_post)
+    _set_sent_today(0)
     yield sent
     rate_limiter.reset_rate_limits()
+    _set_sent_today(0)
+
+
+def _set_sent_today(n):
+    emailer._MEMORY_COUNTS.clear()
+    with SessionLocal() as db:
+        db.query(EmailDailyCountDB).filter_by(day=emailer._utc_day()).delete()
+        if n:
+            db.add(EmailDailyCountDB(day=emailer._utc_day(), sent=n))
+        db.commit()
 
 
 def _client():
@@ -299,3 +310,12 @@ def test_reset_pages_are_not_cached_or_indexed():
         assert resp.headers["referrer-policy"] == "no-referrer"
         assert "noindex" in resp.text
     assert 'data-mode="reset"' in TestClient(app).get("/reset-password").text
+
+
+def test_reset_email_goes_out_after_the_daily_guard_stops_other_mail(mail):
+    _username, email = _user()
+    _set_sent_today(95)
+    assert _client().post("/auth/password/forgot", data={"email": email}).headers["location"] == "/forgot-password?sent=1"
+    assert len(mail) == 1 and {"name": "type", "value": "password_reset"} in mail[0]["tags"]
+    assert emailer.send_welcome_email(to_email=email, username=_username, role="user") is False
+    assert len(mail) == 1

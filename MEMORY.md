@@ -3361,3 +3361,9 @@ paddle): baseline 856 passed, 9 skipped (more skips than on Windows: Paddle is n
 - [x] 103.4 Owner review of PR #1: sign-in alert e-mails off by default; on only with SIGNIN_ALERT_EMAILS=1
   (emailer.signin_alerts_enabled, checked inside send_login_alert_email so every caller obeys it). Documented
   in docs/EMAIL_SETUP.md. Tests: tests/test_emailer.py +2 (off by default, sign-in sends nothing unless on).
+- [x] 103.5 Daily e-mail guard (Resend free plan: 100/day): every e-mail the provider accepts is counted per UTC
+  day (new table email_daily_counts, atomic UPDATE then INSERT; in-memory count if the database fails). From 80
+  sent (EMAIL_DAILY_NONESSENTIAL_STOP) only essential types (password_reset) are sent until midnight UTC; the
+  guard never blocks a password reset. Provider rejections are not counted. Tests: test_emailer.py +4 (stop at
+  80 with resets still sent, new UTC day, configurable threshold + failures not counted, database down),
+  test_password_reset.py +1 (reset e-mail goes out at 95 sent while a welcome e-mail is skipped).

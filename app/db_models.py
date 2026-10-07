@@ -682,3 +682,13 @@ class UserSessionCutoffDB(Base):
     username: Mapped[str] = mapped_column(String, primary_key=True)
     not_before_ts: Mapped[float] = mapped_column(Float)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class EmailDailyCountDB(Base):
+    """E-mails accepted by the provider per UTC day (day = "YYYY-MM-DD"), for the daily sending guard."""
+
+    __tablename__ = "email_daily_counts"
+
+    day: Mapped[str] = mapped_column(String, primary_key=True)
+    sent: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

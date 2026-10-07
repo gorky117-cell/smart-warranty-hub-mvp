@@ -13,6 +13,7 @@ Code: `app/services/emailer.py` (sending), `app/services/password_reset.py` (res
 | `MAIL_FROM` | already set | Sender. Should be `Smart Warranty Hub <noreply@smartwarrantyhub.com>`; this is also the default when unset or empty. |
 | `MAIL_REPLY_TO` | optional | Where replies go. Default `support@smartwarrantyhub.com`. |
 | `SIGNIN_ALERT_EMAILS` | optional | `1` sends an alert e-mail on every sign-in. **Off by default** (unset or anything else). |
+| `EMAIL_DAILY_NONESSENTIAL_STOP` | optional | Daily guard threshold, default `80`. See "Daily guard" below. |
 | `APP_BASE_URL` | optional | Start of the links in e-mails. Default `https://www.smartwarrantyhub.com`. |
 | `SMTP_HOST`, `SMTP_PORT` | already set | SMTP server and port (used when the provider is `smtp`, or `auto` without `RESEND_API_KEY`). Port default 587. |
 | `SMTP_USER`, `SMTP_PASS` | already set | SMTP login. |
@@ -35,6 +36,15 @@ attached when sending through Resend's API.
 | `product_registered` | A product is registered (existing behaviour). |
 
 Every Resend message carries the tags `app=swh` and `type=<type above>`, so Resend's logs can be filtered.
+
+## Daily guard
+
+Resend's free plan allows 100 e-mails a day. SWH counts every e-mail the provider accepted in the current UTC
+day (table `email_daily_counts`; if the database cannot be reached, a count in memory is used). Once 80 have gone
+out (`EMAIL_DAILY_NONESSENTIAL_STOP`), only **password-reset** e-mails are still sent until midnight UTC (05:30
+India time); welcome, sign-in alerts, product-registered and any reminder e-mails are skipped and logged as
+"daily guard". Password resets are never stopped by the guard, so the last 20 of the 100 are kept for them.
+Raise the threshold if you move to a paid Resend plan.
 
 ## Checks after deploy (owner)
 
