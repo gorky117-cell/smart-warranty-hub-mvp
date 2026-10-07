@@ -451,6 +451,36 @@ class CareGuideDB(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class CarePackDB(Base):
+    """Review state of a question-and-care pack (data/care_packs/<type>.json): draft or approved, with the
+    admin's edited copy if any. A pack without a row is a draft."""
+
+    __tablename__ = "care_packs"
+
+    product_type: Mapped[str] = mapped_column(String, primary_key=True)
+    status: Mapped[str] = mapped_column(String, default="draft")
+    content = Column(Text, nullable=True)  # edited pack JSON; NULL = the file as shipped
+    updated_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    approved_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
+class CarePackAnswerDB(Base):
+    """A customer's answer (or "skip") to a pack question, for one product."""
+
+    __tablename__ = "care_pack_answers"
+    __table_args__ = (UniqueConstraint("user_id", "warranty_id", "question_id", name="uq_care_pack_answer"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String, index=True)
+    warranty_id: Mapped[str] = mapped_column(String, index=True)
+    product_type: Mapped[str] = mapped_column(String, index=True)
+    question_id: Mapped[str] = mapped_column(String)
+    answer: Mapped[str] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class WarrantySummaryDB(Base):
     __tablename__ = "warranty_summaries"
 

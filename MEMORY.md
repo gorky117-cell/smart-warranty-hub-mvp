@@ -3430,3 +3430,26 @@ Branch `cloud/batch-2`, started from `cloud/batch-1` (PR #1 not merged yet), pul
   tests/test_invoice_field_floors.py. Before this change that test failed in the cloud container
   (product_category 22 < 26 with this Tesseract build); it passes now. Full suite with Tesseract installed:
   7 previously skipped OCR tests now run.
+
+## 103. Desktop batch 3: question and care packs (2026-10-07, branch desktop/batch-3 from cloud/batch-2)
+The owner's message for this batch arrived cut off: items 1-8 and 10 ("real Amazon invoice failures") and the
+invoice file name were missing, so only items 9 and 11 (packs + tests) are done; asked for the rest.
+- [x] 103.1 Framework + AC reference pack. One data file per product type, data/care_packs/<type>.json (no code
+  per product): questions (6-7, button answers, Skip, "why we ask", asked 3 at a time), care tips (6-10,
+  priority, trigger by answer / always / months owned, "why"; safety tips first for electric, gas, battery),
+  maintenance reminders ("about ..." + "check your manual"), risk factors (answers that raise/lower, reasons),
+  usual warranty structure (no numbers, "check your warranty card"), exclusions to look for, match keywords +
+  product lines. app/services/care_packs.py: validate() (shape + content rules: no digits in warranty parts or
+  exclusions, no warranty periods anywhere, no registry brand names, no repair instructions unless negated),
+  effective pack = admin edit (table care_packs) or the file; files are always draft; set_status()/save_edit()
+  audit-logged (care_pack_approve / _unapprove / _edit); match_type() (longest keyword, else product line);
+  answers in table care_pack_answers (skip stored, not asked again); insights() (triggered tips safety first then
+  priority, risk reasons, warranty parts, exclusions); group_counts() (consenting users only, groups >= 10).
+  Customer: GET /warranties/{id}/care-questions, POST /care-answers, GET /care-insights (approved packs only;
+  warranty access checked); dashboard card "A few questions about your product" + "What your answers mean",
+  usual warranty parts, things to look for; pack tips replace the general tips in /recommendations and appear
+  under "How to look after it". Reminders: approved pack reminders in refresh_care_reminders (same caps).
+  Admin: /ui/admin/care-packs (list, readable view, JSON edit -> back to draft, approve, back to draft, audit log),
+  GET/PUT /admin/care-packs[/{type}], POST .../approve|unapprove; OEM/admin GET /oem/care-packs/{type}/groups.
+  docs/CARE_PACKS_REVIEW.md from scripts/care_packs_review.py. New tables only (care_packs, care_pack_answers).
+  Tests: tests/test_care_packs.py (18 with the AC pack). Full suite 957 passed, 2 skipped.

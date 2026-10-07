@@ -1,0 +1,65 @@
+{
+  "product_type": "air_conditioner",
+  "label": "Air conditioner (split or window)",
+  "status": "draft",
+  "version": 1,
+  "hazards": ["electric"],
+  "match": {
+    "lines": ["air_conditioner"],
+    "keywords": ["air conditioner", "split ac", "window ac", "inverter ac", "portable ac", "tower ac", "cassette ac"]
+  },
+  "questions": [
+    {"id": "hours_per_day", "text": "On a typical summer day, how long does the AC run?", "why": "Long daily running wears parts faster and makes filter cleaning more important.",
+     "answers": [{"value": "under_4h", "label": "Less than 4 hours"}, {"value": "4_8h", "label": "4 to 8 hours"}, {"value": "over_8h", "label": "More than 8 hours"}]},
+    {"id": "filter_cleaning", "text": "How often are the filters cleaned?", "why": "Dirty filters make the AC work harder and cool less.",
+     "answers": [{"value": "every_2_weeks", "label": "Every 2 weeks or so"}, {"value": "monthly", "label": "About once a month"}, {"value": "rarely", "label": "Rarely or never"}]},
+    {"id": "voltage_issues", "text": "Does the power at home often dip, flicker or trip?", "why": "Unsteady power is a common cause of damage to the electronics and the compressor.",
+     "answers": [{"value": "often", "label": "Often"}, {"value": "sometimes", "label": "Sometimes"}, {"value": "rarely", "label": "Rarely"}]},
+    {"id": "stabilizer", "text": "Is the AC connected through a voltage stabilizer?", "why": "A stabilizer helps when the supply is unsteady (some inverter ACs have their own protection).",
+     "answers": [{"value": "yes", "label": "Yes"}, {"value": "no", "label": "No"}, {"value": "not_sure", "label": "Not sure"}]},
+    {"id": "outdoor_unit", "text": "Where is the outdoor unit placed?", "why": "An outdoor unit in direct sun or a closed space cannot release heat well.",
+     "answers": [{"value": "shaded_open", "label": "Shaded, open space"}, {"value": "direct_sun", "label": "In direct sun"}, {"value": "enclosed", "label": "In a closed or cramped space"}, {"value": "window_unit", "label": "It is a window AC"}]},
+    {"id": "last_service", "text": "When did the AC last have a service visit?", "why": "Regular service catches gas leaks and drain problems early.",
+     "answers": [{"value": "under_6m", "label": "Within the last 6 months"}, {"value": "6_12m", "label": "6 to 12 months ago"}, {"value": "over_12m", "label": "More than a year ago"}, {"value": "never", "label": "Never"}]},
+    {"id": "symptoms", "text": "Have you noticed water dripping indoors, weak cooling or unusual noise?", "why": "These are early signs that the AC needs a check.",
+     "answers": [{"value": "none", "label": "No"}, {"value": "dripping", "label": "Water dripping"}, {"value": "weak_cooling", "label": "Weak cooling"}, {"value": "noise", "label": "Unusual noise"}]}
+  ],
+  "care_tips": [
+    {"id": "power_off_cleaning", "safety": true, "priority": "HIGH", "text": "Switch off the AC at the wall before cleaning the filters.", "why": "Cleaning with the power on risks an electric shock.", "trigger": {"always": true}},
+    {"id": "no_opening", "safety": true, "priority": "HIGH", "text": "Don't open the indoor or outdoor unit yourself; leave repairs to the brand's service technicians.", "why": "The units carry high voltage and pressurised refrigerant.", "trigger": {"always": true}},
+    {"id": "clean_filters", "priority": "HIGH", "text": "Clean the filters regularly, more often when the AC runs many hours a day.", "why": "Clean filters keep the air flowing and the cooling strong.", "trigger": {"answers": {"filter_cleaning": ["monthly", "rarely"], "hours_per_day": ["over_8h"]}}},
+    {"id": "stable_power", "priority": "HIGH", "text": "Use a voltage stabilizer of the right rating if the power at home is unsteady.", "why": "Voltage swings can damage the electronics and the compressor.", "trigger": {"answers": {"voltage_issues": ["often", "sometimes"]}}},
+    {"id": "outdoor_space", "priority": "MEDIUM", "text": "Keep space around the outdoor unit clear and, if possible, shade it from direct sun.", "why": "The outdoor unit needs to release heat; blocked or sun-baked units work harder.", "trigger": {"answers": {"outdoor_unit": ["direct_sun", "enclosed"]}}},
+    {"id": "service_visit", "priority": "MEDIUM", "text": "Book a service visit with the brand's authorised service before the summer.", "why": "A service catches gas leaks, drain blockages and dirty coils early.", "trigger": {"answers": {"last_service": ["over_12m", "never"]}}},
+    {"id": "early_signs", "priority": "HIGH", "text": "If water drips indoors, cooling gets weak or you hear new noises, switch the AC off and contact the brand's service.", "why": "Running it with a fault can turn a small problem into a bigger one.", "trigger": {"answers": {"symptoms": ["dripping", "weak_cooling", "noise"]}}},
+    {"id": "set_temperature", "priority": "LOW", "text": "Set a moderate temperature rather than the lowest setting.", "why": "Very low settings keep the compressor running for longer.", "trigger": {"always": true}}
+  ],
+  "reminders": [
+    {"id": "filter_clean", "text": "Clean the AC filters (switch off at the wall first).", "interval_days": 14, "interval_text": "about every 2 weeks while in regular use", "note": "Check your manual for the interval for your model."},
+    {"id": "service_visit", "text": "Book an AC service visit.", "interval_days": 180, "interval_text": "about every 6 months", "note": "Check your manual and warranty card for the recommended service schedule."}
+  ],
+  "risk_factors": [
+    {"question": "hours_per_day", "answers": ["over_8h"], "effect": "raise", "reason": "Long daily running wears parts faster."},
+    {"question": "filter_cleaning", "answers": ["rarely"], "effect": "raise", "reason": "Dirty filters make the AC work harder."},
+    {"question": "voltage_issues", "answers": ["often"], "effect": "raise", "reason": "Frequent power dips or surges can damage the electronics."},
+    {"question": "stabilizer", "answers": ["yes"], "effect": "lower", "reason": "A stabilizer protects against unsteady power."},
+    {"question": "outdoor_unit", "answers": ["direct_sun", "enclosed"], "effect": "raise", "reason": "An outdoor unit that cannot release heat works harder."},
+    {"question": "last_service", "answers": ["under_6m"], "effect": "lower", "reason": "A recent service catches problems early."},
+    {"question": "last_service", "answers": ["over_12m", "never"], "effect": "raise", "reason": "Without service, gas leaks and drain blockages go unnoticed."},
+    {"question": "symptoms", "answers": ["dripping", "weak_cooling", "noise"], "effect": "raise", "reason": "These are early signs of a fault."}
+  ],
+  "warranty_structure": [
+    {"part": "Whole unit", "note": "Covered for a standard period - check your warranty card."},
+    {"part": "Compressor", "note": "Often has its own, separate period - check your warranty card."},
+    {"part": "Gas refill and PCB", "note": "Some brands cover these separately or for a shorter time - check your warranty card."},
+    {"part": "Installation", "note": "Cover may depend on installation by the brand's authorised installer - check your warranty card."}
+  ],
+  "exclusions_to_look_for": [
+    "Damage from voltage fluctuations or power surges",
+    "Installation or relocation by people the brand has not authorised",
+    "Gas refills or gas leaks",
+    "Damage to the outdoor unit from weather, rust or pests",
+    "Plastic parts, filters and remote controls",
+    "Use in commercial premises"
+  ]
+}

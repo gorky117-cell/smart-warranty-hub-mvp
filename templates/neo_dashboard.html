@@ -1148,6 +1148,12 @@
           <div class="helper"><a href="javascript:void(0)" data-role="open-fullview" data-target="advisories"
               data-title="Care tips">Open in full view</a></div>
         </details>
+        <details id="careQuestions" style="display:none;" open>
+          <summary>A few questions about your product</summary>
+          <div class="helper">Your answers tailor the care tips and reminders. Skip any you prefer not to answer.</div>
+          <div id="careQuestionList"></div>
+          <div id="careInsights" class="helper" style="margin-top:8px;"></div>
+        </details>
         <details id="myDocuments">
           <summary>My documents</summary>
           <div class="helper">Your bill, warranty card and photos for this product. Only you can see them.</div>
@@ -2112,6 +2118,61 @@
         status.textContent = '';
       });
 
+      // --- Question-and-care pack (approved packs only): 3 questions at a time, button answers, Skip ---
+      async function loadCareQuestions(warrantyId) {
+        const box = document.getElementById('careQuestions');
+        const list = document.getElementById('careQuestionList');
+        if (!box || !list || !warrantyId) return;
+        try {
+          const res = await fetch(`/warranties/${encodeURIComponent(warrantyId)}/care-questions`, { headers: h() });
+          const data = res.ok ? await res.json() : {};
+          if (!data.product_type) { box.style.display = 'none'; return; }
+          box.style.display = '';
+          list.innerHTML = (data.questions || []).length ? data.questions.map((q) => `
+            <div class="nudge" data-care-q="${escapeHtml(q.id)}" style="margin-bottom:8px;">
+              <strong>${escapeHtml(q.text)}</strong>
+              <div class="helper" style="font-size:12px;">Why we ask: ${escapeHtml(q.why)}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
+                ${q.answers.map((a) => `<button type="button" class="btn secondary" data-care-answer="${escapeHtml(a.value)}">${escapeHtml(a.label)}</button>`).join('')}
+                <button type="button" class="btn-ghost" data-care-answer="skip">Skip</button>
+              </div>
+            </div>`).join('') : '<div class="helper">Thanks - you have answered all the questions.</div>';
+          loadCareInsights(warrantyId);
+        } catch (e) {
+          box.style.display = 'none';
+        }
+      }
+
+      async function loadCareInsights(warrantyId) {
+        const el = document.getElementById('careInsights');
+        if (!el) return;
+        const res = await fetch(`/warranties/${encodeURIComponent(warrantyId)}/care-insights`, { headers: h() });
+        const data = res.ok ? await res.json() : {};
+        if (!data.product_type) { el.innerHTML = ''; return; }
+        const risks = (data.risk_reasons || []).map((r) => `<li>${r.effect === 'raise' ? 'Raises' : 'Lowers'} the chance of a problem: ${escapeHtml(r.reason)}</li>`).join('');
+        const parts = (data.warranty_structure || []).map((p) => `<li><strong>${escapeHtml(p.part)}:</strong> ${escapeHtml(p.note)}</li>`).join('');
+        const look = (data.exclusions_to_look_for || []).map((x) => `<li>${escapeHtml(x)}</li>`).join('');
+        el.innerHTML = (risks ? `<div><strong>What your answers mean</strong><ul>${risks}</ul></div>` : '')
+          + (parts ? `<div><strong>Usual warranty parts for this kind of product</strong><ul>${parts}</ul></div>` : '')
+          + (look ? `<div><strong>Look for these in your warranty terms</strong><ul>${look}</ul></div>` : '');
+      }
+
+      document.addEventListener('click', async (event) => {
+        const button = event.target.closest && event.target.closest('[data-care-answer]');
+        if (!button) return;
+        const card = button.closest('[data-care-q]');
+        const warrantyId = document.getElementById('docList')?.dataset.warrantyId || document.getElementById('warrantyId')?.value;
+        if (!card || !warrantyId) return;
+        await fetch(`/warranties/${encodeURIComponent(warrantyId)}/care-answers`, {
+          method: 'POST', headers: h({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ question_id: card.dataset.careQ, answer: button.dataset.careAnswer }),
+        });
+        card.remove();
+        if (!document.querySelector('[data-care-q]')) loadCareQuestions(warrantyId);
+        else loadCareInsights(warrantyId);
+        if (typeof fetchRecommendations === 'function') fetchRecommendations();
+      });
+
       // --- Your warranty in 5 lines (shown as soon as a product loads, e.g. right after an upload) ---
       async function loadFiveLines(warrantyId) {
         const box = document.getElementById('fiveLines');
@@ -2751,6 +2812,7 @@
           console.info('neo-dashboard: fetch recommendations', { warrantyId, userId });
           fetchRecommendations();
           loadFiveLines(warrantyId);
+          loadCareQuestions(warrantyId);
           loadDocuments(warrantyId);
           fetchResolutionChecklist();
           if (isEV) { fetchEvScore(); }
@@ -3277,7 +3339,7 @@
         const section = document.getElementById('careSection');
         const container = document.getElementById('advisories');
         if (!section || !container) return;
-        const list = (Array.isArray(tips) ? tips : []).filter((t) => t && t.action === 'oem_derived_care');
+        const list = (Array.isArray(tips) ? tips : []).filter((t) => t && (t.action === 'oem_derived_care' || t.action === 'care_pack'));
         if (!list.length) { section.style.display = 'none'; container.innerHTML = ''; return; }
         container.classList.remove('placeholder');
         container.innerHTML = list.map((t) => `<div class="nudge">

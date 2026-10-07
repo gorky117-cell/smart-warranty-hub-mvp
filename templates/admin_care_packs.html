@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Care packs - Smart Warranty Hub admin</title>
+  <style>
+    :root { --bg: #f5f7fb; --card: #fff; --ink: #0f172a; --muted: #475569; --line: #dbe2ee; --brand: #1d4ed8; --ok: #166534; --bad: #b3261e; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif; color: var(--ink); background: var(--bg); }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    .top { background: linear-gradient(120deg, #0f172a, #1e3a8a); color: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; }
+    .top h1 { margin: 0 0 4px; font-size: 1.2rem; } .top p { margin: 0; opacity: .85; font-size: .9rem; } .top a { color: #c7d2fe; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+    h2 { font-size: 1rem; margin: 0 0 10px; } h3 { font-size: .95rem; margin: 14px 0 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    th, td { text-align: left; border-bottom: 1px solid var(--line); padding: 6px 4px; vertical-align: top; }
+    tr.pick { cursor: pointer; } tr.pick:hover { background: #eef2ff; }
+    .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: .75rem; background: #e2e8f0; }
+    .pill.approved { background: #dcfce7; color: var(--ok); } .pill.draft { background: #fef3c7; color: #92400e; }
+    button { background: var(--brand); color: #fff; border: 0; border-radius: 8px; padding: 7px 12px; font: inherit; cursor: pointer; }
+    button.secondary { background: #e2e8f0; color: var(--ink); }
+    textarea { width: 100%; min-height: 320px; font-family: Consolas, monospace; font-size: .8rem; border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+    .status { margin-top: 8px; font-size: .9rem; } .status.ok { color: var(--ok); } .status.bad { color: var(--bad); }
+    .muted { color: var(--muted); font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <h1>Question and care packs</h1>
+      <p>Customers only see approved packs. Edit, check and approve each pack; every change is logged. <a href="/ui/admin-hub">Back to Admin Hub</a></p>
+    </div>
+    <div class="card">
+      <h2>Packs</h2>
+      <table><thead><tr><th>Product type</th><th>Status</th><th>Questions</th><th>Tips</th><th>Problems</th><th>Approved</th></tr></thead>
+        <tbody id="packList"><tr><td colspan="6">Loading...</td></tr></tbody></table>
+    </div>
+    <div class="card" id="detail" style="display:none;">
+      <h2 id="detailTitle"></h2>
+      <div id="detailStatus" class="muted"></div>
+      <div id="readable"></div>
+      <h3>Edit (JSON)</h3>
+      <textarea id="editor" spellcheck="false" aria-label="Pack JSON"></textarea>
+      <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+        <button type="button" id="saveBtn">Save edit (back to draft)</button>
+        <button type="button" id="approveBtn">Approve</button>
+        <button type="button" class="secondary" id="unapproveBtn">Back to draft</button>
+      </div>
+      <div id="status" class="status"></div>
+      <h3>Audit log</h3>
+      <div id="audit" class="muted"></div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const $ = (id) => document.getElementById(id);
+      let current = null;
+      function cookieValue(name) {
+        const hit = document.cookie.split('; ').find((c) => c.startsWith(name + '='));
+        return hit ? hit.split('=').slice(1).join('=') : '';
+      }
+      function headers(extra = {}) {
+        const out = { ...extra };
+        const csrf = cookieValue('csrf_token');
+        if (csrf) out['X-CSRF-Token'] = decodeURIComponent(csrf);
+        return out;
+      }
+      function esc(v) {
+        return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+
+      async function loadList() {
+        const data = await (await fetch('/admin/care-packs', { credentials: 'same-origin' })).json();
+        $('packList').innerHTML = (data.packs || []).map((p) => `<tr class="pick" data-type="${esc(p.product_type)}">
+          <td>${esc(p.label)}</td><td><span class="pill ${esc(p.status)}">${esc(p.status)}</span></td>
+          <td>${esc(p.questions)}</td><td>${esc(p.care_tips)}</td><td>${p.problems ? esc(p.problems) : 'none'}</td>
+          <td>${esc(p.approved_by || '')} ${esc((p.approved_at || '').slice(0, 10))}</td></tr>`).join('');
+      }
+
+      function readable(pack) {
+        const q = pack.questions.map((x) => `<tr><td>${esc(x.text)}</td><td>${esc(x.answers.map((a) => a.label).join(' / '))}</td><td>${esc(x.why)}</td></tr>`).join('');
+        const t = pack.care_tips.map((x) => `<tr><td>${x.safety ? '<strong>Safety</strong> ' : ''}${esc(x.text)}</td><td>${esc(x.priority)}</td><td>${esc(JSON.stringify(x.trigger))}</td><td>${esc(x.why)}</td></tr>`).join('');
+        return `<h3>Questions</h3><table><thead><tr><th>Question</th><th>Answers (+ Skip)</th><th>Why we ask</th></tr></thead><tbody>${q}</tbody></table>
+          <h3>Care tips</h3><table><thead><tr><th>Tip</th><th>Priority</th><th>Shown when</th><th>Why</th></tr></thead><tbody>${t}</tbody></table>`;
+      }
+
+      async function open(type) {
+        const data = await (await fetch(`/admin/care-packs/${encodeURIComponent(type)}`, { credentials: 'same-origin' })).json();
+        current = type;
+        const pack = data.pack;
+        $('detail').style.display = '';
+        $('detailTitle').textContent = pack.label;
+        $('detailStatus').innerHTML = `Status: <span class="pill ${esc(pack.status)}">${esc(pack.status)}</span>` +
+          (data.problems.length ? ` - problems: ${esc(data.problems.join('; '))}` : ' - no problems found');
+        $('readable').innerHTML = readable(pack);
+        const editable = { ...pack };
+        delete editable.approved_by; delete editable.approved_at;
+        $('editor').value = JSON.stringify(editable, null, 2);
+        $('audit').innerHTML = (data.audit || []).length
+          ? data.audit.map((a) => `${esc((a.at || '').replace('T', ' ').slice(0, 16))} - ${esc(a.action)} - ${esc(a.detail)}`).join('<br>')
+          : 'No changes yet.';
+      }
+
+      async function act(method, url, body) {
+        const status = $('status');
+        status.className = 'status';
+        status.textContent = 'Working...';
+        const res = await fetch(url, { method, credentials: 'same-origin', headers: headers(body ? { 'Content-Type': 'application/json' } : {}), body: body ? JSON.stringify(body) : undefined });
+        const data = await res.json().catch(() => ({}));
+        status.className = res.ok ? 'status ok' : 'status bad';
+        status.textContent = res.ok ? 'Saved.' : (typeof data.detail === 'string' ? data.detail : 'Could not save.');
+        if (res.ok) { await loadList(); await open(current); }
+      }
+
+      $('packList').onclick = (e) => { const row = e.target.closest('tr[data-type]'); if (row) open(row.dataset.type); };
+      $('saveBtn').onclick = () => {
+        let body;
+        try { body = JSON.parse($('editor').value); } catch (e) { $('status').className = 'status bad'; $('status').textContent = 'The JSON is not valid.'; return; }
+        act('PUT', `/admin/care-packs/${encodeURIComponent(current)}`, body);
+      };
+      $('approveBtn').onclick = () => act('POST', `/admin/care-packs/${encodeURIComponent(current)}/approve`);
+      $('unapproveBtn').onclick = () => act('POST', `/admin/care-packs/${encodeURIComponent(current)}/unapprove`);
+      loadList();
+    })();
+  </script>
+</body>
+</html>

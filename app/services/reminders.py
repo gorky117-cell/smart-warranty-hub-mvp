@@ -74,6 +74,7 @@ def refresh_care_reminders(db: Session, today: Optional[date] = None) -> Dict[st
     stats = {"created": 0, "no_interval": 0, "expired_or_unknown": 0, "held_back": 0}
     guides = db.query(CareGuideDB).all()
     if not guides:
+        stats["pack_created"] = _pack_reminders(db, now, stats)
         return stats
     for owner in db.query(WarrantyOwnerDB).all():
         w = db.query(WarrantyDB).filter_by(id=owner.warranty_id).first()
@@ -114,4 +115,42 @@ def refresh_care_reminders(db: Session, today: Optional[date] = None) -> Dict[st
                 )
                 if made:
                     stats["created"] += 1
+    stats["pack_created"] = _pack_reminders(db, now, stats)
     return stats
+
+
+def _pack_reminders(db: Session, now: datetime, stats: Dict[str, int]) -> int:
+    """Maintenance reminders from approved question-and-care packs (SWH wording, "about ..." intervals), with the
+    same limits: once per interval, weekly and daily caps, none for expired or undated products."""
+    from . import care_packs
+
+    created = 0
+    for owner in db.query(WarrantyOwnerDB).all():
+        w = db.query(WarrantyDB).filter_by(id=owner.warranty_id).first()
+        if not w:
+            continue
+        pack = care_packs.customer_pack(db, w)
+        if not pack:
+            continue
+        status = compute_warranty_status(purchase_date=w.purchase_date, coverage_months=w.coverage_months,
+                                         expiry_date=w.expiry_date, today=now.date())["status"]
+        if status not in ("active", "expiring_soon"):
+            continue
+        label = _product_label(w, w.id)
+        for reminder in pack["reminders"]:
+            ntype = f"care_pack_{pack['product_type']}_{reminder['id']}"
+            if _care_sent_since(db, owner.user_id, now - timedelta(days=int(reminder["interval_days"])), ntype, w.id).first():
+                continue
+            if (_care_sent_since(db, owner.user_id, now - timedelta(days=7)).count() >= care_weekly_cap()
+                    or reminders_today(db, owner.user_id) >= reminder_daily_cap()):
+                stats["held_back"] += 1
+                continue
+            made = create_notification(
+                db=db, user_id=owner.user_id, warranty_id=w.id, type=ntype,
+                title=f"Care reminder: {label}",
+                message=f"{reminder['text']} ({reminder['interval_text'].capitalize()}. {reminder['note']})",
+                severity="info",
+            )
+            if made:
+                created += 1
+    return created

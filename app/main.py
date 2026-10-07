@@ -574,6 +574,128 @@ def admin_oem_text(warranty_id: str, db=Depends(get_db), current: UserDB = Depen
             "source_url": (raw.alternatives or {}).get("terms_source_url")}
 
 
+class CareAnswerRequest(BaseModel):
+    question_id: str
+    answer: str
+
+
+@app.get("/warranties/{warranty_id}/care-questions", dependencies=[Depends(rbac_dependency)])
+def care_questions(warranty_id: str, db=Depends(get_db), current: UserDB = Depends(require_user)):
+    """Up to 3 unanswered questions from the product's approved pack (none when no pack is approved)."""
+    from .services import care_packs
+
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
+    warranty = db.query(WarrantyDB).filter_by(id=warranty_id).first()
+    if not warranty:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return care_packs.next_questions(db, current.username, warranty)
+
+
+@app.post("/warranties/{warranty_id}/care-answers", dependencies=[Depends(rbac_dependency)])
+def care_answer(warranty_id: str, payload: CareAnswerRequest, db=Depends(get_db), current: UserDB = Depends(require_user)):
+    from .services import care_packs
+
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
+    warranty = db.query(WarrantyDB).filter_by(id=warranty_id).first()
+    if not warranty:
+        raise HTTPException(status_code=404, detail="Product not found")
+    try:
+        return care_packs.record_answer(db, current.username, warranty, payload.question_id, payload.answer)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@app.get("/warranties/{warranty_id}/care-insights", dependencies=[Depends(rbac_dependency)])
+def care_insights(warranty_id: str, db=Depends(get_db), current: UserDB = Depends(require_user)):
+    """Tips, reminders, risk reasons, usual warranty parts and exclusions to look for, from an approved pack."""
+    from .services import care_packs
+
+    _require_warranty_access(db, user=current, warranty_id=warranty_id)
+    warranty = db.query(WarrantyDB).filter_by(id=warranty_id).first()
+    if not warranty:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return care_packs.insights(db, current.username, warranty)
+
+
+@app.get("/oem/care-packs/{product_type}/groups", dependencies=[Depends(require_oem_or_admin)])
+def care_pack_groups(product_type: str, db=Depends(get_db)):
+    """Anonymous answer counts (people who allow analytics; groups of 10 or more only)."""
+    from .services import care_packs
+
+    if product_type not in care_packs.product_types():
+        raise HTTPException(status_code=404, detail="Unknown product type")
+    return care_packs.group_counts(db, product_type)
+
+
+@app.get("/admin/care-packs")
+def admin_care_packs(db=Depends(get_db), current: UserDB = Depends(require_admin)):
+    from .services import care_packs
+
+    out = []
+    for ptype in care_packs.product_types():
+        pack = care_packs.effective(db, ptype)
+        out.append({"product_type": ptype, "label": pack["label"], "status": pack["status"],
+                    "questions": len(pack["questions"]), "care_tips": len(pack["care_tips"]),
+                    "problems": len(care_packs.validate(pack)), "approved_by": pack.get("approved_by"),
+                    "approved_at": pack.get("approved_at")})
+    return {"packs": out}
+
+
+@app.get("/admin/care-packs/{product_type}")
+def admin_care_pack(product_type: str, db=Depends(get_db), current: UserDB = Depends(require_admin)):
+    from .services import care_packs
+
+    pack = care_packs.effective(db, product_type)
+    if pack is None:
+        raise HTTPException(status_code=404, detail="Unknown product type")
+    return {"pack": pack, "problems": care_packs.validate(pack), "audit": care_packs.audit_log(db, product_type)}
+
+
+@app.put("/admin/care-packs/{product_type}")
+def admin_care_pack_edit(product_type: str, payload: Dict[str, Any] = Body(...), db=Depends(get_db),
+                         current: UserDB = Depends(require_admin)):
+    """Admin edit of a pack; it goes back to draft until approved again."""
+    from .services import care_packs
+
+    try:
+        return care_packs.save_edit(db, product_type, payload, admin=current.username)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@app.post("/admin/care-packs/{product_type}/approve")
+def admin_care_pack_approve(product_type: str, db=Depends(get_db), current: UserDB = Depends(require_admin)):
+    from .services import care_packs
+
+    try:
+        return care_packs.set_status(db, product_type, care_packs.APPROVED, admin=current.username)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@app.post("/admin/care-packs/{product_type}/unapprove")
+def admin_care_pack_unapprove(product_type: str, db=Depends(get_db), current: UserDB = Depends(require_admin)):
+    from .services import care_packs
+
+    try:
+        return care_packs.set_status(db, product_type, care_packs.DRAFT, admin=current.username)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@app.get("/ui/admin/care-packs")
+def admin_care_packs_ui(request: Request, current: Optional[UserDB] = Depends(get_current_user_optional)):
+    ui_redirect = _ensure_ui_oem_or_admin(request, current)
+    if ui_redirect:
+        return ui_redirect
+    if not current or current.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    from fastapi.responses import HTMLResponse
+
+    html_path = Path(__file__).resolve().parents[1] / "templates" / "admin_care_packs.html"
+    return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
+
+
 @app.get("/admin/care-guides")
 def admin_care_guides(db=Depends(get_db), current: UserDB = Depends(require_admin)):
     from .db_models import CareGuideDB
@@ -3704,6 +3826,20 @@ def get_recommendations(
             )
             if tips:
                 recs["product_recommendations"] = list(recs.get("product_recommendations") or []) + tips
+            # An approved question-and-care pack replaces the general tips for its product type.
+            from .services import care_packs
+
+            pack_view = care_packs.insights(db, uid, w)
+            if pack_view.get("product_type"):
+                general = [r for r in recs.get("product_recommendations") or [] if r.get("action") == "general_care"]
+                kept = [r for r in recs.get("product_recommendations") or [] if r.get("action") != "general_care"]
+                pack_tips = [{
+                    "product_id": f"care_pack_{pack_view['product_type']}_{t['id']}", "id": t["id"], "title": t["text"],
+                    "why": t["why"], "reason": t["why"], "description": t["why"], "risk_band": t["priority"],
+                    "priority": i + 1, "action": "care_pack", "source_label": "Smart Warranty Hub care tip",
+                    "safety": t["safety"], "category": pack_view["product_type"],
+                } for i, t in enumerate(pack_view["care_tips"])]
+                recs["product_recommendations"] = kept + pack_tips if pack_tips else kept + general
     if legacy:
         # legacy shape: just the recommendations list
         from fastapi.responses import JSONResponse
