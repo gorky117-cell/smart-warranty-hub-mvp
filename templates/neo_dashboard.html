@@ -160,6 +160,14 @@
       padding: 0 10px;
     }
 
+    mark.check-char {
+      background: #fde68a;
+      color: #78350f;
+      border-radius: 3px;
+      padding: 0 1px;
+      font-weight: 800;
+    }
+
     .icon-btn {
       width: 40px;
       height: 40px;
@@ -1088,6 +1096,7 @@
                 <button type="button" class="btn" id="serialConfirmBtn">Confirm</button>
                 <button type="button" class="btn secondary" id="serialDismissBtn">Not right</button>
               </div>
+              <div id="serialSuggestionReason" class="helper"></div>
               <div id="serialSuggestionStatus" class="helper"></div>
             </div>
             <div id="fieldSuggestions" class="helper" style="display:none;margin-top:8px;padding:8px;border:1px dashed #b98900;border-radius:8px;">
@@ -2995,13 +3004,31 @@
         `;
       }
 
+      // A code read from a scan/photo, with the characters OCR may have mixed up (O/0, I/1, S/5, B/8) highlighted.
+      function fillCheckedCode(el, value, positions) {
+        el.textContent = '';
+        const marks = new Set(Array.isArray(positions) ? positions : []);
+        Array.from(String(value || '')).forEach((ch, i) => {
+          if (marks.has(i)) {
+            const m = document.createElement('mark');
+            m.className = 'check-char';
+            m.textContent = ch;
+            m.title = 'Check this character';
+            el.appendChild(m);
+          } else {
+            el.appendChild(document.createTextNode(ch));
+          }
+        });
+      }
+
       function renderSerialSuggestion(w) {
         const box = document.getElementById('serialSuggestion');
         if (!box) return;
         const s = (w && w.alternatives && w.alternatives.serial_suggestion) || null;
         if (!s || s.status !== 'pending' || w.serial_no) { box.style.display = 'none'; return; }
-        document.getElementById('serialSuggestionValue').textContent = s.value || '';
+        fillCheckedCode(document.getElementById('serialSuggestionValue'), s.value || '', s.check_characters);
         document.getElementById('serialSuggestionLine').textContent = s.source_line ? `"${s.source_line}"` : '';
+        document.getElementById('serialSuggestionReason').textContent = s.check_characters ? (s.reason || '') : '';
         const input = document.getElementById('serialSuggestionInput');
         input.value = s.value || '';
         const statusEl = document.getElementById('serialSuggestionStatus');
@@ -3043,7 +3070,7 @@
           row.innerHTML = `<div>${escapeHtml(label)}: <code></code> <span class="helper fs-reason"></span></div>
             <input type="text" maxlength="40"> <button type="button" class="btn">Confirm</button>
             <button type="button" class="btn secondary">Not right</button> <span class="helper fs-status"></span>`;
-          row.querySelector('code').textContent = s.value || '';
+          fillCheckedCode(row.querySelector('code'), s.value || '', s.check_characters);
           row.querySelector('.fs-reason').textContent = s.reason || '';
           const input = row.querySelector('input');
           input.value = s.value || '';

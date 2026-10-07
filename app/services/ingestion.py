@@ -786,6 +786,33 @@ CONFUSABLE = set("O0I1S5B8")
 OCR_METHODS = {"tesseract", "paddle", "tesseract_fallback", "pdf_ocr", "ocr", "vision"}
 
 
+_SWAP = {"O": "0", "0": "O", "I": "1", "1": "I", "S": "5", "5": "S", "B": "8", "8": "B"}
+_MAX_VARIANT_POSITIONS = 10  # 2**10 readings at most
+
+
+def confusable_positions(value: str) -> List[int]:
+    """Indexes in the value as printed whose character OCR could have mixed up (shown highlighted to the customer)."""
+    return [i for i, ch in enumerate(str(value or "").upper()) if ch in CONFUSABLE]
+
+
+def known_reading(code: str, known: set) -> Optional[str]:
+    """The one known model that an O/0, I/1, S/5, B/8 mix-up of `code` would match, if exactly one does."""
+    code = re.sub(r"[^A-Z0-9]", "", str(code or "").upper())
+    positions = [i for i, ch in enumerate(code) if ch in CONFUSABLE]
+    if not code or not known or not positions or len(positions) > _MAX_VARIANT_POSITIONS:
+        return None
+    matches = set()
+    for mask in range(1, 2 ** len(positions)):
+        chars = list(code)
+        for bit, pos in enumerate(positions):
+            if mask >> bit & 1:
+                chars[pos] = _SWAP[chars[pos]]
+        candidate = "".join(chars)
+        if candidate in known:
+            matches.add(candidate)
+    return matches.pop() if len(matches) == 1 else None
+
+
 def from_ocr(ocr_meta: Optional[Dict[str, object]]) -> bool:
     """True when the text was read from a scan or photo (not a PDF text layer, .txt or .docx)."""
     return str((ocr_meta or {}).get("method") or "").lower() in OCR_METHODS
@@ -801,11 +828,14 @@ def route_confusable_codes(
 ) -> Tuple[Dict[str, str], Dict[str, float], Dict[str, object]]:
     """From a scan or photo, a model or serial containing O/0, I/1, S/5 or B/8 is saved as "please confirm"
     unless it can be validated: an IMEI that passes the Luhn check, or a model already known for the brand
-    (knowledge base or official terms cache). Text-layer PDFs and typed text are not affected."""
+    (knowledge base, official terms cache, or confirmed by customers). Text-layer PDFs and typed text are not
+    affected. The suggestion lists the characters to check; when exactly one mix-up reading is a known model,
+    that reading is offered (still to be confirmed) with what was read kept as `read_as`."""
     if not ocr:
         return fields, confidence, alternatives
     fields, confidence, alternatives = dict(fields), dict(confidence), dict(alternatives or {})
-    known = {re.sub(r"[^A-Z0-9]", "", str(m).upper()) for m in (known_models or set())}
+    known_display = {re.sub(r"[^A-Z0-9]", "", str(m).upper()): str(m).upper() for m in (known_models or set())}
+    known = set(known_display)
     for field, key in (("model_code", "model_suggestion"), ("serial_no", "serial_suggestion")):
         value = fields.get(field)
         if not value or float(confidence.get(field) or 0.0) >= 0.9:  # missing, or confirmed by the user
@@ -819,12 +849,24 @@ def route_confusable_codes(
             continue
         fields.pop(field, None)
         confidence.pop(field, None)
-        alternatives[key] = {
+        suggestion = {
             "value": value,
             "source_line": "",
             "status": "pending",
-            "reason": "Read from a scan or photo, where O/0, I/1, S/5 and B/8 are easy to mix up; please confirm.",
+            "reason": "Read from a scan or photo, where O/0, I/1, S/5 and B/8 are easy to mix up; "
+                      "please check the highlighted characters.",
+            "check_characters": confusable_positions(value),
         }
+        match = known_reading(code, known) if field == "model_code" else None
+        if match:
+            match = known_display.get(match, match)
+            suggestion.update({
+                "value": match,
+                "read_as": value,
+                "reason": f"We read {value}, which looks like {match}, a model we know for this brand; please confirm.",
+                "check_characters": confusable_positions(match),
+            })
+        alternatives[key] = suggestion
     return fields, confidence, alternatives
 
 

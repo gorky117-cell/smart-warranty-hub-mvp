@@ -60,3 +60,68 @@ def test_known_models_come_from_hand_checked_entries():
         db.commit()
         assert "AB1050" in known_models(db, "confusableco")
         assert known_models(db, None) == set()
+
+
+# Backlog #6: a better confirm step - characters to check, a known reading offered, customer-confirmed models.
+from app.db_models import WarrantyDB, WarrantyOwnerDB  # noqa: E402
+from app.services.ingestion import confusable_positions, known_reading  # noqa: E402
+
+
+def test_characters_to_check_are_listed():
+    assert confusable_positions("MTPO3HN/A") == [3]
+    assert confusable_positions("82RKOOVWIN") == [0, 4, 5, 8]
+    assert confusable_positions("KD-X74L") == []
+    _f, _c, alts = _route(model="MTPO3HN/A")
+    assert alts["model_suggestion"]["check_characters"] == [3]
+
+
+@pytest.mark.parametrize("read,known,expected", [
+    ("82RKOOVWIN", {"82RK00VWIN"}, "82RK00VWIN"),       # laptop: O read for 0
+    ("SMM17SF", {"SMM175F"}, "SMM175F"),               # phone: S read for 5
+    ("UA32T438OAKXXL", {"UA32T4380AKXXL"}, "UA32T4380AKXXL"),  # TV
+    ("AR18BY5ZABUNNA", {"AR188Y5ZABUNNA"}, "AR188Y5ZABUNNA"),  # AC: B read for 8
+    ("WA-H642", {"WAH642"}, None),                    # no confusable character in the difference
+    ("OB1", {"0B1", "081"}, None),                     # two known readings: do not pick one
+])
+def test_known_reading_only_when_exactly_one_matches(read, known, expected):
+    assert known_reading(read, known) == expected
+
+
+def test_a_known_reading_is_offered_but_still_confirmed():
+    fields, _c, alts = _route(model="82RKOOVWIN", known={"82RK00VWIN"})
+    assert "model_code" not in fields  # never stored without the customer
+    s = alts["model_suggestion"]
+    assert s["value"] == "82RK00VWIN" and s["read_as"] == "82RKOOVWIN" and s["status"] == "pending"
+    assert "looks like 82RK00VWIN" in s["reason"]
+    # Punctuation of the known model is kept for display.
+    _f, _c, alts = _route(model="SM-M17SF", known={"SM-M175F"})
+    assert alts["model_suggestion"]["value"] == "SM-M175F"
+
+
+def _owned(wid, user, brand, model, conf):
+    with SessionLocal() as db:
+        db.query(WarrantyOwnerDB).filter_by(warranty_id=wid).delete()
+        db.query(WarrantyDB).filter_by(id=wid).delete()
+        db.add(WarrantyDB(id=wid, brand=brand, model_code=model, confidence={"model_code": conf}, alternatives={}))
+        db.add(WarrantyOwnerDB(user_id=user, warranty_id=wid))
+        db.commit()
+
+
+def test_models_confirmed_by_two_customers_become_known():
+    brand = "ConfirmCo"
+    _owned("wty_cc_1", "cc_user_a", brand, "QX5O0", 0.95)
+    _owned("wty_cc_2", "cc_user_a", brand, "QX5O0", 0.95)  # same customer twice: still one
+    with SessionLocal() as db:
+        assert "QX5O0" not in known_models(db, brand)
+    _owned("wty_cc_3", "cc_user_b", brand, "QX5O0", 0.7)  # read by OCR, not confirmed
+    with SessionLocal() as db:
+        assert "QX5O0" not in known_models(db, brand)
+    _owned("wty_cc_4", "cc_user_c", brand, "QX5O0", 0.95)
+    with SessionLocal() as db:
+        assert "QX5O0" in known_models(db, "confirmco")
+        assert "QX5O0" not in known_models(db, "OtherCo")
+
+
+def test_dashboard_highlights_characters_to_check():
+    html = open("templates/neo_dashboard.html", encoding="utf-8").read()
+    assert "function fillCheckedCode" in html and "check_characters" in html and "mark.check-char" in html

@@ -3390,3 +3390,13 @@ Branch `cloud/batch-2`, started from `cloud/batch-1` (PR #1 not merged yet), pul
   limited in memory (logged by error class); RATE_LIMIT_BACKEND=memory restores the old in-process limiter.
   Not atomic across simultaneous requests: a burst can overshoot a limit by a few. Tests:
   tests/test_rate_limit_store.py (5: survives a restart, sliding window, hashed keys, database down, memory).
+- [x] 104.3 Backlog #6 better confirm step for codes read from scans/photos (general: any brand/product):
+  route_confusable_codes now adds check_characters (indexes of O/0, I/1, S/5, B/8) to the suggestion and the
+  dashboard highlights those characters (model and serial boxes, text built with DOM nodes). known_reading():
+  when exactly one mix-up reading of the code is a known model (2^n readings, at most 10 positions), the
+  suggestion offers that model (display form kept, e.g. SM-M175F) with read_as = what OCR read; it stays
+  pending - nothing is stored without the customer; two or more known readings -> no pick. known_models() also
+  counts model codes confirmed or typed (confidence >= 0.95) by at least 2 different customers for the brand,
+  so a model many people own stops needing confirmation. Tests: test_confusable_codes.py +12 (laptop, phone,
+  TV, AC readings; ambiguous; owner counting). Not measured: how many confirmations this saves on real invoices
+  (needs the owner's invoices); not browser-checked (render covered by a template test only).

@@ -24,8 +24,10 @@ session can do (one branch per batch, `cloud/batch-N`).
    accuracy is not measured yet).
 
 ## Next
-6. A better confirm step for models/serials read from scans/photos (today every confusable code is
-   "please confirm": many confirmations).
+6. [x] A better confirm step for models/serials read from scans/photos (cloud batch 2): the characters to check
+   are highlighted; when exactly one O/0, I/1, S/5, B/8 reading is a known model it is offered pre-filled (still
+   confirmed); models confirmed or typed by 2+ different customers for a brand count as known, so repeat
+   products need no confirmation. Next: measure how many confirmations remain on real invoices [NEEDS-KEYS].
 7. [NEEDS-KEYS] Keys: vision tier accuracy for unreadable photos and OpenAI-vs-Mistral comparison need API keys in
    the local `.env` (and `pip install -r requirements.txt` for the `openai` package).
 8. [GAURAV] Brand permissions for showing their wording (reuse policy), or legal advice on short quotes in
