@@ -154,6 +154,34 @@ def estimated_period_note(warranty, evidence: Optional[dict]) -> Optional[str]:
     return SPLIT_WARRANTY_TEXT if line in SPLIT_WARRANTY_LINES else UNKNOWN_PERIOD_TEXT
 
 
+CHECK_CARD_TEXT = "Check your warranty card"
+
+
+def confirmed_end_date(warranty, evidence: Optional[dict] = None) -> Optional[date]:
+    """The end date only when it is CONFIRMED: from the brand's terms, or stated on the card/invoice (or given by
+    the customer). Estimated or unknown -> None; reminders, notifications and the claim PDF then say
+    "Check your warranty card" and send no expiry reminder."""
+    if warranty is None:
+        return None
+    if evidence is None:
+        from .summary_engine import build_evidence_summary
+
+        try:
+            evidence = build_evidence_summary(warranty)
+        except Exception:
+            return None
+    if not period_is_fact(warranty, evidence):
+        return None
+    expiry = compute_warranty_status(
+        purchase_date=getattr(warranty, "purchase_date", None),
+        coverage_months=getattr(warranty, "coverage_months", None),
+        expiry_date=getattr(warranty, "expiry_date", None),
+    ).get("expiry_date_used")
+    if not expiry:
+        return None
+    return expiry if isinstance(expiry, date) and not isinstance(expiry, datetime) else datetime.fromisoformat(str(expiry)[:10]).date()
+
+
 def five_lines(warranty, evidence: Optional[dict] = None, document: Optional[dict] = None,
                invoice_text: str = "", today: Optional[date] = None) -> Dict:
     """The card: five lines (dates, covered, not covered, if it breaks, original document), extra lines for

@@ -82,8 +82,11 @@ def refresh_care_reminders(db: Session, today: Optional[date] = None) -> Dict[st
         found = care_guides.find(db, company=w.brand, model_code=w.model_code, product_name=w.product_name)
         if not found:
             continue
-        status = compute_warranty_status(purchase_date=w.purchase_date, coverage_months=w.coverage_months,
-                                         expiry_date=w.expiry_date, today=today)["status"]
+        from .warranty_card import confirmed_end_date
+
+        confirmed = confirmed_end_date(w)  # an estimated end date never decides whether reminders go out
+        status = compute_warranty_status(purchase_date=w.purchase_date, coverage_months=None,
+                                         expiry_date=confirmed, today=today)["status"] if confirmed else "unknown"
         if status not in ("active", "expiring_soon"):
             stats["expired_or_unknown"] += 1
             continue

@@ -15,7 +15,7 @@ def _seed(wid, **values):
         db.query(NotificationDB).filter_by(warranty_id=wid).delete()
         db.query(RiskSnapshotDB).filter_by(warranty_id=wid).delete()
         db.query(WarrantyDB).filter_by(id=wid).delete()
-        db.add(WarrantyDB(id=wid, product_name="Phone", alternatives={}, **values))
+        db.add(WarrantyDB(id=wid, product_name="Phone", alternatives={}, confidence={"coverage_months": 0.7}, **values))
         db.add(RiskSnapshotDB(user_id=USER, warranty_id=wid, risk_label="LOW", risk_score=0.1))
         db.commit()
 

@@ -287,20 +287,29 @@ def export_text(warranty, evidence: dict) -> str:
 
     from .warranty_status import compute_warranty_status
 
-    status = claim_wording(compute_warranty_status(
-        purchase_date=getattr(warranty, "purchase_date", None),
-        coverage_months=getattr(warranty, "coverage_months", None),
-        expiry_date=getattr(warranty, "expiry_date", None),
-    ), warranty)
-    expiry = getattr(warranty, "expiry_date", None) or status.get("expiry_date_used")
+    from .warranty_card import CHECK_CARD_TEXT, confirmed_end_date
+
+    # Only a CONFIRMED end date (brand's terms, or the card/invoice) goes into the claim pack; never an estimate.
+    confirmed = confirmed_end_date(warranty, evidence)
+    if confirmed:
+        status = claim_wording(compute_warranty_status(
+            purchase_date=getattr(warranty, "purchase_date", None),
+            coverage_months=getattr(warranty, "coverage_months", None),
+            expiry_date=confirmed,
+        ), warranty)
+        coverage = f"{getattr(warranty, 'coverage_months', None)} months" if getattr(warranty, "coverage_months", None) else "see end date"
+        dates = f"Coverage: {coverage}    Expiry: {fmt_date(confirmed)}"
+        claim = status.get("claim_message") or "Please check the dates on your invoice"
+    else:
+        dates = f"Coverage: {CHECK_CARD_TEXT.lower()}    Expiry: {CHECK_CARD_TEXT.lower()}"
+        claim = f"{CHECK_CARD_TEXT} for how long the warranty lasts before you claim."
     lines = [
         f"Product: {_product_title(warranty)}",
         f"Brand: {getattr(warranty, 'brand', None) or 'not known'}    Model: {getattr(warranty, 'model_code', None) or 'not known'}",
         f"Serial: {getattr(warranty, 'serial_no', None) or 'not confirmed'}",
         f"Purchase date: {fmt_date(getattr(warranty, 'purchase_date', None))}",
-        f"Coverage: {str(getattr(warranty, 'coverage_months', None)) + ' months' if getattr(warranty, 'coverage_months', None) else 'not confirmed'}"
-        f"    Expiry: {fmt_date(expiry)}",
-        f"Claim: {status.get('claim_message') or 'Please check the dates on your invoice'}",
+        dates,
+        f"Claim: {claim}",
         f"Support reference: Ref {support_ref(getattr(warranty, 'id', None))}",
         "",
         f"Evidence: {evidence.get('status_label') or evidence.get('status') or 'not confirmed'}",
@@ -309,6 +318,8 @@ def export_text(warranty, evidence: dict) -> str:
     ]
     for title, items in (("Coverage / terms", warranty.terms), ("Not covered", warranty.exclusions), ("How to claim", warranty.claim_steps)):
         items = [i for i in (items or []) if str(i).strip()]
+        if not confirmed and title == "Coverage / terms":
+            items = [i for i in items if not re.search(r"\d+\s*(?:months?|years?|yrs?)", str(i), re.IGNORECASE)]
         if items:
             lines += ["", f"{title}:"] + [f"- {i}" for i in items]
     lines += ["", EXPORT_DISCLAIMER]

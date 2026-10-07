@@ -17,7 +17,8 @@ TODAY = date.today()
 def _add(db, wid, *, brand, name, model, days_left, months=12):
     expiry = TODAY + timedelta(days=days_left)
     db.add(WarrantyDB(id=wid, brand=brand, product_name=name, model_code=model, purchase_date=datetime(2024, 1, 1),
-                      coverage_months=months, expiry_date=datetime.combine(expiry, datetime.min.time()), alternatives={}))
+                      coverage_months=months, expiry_date=datetime.combine(expiry, datetime.min.time()), alternatives={},
+                      confidence={"coverage_months": 0.7}))  # period printed on the invoice: a confirmed end date
     db.add(WarrantyOwnerDB(user_id=USER, warranty_id=wid))
 
 

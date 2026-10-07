@@ -3533,3 +3533,13 @@ missing, model none, seller "Page 1 Of 1, I-1/1", category "appliance", product 
   branch's function; absent here, so today every product says) "We can't rate this yet."; with answers the packs
   module's label and reasons are passed through; age note always. Dashboard badge: never "Low risk" without
   answers. Tests: tests/test_care_risk.py (11, with a stand-in packs module).
+- [x] 105.12 Backlog #24: warranty_card.confirmed_end_date(warranty, evidence) returns an end date only when the
+  period is a fact (brand's terms: confirmed or saved official copy; or stated on the card/invoice, or given by the
+  customer: coverage confidence >= 0.7). Used by: expiry reminders (notifications.create_expiry_notifications and
+  the daily sweep - estimated/unknown -> no reminder, no "Warranty ended" notice), care reminders (an estimated end
+  date never makes a product "active"; status unknown -> no care reminder), and the claim PDF text
+  (customer_content.export_text: "Coverage: check your warranty card / Expiry: check your warranty card", claim
+  line "Check your warranty card for how long the warranty lasts before you claim.", estimated term lines with
+  months/years left out). Existing reminder tests now mark their periods as printed on the invoice (confidence
+  0.7). Tests: tests/test_confirmed_end_dates.py (18: brand terms, invoice, customer, estimate, unknown source,
+  no dates, expired-by-estimate, care reminders, claim PDF text for each).

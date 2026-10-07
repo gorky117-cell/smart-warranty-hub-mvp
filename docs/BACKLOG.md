@@ -46,8 +46,8 @@ session can do (one branch per batch, `cloud/batch-N`).
 ## Known gaps
 23. "Please check these details" (model/serial to confirm) still sits inside the collapsed "More product details"
     on the dashboard; move it next to the 5 lines like the duplicate and region notices.
-24. The claim/summary PDF and reminders still use the stored (possibly estimated) expiry date; apply the
-    "no numbers for estimates" rule there too.
+24. [x] Reminders, notifications and the claim PDF use only confirmed end dates (cloud batch 3 review):
+    warranty_card.confirmed_end_date; estimated/unknown -> "Check your warranty card", no expiry reminder.
 22. ACs, fridges and washing machines share the invoice category "appliance" (default 24 months for all); give each
     product line its own category for defaults and lookups (docs/VOLTAS_DIAGNOSIS.md).
 20. [x] Per-user password salt (cloud batch 2): new hashes `pbkdf2_sha256$200000$<salt>$<hash>`; old shared-salt

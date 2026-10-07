@@ -194,6 +194,13 @@ def resolve_expiry_date(warranty: Optional[WarrantyDB]) -> Optional[date]:
     return None
 
 
+def confirmed_expiry_date(warranty: Optional[WarrantyDB]) -> Optional[date]:
+    """End date for reminders: only a confirmed one (brand's terms, or the card/invoice), never an estimate."""
+    from .warranty_card import confirmed_end_date
+
+    return confirmed_end_date(warranty)
+
+
 def _parse_expiry_stages() -> List[int]:
     raw = os.getenv("EXPIRY_REMINDER_STAGE_DAYS", "30,7,0")
     vals: Set[int] = set()
@@ -302,9 +309,9 @@ def create_expiry_notifications(
     """
     _ensure_schema(db)
     w = warranty or db.query(WarrantyDB).filter(WarrantyDB.id == warranty_id).first()
-    expiry_dt = resolve_expiry_date(w)
+    expiry_dt = confirmed_expiry_date(w)
     if not expiry_dt:
-        return []
+        return []  # estimated or unknown end date: no expiry reminder (the customer is told to check the card)
     days_left = (expiry_dt - date.today()).days
     ntype, title, message = _expiry_payload(days_left, expiry_dt, _product_label(w, warranty_id))
     if not ntype:
@@ -380,7 +387,7 @@ def refresh_expiry_notifications(db: Session) -> Dict[str, int]:
     for user_id, warranty_id in sorted(pairs):
         scanned += 1
         w = warranty_cache.get(warranty_id)
-        exp = resolve_expiry_date(w)
+        exp = confirmed_expiry_date(w)
         if not exp:
             skipped_no_expiry += 1
             continue
